@@ -1,0 +1,17 @@
+param int XMSS_FUNC = 0;
+param int XMSS_N = 64;
+param int XMSS_PADDING_LEN = 64;
+param int XMSS_WOTS_W = 16;
+param int XMSS_WOTS_LOG_W = 4;
+param int XMSS_WOTS_LEN1 = 128;
+param int XMSS_WOTS_LEN2 = 3;
+param int XMSS_WOTS_LEN = 131;
+param int XMSS_WOTS_SIG_BYTES = 8384;
+param int XMSS_FULL_HEIGHT = 20;
+param int XMSS_TREE_HEIGHT = 20;
+param int XMSS_D = 1;
+param int XMSS_INDEX_BYTES = 4;
+param int XMSS_SIG_BYTES = 9732;
+param int XMSS_PK_BYTES = 128;
+param int XMSS_SK_BYTES = 260;
+param int XMSS_BDS_K = 0;
