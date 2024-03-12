@@ -1,0 +1,62 @@
+inline fn __set_layer_addr(reg ptr u32[8] addr, reg u32 layer) -> reg ptr u32[8] {
+    addr[0] = layer;
+    return addr;
+}
+
+inline fn __set_tree_addr(reg ptr u32[8] addr, reg u64 tree) -> reg ptr u32[8] {
+    reg u64 t;
+
+    t = tree;
+    ?{}, t = #SHR(t, 32);
+
+    addr[1] = (32u) t;
+    addr[2] = (32u) tree;
+    return addr;
+}
+
+inline fn __set_type(reg ptr u32[8] addr, reg u32 type) -> reg ptr u32[8] {
+    addr[3] = type;
+    return addr;
+}
+
+inline fn __set_key_and_mask(reg ptr u32[8] addr, reg u32 key_and_mask) -> reg ptr u32[8] {
+    addr[7] = key_and_mask;
+    return addr;
+}
+
+inline fn __copy_subtree_addr(reg ptr u32[8] out, reg ptr u32[8] in) -> reg ptr u32[8] {
+    out[0] = in[0];
+    out[1] = in[1];
+    out[2] = in[2];
+    return out;
+}
+
+inline fn __set_ots_addr(reg ptr u32[8] addr, reg u32 ots) -> reg ptr u32[8] {
+    addr[4] = ots;
+    return addr;
+}
+
+inline fn __set_chain_addr(reg ptr u32[8] addr, reg u32 chain) -> reg ptr u32[8] {
+    addr[5] = chain;
+    return addr;
+}
+
+inline fn __set_hash_addr(reg ptr u32[8] addr, reg u32 hash) -> reg ptr u32[8] {
+    addr[6] = hash;
+    return addr;
+}
+
+inline fn __set_ltree_addr(reg ptr u32[8] addr, reg u32 ltree) -> reg ptr u32[8] {
+    addr[4] = ltree;
+    return addr;
+}
+
+inline fn __set_tree_height(reg ptr u32[8] addr, reg u32 tree_height) -> reg ptr u32[8] {
+    addr[5] = tree_height;
+    return addr;
+}
+
+inline fn __set_tree_index(reg ptr u32[8] addr, reg u32 tree_index) -> reg ptr u32[8] {
+    addr[6] = tree_index;
+    return addr;
+}
