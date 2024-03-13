@@ -1,0 +1,55 @@
+from XMSS require "utils/utils.jtmpl"
+
+export fn ull_to_bytes_jazz<OUTLEN>(reg u64 out_ptr in) {
+    stack u8[OUTLEN] out;
+    reg ptr u8[OUTLEN] out_p;
+    inline int i;
+
+    out_p = out;
+    out_p = __ull_to_bytes<OUTLEN>(out_p, in);
+    out = out_p;
+
+    for i=0 to OUTLEN { (u8) [out_ptr + i] = out[i]; }
+}//<>
+
+export fn bytes_to_ull_jazz<INLEN>(reg u64 in_ptr) -> reg u64 {
+    stack u8[INLEN] in;
+    reg ptr u8[INLEN] in_p;
+    inline int i;
+    reg u64 res;
+
+    for i=0 to INLEN { in[i] = (u8) [in_ptr + i]; }
+
+    in_p = in;
+    res = __bytes_to_ull<INLEN>(in_p);
+
+    return res;
+}//<>
+
+export fn zero_address_jazz(reg u64 addr_ptr) {
+    stack u32[8] addr;
+    reg ptr u32[8] addr_p;
+    inline int i;
+
+    for i=0 to 8 { addr[i] = (u32) [addr_ptr + 4*i]; }
+
+    addr_p = addr;
+    addr_p = __zero_address(addr_p);
+    addr = addr_p;
+
+    for i=0 to 8 { (u32) [addr_ptr + 4*i] = addr[i]; }
+}
+
+export fn memset_jazz<LEN>(reg u64 in_ptr, reg u8 val) {
+    stack u8[LEN] in;
+    reg ptr u8[LEN] in_p;
+    inline int i;
+
+    for i=0 to LEN { in[i] = (u8) [in_ptr + i]; }
+
+    in_p = in;
+    in_p = __memset<LEN>(in_p, val);
+    in = in_p;
+
+    for i=0 to LEN { (u8) [in_ptr + i] = in[i]; }
+}//<>

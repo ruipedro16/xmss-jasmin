@@ -7,4 +7,7 @@
 #define PASTE2(x, y, z) x##_##y##_##z
 #define NAMESPACE2(x, y, z) PASTE2(x, y, z)
 
+#define str(s) #s
+#define xstr(s) str(s)
+
 #endif
