@@ -1,0 +1,23 @@
+inline fn __memset_u8<INLEN>(reg ptr u8[INLEN] a, reg u8 value) -> reg ptr u8[INLEN] {
+    reg u64 i;
+
+    i = 0;
+    while (i < INLEN) {
+        a[i] = value;
+        i += 1;
+    }
+
+    return value;
+}//<>
+
+inline fn __memset_u8(reg ptr 64 a_ptr inlen, reg u8 value) {
+    reg u64 i _ptr;
+
+    _ptr = a_ptr;
+    i = 0;
+    while (i < inlen) {
+        (u8) [_ptr] = value;
+        _ptr += 1;
+        i += 1;
+    }
+}
