@@ -1,0 +1,38 @@
+from XMSS require "fips202/shake256_array/shake256.jtmpl"
+
+// Precondition: XMSS_N == 64 && XMSS_FUNC == XMSS_SHAKE256
+//             
+// OUTLEN = 64 I think
+inline fn __core_hash<OUTLEN, INLEN>(
+    reg ptr u8[OUTLEN] out, 
+    reg ptr u8[INLEN] in
+) -> reg ptr u8[OUTLEN] {
+    reg ptr u8[64] buf;
+
+    buf = out[0:64];
+    buf = __shake256<64,INLEN>(buf, in);
+    out[0:64] = buf;
+    
+    return out;
+}//<>
+
+fn _core_hash<OUTLEN, INLEN>(
+    reg ptr u8[OUTLEN] out,
+    reg ptr u8[INLEN] in
+) -> reg ptr u8[OUTLEN]
+{
+    out = __core_hash<OUTLEN, INLEN>(out, in);
+    return out;
+}//<>
+
+inline fn __core_hash_<OUTLEN, INLEN>(
+    reg ptr u8[OUTLEN] out,
+    reg ptr u8[INLEN] in
+) -> reg ptr u8[OUTLEN]
+{  
+    in = in; out = out;
+    out = _core_hash<OUTLEN, INLEN>(out, in);
+    out = out;
+    return out;
+}//<>
+

@@ -105,4 +105,5 @@ int main(void) {
     test_zero_address();
     test_memset();
     printf("Utils[INLEN=%s, OUTLEN=%s, LEN=%s]: OK\n", xstr(INLEN), xstr(OUTLEN), xstr(LEN));
+    return 0;
 }

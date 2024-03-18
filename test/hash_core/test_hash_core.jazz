@@ -1,0 +1,26 @@
+from XMSS require "core_hash/core_hash_shake256_out_64.jtmpl"
+
+export fn core_hash_shake256_out_64_jazz<INLEN>(reg u64 in_ptr out_ptr) {
+    stack u8[64] out;
+    stack u8[INLEN] in;
+
+    reg ptr u8[64] out_p;
+    reg ptr u8[INLEN] in_p;
+
+    inline int i;
+
+    () = #spill(out_ptr);
+
+    for i=0 to INLEN { in[i] = (u8)[in_ptr + i]; }
+
+    in_p = in;
+    out_p = out;
+
+    out_p = __core_hash_<64,INLEN>(out_p, in_p);
+    
+    out = out_p;
+
+    () = #unspill(out_ptr);
+
+    for i=0 to 64 { (u8)[out_ptr + i] = out[i]; }
+}//<>

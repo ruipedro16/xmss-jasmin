@@ -4,6 +4,27 @@
 
 #include "params.h"
 
+#ifdef DEBUG
+static int starts_with(const char *str, const char *prefix) { return strncmp(str, prefix, strlen(prefix)) == 0; }
+
+static void debug_print(const char *impl) {
+    if (!p) {
+        return;
+    }
+
+    xmss_params p;
+    uint32_t oid;
+
+    if (starts_with(impl, "XMSSMT")) {
+        xmssmt_str_to_oid(&oid, impl);  // TODO: Check this did not fail
+        xmssmt_parse_oid(&p, oid)
+    } else {
+        xmss_str_to_oid(&oid, impl);  // TODO: check this did not fail
+        xmss_parse_oid(&p, oid);
+    }
+}
+#endif
+
 static void print_param(FILE *f, const char *name, int value) { fprintf(f, "param int %s = %d;\n", name, value); }
 
 static void cleanup_file_path(char *filepath) {
@@ -36,12 +57,26 @@ static void print_xmss_params(const char *_impl, xmss_params *p) {
     cleanup_file_path(impl);
     snprintf(file_path, sizeof(file_path), "../params-%s.jinc", impl);
 
-    f = fopen(file_path, "w");
-
-    if (!f) {
+    if (!(f = fopen(file_path, "w"))) {
         fprintf(stderr, "Error opening file: %s\n", file_path);
         exit(-1);
     }
+
+    print_param(f, "XMSS_OID_LEN", 4);
+
+    print_param(f, "XMSS_SHA2", 0);
+    print_param(f, "XMSS_SHAKE128", 1);
+    print_param(f, "XMSS_SHAKE256", 2);
+
+    print_param(f, "XMSS_ADDR_TYPE_OTS", 0);
+    print_param(f, "XMSS_ADDR_TYPE_LTREE", 1);
+    print_param(f, "XMSS_ADDR_TYPE_HASHTREE", 2);
+
+    print_param(f, "XMSS_HASH_PADDING_F", 0);
+    print_param(f, "XMSS_HASH_PADDING_H", 1);
+    print_param(f, "XMSS_HASH_PADDING_HASH", 2);
+    print_param(f, "XMSS_HASH_PADDING_PRF", 3);
+    print_param(f, "XMSS_HASH_PADDING_PRF_KEYGEN", 4);
 
     print_param(f, "XMSS_FUNC", p->func);
     print_param(f, "XMSS_N", p->n);
@@ -106,8 +141,12 @@ int main(void) {
 
         if (xmss_parse_oid(&p, oid) != -1) {
             print_xmss_params(xmss_impls[i], &p);
+
+#ifdef DEBUG
+            debug_print(xmss_impls[i]);
+#endif
         } else {
-            fprintf(stderr, "Failed to parse oid for XMSSMT");
+            fprintf(stderr, "Failed to parse oid for XMSS");
         }
     }
 
@@ -116,10 +155,15 @@ int main(void) {
 
         if (xmssmt_parse_oid(&p, oid) != -1) {
             print_xmss_params(xmssmt_impls[i], &p);
+
+#ifdef DEBUG
+            debug_print(xmssmt_impls[i]);
+#endif
         } else {
             fprintf(stderr, "Failed to parse oid for XMSSMT");
         }
     }
 
+    puts("Generated param files");
     return 0;
 }
