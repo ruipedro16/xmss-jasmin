@@ -1,0 +1,44 @@
+inline fn __memcmp<INLEN>(reg ptr u8[INLEN] a, reg ptr u8[INLEN] b) -> reg u64 {
+    reg u64 i r;
+    reg u64 are_equal;
+    reg u8 t acc;
+    reg bool zf;
+
+    r = -1;
+
+    are_equal = 0;
+    acc = 0;
+  
+    i = 0;
+    while (i < INLEN) {
+        t = a[i];
+        t ^= b[i];
+        acc |= t;
+        i += 1;
+    }
+
+    ?{ zf } = #AND_8(acc, acc);
+    r = are_equal if zf;
+
+    return r;
+}//<>
+
+// FIXME: Preprocessor bug: without this annotations the preprocessor fails
+#[returnaddress="stack"]
+fn _memcmp<INLEN>(reg ptr u8[INLEN] a, reg ptr u8[INLEN] b) -> reg u64 {
+    reg u64 r;
+    r = __memcmp<INLEN>(a, b);
+    return r;
+}//<>
+
+inline fn __memcmp_<INLEN>(reg ptr u8[INLEN] a, reg ptr u8[INLEN] b) -> reg u64 {
+    reg u64 r;
+
+    a = a; b = b;
+
+    r = _memcmp<INLEN>(a, b);
+
+    r = r;
+
+    return r;
+}//<>

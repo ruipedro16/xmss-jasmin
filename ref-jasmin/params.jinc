@@ -1,0 +1,1 @@
+from XMSS require "params/params-xmss-shake_20_512.jinc"
