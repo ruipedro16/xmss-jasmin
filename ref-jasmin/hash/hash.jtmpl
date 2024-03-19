@@ -1,0 +1,282 @@
+from Stdlib require "memcpy/memcpy.jtmpl"
+from XMSS require "utils/utils.jtmpl"
+from XMSS require "params.jinc"
+from XMSS require "core_hash/core_hash_shake256_out_64.jtmpl" // TODO: Manage this in the Makefile
+
+inline fn __addr_to_bytes(
+    reg ptr u8[32] addr_as_bytes,
+    reg ptr u32[8] addr
+) -> reg ptr u8[32]
+{
+    inline int i;
+    reg u64 t;
+    reg ptr u8[4] buf; 
+
+    for i=0 to 8 {
+        t = (64u) addr[i];
+        buf = addr_as_bytes[4*i : 4];
+        buf = __ull_to_bytes<4>(buf, t);
+        addr_as_bytes[4*i : 4] = buf;
+    }
+
+    return addr_as_bytes;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __prf(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[32] in,
+    reg ptr u8[XMSS_N] key
+) -> reg ptr u8[XMSS_N]
+{
+    reg u64 offset;
+    stack u8[XMSS_PADDING_LEN + XMSS_N + 32] buf;
+    reg ptr u8[XMSS_PADDING_LEN + XMSS_N + 32] buf_p;
+    reg ptr u8[XMSS_PADDING_LEN] padding_buf;
+    
+    // ull_to_bytes(buf, params->padding_len, XMSS_HASH_PADDING_PRF);
+    padding_buf = buf[0:XMSS_PADDING_LEN];
+    padding_buf = __ull_to_bytes<XMSS_PADDING_LEN>(padding_buf, XMSS_HASH_PADDING_PRF);
+    buf[0:XMSS_PADDING_LEN] = padding_buf;
+
+    // memcpy(buf + params->padding_len, key, params->n);
+    buf_p = buf;
+    offset = XMSS_PADDING_LEN;
+    buf_p, _ = _x_memcpy_u8u8<XMSS_PADDING_LEN + XMSS_N + 32, XMSS_N>(buf_p, offset, key);
+
+    // memcpy(buf + params->padding_len + params->n, in, 32);
+    offset = XMSS_PADDING_LEN + XMSS_N;
+    buf_p, _ = _x_memcpy_u8u8<XMSS_PADDING_LEN + XMSS_N + 32, 32>(buf_p, offset, in);
+
+    // out = __core_hash_ <OUTLEN, XMSS_PADDING_LEN + XMSS_N + 32>(out, buf_p);
+    out = __core_hash<XMSS_N, XMSS_PADDING_LEN + XMSS_N + 32>(out, buf_p);
+
+    return out;
+}//<>
+
+fn _prf(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[32] in,
+    reg ptr u8[XMSS_N] key
+) -> reg ptr u8[XMSS_N]
+{
+    out = __prf(out, in, key);
+    return out;
+}//<>
+
+inline fn __prf_(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[32] in,
+    reg ptr u8[XMSS_N] key
+) -> reg ptr u8[XMSS_N]
+{
+    out = out; in = in; key = key;
+    out = _prf(out, in, key);
+    out = out;
+    return out;
+}//<>
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __prf_keygen(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[XMSS_N + 32] in,
+    reg ptr u8[XMSS_N] key
+) -> reg ptr u8[XMSS_N]
+{
+    stack u8[XMSS_PADDING_LEN + 2*XMSS_N + 32] buf;
+    reg ptr u8[XMSS_PADDING_LEN + 2*XMSS_N + 32] buf_p;
+    reg ptr u8[XMSS_PADDING_LEN] padding_buf;
+
+    reg u64 offset;
+
+    // ull_to_bytes(buf, params->padding_len, XMSS_HASH_PADDING_PRF_KEYGEN); 
+    padding_buf = buf[0:XMSS_PADDING_LEN];
+    padding_buf = __ull_to_bytes<XMSS_PADDING_LEN>(padding_buf, XMSS_HASH_PADDING_PRF_KEYGEN);
+    buf[0:XMSS_PADDING_LEN] = padding_buf;
+
+    // memcpy(buf + params->padding_len, key, params->n);
+    buf_p = buf;
+    offset = XMSS_PADDING_LEN;
+    buf_p, _ = _x_memcpy_u8u8<XMSS_PADDING_LEN + 2*XMSS_N + 32, XMSS_N>(buf_p, offset, key);
+
+    // memcpy(buf + params->padding_len + params->n, in, params->n + 32);
+    offset = XMSS_PADDING_LEN + XMSS_N;
+    buf_p, _ = _x_memcpy_u8u8<XMSS_PADDING_LEN + 2*XMSS_N + 32, XMSS_N + 32>(buf_p, offset, in);
+
+    // core_hash(params, out, buf, params->padding_len + 2*params->n + 32);
+    out = __core_hash_<XMSS_N, XMSS_PADDING_LEN + 2*XMSS_N + 32>(out, buf_p);
+
+    return out; 
+}
+
+fn _prf_keygen(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[XMSS_N + 32] in,
+    reg ptr u8[XMSS_N] key
+) -> reg ptr u8[XMSS_N]
+{
+    out = __prf_keygen(out, in, key);
+    return out;
+}
+
+inline fn __prf_keygen_(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[XMSS_N + 32] in,
+    reg ptr u8[XMSS_N] key
+) -> reg ptr u8[XMSS_N]
+{
+    out = out; in = in; key = key;
+    out = _prf_keygen(out, in, key);
+    out = out;
+    return out;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __hash_message<INLEN>(
+    reg ptr u8[XMSS_N] mhash,
+    reg ptr u8[XMSS_N] R,
+    reg ptr u8[XMSS_N] root,
+    reg u64 idx,
+    reg ptr u8[INLEN] m_with_prefix,
+) -> reg ptr u8[XMSS_N]
+{
+    reg u64 offset;
+
+    // ull_to_bytes(m_with_prefix, params->padding_len, XMSS_HASH_PADDING_HASH);
+    m_with_prefix[0:XMSS_HASH_PADDING_HASH] = __ull_to_bytes<XMSS_PADDING_LEN>(m_with_prefix[0:XMSS_HASH_PADDING_HASH], XMSS_HASH_PADDING_HASH);
+
+    // memcpy(m_with_prefix + params->padding_len, R, params->n);
+    offset = 0;
+    m_with_prefix[XMSS_HASH_PADDING_HASH : XMSS_N] = _x_memcpy_u8u8<XMSS_N, XMSS_N>(m_with_prefix[XMSS_HASH_PADDING_HASH : XMSS_N], offset, R);
+    
+    // memcpy(m_with_prefix + params->padding_len + params->n, root, params->n);
+    offset = 0;
+    m_with_prefix[XMSS_HASH_PADDING_HASH + XMSS_N : XMSS_N] = _x_memcpy_u8u8<XMSS_N, XMSS_N>(m_with_prefix[XMSS_HASH_PADDING_HASH + XMSS_N : XMSS_N], offset, root);
+
+
+    // ull_to_bytes(m_with_prefix + params->padding_len + 2*params->n, params->n, idx);
+    m_with_prefix[XMSS_HASH_PADDING_HASH + 2*XMSS_N : XMSS_N] = __ull_to_bytes<XMSS_N>(m_with_prefix[XMSS_HASH_PADDING_HASH + 2*XMSS_N : XMSS_N], idx);
+
+    // core_hash(params, out, m_with_prefix, mlen + params->padding_len + 3*params->n);
+    mhash = __core_hash_<XMSS_N, INLEN>(mhash, m_with_prefix);
+
+    return mhash;
+}//<>
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// NOTE: `in` and `out` are not necessarily disjoint in the reference implementation (e.g. in compute root)
+//       OUTLEN is probably XMSS_N
+inline fn __thash_h<OUTLEN, INLEN>(
+    reg ptr u8[OUTLEN] out,
+    reg ptr u8[INLEN] in,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[OUTLEN], reg ptr u32[8] 
+{
+    stack u8[XMSS_PADDING_LEN + 3*XMSS_N] buf;
+    stack u8[2*XMSS_N] bitmask;
+    stack u8[32] addr_as_bytes;
+
+    reg u8 t;
+    reg u64 i;
+
+    // ull_to_bytes(buf, params->padding_len, XMSS_HASH_PADDING_H);
+    buf[0:XMSS_PADDING_LEN] = __ull_to_bytes<XMSS_PADDING_LEN>(buf[0:XMSS_PADDING_LEN], XMSS_HASH_PADDING_H);
+
+    // set_key_and_mask(addr, 0);
+    addr = __set_key_and_mask(addr, 0);
+
+    // addr_to_bytes(addr_as_bytes, addr);
+    addr_as_bytes = __addr_to_bytes(addr_as_bytes, addr);
+
+    // prf(params, buf + params->padding_len, addr_as_bytes, pub_seed);
+    buf[XMSS_PADDING_LEN : XMSS_N] = __prf_(buf[XMSS_PADDING_LEN : XMSS_N], addr_as_bytes, pub_seed);:
+
+    // set_key_and_mask(addr, 1);
+    addr = __set_key_and_mask(addr, 1);
+
+    // addr_to_bytes(addr_as_bytes, addr);
+    addr_as_bytes = __addr_to_bytes(addr_as_bytes, addr);
+
+    // prf(params, bitmask, addr_as_bytes, pub_seed);
+    bitmask[0 : XMSS_N] = __prf_(bitmask[0 : XMSS_N], addr_as_bytes, pub_seed);
+
+    // set_key_and_mask(addr, 2);
+    addr = __set_key_and_mask(addr, 2);
+
+    // addr_to_bytes(addr_as_bytes, addr);
+    addr_as_bytes = __addr_to_bytes(addr_as_bytes, addr);
+
+    // prf(params, bitmask + params->n, addr_as_bytes, pub_seed);
+    bitmask[XMSS_N : XMSS_N] = __prf_(bitmask[XMSS_N : XMSS_N], addr_as_bytes, pub_seed);
+
+    i = 0;
+    while (i < 2 * XMSS_N) {
+        // buf[params->padding_len + params->n + i] = in[i] ^ bitmask[i];
+        t = in[i];
+        t ^= bitmask[i];
+        buf[XMSS_PADDING_LEN + XMSS_N + i] = t;
+        i += 1;
+    }
+
+    // core_hash(params, out, buf, params->padding_len + 3 * params->n);
+    out = __core_hash_<OUTLEN, XMSS_PADDING_LEN + 3*XMSS_N>(out, buf);
+
+    return out, addr;
+}//<>
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// NOTE: The `in` argument is not used in this function
+// TODO: This function is only used once (in wots), so it probabily does not need a template parameter
+inline fn __thash_f<OUTLEN>(
+    reg ptr u8[OUTLEN] out,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[OUTLEN], reg ptr u32[8] 
+{
+    stack u8[XMSS_PADDING_LEN + 2*XMSS_N] buf;
+    stack u8[XMSS_N] bitmask;
+    stack u8[32] addr_as_bytes;
+
+    reg u8 t;
+    reg u64 i;
+
+    // ull_to_bytes(buf, params->padding_len, XMSS_HASH_PADDING_F);
+    buf[0:XMSS_PADDING_LEN] = __ull_to_bytes<XMSS_PADDING_LEN>(buf[0:XMSS_PADDING_LEN], XMSS_HASH_PADDING_F);
+
+    // set_key_and_mask(addr, 0);
+    addr = __set_key_and_mask(addr, 0);
+
+    // addr_to_bytes(addr_as_bytes, addr);
+    addr_as_bytes = __addr_to_bytes(addr_as_bytes, addr);
+
+    // prf(params, buf + params->padding_len, addr_as_bytes, pub_seed);
+    buf[XMSS_PADDING_LEN : XMSS_N] = __prf_(buf[XMSS_PADDING_LEN : XMSS_N], addr_as_bytes, pub_seed);:
+
+    // set_key_and_mask(addr, 1);
+    addr = __set_key_and_mask(addr, 1);
+
+    // addr_to_bytes(addr_as_bytes, addr);
+    addr_as_bytes = __addr_to_bytes(addr_as_bytes, addr);
+
+    // prf(params, bitmask, addr_as_bytes, pub_seed);
+    bitmask = __prf_(bitmask, addr_as_bytes, pub_seed);
+
+    i = 0;
+    while (i < XMSS_N) {
+        // buf[params->padding_len + params->n + i] = in[i] ^ bitmask[i];
+        t = in[i];
+        t ^= bitmask[i];
+        buf[XMSS_PADDING_LEN + XMSS_N + i] = t;
+        i += 1;
+    }
+
+    //core_hash(params, out, buf, params->padding_len + 2 * params->n);
+    out = __core_hash_<OUTLEN, XMSS_PADDING_LEN + 2*XMSS_N>(out, buf);
+    return out, addr;
+}//<>
