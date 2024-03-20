@@ -19,10 +19,18 @@
 #error INLEN not defined
 #endif
 
+#ifndef MAX_LEN
+#define MAX_LEN 1024
+#endif
+
+// bytes
+
 #define bytes_to_ull_jazz NAMESPACE1(bytes_to_ull_jazz, INLEN)
 extern uint64_t bytes_to_ull_jazz(const uint8_t *);
-
 extern uint64_t bytes_to_ull_ptr_jazz(const uint8_t *, size_t);
+
+// memcpy
+extern void memcpy_u8pu8p_jazz(uint8_t *, size_t, const uint8_t *, size_t, size_t);
 
 void test_bytes_to_ull(void) {
     bool debug = true;
@@ -72,9 +80,64 @@ void test_bytes_to_ull_ptr(void) {
     }
 }
 
+void test_memcpy_u8pu8p(void) {
+#define _TESTS 100
+
+    bool debug = true;
+
+    uint8_t in[MAX_LEN];
+    uint8_t out_ref[MAX_LEN], out_jazz[MAX_LEN];
+    size_t offset_out, offset_in;
+    size_t len;
+
+    for (int i = 0; i < _TESTS; i++) {
+        for (size_t inlen = 1; inlen < MAX_LEN; inlen++) {
+            for (size_t outlen = 1; outlen < MAX_LEN; outlen++) {
+                randombytes(in, inlen);
+                memset(out_ref, 0, outlen);
+                memset(out_jazz, 0, outlen);
+
+                offset_in = rand() % inlen;
+                offset_out = rand() % outlen;
+                len = rand() % (inlen - offset_in);
+
+                // Adjust len to ensure it fits within the output length
+                if (len > outlen - offset_out) {
+                    len = outlen - offset_out;
+                }
+
+                // ensure we dont read out of bounds
+                assert(offset_out + len <= outlen);
+                assert(offset_in + len <= inlen);
+
+                if (debug) {
+                    printf(
+                        "[memcpy_u8pu8p (INLEN=%ld;OUTLEN=%ld) : (offset_in=%ld;offset_out=%ld;len=%ld)]\tTest %d/%d\n",
+                        inlen, outlen, offset_in, offset_out, len, i, _TESTS);
+                }
+
+                memcpy(out_ref + offset_out, in + offset_in, len);
+                memcpy_u8pu8p_jazz(out_jazz, offset_out, in, offset_in, len);
+
+                if (memcmp(out_ref, out_jazz, outlen) != 0) {
+                    print_str_u8("in", in, inlen);
+                    printf("\n\noffset_out = %ld ; offset_in = %ld, len = %ld\n\n", offset_out, offset_in, len);
+                    print_str_u8("out ref", out_ref, outlen);
+                    print_str_u8("out jazz", out_jazz, outlen);
+                }
+
+                assert(memcmp(out_ref, out_jazz, outlen) == 0);
+            }
+        }
+    }
+
+#undef _TESTS
+}
+
 int main(void) {
     test_bytes_to_ull();
     test_bytes_to_ull_ptr();
+    test_memcpy_u8pu8p();
     printf("Utils [INLEN=%d]: OK\n", INLEN);
     return 0;
 }

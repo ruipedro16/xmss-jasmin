@@ -1,4 +1,7 @@
 from XMSS require "utils/utils.jtmpl" // TODO: Move to Stdlib/bytes
+from Stdlib require "memcpy/memcpy.jtmpl"
+
+/////////////////////////////////////////////////////////////////////// BYTES
 
 export fn bytes_to_ull_jazz<INLEN>(reg u64 in_ptr) -> reg u64 {
     stack u8[INLEN] in;
@@ -20,4 +23,10 @@ export fn bytes_to_ull_ptr_jazz(reg u64 in_ptr inlen) -> reg u64 {
     reg u64 res;
     res = __bytes_to_ull_ptr(in_ptr, inlen);
     return res;
+}
+
+/////////////////////////////////////////////////////////////////////// MEMCPY
+
+export fn memcpy_u8pu8p_jazz(reg u64 out_ptr offset_out in_ptr offset_in len) {
+    _, _, _ = _x__memcpy_u8pu8p(out_ptr, offset_out, in_ptr, offset_in, len);
 }
