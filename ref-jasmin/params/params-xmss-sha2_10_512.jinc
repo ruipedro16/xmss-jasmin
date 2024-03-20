@@ -10,6 +10,7 @@ param int XMSS_HASH_PADDING_H = 1;
 param int XMSS_HASH_PADDING_HASH = 2;
 param int XMSS_HASH_PADDING_PRF = 3;
 param int XMSS_HASH_PADDING_PRF_KEYGEN = 4;
+param int XMSS_OID = 4;
 param int XMSS_FUNC = 0;
 param int XMSS_N = 64;
 param int XMSS_PADDING_LEN = 64;

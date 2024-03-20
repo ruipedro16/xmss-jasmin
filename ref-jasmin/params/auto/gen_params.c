@@ -16,11 +16,26 @@ static void debug_print(const char *impl) {
     uint32_t oid;
 
     if (starts_with(impl, "XMSSMT")) {
-        xmssmt_str_to_oid(&oid, impl);  // TODO: Check this did not fail
-        xmssmt_parse_oid(&p, oid)
+        if (xmssmt_str_to_oid(&oid, impl) == -1) {
+            fprintf(stderr, "Failed to get oid from str\n");
+            exit(-1);
+        }
+
+        if (xmssmt_parse_oid(&p, oid) == -1) {
+            fprintf(stderr, "Failed to get params from oid\n");
+            exit(-1);
+        }
+
     } else {
-        xmss_str_to_oid(&oid, impl);  // TODO: check this did not fail
-        xmss_parse_oid(&p, oid);
+        if (xmss_str_to_oid(&oid, impl) == -1) {
+            fprintf(stderr, "Failed to get oid from str\n");
+            exit(-1);
+        }
+
+        if (xmss_parse_oid(&p, oid) == -1) {
+            fprintf(stderr, "Failed to get params from oid\n");
+            exit(-1);
+        }
     }
 }
 #endif
@@ -44,7 +59,7 @@ static void cleanup_file_path(char *filepath) {
     }
 }
 
-static void print_xmss_params(const char *_impl, xmss_params *p) {
+static void print_xmss_params(const char *_impl, xmss_params *p, uint32_t oid) {
     if (!p || !_impl) {
         return;
     }
@@ -78,6 +93,7 @@ static void print_xmss_params(const char *_impl, xmss_params *p) {
     print_param(f, "XMSS_HASH_PADDING_PRF", 3);
     print_param(f, "XMSS_HASH_PADDING_PRF_KEYGEN", 4);
 
+    print_param(f, "XMSS_OID", oid);
     print_param(f, "XMSS_FUNC", p->func);
     print_param(f, "XMSS_N", p->n);
     print_param(f, "XMSS_PADDING_LEN", p->padding_len);
@@ -140,7 +156,7 @@ int main(void) {
         xmss_str_to_oid(&oid, xmss_impls[i]);
 
         if (xmss_parse_oid(&p, oid) != -1) {
-            print_xmss_params(xmss_impls[i], &p);
+            print_xmss_params(xmss_impls[i], &p, oid);
 
 #ifdef DEBUG
             debug_print(xmss_impls[i]);
@@ -154,7 +170,7 @@ int main(void) {
         xmssmt_str_to_oid(&oid, xmssmt_impls[i]);
 
         if (xmssmt_parse_oid(&p, oid) != -1) {
-            print_xmss_params(xmssmt_impls[i], &p);
+            print_xmss_params(xmssmt_impls[i], &p, oid);
 
 #ifdef DEBUG
             debug_print(xmssmt_impls[i]);
