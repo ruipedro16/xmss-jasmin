@@ -1,5 +1,5 @@
 from XMSS require "fips202/common/fips202_common.jinc" // KECCAK1600_RC
-require "spec_keccakf1600.jinc" // __rhotates_spec
+require "spec_keccakf1600.jinc"
 
 // C[x] = A[x,0] ^ A[x,1] ^ A[x,2] ^ A[x,3] ^ A[x,4]
 inline fn __theta_sum_ref1(reg ptr u64[25] a) -> reg u64[5]
