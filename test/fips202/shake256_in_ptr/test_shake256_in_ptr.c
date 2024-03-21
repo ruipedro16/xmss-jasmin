@@ -27,7 +27,7 @@
 
 extern void shake256_jazz(uint8_t *out, const uint8_t *in, size_t inlen);
 
-int main() {
+int main(void) {
     bool debug = true;
 
     uint8_t out_jazz[OUTLEN], out_ref[OUTLEN];

@@ -5,27 +5,28 @@
 AS       ?= as
 CC       ?= clang
 CFLAGS   ?= -Wall -g -O3 -Wextra -Wpedantic
+LDLIBS   = -lcrypto
 
 JASMIN   ?= jasminc
 JFLAGS   ?= ${JADDFLAGS}
-JINCLUDE ?= -I XMSS:../../../ref-jasmin/
+JINCLUDE ?= -I XMSS:../../ref-jasmin/
 
-JPP          ?= ../../../scripts/jasmin-preprocessor/jpp
-PREPROCESSOR ?= ../../../scripts/jasmin-preprocessor/preprocessor
+JPP          ?= ../../scripts/jasmin-preprocessor/jpp
+PREPROCESSOR ?= ../../scripts/jasmin-preprocessor/preprocessor
 
 # --------------------------------------------------------------------------------------------------
 
-OUTLEN_LIST ?= 1 31 32 33 63 64 65 95 96 97 127 128 129 135 136 137 159 160 \
+INLEN_LIST ?= 1 31 32 33 63 64 65 95 96 97 127 128 129 135 136 137 159 160 \
 161 191 192 193 223 224 225 255 256 257 270 271 272
 
-TLIST := $(OUTLEN_LIST)
+TLIST := $(INLEN_LIST)
 
 # --------------------------------------------------------------------------------------------------
 
-TESTS := $(addprefix bin/test_fips202_, $(TLIST))
+TESTS := $(addprefix bin/test_core_hash_, $(TLIST))
 OUT   := $(addsuffix .out, $(TESTS))
 
-GET_OUTLEN  = $(word 3, $(subst _, ,$*))
+GET_INLEN   = $(word 4, $(subst _, ,$*))
 
 # --------------------------------------------------------------------------------------------------
 
@@ -46,17 +47,18 @@ checkct: $(CHECKCT_FILES)
 
 # --------------------------------------------------------------------------------------------------
 
-SOURCES := test_shake256_in_ptr.c ../../../xmss-reference/fips202.c \
-           ../../common/notrandombytes.c ../../common/print.c
+REF_SOURCES := $(filter-out %xmss_core_fast.c,$(filter-out %randombytes.c, $(wildcard ../../xmss-reference/*.c)))
+
+SOURCES := test_core_hash.c ../common/notrandombytes.c ../common/print.c
 
 # --------------------------------------------------------------------------------------------------
 
 $(JPP_FILES):
 .PRECIOUS: bin/%.jpp
 bin/%.jpp: | bin/
-	cp test_shake256_in_ptr.jazz $@
+	cp test_core_hash.jazz $@
 	$(JPP) $(JINCLUDE) -in $@ -out $@
-	$(PREPROCESSOR) --input_file $@ --output_file $@ --task "fn:shake256 p:OUTLEN:$(GET_OUTLEN)"
+	$(PREPROCESSOR) --input_file $@ --output_file $@ --task "fn:core_hash p:INLEN:$(GET_INLEN)"
 
 $(ASM_FILES):
 .PRECIOUS: bin/%.s
@@ -65,8 +67,8 @@ bin/%.s: bin/%.jpp
 
 $(TESTS):
 bin/%: bin/%.s | bin/
-	$(CC) $(CFLAGS) -o $@ -DOUTLEN=$(GET_OUTLEN) -DINLEN=$(GET_INLEN) \
-	-I../../common -I../../../xmss-reference/ $(SOURCES) $<
+	$(CC) $(CFLAGS) -o $@ -DIMPL=XMSS-SHAKE_20_512 -DINLEN=$(GET_INLEN) -I../common -I../../xmss-reference/ \
+	$(REF_SOURCES) $(SOURCES) $< $(LDLIBS)
 
 $(OBJ_FILES):
 bin/%.o: bin/%.s

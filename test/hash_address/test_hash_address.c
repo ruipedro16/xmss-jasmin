@@ -358,7 +358,7 @@ void test_set_tree_index(void) {
     }
 }
 
-int main() {
+int main(void) {
     test_set_layer_addr();
     test_set_tree_addr();
     test_set_type();

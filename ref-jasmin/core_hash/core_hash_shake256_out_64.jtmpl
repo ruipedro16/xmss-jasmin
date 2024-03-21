@@ -1,3 +1,4 @@
+from XMSS require "fips202/shake256_in_ptr/shake256_in_ptr.jtmpl"
 from XMSS require "fips202/shake256_array/shake256.jtmpl"
 
 // Precondition: XMSS_N == 64 && XMSS_FUNC == XMSS_SHAKE256
@@ -36,3 +37,40 @@ inline fn __core_hash_<OUTLEN, INLEN>(
     return out;
 }//<>
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __core_hash_in_ptr<OUTLEN>(
+    reg ptr u8[OUTLEN] out, 
+    reg u64 in_ptr inlen
+) -> reg ptr u8[OUTLEN] {
+    reg ptr u8[64] buf;
+
+    buf = out[0:64];
+    buf = __shake256_in_ptr_<64>(buf, in_ptr, inlen);
+    out[0:64] = buf;
+    
+    return out;
+}//<>
+
+fn _core_hash_in_ptr<OUTLEN>(
+    reg ptr u8[OUTLEN] out,
+    reg u64 in_ptr inlen
+) -> reg ptr u8[OUTLEN]
+{
+    out = __core_hash_in_ptr<OUTLEN>(out, in_ptr, inlen);
+    return out;
+}//<>
+
+inline fn __core_hash_in_ptr_<OUTLEN>(
+    reg ptr u8[OUTLEN] out,
+    reg u64 in_ptr inlen
+) -> reg ptr u8[OUTLEN]
+{  
+    // FIXME: Not enough registers to do these assignments
+    out = out;
+    in_ptr = in_ptr;
+    inlen = inlen;
+    out = _core_hash_in_ptr<OUTLEN>(out, in_ptr, inlen);
+    out = out;
+    return out;
+}//<>
