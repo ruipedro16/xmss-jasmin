@@ -1,8 +1,7 @@
 #!/bin/bash
 
 dirs=(
-    # fips202
-    # "stdlib"
+    "stdlib"
     "fips202/shake256_ptr" 
     "fips202/shake256_array"
     # "fips202/shake256_in_ptr"

@@ -1,0 +1,29 @@
+
+from XMSS require "fips202/common/fips202_common.jinc"
+from XMSS require "fips202/shake256_ptr/keccak1600.jinc"
+from XMSS require "fips202/shake256_array/keccak1600.jtmpl"
+
+inline fn __shake256_in_ptr_<OUTLEN>(
+    reg ptr u8[OUTLEN] out, 
+    reg u64 in_ptr inlen
+) -> reg ptr u8[OUTLEN] 
+{
+    stack u64[25] state;
+    reg ptr u64[25] state_p;
+
+    reg u64 rate offset;
+    reg u8 trail_byte;
+
+    state_p = state;
+    state_p = __keccak_init(state_p);
+    
+    trail_byte = 0x1F;
+    rate = (1088/8);
+
+    state_p, rate = __absorb_ref1(state_p, in_ptr, inlen, trail_byte, rate);
+
+    offset = 0;
+    out, _ = __squeeze<OUTLEN>(state_p, out, offset, rate);
+
+    return out;
+}//<>

@@ -30,10 +30,9 @@ int main(void) {
     uint8_t *out_jazz;
 
     for (int i = 0; i < TESTS; i++) {
-        printf("Test %d\n", i);
         for (size_t inlen = 0; inlen < MAX_INLEN; inlen++) {
             for (size_t outlen = 0; outlen < MAX_OUTLEN; outlen++) {
-                printf("INLEN: %ld OUTLEN: %ld\n", inlen, outlen);
+                printf("[Test %d/%d]: INLEN: %ld OUTLEN: %ld\n", i, TESTS, inlen, outlen);
                 in = malloc(inlen);
                 out_ref = malloc(outlen);
                 out_jazz = malloc(outlen);
