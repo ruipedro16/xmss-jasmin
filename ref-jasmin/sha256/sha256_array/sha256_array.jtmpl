@@ -1,0 +1,18 @@
+from XMSS require "sha256/common/sha256_common.jinc"
+
+inline fn __store_ref_array(reg ptr u8[32] out, stack u32[8] H) -> reg ptr u8[32]
+{
+  inline int i;
+  reg u32 v;
+
+  for i=0 to 8
+  { v = H[i];
+    v = #BSWAP_32(v);
+    // (u32)[out + i*4] = v;
+    out[u32 i] = v;
+  }
+
+  return out;
+}
+
+// TODO:

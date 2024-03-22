@@ -28,11 +28,13 @@ int main(void) {
     for (int i = 0; i < TESTS; i++) {
         for (size_t inlen = 0; inlen < MAX_INLEN; inlen++) {
             if (debug) {
-                printf("[sha256]: Test %d/%d (INLEN=%ld)\n", i, TESTS, inlen);
+                printf("[sha256_ptr]: Test %d/%d (INLEN=%ld)\n", i, TESTS, inlen);
             }
 
             sha256_jazz(out_jazz, in, inlen);
             SHA256((unsigned char *)in, inlen, (unsigned char *)out_ref);
+
+            assert(memcmp(out_jazz, out_jazz, SHA256_DIGEST_LENGTH) == 0);
         }
     }
 

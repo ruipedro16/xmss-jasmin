@@ -66,11 +66,9 @@ inline fn __core_hash_in_ptr_<OUTLEN>(
     reg u64 in_ptr inlen
 ) -> reg ptr u8[OUTLEN]
 {  
-    // FIXME: Not enough registers to do these assignments
     out = out;
     in_ptr = in_ptr;
     inlen = inlen;
     out = _core_hash_in_ptr<OUTLEN>(out, in_ptr, inlen);
-    out = out;
     return out;
 }//<>

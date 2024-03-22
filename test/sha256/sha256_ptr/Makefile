@@ -9,7 +9,7 @@ LDLIBS   = -lcrypto
 
 JASMIN   ?= jasminc
 JFLAGS   ?= ${JADDFLAGS}
-JINCLUDE ?= -I XMSS:../../ref-jasmin/
+JINCLUDE ?= -I XMSS:../../../ref-jasmin/
 
 # --------------------------------------------------------------------------------------------------
 
@@ -25,7 +25,7 @@ bin/%.s: %.jazz | bin/
 	$(JASMIN) $(JFLAGS) $(JINCLUDE) $< -o $@
 
 bin/%: bin/%.s | bin/
-	$(CC) $(CFLAGS) -o $@ -I../common ../common/notrandombytes.c test_sha256.c $< $(LDLIBS)
+	$(CC) $(CFLAGS) -o $@ -I../../common ../../common/notrandombytes.c test_sha256.c $< $(LDLIBS)
 
 %.o: %.s
 	$(AS) $< -o $@

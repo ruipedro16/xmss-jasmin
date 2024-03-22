@@ -135,36 +135,43 @@ inline fn __prf_keygen_(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline fn __hash_message<INLEN>(
+inline fn __hash_message(
     reg ptr u8[XMSS_N] mhash,
     reg ptr u8[XMSS_N] R,
     reg ptr u8[XMSS_N] root,
     reg u64 idx,
-    reg ptr u8[INLEN] m_with_prefix,
+    reg u64 m_with_prefix_ptr mlen
 ) -> reg ptr u8[XMSS_N]
 {
-    reg u64 offset;
+    reg u64 offset len;
+    stack u8[XMSS_PADDING_LEN] buf;
+    stack u8[XMSS_N] buf_n;
 
     // ull_to_bytes(m_with_prefix, params->padding_len, XMSS_HASH_PADDING_HASH);
-    m_with_prefix[0:XMSS_HASH_PADDING_HASH] = __ull_to_bytes<XMSS_PADDING_LEN>(m_with_prefix[0:XMSS_HASH_PADDING_HASH], XMSS_HASH_PADDING_HASH);
+    buf = __ull_to_bytes<XMSS_PADDING_LEN>(buf, XMSS_HASH_PADDING_HASH);
+
+    offset = 0;
+    m_with_prefix_ptr, offset = _x_memcpy_u8pu8<XMSS_PADDING_LEN>(m_with_prefix_ptr, offset, buf);
 
     // memcpy(m_with_prefix + params->padding_len, R, params->n);
-    offset = 0;
-    m_with_prefix[XMSS_HASH_PADDING_HASH : XMSS_N] = _x_memcpy_u8u8<XMSS_N, XMSS_N>(m_with_prefix[XMSS_HASH_PADDING_HASH : XMSS_N], offset, R);
+    offset = XMSS_PADDING_LEN;
+    m_with_prefix_ptr, offset = _x_memcpy_u8pu8<XMSS_N>(m_with_prefix_ptr, offset, R);
     
     // memcpy(m_with_prefix + params->padding_len + params->n, root, params->n);
-    offset = 0;
-    m_with_prefix[XMSS_HASH_PADDING_HASH + XMSS_N : XMSS_N] = _x_memcpy_u8u8<XMSS_N, XMSS_N>(m_with_prefix[XMSS_HASH_PADDING_HASH + XMSS_N : XMSS_N], offset, root);
-
+    offset = XMSS_PADDING_LEN + XMSS_N;
+    m_with_prefix_ptr, offset = _x_memcpy_u8pu8<XMSS_N>(m_with_prefix_ptr, offset, root);
 
     // ull_to_bytes(m_with_prefix + params->padding_len + 2*params->n, params->n, idx);
-    m_with_prefix[XMSS_HASH_PADDING_HASH + 2*XMSS_N : XMSS_N] = __ull_to_bytes<XMSS_N>(m_with_prefix[XMSS_HASH_PADDING_HASH + 2*XMSS_N : XMSS_N], idx);
+    buf_n = __ull_to_bytes<XMSS_N>(buf_n, idx);
+    offset = XMSS_PADDING_LEN + 2*XMSS_N;
+    m_with_prefix_ptr, offset = _x_memcpy_u8pu8<XMSS_N>(m_with_prefix_ptr, offset, buf_n);
 
     // core_hash(params, out, m_with_prefix, mlen + params->padding_len + 3*params->n);
-    mhash = __core_hash_<XMSS_N, INLEN>(mhash, m_with_prefix);
-
+    len = mlen;
+    len += XMSS_PADDING_LEN + 3*XMSS_N;
+    mhash = __core_hash_in_ptr_<XMSS_N>(mhash, m_with_prefix_ptr, len);
     return mhash;
-}//<>
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
