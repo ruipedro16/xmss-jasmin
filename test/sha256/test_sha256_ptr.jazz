@@ -1,0 +1,9 @@
+from XMSS require "sha256/sha256_ptr.jinc"
+
+export fn sha256_jazz(reg u64 hash input input_length) -> reg u64
+{
+  reg u64 r;
+  __sha256_ref(hash, input, input_length);
+  ?{}, r = #set0();
+  return r;
+}

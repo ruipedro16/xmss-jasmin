@@ -269,3 +269,36 @@ inline fn _x__memcpy_u8pu8p(
 
     return out_ptr, out_offset, in_offset;
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __memcpy_u8pu8<INLEN>(reg u64 out offset, reg ptr u8[INLEN] in) -> reg u64, reg u64 {
+    reg u64 i;
+
+    i = 0;
+    while (i < INLEN) {
+        (u8) [out + offset] = in[i];
+        offset += 1;
+        i += 1;
+    }
+
+    return out, offset;
+}//<>
+
+#[returnaddress="stack"]
+fn _memcpy_u8pu8<INLEN>(reg u64 out offset, reg ptr u8[INLEN] in) -> reg u64, reg u64 {
+    out, offset = __memcpy_u8pu8<INLEN>(out, offset, in);
+    return out, offset;
+}//<>
+
+inline fn _x_memcpy_u8pu8<INLEN>(reg u64 out offset, reg ptr u8[INLEN] in) -> reg u64, reg u64 {
+    out = out;
+    offset = offset;
+    in = in;
+
+    out, offset = _memcpy_u8pu8<INLEN>(out, offset, in);
+
+    out = out;
+    offset = offset;
+    return out, offset;
+}//<>

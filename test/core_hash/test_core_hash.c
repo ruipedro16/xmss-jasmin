@@ -6,8 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "hash.h"
 #include "fips202.h"
+#include "hash.h"
 #include "macros.h"
 #include "params.h"
 #include "print.h"
