@@ -33,7 +33,7 @@ inline fn __core_hash_<OUTLEN, INLEN>(
 {  
     in = in; out = out;
     out = _core_hash<OUTLEN, INLEN>(out, in);
-    out = out;
+    // out = out;
     return out;
 }//<>
 

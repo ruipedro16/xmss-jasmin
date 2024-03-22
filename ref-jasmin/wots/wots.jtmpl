@@ -1,0 +1,164 @@
+from Stdlib require "conditions/conditions.jinc"
+
+from XMSS require "hash_address/hash_address.jinc"
+from XMSS require "hash/hash.jtmpl"
+
+inline fn __expand_seed(
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] outseeds,
+    reg ptr u8[XMSS_N] inseed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]
+{  
+    stack u8[XMSS_N + 32] buf;
+
+    reg ptr u8[XMSS_N] seed_buf;
+
+    reg u32 chain;
+    reg u64 offset;
+    inline int i;
+
+    () = #spill(outseeds);
+
+    // set_hash_addr(addr, 0);
+    // set_key_and_mask(addr, 0);
+    addr = __set_hash_addr(addr, 0);
+    addr = __set_key_and_mask(addr, 0);
+
+    () = #spill(inseed, addr);
+
+    // memcpy(buf, pub_seed, params->n);
+    offset = 0;
+    buf[0 : XMSS_N], _ = _x_memcpy_u8u8<XMSS_N, XMSS_N>(buf[0 : XMSS_N], offset, pub_seed);
+
+    for i=0 to XMSS_WOTS_LEN {
+        // set_chain_addr(addr, i);
+        () = #unspill(addr);
+        chain = i;
+        addr = __set_chain_addr(addr, chain);
+        
+        // addr_to_bytes(buf + params->n, addr);
+        buf[XMSS_N : 32] = __addr_to_bytes(buf[XMSS_N : 32], addr);
+
+        () = #spill(addr);
+
+        // prf_keygen(params, outseeds + i*params->n, buf, inseed);
+        () = #unspill(outseeds, inseed);
+        seed_buf = outseeds[i * XMSS_N : XMSS_N];
+        seed_buf = __prf_keygen_(seed_buf, buf, inseed);
+        outseeds[i * XMSS_N : XMSS_N] = seed_buf;
+        () = #spill(outseeds);
+    }
+    
+    () = #unspill(addr, outseeds);
+    return outseeds, addr;
+}
+
+fn _expand_seed(
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] outseeds,
+    reg ptr u8[XMSS_N] inseed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]
+{
+    outseeds, addr = __expand_seed(outseeds, inseed, pub_seed, addr);
+    return outseeds, addr;
+}
+
+inline fn __expand_seed_(
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] outseeds,
+    reg ptr u8[XMSS_N] inseed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]
+{
+    outseeds = outseeds;
+    inseed = inseed;
+    pub_seed = pub_seed;
+    addr = addr;
+
+    outseeds, addr = _expand_seed(outseeds, inseed, pub_seed, addr);
+    
+    outseeds = outseeds;
+    addr = addr;
+
+    return outseeds, addr;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// NOTE: `in` and `out` are not necessarily disjoint (e.g. in wots_pkgen, in and out point to the 
+//        same memory region)
+inline fn __gen_chain(
+    reg ptr u8[XMSS_N] out, 
+    reg u64 in_ptr,
+    reg u32 start, reg u32 steps, 
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8]
+{
+    reg bool cond;
+    reg u32 i t;
+
+    // memcpy(out, in, params->n);
+    out, _ = _x_memcpy_u8u8p<XMSS_N>(out, 0, in_ptr, XMSS_N);
+
+    () = #spill(pub_seed, addr, out);
+
+    // for (i = start; i < (start+steps) && i < params->wots_w; i++)
+    i = start;
+    t = start;
+    t += steps; 
+    while {
+      // i < (start+steps) && i < XMSS_WOTS_W
+      cond = __cond_u32_a_below_b_and_a_below_c(i, t, XMSS_WOTS_W);
+    } (cond) {
+        () = #spill(i, t);
+
+        // set_hash_addr(addr, i);
+        () = #unspill(addr);
+        addr = __set_hash_addr(addr, i);
+
+        // thash_f(params, out, out, pub_seed, addr);
+        () = #unspill(pub_seed, out);
+        out, addr  = __thash_f(out, pub_seed, addr);
+
+        () = #spill(addr, out);
+
+        () = #unspill(i, t);
+        i += 1;
+    }
+
+    () = #unspill(addr);
+
+    return out, addr;
+}
+
+fn _gen_chain(reg ptr u8[XMSS_N] out, reg u64 in, reg u32 start, 
+                       reg u32 steps, reg ptr u8[XMSS_N] pub_seed,
+                       reg ptr u32[8] addr) -> reg ptr u8[XMSS_N], reg ptr u32[8]
+{
+    out, addr = __gen_chain(out, in, start, steps, pub_seed, addr);
+    return out, addr;
+}
+
+inline fn __gen_chain_(reg ptr u8[XMSS_N] out, reg u64 in, reg u32 start, 
+                       reg u32 steps, reg ptr u8[XMSS_N] pub_seed,
+                       reg ptr u32[8] addr) -> reg ptr u8[XMSS_N], reg ptr u32[8]
+{
+    out = out;
+    in = in;
+    start = start;
+    steps = steps;
+    pub_seed = pub_seed;
+    addr = addr;
+
+    out, addr = _gen_chain(out, in, start, steps, pub_seed, addr);
+    
+    out = out;
+    addr = addr;
+
+    return out, addr;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
