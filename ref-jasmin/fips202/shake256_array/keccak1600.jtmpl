@@ -1,5 +1,5 @@
 from XMSS require "fips202/common/fips202_common.jinc"
-require "keccakf1600.jinc"
+from XMSS require "fips202/common/keccakf1600.jinc"
 
 inline fn __add_full_block<INLEN>(
   reg ptr u64[25] state,

@@ -1,5 +1,5 @@
 from XMSS require "fips202/common/fips202_common.jinc"
-require "keccakf1600.jinc"
+from XMSS require "fips202/common/keccakf1600.jinc"
 
 inline fn __add_full_block_ref1(
   reg ptr u64[25] state,
@@ -83,7 +83,7 @@ inline fn __absorb_ref1(
     s_inlen = inlen; 
     s_rate = rate;
 
-    state = _keccakf1600_ref1(state);
+    state = _keccakf1600_(state);
 
     in = s_in;
     inlen = s_inlen;
@@ -171,7 +171,7 @@ inline fn __squeeze_ref1(
     s_outlen = outlen;
     s_rate = rate;
 
-    state = _keccakf1600_ref1(state);
+    state = _keccakf1600_(state);
 
     out = s_out;
     outlen = s_outlen;
@@ -183,7 +183,7 @@ inline fn __squeeze_ref1(
 
   s_outlen = outlen;
 
-  state = _keccakf1600_ref1(state);
+  state = _keccakf1600_(state);
 
   out = s_out;
   outlen = s_outlen;

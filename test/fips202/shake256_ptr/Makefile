@@ -12,7 +12,7 @@ JINCLUDE ?= -I XMSS:../../../ref-jasmin/
 
 # --------------------------------------------------------------------------------------------------
 
-SOURCES := test_shake256_ptr.c ../../../xmss-reference/fips202.c
+SOURCES := test_shake256_ptr.c ../../fips202.c
 
 # --------------------------------------------------------------------------------------------------
 
@@ -28,7 +28,7 @@ bin/test_shake256_ptr.s: test_shake256_ptr.jazz | bin/
 	$(JASMIN) $(JFLAGS) $(JINCLUDE) $< -o $@
 
 bin/test_shake256_ptr: bin/test_shake256_ptr.s | bin/
-	$(CC) $(CFLAGS) -o $@ -I../../common -I../../../xmss-reference/ $(SOURCES) $<
+	$(CC) $(CFLAGS) -o $@ -I../../common -I../../ $(SOURCES) $<
 
 %.o: %.s
 	$(AS) $< -o $@
