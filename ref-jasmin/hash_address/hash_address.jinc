@@ -1,3 +1,18 @@
+fn _zero_address(reg ptr u32[8] addr) -> reg ptr u32[8] {
+    inline int i;
+    for i=0 to 8/2 { addr[u64 i] = 0; }
+    return addr;
+}
+
+inline fn __zero_address(reg ptr u32[8] addr) -> reg ptr u32[8] {
+    addr = addr;
+    addr = _zero_address(addr);
+    addr = addr;
+    return addr;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 inline fn __set_layer_addr(reg ptr u32[8] addr, reg u32 layer) -> reg ptr u32[8] {
     addr[0] = layer;
     return addr;

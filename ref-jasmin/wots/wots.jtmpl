@@ -162,3 +162,184 @@ inline fn __gen_chain_(reg ptr u8[XMSS_N] out, reg u64 in, reg u32 start,
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __base_w<OUTLEN, INLEN>(
+  reg ptr u32[OUTLEN] output,
+  reg ptr u8[INLEN] input
+) -> reg ptr u32[OUTLEN]
+{
+    reg u64 in out;
+    reg u8 total;
+    reg u32 total_32;
+    reg u64 bits consumed;
+
+    in = 0;
+    out  = 0;
+    bits = 0;
+
+    // for (consumed = 0; consumed < out_len; consumed++) 
+    consumed = 0;
+    while (consumed < OUTLEN)
+    {
+        // if (bits == 0) { total = input[in]; in++; bits += 8; }
+        if (bits == 0) 
+        {
+          total = input[in];
+          in += 1;
+          bits += 8;
+        }   
+
+        // bits -= params->wots_log_w;
+        bits -= XMSS_WOTS_LOG_W;
+    
+        // output[out] = (total >> bits) & (params->wots_w - 1);
+        total_32 = (32u) total;
+        ?{}, total_32 = #SHR_32(total_32, bits);
+        total_32 &= (XMSS_WOTS_W - 1);
+        output[out] = total_32;
+
+      // out++;
+      out += 1;
+      consumed += 1;
+    }
+
+    return output;
+}//<>
+
+fn _base_w<OUTLEN, INLEN>(
+    reg ptr u32[OUTLEN] output,
+    reg ptr u8[INLEN] input
+) -> reg ptr u32[OUTLEN]
+{
+    output = __base_w<OUTLEN, INLEN>(output, input);
+    return output;
+}//<>
+
+inline fn __base_w_<OUTLEN, INLEN>(
+    reg ptr u32[OUTLEN] output,
+    reg ptr u8[INLEN] input
+) -> reg ptr u32[OUTLEN]
+{
+    output = output;
+    input = input;
+
+    output = _base_w<OUTLEN, INLEN>(output, input);
+
+    output = output;
+
+    return output;
+}//<>
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// NOTE: This is different from the Sphincs+ implementation
+inline fn __wots_checksum(
+    reg ptr u32[XMSS_WOTS_LEN2] csum_base_w,
+    reg ptr u32[XMSS_WOTS_LEN] msg_base_w
+) -> reg ptr u32[XMSS_WOTS_LEN2]
+{
+    stack u8[(XMSS_WOTS_LEN2 * XMSS_WOTS_LOG_W + 7) / 8] csum_bytes;
+    reg ptr u8[(XMSS_WOTS_LEN2 * XMSS_WOTS_LOG_W + 7) / 8] csum_bytes_p;
+
+    reg u64 i;
+    reg u64 csum t u;
+
+    inline int k;
+
+    csum = 0;
+
+    // for (i = 0; i < params->wots_len1; i++) { csum += params->wots_w - 1 - msg_base_w[i]; }
+    i = 0;
+    while (i < XMSS_WOTS_LEN1) 
+    {
+      t = XMSS_WOTS_W - 1;
+      u = (64u) msg_base_w[i];
+      t -= u; 
+      csum += t;
+      i += 1;
+    }
+
+    // csum = csum << (8 - ((params->wots_len2 * params->wots_log_w) % 8));
+    k = (XMSS_WOTS_LEN2 * XMSS_WOTS_LOG_W) % 8;
+
+    u = 8;
+    u -= k; // u holds the value of (8 - ((params->wots_len2 * params->wots_log_w) % 8))
+    ?{}, csum = #SHL(csum, u);
+
+    // ull_to_bytes(csum_bytes, sizeof(csum_bytes), csum);
+    csum_bytes_p = csum_bytes;
+    csum_bytes_p = __ull_to_bytes<(XMSS_WOTS_LEN2 * XMSS_WOTS_LOG_W + 7) / 8>(csum_bytes_p, csum);
+
+    // base_w(params, csum_base_w, params->wots_len2, csum_bytes);
+    csum_base_w = __base_w<XMSS_WOTS_LEN2, (XMSS_WOTS_LEN2 * XMSS_WOTS_LOG_W + 7) / 8>(csum_base_w, csum_bytes_p);
+
+    return csum_base_w;
+}
+
+fn _wots_checksum(
+    reg ptr u32[XMSS_WOTS_LEN2] csum_base_w,
+    reg ptr u32[XMSS_WOTS_LEN] msg_base_w
+) -> reg ptr u32[XMSS_WOTS_LEN2]
+{
+    csum_base_w = __wots_checksum(csum_base_w, msg_base_w);
+    return csum_base_w;
+}
+
+inline fn __wots_checksum_(
+    reg ptr u32[XMSS_WOTS_LEN2] csum_base_w,
+    reg ptr u32[XMSS_WOTS_LEN] msg_base_w
+) -> reg ptr u32[XMSS_WOTS_LEN2]
+{
+    csum_base_w = csum_base_w;
+    msg_base_w = msg_base_w;
+
+    csum_base_w = _wots_checksum(csum_base_w, msg_base_w);
+    
+    csum_base_w = csum_base_w;
+    
+    return csum_base_w;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __chain_lengths(
+    reg ptr u32[XMSS_WOTS_LEN] lengths,
+    reg ptr u8[XMSS_N] msg
+) -> reg ptr u32[XMSS_WOTS_LEN]
+{
+    reg ptr u32[XMSS_WOTS_LEN2] t;
+  
+    // base_w(params, lengths, params->wots_len1, msg);
+    lengths = __base_w<XMSS_WOTS_LEN,XMSS_N>(lengths, msg);
+
+    // wots_checksum(params, lengths + params->wots_len1, lengths);
+    t = lengths[XMSS_WOTS_LEN1 : XMSS_WOTS_LEN2];
+    t = __wots_checksum(t, lengths);
+    lengths[XMSS_WOTS_LEN1 : XMSS_WOTS_LEN2] = t;
+
+    return lengths;
+}
+
+fn _chain_lengths(
+    reg ptr u32[XMSS_WOTS_LEN] lengths,
+    reg ptr u8[XMSS_N] msg
+) -> reg ptr u32[XMSS_WOTS_LEN]
+{
+    lengths = __chain_lengths(lengths, msg);
+    return lengths;
+}//<>
+
+inline fn __chain_lengths_(
+    reg ptr u32[XMSS_WOTS_LEN] lengths,
+    reg ptr u8[XMSS_N] msg
+) -> reg ptr u32[XMSS_WOTS_LEN]
+{
+    lengths = lengths; 
+    msg = msg;
+    
+    lengths = _chain_lengths(lengths, msg);
+    
+    lengths = lengths;
+    
+    return lengths;
+}//<>

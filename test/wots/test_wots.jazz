@@ -1,0 +1,57 @@
+from XMSS require "params.jinc"
+from XMSS require "wots/wots.jtmpl"
+
+export fn expand_seed_jazz(reg u64 outseeds_ptr inseed_ptr pub_seed_ptr addr_ptr) {
+    stack u8[XMSS_WOTS_LEN * XMSS_N] outseeds;
+    stack u8[XMSS_N] inseed;
+    stack u8[XMSS_N] pub_seed;
+    stack u32[8] addr;
+
+    inline int i;
+
+    () = #spill(outseeds_ptr, addr_ptr);
+
+    for i=0 to 8 { addr[i] = (u32) [addr_ptr + 4*i]; }
+    for i=0 to XMSS_N { inseed[i] = (u8) [inseed_ptr + i]; 
+                        pub_seed[i] = (u8) [pub_seed_ptr + i]; }
+
+    outseeds, addr = __expand_seed(outseeds, inseed, pub_seed, addr);
+
+    () = #unspill(outseeds_ptr, addr_ptr);
+
+    for i=0 to XMSS_WOTS_LEN * XMSS_N { (u8) [outseeds_ptr + i] = outseeds[i]; }
+    for i=0 to 8 { (u32) [addr_ptr + 4*i] = addr[i]; }
+}
+
+export fn gen_chain_jazz(reg u64 out_ptr in_ptr, reg u32 start steps, reg u64 pub_seed_ptr addr_ptr) {
+    stack u8[XMSS_N] out;
+    stack u8[XMSS_N] pub_seed;
+    stack u32[8] addr;
+
+    inline int i;
+
+    for i=0 to XMSS_N { pub_seed[i] = (u8) [pub_seed_ptr + i]; }
+    for i=0 to 8 { addr[i] = (u32) [addr_ptr + 4*i]; }
+
+    () = #spill(out_ptr, addr_ptr);
+
+    out, addr = __gen_chain(out, in_ptr, start, steps, pub_seed, addr);
+
+    () = #unspill(out_ptr, addr_ptr);
+
+    for i=0 to XMSS_N { (u8) [out_ptr + i] = out[i]; }
+    for i=0 to 8 { (u32) [addr_ptr + 4*i] = addr[i]; }
+}
+
+export fn wots_checksum_jazz(reg u64 csum_base_w_ptr msg_base_w_ptr)  {
+  stack u32[XMSS_WOTS_LEN2] csum_base_w;
+  stack u32[XMSS_WOTS_LEN] msg_base_w;
+
+  inline int i;
+
+  // TODO: Load and store from memory
+
+  csum_base_w = __wots_checksum(csum_base_w, msg_base_w);
+}
+
+

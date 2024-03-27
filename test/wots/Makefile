@@ -16,7 +16,7 @@ PREPROCESSOR ?= ../../scripts/jasmin-preprocessor/preprocessor
 
 # --------------------------------------------------------------------------------------------------
 
-TESTS := bin/test_hash_1 # $(addprefix bin/test_hash_, $(TLIST))
+TESTS := bin/test_wots
 OUT   := $(addsuffix .out, $(TESTS))
 
 # --------------------------------------------------------------------------------------------------
@@ -30,7 +30,9 @@ CHECKCT_FILES := $(JPP_FILES:.jpp=.check)
 
 REF_SOURCES := $(wildcard ../*.c)
 
-SOURCES := test_hash.c ../common/notrandombytes.c ../common/print.c
+SOURCES := test_wots.c ../common/notrandombytes.c ../common/print.c
+
+TEST_FLAGS := -DTEST_EXPAND_SEED -DTEST_GEN_CHAIN
 
 # --------------------------------------------------------------------------------------------------
 
@@ -47,7 +49,7 @@ checkct: $(CHECKCT_FILES)
 $(JPP_FILES):
 .PRECIOUS: bin/%.jpp
 bin/%.jpp: | bin/
-	cp test_hash.jazz $@
+	cp test_wots.jazz $@
 	$(JPP) $(JINCLUDE) -in $@ -out $@
 	$(PREPROCESSOR) --input_file $@ --output_file $@
 
@@ -58,7 +60,7 @@ bin/%.s: bin/%.jpp
 
 $(TESTS):
 bin/%: bin/%.s | bin/
-	$(CC) $(CFLAGS) -o $@ -I../common -I../ -DIMPL=XMSS-SHAKE_20_512 \
+	$(CC) $(CFLAGS) -o $@ -I../common -I../ -DIMPL=XMSS-SHAKE_20_512 $(TEST_FLAGS) \
 	$(SOURCES) $(REF_SOURCES) $< $(LDLIBS)
 
 $(OBJ_FILES):
@@ -80,3 +82,12 @@ bin/:
 .PHONY: clean
 clean:
 	rm -fr bin/
+
+.PHONY: clean_executables
+clean_executables:
+	find bin/ -type f -executable -delete || true
+
+# --------------------------------------------------------------------------------------------------
+
+debug:
+	@echo $(REF_SOURCES)

@@ -1,20 +1,28 @@
+#include "wots.h"
+
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
-#include "utils.h"
 #include "hash.h"
-#include "wots.h"
 #include "hash_address.h"
 #include "params.h"
+#include "utils.h"
+
+#ifdef TEST_EXPAND_SEED
+extern void expand_seed_jazz(uint8_t *, const uint8_t *, const uint8_t *, uint32_t *);
+#endif
+
+#ifdef TEST_GEN_CHAIN
+extern void gen_chain_jazz(uint8_t *, const uint8_t *, uint32_t, uint32_t, const uint8_t *, uint32_t *);
+#endif
 
 /**
  * Helper method for pseudorandom key generation.
  * Expands an n-byte array into a len*n byte array using the `prf_keygen` function.
  */
-static void expand_seed(const xmss_params *params,
-                        unsigned char *outseeds, const unsigned char *inseed, 
-                        const unsigned char *pub_seed, uint32_t addr[8])
-{
+void expand_seed(const xmss_params *params, unsigned char *outseeds, const unsigned char *inseed,
+                 const unsigned char *pub_seed, uint32_t addr[8]) {
     uint32_t i;
     unsigned char buf[params->n + 32];
 
@@ -24,7 +32,7 @@ static void expand_seed(const xmss_params *params,
     for (i = 0; i < params->wots_len; i++) {
         set_chain_addr(addr, i);
         addr_to_bytes(buf + params->n, addr);
-        prf_keygen(params, outseeds + i*params->n, buf, inseed);
+        prf_keygen(params, outseeds + i * params->n, buf, inseed);
     }
 }
 
@@ -35,18 +43,15 @@ static void expand_seed(const xmss_params *params,
  * Interprets in as start-th value of the chain.
  * addr has to contain the address of the chain.
  */
-static void gen_chain(const xmss_params *params,
-                      unsigned char *out, const unsigned char *in,
-                      unsigned int start, unsigned int steps,
-                      const unsigned char *pub_seed, uint32_t addr[8])
-{
+static void gen_chain(const xmss_params *params, unsigned char *out, const unsigned char *in, unsigned int start,
+                      unsigned int steps, const unsigned char *pub_seed, uint32_t addr[8]) {
     uint32_t i;
 
     /* Initialize out with the value at position 'start'. */
     memcpy(out, in, params->n);
 
     /* Iterate 'steps' calls to the hash function. */
-    for (i = start; i < (start+steps) && i < params->wots_w; i++) {
+    for (i = start; i < (start + steps) && i < params->wots_w; i++) {
         set_hash_addr(addr, i);
         thash_f(params, out, out, pub_seed, addr);
     }
@@ -57,9 +62,7 @@ static void gen_chain(const xmss_params *params,
  * Interprets an array of bytes as integers in base w.
  * This only works when log_w is a divisor of 8.
  */
-static void base_w(const xmss_params *params,
-                   int *output, const int out_len, const unsigned char *input)
-{
+static void base_w(const xmss_params *params, int *output, const int out_len, const unsigned char *input) {
     int in = 0;
     int out = 0;
     unsigned char total;
@@ -79,9 +82,7 @@ static void base_w(const xmss_params *params,
 }
 
 /* Computes the WOTS+ checksum over a message (in base_w). */
-static void wots_checksum(const xmss_params *params,
-                          int *csum_base_w, const int *msg_base_w)
-{
+static void wots_checksum(const xmss_params *params, int *csum_base_w, const int *msg_base_w) {
     int csum = 0;
     unsigned char csum_bytes[(params->wots_len2 * params->wots_log_w + 7) / 8];
     unsigned int i;
@@ -99,9 +100,7 @@ static void wots_checksum(const xmss_params *params,
 }
 
 /* Takes a message and derives the matching chain lengths. */
-static void chain_lengths(const xmss_params *params,
-                          int *lengths, const unsigned char *msg)
-{
+static void chain_lengths(const xmss_params *params, int *lengths, const unsigned char *msg) {
     base_w(params, lengths, params->wots_len1, msg);
     wots_checksum(params, lengths + params->wots_len1, lengths);
 }
@@ -114,19 +113,25 @@ static void chain_lengths(const xmss_params *params,
  *
  * Writes the computed public key to 'pk'.
  */
-void wots_pkgen(const xmss_params *params,
-                unsigned char *pk, const unsigned char *seed,
-                const unsigned char *pub_seed, uint32_t addr[8])
-{
+void wots_pkgen(const xmss_params *params, unsigned char *pk, const unsigned char *seed, const unsigned char *pub_seed,
+                uint32_t addr[8]) {
     uint32_t i;
 
-    /* The WOTS+ private key is derived from the seed. */
+/* The WOTS+ private key is derived from the seed. */
+#ifdef TEST_EXPAND_SEED
+    expand_seed_jazz(pk, seed, pub_seed, addr);
+#else
     expand_seed(params, pk, seed, pub_seed, addr);
+#endif
 
     for (i = 0; i < params->wots_len; i++) {
         set_chain_addr(addr, i);
-        gen_chain(params, pk + i*params->n, pk + i*params->n,
-                  0, params->wots_w - 1, pub_seed, addr);
+
+#ifdef TEST_GEN_CHAIN
+        gen_chain_jazz(pk + i * params->n, pk + i * params->n, 0, params->wots_w - 1, pub_seed, addr);
+#else
+        gen_chain(params, pk + i * params->n, pk + i * params->n, 0, params->wots_w - 1, pub_seed, addr);
+#endif
     }
 }
 
@@ -134,23 +139,28 @@ void wots_pkgen(const xmss_params *params,
  * Takes a n-byte message and the 32-byte seed for the private key to compute a
  * signature that is placed at 'sig'.
  */
-void wots_sign(const xmss_params *params,
-               unsigned char *sig, const unsigned char *msg,
-               const unsigned char *seed, const unsigned char *pub_seed,
-               uint32_t addr[8])
-{
+void wots_sign(const xmss_params *params, unsigned char *sig, const unsigned char *msg, const unsigned char *seed,
+               const unsigned char *pub_seed, uint32_t addr[8]) {
     int lengths[params->wots_len];
     uint32_t i;
 
     chain_lengths(params, lengths, msg);
 
-    /* The WOTS+ private key is derived from the seed. */
+/* The WOTS+ private key is derived from the seed. */
+#ifdef TEST_EXPAND_SEED
+    expand_seed_jazz(sig, seed, pub_seed, addr);
+#else
     expand_seed(params, sig, seed, pub_seed, addr);
+#endif
 
     for (i = 0; i < params->wots_len; i++) {
         set_chain_addr(addr, i);
-        gen_chain(params, sig + i*params->n, sig + i*params->n,
-                  0, lengths[i], pub_seed, addr);
+
+#ifdef TEST_GEN_CHAIN
+        gen_chain_jazz(sig + i * params->n, sig + i * params->n, 0, lengths[i], pub_seed, addr);
+#else
+        gen_chain(params, sig + i * params->n, sig + i * params->n, 0, lengths[i], pub_seed, addr);
+#endif
     }
 }
 
@@ -159,10 +169,8 @@ void wots_sign(const xmss_params *params,
  *
  * Writes the computed public key to 'pk'.
  */
-void wots_pk_from_sig(const xmss_params *params, unsigned char *pk,
-                      const unsigned char *sig, const unsigned char *msg,
-                      const unsigned char *pub_seed, uint32_t addr[8])
-{
+void wots_pk_from_sig(const xmss_params *params, unsigned char *pk, const unsigned char *sig, const unsigned char *msg,
+                      const unsigned char *pub_seed, uint32_t addr[8]) {
     int lengths[params->wots_len];
     uint32_t i;
 
@@ -170,7 +178,13 @@ void wots_pk_from_sig(const xmss_params *params, unsigned char *pk,
 
     for (i = 0; i < params->wots_len; i++) {
         set_chain_addr(addr, i);
-        gen_chain(params, pk + i*params->n, sig + i*params->n,
-                  lengths[i], params->wots_w - 1 - lengths[i], pub_seed, addr);
+
+#ifdef TEST_GEN_CHAIN
+        gen_chain_jazz(pk + i * params->n, sig + i * params->n, lengths[i], params->wots_w - 1 - lengths[i], pub_seed,
+                       addr);
+#else
+        gen_chain(params, pk + i * params->n, sig + i * params->n, lengths[i], params->wots_w - 1 - lengths[i],
+                  pub_seed, addr);
+#endif
     }
 }

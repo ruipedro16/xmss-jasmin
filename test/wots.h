@@ -4,6 +4,11 @@
 #include <stdint.h>
 #include "params.h"
 
+
+void expand_seed(const xmss_params *params,
+                        unsigned char *outseeds, const unsigned char *inseed, 
+                        const unsigned char *pub_seed, uint32_t addr[8]);
+
 /**
  * WOTS key generation. Takes a 32 byte seed for the private key, expands it to
  * a full WOTS private key and computes the corresponding public key.
