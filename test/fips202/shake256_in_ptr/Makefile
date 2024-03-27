@@ -46,7 +46,7 @@ checkct: $(CHECKCT_FILES)
 
 # --------------------------------------------------------------------------------------------------
 
-SOURCES := test_shake256_in_ptr.c ../../../xmss-reference/fips202.c \
+SOURCES := test_shake256_in_ptr.c ../../fips202.c \
            ../../common/notrandombytes.c ../../common/print.c
 
 # --------------------------------------------------------------------------------------------------
@@ -66,7 +66,7 @@ bin/%.s: bin/%.jpp
 $(TESTS):
 bin/%: bin/%.s | bin/
 	$(CC) $(CFLAGS) -o $@ -DOUTLEN=$(GET_OUTLEN) -DINLEN=$(GET_INLEN) \
-	-I../../common -I../../../xmss-reference/ $(SOURCES) $<
+	-I../../common -I../../ $(SOURCES) $<
 
 $(OBJ_FILES):
 bin/%.o: bin/%.s

@@ -1,8 +1,45 @@
-from XMSS require "fips202/common/fips202_common.jinc" // KECCAK1600_RC
-require "spec_keccakf1600.jinc"
+require "fips202_common.jinc"
+
+inline fn __index(inline int x y) -> inline int
+{
+  inline int r;
+  r = (x % 5) + 5 * (y % 5);
+  return r;
+}
+
+
+inline fn __keccak_rho_offsets(inline int i) -> inline int
+{
+  inline int r x y z t;
+
+  r = 0;
+  x = 1;
+  y = 0;
+
+  for t = 0 to 24 {
+    if (i == x + 5 * y)
+    { r = ((t + 1) * (t + 2) / 2) % 64; }
+    z = (2 * x + 3 * y) % 5;
+    x = y;
+    y = z;
+  }
+
+  return r;
+}
+
+
+inline fn __rhotates(inline int x y) -> inline int
+{
+  inline int i r;
+  i = __index(x, y);
+  r = __keccak_rho_offsets(i);
+  return r;
+}
+
+// /////////////////////////////////////////////////////////////////////////////
 
 // C[x] = A[x,0] ^ A[x,1] ^ A[x,2] ^ A[x,3] ^ A[x,4]
-inline fn __theta_sum_ref1(reg ptr u64[25] a) -> reg u64[5]
+inline fn __theta_sum(reg ptr u64[25] a) -> reg u64[5]
 {
   inline int x y;
   reg u64[5] c;
@@ -22,7 +59,7 @@ inline fn __theta_sum_ref1(reg ptr u64[25] a) -> reg u64[5]
 
 
 // D[x] = C[x-1] ^ ROT(C[x+1], 1) 
-inline fn __theta_rol_ref1(reg u64[5] c) -> reg u64[5]
+inline fn __theta_rol(reg u64[5] c) -> reg u64[5]
 {
   inline int x;
   reg u64[5] d;
@@ -47,7 +84,7 @@ inline fn __theta_rol_ref1(reg u64[5] c) -> reg u64[5]
 // M = (0 1)  M^-1 = (1 3)  x' = 1x + 3y
 //     (2 3)         (1 0)  y' = 1x + 0y
 //
-inline fn __rol_sum_ref1(
+inline fn __rol_sum(
   reg ptr u64[25] a,
   reg u64[5] d,
   inline int y
@@ -60,7 +97,7 @@ inline fn __rol_sum_ref1(
   {
     x_ = (x + 3*y) % 5;
     y_ = x;
-    r = __rhotates_spec(x_, y_);
+    r = __rhotates(x_, y_);
 
     // B[x] = A[x',y']
     b[x] = a[x_ + y_*5];
@@ -80,7 +117,7 @@ inline fn __rol_sum_ref1(
 
 // E[x, y] = B[x] ^ ( (!B[x+1]) & B[x+2] )
 // -- when x and y are 0: E[0,0] ^= RC[i];
-inline fn __set_row_ref1(
+inline fn __set_row(
   reg ptr u64[25] e,
   reg u64[5] b,
   inline int y,
@@ -95,8 +132,7 @@ inline fn __set_row_ref1(
     x1 = (x + 1) % 5;
     x2 = (x + 2) % 5;
 
-    //t  = !b[x1] & b[x2];
-    t = b[x1]; t = !t; t &= b[x2];
+    t  = !b[x1] & b[x2]; // bmi1 andnot
 
     t ^= b[x];
     if( x==0 && y==0 ){ t ^= s_rc; }
@@ -107,33 +143,31 @@ inline fn __set_row_ref1(
 }
 
 
-inline fn __round_ref1(reg ptr u64[25] e a, reg u64 rc) -> reg ptr u64[25]
+inline fn __round(reg ptr u64[25] e a, stack u64 s_rc) -> reg ptr u64[25]
 {
   inline int y;
   reg u64[5] b c d;
-  stack u64 s_rc;
 
-  s_rc = rc;
-
-  c = __theta_sum_ref1(a);
-  d = __theta_rol_ref1(c);
+  c = __theta_sum(a);
+  d = __theta_rol(c);
 
   for y = 0 to 5
-  { b = __rol_sum_ref1(a, d, y);
-    e = __set_row_ref1(e, b, y, s_rc);
+  { b = __rol_sum(a, d, y);
+    e = __set_row(e, b, y, s_rc);
   }
 
   return e;
 }
 
 
-inline fn __keccakf1600_ref1(reg ptr u64[25] a) -> reg ptr u64[25]
+inline fn __keccakf1600(reg ptr u64[25] a) -> reg ptr u64[25]
 {
   reg ptr u64[24] RC;
   stack ptr u64[24] s_RC;
   stack u64[25] s_e;
   reg ptr u64[25] e;
   reg u64 c rc;
+  stack u64 s_c s_rc;
 
   RC = KECCAK1600_RC;
   s_RC = RC;
@@ -142,14 +176,19 @@ inline fn __keccakf1600_ref1(reg ptr u64[25] a) -> reg ptr u64[25]
   c = 0;
   while (c < KECCAK_ROUNDS - 1)
   {
+    s_c = c;
+
     RC = s_RC;
     rc = RC[c];
-    e = __round_ref1(e, a, rc);
+    s_rc = rc;
+    e = __round(e, a, s_rc);
 
     RC = s_RC;
     rc = RC[c + 1];
-    a = __round_ref1(a, e, rc);
+    s_rc = rc;
+    a = __round(a, e, s_rc);
 
+    c = s_c;
     c += 2;
   }
 
@@ -158,19 +197,17 @@ inline fn __keccakf1600_ref1(reg ptr u64[25] a) -> reg ptr u64[25]
 
 
 #[returnaddress="stack"]
-fn _keccakf1600_ref1(reg ptr u64[25] a) -> reg ptr u64[25]
+fn _keccakf1600(reg ptr u64[25] a) -> reg ptr u64[25]
 {
-  a = __keccakf1600_ref1(a);
+  a = __keccakf1600(a);
   return a;
 }
 
 
-inline fn _keccakf1600_ref1_(reg ptr u64[25] a) -> reg ptr u64[25]
+inline fn _keccakf1600_(reg ptr u64[25] a) -> reg ptr u64[25]
 {
   a = a;
-  a = _keccakf1600_ref1(a);
+  a = _keccakf1600(a);
   a = a;
   return a;
 }
-
-
