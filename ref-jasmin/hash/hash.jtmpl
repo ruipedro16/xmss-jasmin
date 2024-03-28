@@ -178,19 +178,21 @@ inline fn __hash_message(
 
 // NOTE: `in` and `out` are not necessarily disjoint in the reference implementation (e.g. in compute root)
 //       OUTLEN is probably XMSS_N
-inline fn __thash_h<OUTLEN, INLEN>(
-    reg ptr u8[OUTLEN] out,
-    reg ptr u8[INLEN] in,
+inline fn __thash_h(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[2 * XMSS_N] in,
     reg ptr u8[XMSS_N] pub_seed,
     reg ptr u32[8] addr
-) -> reg ptr u8[OUTLEN], reg ptr u32[8] 
+) -> reg ptr u8[XMSS_N], reg ptr u32[8] 
 {
     stack u8[XMSS_PADDING_LEN + 3*XMSS_N] buf;
     stack u8[2*XMSS_N] bitmask;
     stack u8[32] addr_as_bytes;
 
-    reg u8 t;
+    reg u8 t ;
     reg u64 i;
+
+    () = #spill(pub_seed, out,  in);
 
     // ull_to_bytes(buf, params->padding_len, XMSS_HASH_PADDING_H);
     buf[0:XMSS_PADDING_LEN] = __ull_to_bytes<XMSS_PADDING_LEN>(buf[0:XMSS_PADDING_LEN], XMSS_HASH_PADDING_H);
@@ -211,17 +213,21 @@ inline fn __thash_h<OUTLEN, INLEN>(
     addr_as_bytes = __addr_to_bytes(addr_as_bytes, addr);
 
     // prf(params, bitmask, addr_as_bytes, pub_seed);
+    () = #unspill(pub_seed);
     bitmask[0 : XMSS_N] = __prf_(bitmask[0 : XMSS_N], addr_as_bytes, pub_seed);
 
     // set_key_and_mask(addr, 2);
     addr = __set_key_and_mask(addr, 2);
+    () = #spill(addr);
 
     // addr_to_bytes(addr_as_bytes, addr);
     addr_as_bytes = __addr_to_bytes(addr_as_bytes, addr);
 
     // prf(params, bitmask + params->n, addr_as_bytes, pub_seed);
+    () = #unspill(pub_seed);
     bitmask[XMSS_N : XMSS_N] = __prf_(bitmask[XMSS_N : XMSS_N], addr_as_bytes, pub_seed);
 
+    () = #unspill(in);
     i = 0;
     while (i < 2 * XMSS_N) {
         // buf[params->padding_len + params->n + i] = in[i] ^ bitmask[i];
@@ -232,14 +238,15 @@ inline fn __thash_h<OUTLEN, INLEN>(
     }
 
     // core_hash(params, out, buf, params->padding_len + 3 * params->n);
-    out = __core_hash_<OUTLEN, XMSS_PADDING_LEN + 3*XMSS_N>(out, buf);
+    () = #unspill(out);
+    out = __core_hash_<XMSS_N, XMSS_PADDING_LEN + 3*XMSS_N>(out, buf);
+
+    () = #unspill(addr);
 
     return out, addr;
 }//<>
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// THASH H
+// TODO: Local and inline functions
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 

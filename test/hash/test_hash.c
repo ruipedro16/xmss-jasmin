@@ -21,13 +21,17 @@
 #endif
 
 #ifndef TESTS
-#define TESTS 50
+#define TESTS 10000
 #endif
+
+#define XMSS_N p.n
 
 extern void addr_to_bytes_jazz(uint8_t *, const uint32_t *);
 extern void prf_jazz(uint8_t *, const uint8_t *, const uint8_t *);
 extern void prf_keygen_jazz(uint8_t *, const uint8_t *, const uint8_t *);
 extern void hash_message_jazz(uint8_t *, const uint8_t *, const uint8_t *, uint64_t, uint8_t *, size_t);
+extern void thash_h_jazz(uint8_t *, const uint8_t *, const uint8_t *, uint32_t *);
+extern void thash_f_jazz(uint8_t *, const uint8_t *, uint32_t *);
 
 void test_addr_to_bytes(void) {
     uint32_t addr[8];
@@ -171,7 +175,98 @@ void test_hash_message(void) {
 
             hash_message_jazz(hash_jazz, randomness, root, idx, msg_jazz, inlen);
             hash_message(&p, hash_ref, randomness, root, idx, msg_ref, inlen);
+
+            // TODO: Asserts
         }
+    }
+}
+
+void test_thash_h(void) {
+    bool debug = true;
+
+    xmss_params p;
+    uint32_t oid;
+
+    if (xmss_str_to_oid(&oid, xstr(IMPL)) == -1) {
+        fprintf(stderr, "Failed to generate oid from impl name\n");
+        exit(-1);
+    }
+
+    if (xmss_parse_oid(&p, oid) == -1) {
+        fprintf(stderr, "Failed to generate params from oid\n");
+        exit(-1);
+    }
+
+    uint8_t out_ref[XMSS_N], out_jazz[XMSS_N];
+    uint8_t in[2 * XMSS_N];
+    uint8_t pub_seed[XMSS_N];
+    uint32_t addr_ref[8], addr_jazz[8];
+
+    for (int i = 0; i < TESTS; i++) {
+        if (debug) {
+            printf("[THASH H] Test %d/%d\n", i, TESTS);
+        }
+
+        randombytes(out_ref, XMSS_N);
+        memcpy(out_jazz, out_ref, XMSS_N);
+        randombytes(in, 2 * XMSS_N);
+        randombytes(pub_seed, XMSS_N);
+        randombytes((uint8_t *)addr_ref, 8 * sizeof(uint32_t));
+        memcpy(addr_jazz, addr_ref, 8 * sizeof(uint32_t));
+
+        assert(memcmp(addr_jazz, addr_ref, 8 * sizeof(uint32_t)) == 0);
+
+        thash_h(&p, out_ref, in, pub_seed, addr_ref);
+        thash_h_jazz(out_jazz, in, pub_seed, addr_jazz);
+
+        if (memcmp(out_ref, out_jazz, XMSS_N) != 0) {
+            print_str_u8("out ref", out_ref, XMSS_N);
+            print_str_u8("out jazz", out_jazz, XMSS_N);
+        }
+
+        assert(memcmp(out_ref, out_jazz, XMSS_N) == 0);
+        assert(memcmp(addr_jazz, addr_ref, 8 * sizeof(uint32_t)) == 0);
+    }
+}
+
+void test_thash_f(void) {
+    bool debug = true;
+
+    xmss_params p;
+    uint32_t oid;
+
+    if (xmss_str_to_oid(&oid, xstr(IMPL)) == -1) {
+        fprintf(stderr, "Failed to generate oid from impl name\n");
+        exit(-1);
+    }
+
+    if (xmss_parse_oid(&p, oid) == -1) {
+        fprintf(stderr, "Failed to generate params from oid\n");
+        exit(-1);
+    }
+
+    uint8_t out_ref[XMSS_N], out_jazz[XMSS_N];
+    uint8_t pub_seed[XMSS_N];
+    uint32_t addr_ref[8], addr_jazz[8];
+
+    for (int i = 0; i < TESTS; i++) {
+        if (debug) {
+            printf("[THASH F] Test %d/%d\n", i, TESTS);
+        }
+
+        randombytes(out_ref, XMSS_N);
+        memcpy(out_jazz, out_ref, XMSS_N);
+        randombytes(pub_seed, XMSS_N);
+        randombytes((uint8_t *)addr_ref, 8 * sizeof(uint32_t));
+        memcpy(addr_jazz, addr_ref, 8 * sizeof(uint32_t));
+
+        assert(memcmp(addr_jazz, addr_ref, 8 * sizeof(uint32_t)) == 0);
+
+        thash_f(&p, out_ref, out_ref, pub_seed, addr_ref);
+        thash_f_jazz(out_jazz, pub_seed, addr_jazz);
+
+        assert(memcmp(out_ref, out_jazz, XMSS_N) == 0);
+        assert(memcmp(addr_ref, addr_jazz, 8 * sizeof(uint32_t)) == 0);
     }
 }
 
@@ -181,7 +276,7 @@ void test_wots_sign(void) {
     xmss_params p;
     uint32_t oid;
 
-    if (xmss_str_to_oid(&oid, /* "XMSS-SHA2_10_256"*/ xstr(IMPL)) == -1) {
+    if (xmss_str_to_oid(&oid, xstr(IMPL)) == -1) {
         fprintf(stderr, "Failed to generate oid from impl name\n");
         exit(-1);
     }
@@ -197,13 +292,17 @@ void test_wots_sign(void) {
     size_t smlen;
     size_t mlen;
 
+    // TODO:
 }
 
 int main(void) {
     test_addr_to_bytes();
     test_prf();
     test_prf_keygen();
-    test_wots_sign();
-    printf("Hash: OK\n");
+    test_thash_h();
+    test_thash_f();
+    // TODO: Test hash message
+    // test_wots_sign();  // Wots sign but replaces all C [hash] functions with the respective Jasmin function
+    printf("[%s]: Hash OK\n", xstr(IMPL));
     return 0;
 }
