@@ -32,7 +32,8 @@ REF_SOURCES := $(wildcard ../*.c)
 
 SOURCES := test_wots.c ../common/notrandombytes.c ../common/print.c
 
-TEST_FLAGS := -DTEST_EXPAND_SEED -DTEST_GEN_CHAIN
+TEST_FLAGS := -DTEST_EXPAND_SEED -DTEST_WOTS_CHECKSUM -DTEST_GEN_CHAIN -DTEST_GEN_CHAIN_INPLACE \
+              -DTEST_WOTS_PKGEN
 
 # --------------------------------------------------------------------------------------------------
 

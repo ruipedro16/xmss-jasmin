@@ -298,5 +298,34 @@ inline fn __thash_f(
     out = __core_hash_<XMSS_N, XMSS_PADDING_LEN + 2*XMSS_N>(out, buf);
 
     () = #unspill(addr);
+
+    return out, addr;
+}
+
+fn _thash_f(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8] 
+{
+    out, addr = __thash_f(out, pub_seed, addr);
+    return out, addr;
+}
+
+inline fn __thash_f_(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8] 
+{
+    out = out;
+    pub_seed = pub_seed;
+    addr = addr;
+
+    out, addr = _thash_f(out, pub_seed, addr);
+
+    out = out;
+    addr = addr;
+
     return out, addr;
 }

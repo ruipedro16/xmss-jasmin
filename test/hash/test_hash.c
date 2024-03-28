@@ -175,7 +175,7 @@ void test_hash_message(void) {
     }
 }
 
-void test_api(void) {
+void test_wots_sign(void) {
     bool debug = true;
 
     xmss_params p;
@@ -197,26 +197,13 @@ void test_api(void) {
     size_t smlen;
     size_t mlen;
 
-    for (int i = 0; i < TESTS; i++) {
-        for (size_t inlen = 1; inlen < MAX_MLEN; inlen++) {
-        if (debug) {
-            printf("[Test XMSS (len=%ld)] Test %d/%d\n", inlen, i, TESTS);
-        }
-
-        // Generate a valid key pair
-        xmss_keypair(pk, sk, oid);
-
-        
-        }
-    }
 }
 
 int main(void) {
     test_addr_to_bytes();
     test_prf();
     test_prf_keygen();
-    // test_hash_message();
-    test_api();
+    test_wots_sign();
     printf("Hash: OK\n");
     return 0;
 }

@@ -17,6 +17,14 @@ extern void expand_seed_jazz(uint8_t *, const uint8_t *, const uint8_t *, uint32
 extern void gen_chain_jazz(uint8_t *, const uint8_t *, uint32_t, uint32_t, const uint8_t *, uint32_t *);
 #endif
 
+#ifdef TEST_GEN_CHAIN_INPLACE
+extern void gen_chain_inplace_jazz(uint8_t *, const uint8_t *, uint32_t, uint32_t, const uint8_t *, uint32_t *);
+#endif
+
+#ifdef TEST_WOTS_CHECKSUM
+extern void wots_checksum_jazz(int *, const int *);
+#endif
+
 /**
  * Helper method for pseudorandom key generation.
  * Expands an n-byte array into a len*n byte array using the `prf_keygen` function.
@@ -102,7 +110,11 @@ static void wots_checksum(const xmss_params *params, int *csum_base_w, const int
 /* Takes a message and derives the matching chain lengths. */
 static void chain_lengths(const xmss_params *params, int *lengths, const unsigned char *msg) {
     base_w(params, lengths, params->wots_len1, msg);
+#ifdef TEST_WOTS_CHECKSUM
+    wots_checksum_jazz(lengths + params->wots_len1, lengths);
+#else
     wots_checksum(params, lengths + params->wots_len1, lengths);
+#endif
 }
 
 /**
@@ -127,8 +139,9 @@ void wots_pkgen(const xmss_params *params, unsigned char *pk, const unsigned cha
     for (i = 0; i < params->wots_len; i++) {
         set_chain_addr(addr, i);
 
-#ifdef TEST_GEN_CHAIN
-        gen_chain_jazz(pk + i * params->n, pk + i * params->n, 0, params->wots_w - 1, pub_seed, addr);
+// TODO: run regular gen chain if gen chain inplace is not defined
+#ifdef TEST_GEN_CHAIN_INPLACE
+        gen_chain_inplace_jazz(pk + i * params->n, pk + i * params->n, 0, params->wots_w - 1, pub_seed, addr);
 #else
         gen_chain(params, pk + i * params->n, pk + i * params->n, 0, params->wots_w - 1, pub_seed, addr);
 #endif
@@ -156,8 +169,9 @@ void wots_sign(const xmss_params *params, unsigned char *sig, const unsigned cha
     for (i = 0; i < params->wots_len; i++) {
         set_chain_addr(addr, i);
 
+// TODO: run regular gen chain if gen chain inplace is not defined
 #ifdef TEST_GEN_CHAIN
-        gen_chain_jazz(sig + i * params->n, sig + i * params->n, 0, lengths[i], pub_seed, addr);
+        gen_chain_inplace_jazz(sig + i * params->n, sig + i * params->n, 0, lengths[i], pub_seed, addr);
 #else
         gen_chain(params, sig + i * params->n, sig + i * params->n, 0, lengths[i], pub_seed, addr);
 #endif
