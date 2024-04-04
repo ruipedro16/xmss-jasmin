@@ -30,8 +30,18 @@ extern void wots_pk_from_sig_jazz(uint8_t *pk, const uint8_t *sig, const uint8_t
 
 static void print_results(FILE *f, int loop, const char *function, uint64_t cycles_ref[TIMINGS],
                           uint64_t cycles_jasmin[TIMINGS]) {
+    if (!f) {
+        fprintf(stderr, "FILE *f is NULL in print_results\n");
+        exit(-1);
+    }
+
+    if (!function) {
+        fprintf(stderr, "char* function is NULL in print_results\n");
+    }
+
     cpucycles_median(cycles_ref, TIMINGS);
     cpucycles_median(cycles_jasmin, TIMINGS);
+
     for (size_t i = 0; i < TIMINGS - 1; i++) {
         uint64_t diff = cycles_jasmin[i] - cycles_ref[i];
         fprintf(f, "%d,%s,%ld,%ld,%ld\n", loop, function, cycles_ref[i], cycles_jasmin[i], diff);
@@ -118,13 +128,13 @@ int main(void) {
         }
 
         // WOTS_PKFromSig [ref]
-        for (int i=0; i < TIMINGS; i++) {
+        for (int i = 0; i < TIMINGS; i++) {
             cycles_ref[loop][i] = cpucycles();
             wots_pk_from_sig(&p, pk, sig, m, pub_seed, addr);
         }
 
         // WOTS_PKFromSig [jasmin]
-        for (int i=0; i < TIMINGS; i++) {
+        for (int i = 0; i < TIMINGS; i++) {
             cycles_jasmin[loop][i] = cpucycles();
             wots_pk_from_sig_jazz(pk, sig, m, pub_seed, addr);
         }
