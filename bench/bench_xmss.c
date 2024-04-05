@@ -20,11 +20,11 @@
 #endif
 
 #ifndef TIMINGS
-#define TIMINGS 2
+#define TIMINGS 20
 #endif
 
 #ifndef LOOPS
-#define LOOPS 1
+#define LOOPS 10
 #endif
 
 // TODO: extern void go here
@@ -40,6 +40,7 @@ static void print_results(FILE *f, int loop, size_t message_len, const char *fun
         fprintf(stderr, "char* function is NULL in print_results\n");
     }
 
+#ifdef ALL_TIMINGS
     cpucycles_median(cycles_ref, TIMINGS);
     cpucycles_median(cycles_jasmin, TIMINGS);
 
@@ -47,6 +48,12 @@ static void print_results(FILE *f, int loop, size_t message_len, const char *fun
         uint64_t diff = cycles_jasmin[i] - cycles_ref[i];
         fprintf(f, "%d,%s,%ld,%ld,%ld,%ld\n", loop, function, message_len, cycles_ref[i], cycles_jasmin[i], diff);
     }
+#else
+    uint64_t median_ref = cpucycles_median(cycles_ref, TIMINGS);
+    uint64_t median_jasmin = cpucycles_median(cycles_jasmin, TIMINGS);
+    uint64_t diff = median_jasmin - median_ref;  // TODO: Can I compute it like this?
+    fprintf(f, "%d,%s,%ld,%ld,%ld,%ld\n", loop, function, message_len, median_ref, median_jasmin, diff);
+#endif
 }
 
 int main(void) {

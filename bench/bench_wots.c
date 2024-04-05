@@ -39,6 +39,7 @@ static void print_results(FILE *f, int loop, const char *function, uint64_t cycl
         fprintf(stderr, "char* function is NULL in print_results\n");
     }
 
+#ifdef ALL_TIMINGS
     cpucycles_median(cycles_ref, TIMINGS);
     cpucycles_median(cycles_jasmin, TIMINGS);
 
@@ -46,6 +47,12 @@ static void print_results(FILE *f, int loop, const char *function, uint64_t cycl
         uint64_t diff = cycles_jasmin[i] - cycles_ref[i];
         fprintf(f, "%d,%s,%ld,%ld,%ld\n", loop, function, cycles_ref[i], cycles_jasmin[i], diff);
     }
+#else
+    uint64_t median_ref = cpucycles_median(cycles_ref, TIMINGS);
+    uint64_t median_jasmin = cpucycles_median(cycles_jasmin, TIMINGS);
+    uint64_t diff = median_jasmin - median_ref;  // TODO: Can I compute it like this?
+    fprintf(f, "%d,%s,%ld,%ld,%ld\n", loop, function, median_ref, median_jasmin, diff);
+#endif
 }
 
 int main(void) {
