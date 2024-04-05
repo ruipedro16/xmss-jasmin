@@ -1,0 +1,25 @@
+from XMSS require "params.jinc"
+from XMSS require "xmss_commons/xmss_commons.jtmpl"
+
+
+export fn l_tree_jazz(reg u64 leaf_ptr wots_pk_ptr pub_seed_ptr addr_ptr) {
+    stack u8[XMSS_N] leaf pub_seed;
+    stack u8[XMSS_WOTS_SIG_BYTES] wots_pk;
+    stack u32[8] addr;
+
+    inline int i;
+
+    for i=0 to XMSS_N { leaf[i] = (u8) [leaf_ptr + i]; pub_seed[i] = (u8) [pub_seed_ptr + i]; }
+    for i=0 to XMSS_WOTS_SIG_BYTES { wots_pk[i] = (u8) [wots_pk_ptr + i]; }
+    for i=0 to 8 { addr[i] = (u32) [addr_ptr + 4 * i]; }
+
+    () = #spill(leaf_ptr, wots_pk_ptr, addr_ptr);
+
+    leaf, wots_pk, addr = __l_tree_(leaf, wots_pk, pub_seed, addr);
+
+    () = #unspill(leaf_ptr, wots_pk_ptr, addr_ptr);
+
+    for i=0 to XMSS_N { (u8) [leaf_ptr + i] = leaf[i]; }
+    for i=0 to XMSS_WOTS_SIG_BYTES { (u8) [wots_pk_ptr + i] = wots_pk[i]; }
+    for i=0 to 8 { (u32) [addr_ptr + 4 * i] = addr[i]; }
+}

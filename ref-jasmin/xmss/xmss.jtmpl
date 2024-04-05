@@ -1,0 +1,113 @@
+from XMSS require "params.jinc"
+from XMSS require "xmss_core/xmss_core.jtmpl"
+
+/* This file provides wrapper functions that take keys that include OIDs to
+identify the parameter set to be used. After setting the parameters accordingly
+it falls back to the regular XMSS core functions. */
+
+// unsigned char pk[XMSS_OID_LEN + params.pk_bytes];
+// unsigned char sk[XMSS_OID_LEN + params.sk_bytes];
+// unsigned char *m = malloc(XMSS_MLEN);                        /* NOTE: These are not known at compile time */ 
+// unsigned char *sm = malloc(params.sig_bytes + XMSS_MLEN);    /* NOTE: These are not known at compile time */ 
+
+inline fn  __xmss_keypair(
+    reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk, 
+    reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES] sk, 
+    reg u32 oid
+) -> reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES],
+     reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES]
+{
+    inline int i;
+    reg u64 index t;
+    
+    for i=0 to XMSS_OID_LEN {
+        // TODO:
+        // pk[XMSS_OID_LEN - i - 1] = (oid >> (8 * i)) & 0xFF;
+        // sk[XMSS_OID_LEN - i - 1] = (oid >> (8 * i)) & 0xFF;
+    }
+
+    pk, sk = __xmss_core_keypair_(pk[XMSS_OID_LEN : XMSS_PK_BYTES], sk[XMSS_OID_LEN : XMSS_SK_BYTES]);
+
+    return pk, sk;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Signing also returns the secret key
+inline fn __xmss_sign(
+    reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES] sk,
+    reg u64 sm_ptr smlen_ptr,
+    reg u64 m_ptr mlen
+) -> reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES]
+{
+    // NOTE: No need to check the OID at run time because it is a param int
+
+    sk = __xmss_core_sign(sk[XMSS_OID_LEN : XMSS_SK_BYTES], sm_ptr, smlen_ptr, m_ptr, mlen);
+
+    return sk;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __xmss_sign_open(
+    reg u64 m_ptr mlen_ptr,
+    reg u64 sm_ptr smlen,
+    reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk
+)
+{
+    // NOTE: No need to check the OID at run time because it is a param int
+
+    __xmss_core_sign_open(m_ptr, mlen_ptr, sm_ptr, smlen, pk[XMSS_OID_LEN : XMSS_PK_BYTES]);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __xmssmt_keypair(
+    reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk, 
+    reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES] sk, 
+    reg u32 oid
+) -> reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES],
+     reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES]
+{
+    inline int i;
+    reg u8 t;
+
+    for i=0 to XMSS_OID_LEN {
+        // TODO: 
+        // pk[XMSS_OID_LEN - i - 1] = (u8) (oid >> (8 * i)) & 0xFF;
+        // sk[XMSS_OID_LEN - i - 1] = (u8) (oid >> (8 * i)) & 0xFF;
+    }
+
+    pk, sk = __xmssmt_core_keypair(pk[XMSS_OID_LEN : XMSS_PK_BYTES], sk[XMSS_OID_LEN : XMSS_SK_BYTES]);
+
+    return pk, sk;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Signing also returns the secret key
+inline fn __xmssmt_sign(    
+    reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES] sk,
+    reg u64 sm_ptr smlen_ptr,
+    reg u64 m_ptr mlen
+) -> reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES]
+{
+    // NOTE: No need to check the OID at run time because it is a param int
+    
+    sk = __xmssmt_core_sign(sk[XMSS_OID_LEN : XMSS_SK_BYTES], sm_ptr, smlen_ptr, m_ptr, mlen);
+
+    return sk;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __xmssmt_sign_open(
+    reg u64 m_ptr mlen_ptr,
+    reg u64 sm_ptr smlen,
+    reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk
+)
+{
+    // NOTE: No need to check the OID at run time because it is a param int
+
+    __xmssmt_core_sign_open(m_ptr, mlen_ptr, sm_ptr, smlen, pk[XMSS_OID_LEN : XMSS_PK_BYTES]);
+}

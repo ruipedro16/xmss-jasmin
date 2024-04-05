@@ -5,6 +5,10 @@
 
 #include "randombytes.h"
 
+#ifdef DEBUG
+#include "print.h"
+#endif
+
 // ////////////////////////////////////////////////////////////////////////////
 
 #define ROTATE(v, c) ((v << c) | (v >> (32 - c)))
@@ -215,6 +219,10 @@ void randombytes1(uint8_t *x, uint64_t xlen) { randombytes_internal(x, xlen, g1,
 // ////////
 
 uint8_t *__jasmin_syscall_randombytes__(uint8_t *x, uint64_t xlen) {
+    #ifdef DEBUG
+    print_str_u8("jasmin buffer", x, xlen);
+    #else
     randombytes(x, xlen);
+    #endif
     return x;
 }

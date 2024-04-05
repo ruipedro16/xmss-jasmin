@@ -13,7 +13,7 @@
  * Computes a leaf node from a WOTS public key using an L-tree.
  * Note that this destroys the used WOTS public key.
  */
-static void l_tree(const xmss_params *params,
+void l_tree(const xmss_params *params,
                    unsigned char *leaf, unsigned char *wots_pk,
                    const unsigned char *pub_seed, uint32_t addr[8])
 {
