@@ -13,19 +13,22 @@ inline fn __l_tree(
     stack u8[XMSS_N] buf0;
     stack u8[2 * XMSS_N] buf1;
 
-    reg u32  tree_index height;
+    reg u32 tree_index height;
     reg u64 t l parent_nodes;
     reg u64 offset_in offset_out bytes;
-    reg u64 i j in_index out_index;
+    reg u64 i in_index out_index;
 
-    () = #spill(leaf, wots_pk, pub_seed);
+    inline int j;
+
+    stack u8[XMSS_WOTS_SIG_BYTES] debug;
 
     // unsigned int l = params->wots_len;
     l = XMSS_WOTS_LEN;
 
     // uint32_t height = 0;
     height = 0;
-    () = #spill(height);
+
+    () = #spill(leaf, wots_pk, pub_seed, height);
 
     // set_tree_height(addr, height);
     addr = __set_tree_height(addr, height);
@@ -40,7 +43,7 @@ inline fn __l_tree(
         i = 0;
         while (i < parent_nodes) {
             () = #spill(i, parent_nodes);
-            
+
             // set_tree_index(addr, i);
             tree_index = (32u) i;
             addr = __set_tree_index(addr, tree_index);
@@ -55,7 +58,7 @@ inline fn __l_tree(
             buf0, _, _ = __memcpy_u8u8_2<XMSS_N, XMSS_WOTS_SIG_BYTES>(buf0, offset_out, wots_pk, offset_in, bytes);
 
             offset_out = 0;
-            offset_in = (i + 1); offset_in *= XMSS_N;
+            offset_in = (i * 2); offset_in *= XMSS_N;
             bytes = 2 * XMSS_N;
             buf1, _, _ = __memcpy_u8u8_2<2 * XMSS_N, XMSS_WOTS_SIG_BYTES>(buf1, offset_out, wots_pk, offset_in, bytes);
 
@@ -83,16 +86,12 @@ inline fn __l_tree(
             () = #unspill(wots_pk);
             offset_out = l; ?{}, offset_out = #SHR(offset_out, 1); offset_out *= XMSS_N;
             offset_in = l; offset_in -= 1; offset_in *= XMSS_N;
-            j = 0;
-            while (j < XMSS_N) { out_index = j; out_index += offset_out;
-                                 in_index = j; in_index += offset_in;
-                                 wots_pk[out_index] = wots_pk[in_index]; j+=1; }
+            for j = 0 to XMSS_N { wots_pk[offset_out + j] = wots_pk[offset_in + j]; }
             () = #spill(wots_pk);
 
             // l = (l >> 1) + 1;
             ?{}, l = #SHR(l, 1);
             l += 1;
-
         } else {
             // l = l >> 1;
             ?{}, l = #SHR(l, 1);
@@ -149,3 +148,60 @@ inline fn __l_tree_(
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __compute_root(
+    reg ptr u8[XMSS_N] root,
+    reg ptr u8[XMSS_N] leaf,
+    reg u32 leaf_idx,
+    reg u64 auth_path_ptr,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8]
+{
+    stack u8[2 * XMSS_N] buffer;
+
+    reg u32 t32;
+    reg u64 offset_out bytes;
+
+    inline int i;
+    inline u64 auth_path_offset;
+
+    return root, addr;
+}
+
+fn _compute_root(
+    reg ptr u8[XMSS_N] root,
+    reg ptr u8[XMSS_N] leaf,
+    reg u32 leaf_idx,
+    reg u64 auth_path_ptr,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8]
+{
+    root, addr = __compute_root(root, leaf, leaf_idx, auth_path_ptr, pub_seed, addr);
+    return root, addr;
+}
+
+inline fn __compute_root_(
+    reg ptr u8[XMSS_N] root,
+    reg ptr u8[XMSS_N] leaf,
+    reg u32 leaf_idx,
+    reg u64 auth_path_ptr,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8]
+{
+    root = root;
+    leaf = leaf;
+    leaf_idx = leaf_idx;
+    auth_path_ptr = auth_path_ptr;
+    pub_seed = pub_seed;
+    addr = addr;
+
+    root, addr = _compute_root(root, leaf, leaf_idx, auth_path_ptr, pub_seed, addr);
+    
+    root = root;
+    addr = addr;
+
+    return root, addr;
+}

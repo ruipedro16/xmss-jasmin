@@ -23,7 +23,7 @@
 #define XMSS_N p.n
 #define XMSS_WOTS_SIG_BYTES p.wots_sig_bytes
 
-extern void l_tree_jazz(uint8_t *, uint8_t *, const uint8_t *, uint32_t *);
+extern void l_tree_jazz(uint8_t *, uint8_t *, uint32_t *, const uint8_t *);
 
 void test_ltree(void) {
     bool debug = true;
@@ -65,10 +65,9 @@ void test_ltree(void) {
             assert(memcmp(wots_pk_ref, wots_pk_jasmin, XMSS_WOTS_SIG_BYTES) == 0);
             assert(memcmp(addr_ref, addr_jasmin, 8 * sizeof(uint32_t)) == 0);
 
-            l_tree_jazz(leaf_jasmin, wots_pk_jasmin, pub_seed, addr_jasmin);
+            l_tree_jazz(leaf_jasmin,wots_pk_jasmin, addr_jasmin, pub_seed);
             l_tree(&p, leaf_ref, wots_pk_ref, pub_seed, addr_ref);
 
-            /*
             if (memcmp(leaf_ref, leaf_jasmin, XMSS_N) != 0) {
                 print_str_u8("leaf ref", leaf_ref, XMSS_N);
                 print_str_u8("leaf jasmin", leaf_jasmin, XMSS_N);
@@ -84,10 +83,9 @@ void test_ltree(void) {
                 print_str_u8("addr jasmin", (uint8_t *)addr_jasmin, 8 * sizeof(uint32_t));
             }
 
-            // assert(memcmp(leaf_ref, leaf_jasmin, XMSS_N) == 0); // FIXME: NOT OK
-            // assert(memcmp(wots_pk_ref, wots_pk_jasmin, XMSS_WOTS_SIG_BYTES) == 0); // FIXME: NOT OK
-            // assert(memcmp(addr_ref, addr_jasmin, 8 * sizeof(uint32_t)) == 0);  // OK
-            */
+            assert(memcmp(leaf_ref, leaf_jasmin, XMSS_N) == 0); 
+            assert(memcmp(wots_pk_ref, wots_pk_jasmin, XMSS_WOTS_SIG_BYTES) == 0);
+            assert(memcmp(addr_ref, addr_jasmin, 8 * sizeof(uint32_t)) == 0);  
         }
     }
 }
