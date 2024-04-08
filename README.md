@@ -15,3 +15,10 @@ cd test/xmss && make run
 ```
 cd bench && make run
 ```
+
+### Build with Docker
+
+```
+docker build -t xmss-jasmin .
+docker run -it xmss-jasmin bash
+```
