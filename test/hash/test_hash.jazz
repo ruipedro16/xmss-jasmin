@@ -1,142 +1,63 @@
 from XMSS require "hash/hash.jtmpl"
 
-export fn addr_to_bytes_jazz(reg u64 addr_as_bytes_ptr addr_ptr) {
-    stack u8[32] addr_as_bytes;
-    stack u32[8] addr;
-
-    reg ptr u8[32] addr_as_bytes_p;
-    reg ptr u32[8] addr_p;
-
-    inline int i;
-
-    for i=0 to 8 { addr[i] = (u32) [addr_ptr + 4*i]; }
-
-    addr_p = addr;
-    addr_as_bytes_p = addr_as_bytes;
-
-    addr_as_bytes_p = __addr_to_bytes(addr_as_bytes_p, addr_p);
-
-    addr = addr_p;
-    addr_as_bytes = addr_as_bytes_p;
-
-    for i=0 to 32 { (u8) [addr_as_bytes_ptr + i] = addr_as_bytes[i]; }
+export fn addr_to_bytes_jazz(
+    reg ptr u8[32] addr_as_bytes,
+    reg ptr u32[8] addr
+) -> reg ptr u8[32] 
+{
+    addr_as_bytes = __addr_to_bytes(addr_as_bytes, addr);
+    return addr_as_bytes;
 }
 
-export fn prf_jazz(reg u64 out_ptr in_ptr key_ptr) {
-    stack u8[XMSS_N] out;
-    reg ptr u8[XMSS_N] out_p;
-
-    stack u8[32] in;
-    reg ptr u8[32] in_p;
-
-    stack u8[XMSS_N] key;
-    reg ptr u8[XMSS_N] key_p;
-
-    inline int i;
-
-    for i=0 to 32 { in[i] = (u8) [in_ptr + i]; }
-    for i=0 to XMSS_N { key[i] = (u8) [key_ptr + i]; }
-
-    () = #spill(out_ptr);
-
-    out_p = out;
-    in_p = in;
-    key_p = key;
-
-    out_p = __prf_(out_p, in_p, key_p);
-
-    out = out_p;
-
-    () = #unspill(out_ptr);
-
-    for i=0 to XMSS_N { (u8) [out_ptr + i] = out[i]; }
+export fn prf_jazz(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[32] in,
+    reg ptr u8[XMSS_N] key
+) -> reg ptr u8[XMSS_N]
+{
+    out = __prf_(out, in, key);
+    return out;
 }
 
-export fn prf_keygen_jazz(reg u64 out_ptr in_ptr key_ptr) {
-    stack u8[XMSS_N] out;
-    reg ptr u8[XMSS_N] out_p;
-
-    stack u8[XMSS_N + 32] in;
-    reg ptr u8[XMSS_N + 32] in_p;
-
-    stack u8[XMSS_N] key;
-    reg ptr u8[XMSS_N] key_p;
-
-    inline int i;
-
-    for i=0 to XMSS_N + 32 { in[i] = (u8) [in_ptr + i]; }
-    for i=0 to XMSS_N { key[i] = (u8) [key_ptr + i]; }
-
-    () = #spill(out_ptr);
-
-    out_p = out;
-    in_p = in;
-    key_p = key;
-
-    out_p = __prf_keygen_(out_p, in_p, key_p);
-
-    out = out_p;
-
-    () = #unspill(out_ptr);
-
-    for i=0 to XMSS_N { (u8) [out_ptr + i] = out[i]; }
+export fn prf_keygen_jazz(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[XMSS_N + 32] in, 
+    reg ptr u8[XMSS_N] key
+) -> reg ptr u8[XMSS_N]
+{
+    out = __prf_keygen_(out, in, key);
+    return out;
 }
 
-export fn hash_message_jazz(reg u64 mhash_ptr r_ptr root_ptr idx m_ptr mlen) {
-    stack u8[XMSS_N] mhash;
-    stack u8[XMSS_N] R;
-    stack u8[XMSS_N] root;
-
-    inline int i;
-
-    for i=0 to XMSS_N { R[i] = (u8) [r_ptr + i]; root[i] = (u8) [root_ptr + i]; }
-
-    () = #spill(mhash_ptr);
-
+export fn hash_message_jazz(
+    reg ptr u8[XMSS_N] mhash,
+    reg ptr u8[XMSS_N] R,
+    reg ptr u8[XMSS_N] root,
+    reg u64 idx,
+    reg u64 m_ptr mlen
+) -> reg ptr u8[XMSS_N]
+{
     mhash = __hash_message(mhash, R, root, idx, m_ptr, mlen);
-
-    () = #unspill(mhash_ptr);
-
-    for i=0 to XMSS_N { (u8) [mhash_ptr + i] = mhash[i]; }
+    return mhash;
 }
 
-export fn thash_h_jazz(reg u64 out_ptr in_ptr pub_seed_ptr addr_ptr) {
-    stack u8[XMSS_N] out pub_seed;
-    stack u8[2*XMSS_N] in;
-    stack u32[8] addr;
-
-    inline int i;
-
-    for i=0 to 2*XMSS_N { in[i] = (u8) [in_ptr + i]; }
-    for i=0 to XMSS_N { pub_seed[i] = (u8) [pub_seed_ptr + i]; }
-    for i=0 to 8 { addr[i] = (u32) [addr_ptr + 4*i]; }
-    
-    () = #spill(out_ptr, addr_ptr);
-
-    out, addr = __thash_h(out, in, pub_seed, addr);
-
-    () = #unspill(out_ptr, addr_ptr);
-
-    for i=0 to XMSS_N { (u8) [out_ptr + i] = out[i]; }
-    for i=0 to 8 { (u32) [addr_ptr + 4*i] = addr[i]; }
+export fn thash_h_jazz(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u32[8] addr,
+    reg ptr u8[2 * XMSS_N] in,
+    reg ptr u8[XMSS_N] pub_seed
+) -> reg ptr u8[XMSS_N], reg ptr u32[8] 
+{
+    out, addr = __thash_h_(out, in, pub_seed, addr);
+    return out, addr;
 }
 
-export fn thash_f_jazz(reg u64 out_ptr pub_seed_ptr addr_ptr) {
-    stack u8[XMSS_N] out;
-    stack u8[XMSS_N] pub_seed;
-    stack u32[8] addr;
-
-    inline int i;
-
-    for i=0 to XMSS_N { out[i] = (u8) [out_ptr + i]; pub_seed[i] = (u8) [pub_seed_ptr + i]; }
-    for i=0 to 8 { addr[i] = (u32) [addr_ptr + 4*i]; }
-
-    () = #spill(out_ptr, addr_ptr);
-
-    out, addr = __thash_f(out, pub_seed, addr);
-
-    () = #unspill(out_ptr, addr_ptr);
-
-    for i=0 to XMSS_N { (u8) [out_ptr + i] = out[i]; }
-    for i=0 to 8 { (u32) [addr_ptr + 4*i] = addr[i]; }
+export fn thash_f_jazz(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u32[8] addr,
+    reg ptr u8[XMSS_N] pub_seed
+) -> reg ptr u8[XMSS_N], reg ptr u32[8] 
+{
+    out, addr = __thash_f_(out, pub_seed, addr);
+    return out, addr;
 }

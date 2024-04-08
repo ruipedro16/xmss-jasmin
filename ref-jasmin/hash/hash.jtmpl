@@ -177,7 +177,7 @@ inline fn __hash_message(
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // NOTE: `in` and `out` are not necessarily disjoint in the reference implementation (e.g. in compute root)
-//       OUTLEN is probably XMSS_N
+//        in that case, we copy the value of in to a buffer and write to out
 inline fn __thash_h(
     reg ptr u8[XMSS_N] out,
     reg ptr u8[2 * XMSS_N] in,
@@ -192,8 +192,6 @@ inline fn __thash_h(
     reg u8 t ;
     reg u64 i;
 
-    () = #spill(pub_seed, out,  in);
-
     // ull_to_bytes(buf, params->padding_len, XMSS_HASH_PADDING_H);
     buf[0:XMSS_PADDING_LEN] = __ull_to_bytes<XMSS_PADDING_LEN>(buf[0:XMSS_PADDING_LEN], XMSS_HASH_PADDING_H);
 
@@ -203,8 +201,12 @@ inline fn __thash_h(
     // addr_to_bytes(addr_as_bytes, addr);
     addr_as_bytes = __addr_to_bytes(addr_as_bytes, addr);
 
+    () = #spill(in, out, addr, pub_seed);
+    
     // prf(params, buf + params->padding_len, addr_as_bytes, pub_seed);
     buf[XMSS_PADDING_LEN : XMSS_N] = __prf_(buf[XMSS_PADDING_LEN : XMSS_N], addr_as_bytes, pub_seed);
+
+    () = #unspill(addr);
 
     // set_key_and_mask(addr, 1);
     addr = __set_key_and_mask(addr, 1);
@@ -244,14 +246,42 @@ inline fn __thash_h(
     () = #unspill(addr);
 
     return out, addr;
-}//<>
+}
 
-// TODO: Local and inline functions
+fn _thash_h(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[2 * XMSS_N] in,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8] 
+{
+    out, addr = __thash_h(out, in, pub_seed, addr);
+    return out, addr;
+}
+
+inline fn __thash_h_(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[2 * XMSS_N] in,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8] 
+{
+    out = out;
+    in = in;
+    pub_seed = pub_seed;
+    addr = addr;
+
+    out, addr = _thash_h(out, in, pub_seed, addr);
+
+    out = out;
+    addr = addr;
+
+    return out, addr;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // NOTE: The `in` argument is not used in this function
-// TODO: This function is only used once (in wots), so it probabily does not need a template parameter
 inline fn __thash_f(
     reg ptr u8[XMSS_N] out,
     reg ptr u8[XMSS_N] pub_seed,
@@ -274,10 +304,10 @@ inline fn __thash_f(
     // addr_to_bytes(addr_as_bytes, addr);
     addr_as_bytes = __addr_to_bytes(addr_as_bytes, addr);
 
-    () = #spill(addr, pub_seed, out);
+    () = #spill(out, addr, pub_seed);
 
     // prf(params, buf + params->padding_len, addr_as_bytes, pub_seed);
-    buf[XMSS_PADDING_LEN : XMSS_N] = __prf(buf[XMSS_PADDING_LEN : XMSS_N], addr_as_bytes, pub_seed); // TODO: Replace __prf by local function
+    buf[XMSS_PADDING_LEN : XMSS_N] = __prf_(buf[XMSS_PADDING_LEN : XMSS_N], addr_as_bytes, pub_seed);
 
     // set_key_and_mask(addr, 1);
     () = #unspill(addr);
@@ -286,11 +316,12 @@ inline fn __thash_f(
     // addr_to_bytes(addr_as_bytes, addr);
     addr_as_bytes = __addr_to_bytes(addr_as_bytes, addr);
     () = #spill(addr);
-
+   
     // prf(params, bitmask, addr_as_bytes, pub_seed);
     () = #unspill(pub_seed);
-    bitmask = __prf(bitmask, addr_as_bytes, pub_seed); // TODO: Replace __prf by local 
+    bitmask = __prf_(bitmask, addr_as_bytes, pub_seed);
 
+    () = #unspill(out);
     i = 0;
     while (i < XMSS_N) {
         // buf[params->padding_len + params->n + i] = in[i] ^ bitmask[i];
@@ -301,7 +332,6 @@ inline fn __thash_f(
     }
 
     //core_hash(params, out, buf, params->padding_len + 2 * params->n);
-    () = #unspill(out);
     out = __core_hash_<XMSS_N, XMSS_PADDING_LEN + 2*XMSS_N>(out, buf);
 
     () = #unspill(addr);

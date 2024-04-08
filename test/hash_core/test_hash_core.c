@@ -20,7 +20,7 @@
 #endif
 
 #define core_hash_shake256_out_64_jazz NAMESPACE1(core_hash_shake256_out_64_jazz, INLEN)
-extern void core_hash_shake256_out_64_jazz(const uint8_t *, uint8_t *);
+extern void core_hash_shake256_out_64_jazz(uint8_t *, const uint8_t *);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // REF IMPL
@@ -80,7 +80,7 @@ void test_core_hash_shake256_out_64(void) {
 
         randombytes(in, INLEN);
 
-        core_hash_shake256_out_64_jazz(in, out_jazz);
+        core_hash_shake256_out_64_jazz(out_jazz, in);
         core_hash_ref(&p, out_ref, in, INLEN);
 
         assert(memcmp(out_ref, out_jazz, 64) == 0);

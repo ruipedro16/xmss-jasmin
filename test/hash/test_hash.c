@@ -30,8 +30,8 @@ extern void addr_to_bytes_jazz(uint8_t *, const uint32_t *);
 extern void prf_jazz(uint8_t *, const uint8_t *, const uint8_t *);
 extern void prf_keygen_jazz(uint8_t *, const uint8_t *, const uint8_t *);
 extern void hash_message_jazz(uint8_t *, const uint8_t *, const uint8_t *, uint64_t, uint8_t *, size_t);
-extern void thash_h_jazz(uint8_t *, const uint8_t *, const uint8_t *, uint32_t *);
-extern void thash_f_jazz(uint8_t *, const uint8_t *, uint32_t *);
+extern void thash_h_jazz(uint8_t *, uint32_t *, const uint8_t *, const uint8_t *);
+extern void thash_f_jazz(uint8_t *, uint32_t *, const uint8_t *);
 
 void test_addr_to_bytes(void) {
     uint32_t addr[8];
@@ -217,7 +217,7 @@ void test_thash_h(void) {
         assert(memcmp(addr_jazz, addr_ref, 8 * sizeof(uint32_t)) == 0);
 
         thash_h(&p, out_ref, in, pub_seed, addr_ref);
-        thash_h_jazz(out_jazz, in, pub_seed, addr_jazz);
+        thash_h_jazz(out_jazz, addr_jazz, in, pub_seed);
 
         if (memcmp(out_ref, out_jazz, XMSS_N) != 0) {
             print_str_u8("out ref", out_ref, XMSS_N);
@@ -263,7 +263,7 @@ void test_thash_f(void) {
         assert(memcmp(addr_jazz, addr_ref, 8 * sizeof(uint32_t)) == 0);
 
         thash_f(&p, out_ref, out_ref, pub_seed, addr_ref);
-        thash_f_jazz(out_jazz, pub_seed, addr_jazz);
+        thash_f_jazz(out_jazz, addr_jazz, pub_seed);
 
         assert(memcmp(out_ref, out_jazz, XMSS_N) == 0);
         assert(memcmp(addr_ref, addr_jazz, 8 * sizeof(uint32_t)) == 0);
