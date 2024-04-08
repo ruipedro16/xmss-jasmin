@@ -72,8 +72,14 @@ int main(void) {
         exit(-1);
     }
 
+    #ifdef ALL_TIMINGS
+    const char *filename = "csv/bench_xmss_all_timings.csv";
+#else
+    const char *filename = "csv/bench_xmss.csv";
+#endif
+
     FILE *f;
-    if ((f = fopen("csv/bench_xmss.csv", "w")) == NULL) {
+    if ((f = fopen(filename, "w")) == NULL) {
         fprintf(stderr, "Failed to open file csv/bench_xmss.csv\n");
         exit(-1);
     }
@@ -95,25 +101,25 @@ int main(void) {
     // TODO:
 
     for (int loop = 0; loop < LOOPS; loop++) {
+        // XMSS_KEYPAIR [ref]
+        for (int i = 0; i < TIMINGS; i++) {
+            cycles_ref[loop][i] = cpucycles();
+            xmss_keypair(pk, sk, oid);
+        }
+
+        // XMSS_KEYPAIR [jasmin]
+        for (int i = 0; i < TIMINGS; i++) {
+            cycles_jasmin[loop][i] = cpucycles();
+            // TODO:
+            // xmss_keypair_jazz(pk, sk);
+        }
+
+        print_results(f, loop, -1, "xmss_keypair", cycles_ref[loop], cycles_jasmin[loop]);
+
         for (size_t message_len = 1; message_len <= MAX_MSG_LEN; message_len++) {
             if (debug) {
                 printf("[MessageLen=%ld]: Loop iteration: %d\n", message_len, loop);
             }
-
-            // XMSS_KEYPAIR [ref]
-            for (int i = 0; i < TIMINGS; i++) {
-                cycles_ref[loop][i] = cpucycles();
-                xmss_keypair(pk, sk, oid);
-            }
-
-            // XMSS_KEYPAIR [jasmin]
-            for (int i = 0; i < TIMINGS; i++) {
-                cycles_jasmin[loop][i] = cpucycles();
-                // TODO:
-                // xmss_keypair_jazz(pk, sk);
-            }
-
-            print_results(f, loop, message_len, "xmss_keypair", cycles_ref[loop], cycles_jasmin[loop]);
 
             // XMSS_SIGN [ref]
             for (int i = 0; i < TIMINGS; i++) {

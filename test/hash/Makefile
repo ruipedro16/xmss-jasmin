@@ -58,7 +58,7 @@ bin/%.s: bin/%.jpp
 
 $(TESTS):
 bin/%: bin/%.s | bin/
-	$(CC) $(CFLAGS) -o $@ -I../common -I../ -DIMPL=XMSS-SHAKE_20_512 \
+	$(CC) $(CFLAGS) -o $@ -I../common -I../ -DIMPL=XMSS-SHAKE_20_512 -DTEST_HASH \
 	$(SOURCES) $(REF_SOURCES) $< $(LDLIBS)
 
 $(OBJ_FILES):

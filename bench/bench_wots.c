@@ -71,18 +71,19 @@ int main(void) {
         exit(-1);
     }
 
+#ifdef ALL_TIMINGS
+    const char *filename = "csv/bench_wots_all_timings.csv";
+#else
+    const char *filename = "csv/bench_wots.csv";
+#endif
+
     FILE *f;
-    if ((f = fopen("csv/bench_wots.csv", "w")) == NULL) {
+    if ((f = fopen(filename, "w")) == NULL) {
         fprintf(stderr, "Failed to open file csv/bench_wots.csv\n");
         exit(-1);
     }
 
     fprintf(f, "Loop,Function,Reference,Jasmin,Diff\n");
-
-    for (int i = 0; i < 10; i++) {
-        // TODO:
-        // warmup
-    }
 
     uint64_t cycles_ref[LOOPS][TIMINGS], cycles_jasmin[LOOPS][TIMINGS];
 
@@ -92,6 +93,17 @@ int main(void) {
     uint8_t sig[p.wots_sig_bytes];
     uint8_t m[p.n];
     uint32_t addr[8] = {0};
+
+    for (int i = 0; i < 10; i++) {
+        // warmup
+        wots_pkgen(&p, pk, seed, pub_seed, addr);
+        wots_sign(&p, sig, m, seed, pub_seed, addr);
+        wots_pk_from_sig(&p, pk, sig, m, pub_seed, addr);
+
+        wots_pkgen_jazz(pk, seed, pub_seed, addr);
+        wots_sign_jazz(sig, m, seed, pub_seed, addr);
+        wots_pk_from_sig_jazz(pk, sig, m, pub_seed, addr);
+    }
 
     for (int loop = 0; loop < LOOPS; loop++) {
         if (debug) {

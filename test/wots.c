@@ -25,6 +25,11 @@ extern void gen_chain_inplace_jazz(uint8_t *, const uint8_t *, uint32_t, uint32_
 extern void wots_checksum_jazz(int *, const int *);
 #endif
 
+#ifdef TEST_HASH
+extern void thash_f_jazz(uint8_t *, uint32_t *, const uint8_t *);
+extern void prf_keygen_jazz(uint8_t *, const uint8_t *, const uint8_t *);
+#endif
+
 /**
  * Helper method for pseudorandom key generation.
  * Expands an n-byte array into a len*n byte array using the `prf_keygen` function.
@@ -40,7 +45,12 @@ void expand_seed(const xmss_params *params, unsigned char *outseeds, const unsig
     for (i = 0; i < params->wots_len; i++) {
         set_chain_addr(addr, i);
         addr_to_bytes(buf + params->n, addr);
+
+#ifdef TEST_HASH
+        prf_keygen_jazz(outseeds + i * params->n, buf, inseed);
+#else
         prf_keygen(params, outseeds + i * params->n, buf, inseed);
+#endif
     }
 }
 
@@ -61,7 +71,12 @@ static void gen_chain(const xmss_params *params, unsigned char *out, const unsig
     /* Iterate 'steps' calls to the hash function. */
     for (i = start; i < (start + steps) && i < params->wots_w; i++) {
         set_hash_addr(addr, i);
+
+#ifdef TEST_HASH
+        thash_f_jazz(out, addr, pub_seed);
+#else
         thash_f(params, out, out, pub_seed, addr);
+#endif
     }
 }
 
@@ -110,6 +125,7 @@ static void wots_checksum(const xmss_params *params, int *csum_base_w, const int
 /* Takes a message and derives the matching chain lengths. */
 static void chain_lengths(const xmss_params *params, int *lengths, const unsigned char *msg) {
     base_w(params, lengths, params->wots_len1, msg);
+
 #ifdef TEST_WOTS_CHECKSUM
     wots_checksum_jazz(lengths + params->wots_len1, lengths);
 #else
@@ -169,7 +185,6 @@ void wots_sign(const xmss_params *params, unsigned char *sig, const unsigned cha
     for (i = 0; i < params->wots_len; i++) {
         set_chain_addr(addr, i);
 
-// TODO: run regular gen chain if gen chain inplace is not defined
 #ifdef TEST_GEN_CHAIN
         gen_chain_inplace_jazz(sig + i * params->n, sig + i * params->n, 0, lengths[i], pub_seed, addr);
 #else

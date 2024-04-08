@@ -14,6 +14,10 @@
 #include "print.h"
 #endif
 
+#ifdef TEST_HASH
+extern void thash_h_jazz(uint8_t *, uint32_t *, const uint8_t *, const uint8_t *);
+#endif
+
 /**
  * Computes a leaf node from a WOTS public key using an L-tree.
  * Note that this destroys the used WOTS public key.
@@ -32,7 +36,11 @@ void l_tree(const xmss_params *params, unsigned char *leaf, unsigned char *wots_
         for (i = 0; i < parent_nodes; i++) {
             set_tree_index(addr, i);
 
+#ifdef TEST_HASH
+            thash_h_jazz(wots_pk + i * params->n, addr, wots_pk + (i * 2) * params->n, pub_seed);
+#else
             thash_h(params, wots_pk + i * params->n, wots_pk + (i * 2) * params->n, pub_seed, addr);
+#endif
         }
         if (l & 1) {
             memcpy(wots_pk + (l >> 1) * params->n, wots_pk + (l - 1) * params->n, params->n);
@@ -49,9 +57,8 @@ void l_tree(const xmss_params *params, unsigned char *leaf, unsigned char *wots_
 /**
  * Computes a root node given a leaf and an auth path
  */
-static void compute_root(const xmss_params *params, unsigned char *root, const unsigned char *leaf,
-                         unsigned long leafidx, const unsigned char *auth_path, const unsigned char *pub_seed,
-                         uint32_t addr[8]) {
+void compute_root(const xmss_params *params, unsigned char *root, const unsigned char *leaf, unsigned long leafidx,
+                  const unsigned char *auth_path, const unsigned char *pub_seed, uint32_t addr[8]) {
     uint32_t i;
     unsigned char buffer[2 * params->n];
 
@@ -73,10 +80,20 @@ static void compute_root(const xmss_params *params, unsigned char *root, const u
 
         /* Pick the right or left neighbor, depending on parity of the node. */
         if (leafidx & 1) {
+#ifdef TEST_HASH
+            thash_h_jazz(buffer + params->n, addr, buffer, pub_seed);
+#else
             thash_h(params, buffer + params->n, buffer, pub_seed, addr);
+#endif
+
             memcpy(buffer, auth_path, params->n);
         } else {
+#ifdef TEST_HASH
+            thash_h_jazz(buffer, addr, buffer, pub_seed);
+#else
             thash_h(params, buffer, buffer, pub_seed, addr);
+#endif
+
             memcpy(buffer + params->n, auth_path, params->n);
         }
         auth_path += params->n;
@@ -86,7 +103,12 @@ static void compute_root(const xmss_params *params, unsigned char *root, const u
     set_tree_height(addr, params->tree_height - 1);
     leafidx >>= 1;
     set_tree_index(addr, leafidx);
+
+#ifdef TEST_HASH
+    thash_h_jazz(root, addr, buffer, pub_seed);
+#else
     thash_h(params, root, buffer, pub_seed, addr);
+#endif
 }
 
 /**

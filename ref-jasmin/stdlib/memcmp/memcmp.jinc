@@ -1,0 +1,6 @@
+from XMSS require "params.jinc"
+
+namespace memcmp_XMSS_N {
+    param int INLEN = XMSS_N;
+    require "_memcmp.jinc"
+}

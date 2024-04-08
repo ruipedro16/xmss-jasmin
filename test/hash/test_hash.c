@@ -11,6 +11,8 @@
 #include "params.h"
 #include "print.h"
 #include "randombytes.h"
+#include "wots.h"
+#include "xmss.h"
 
 #ifndef IMPL
 #error IMPL not defined
@@ -270,7 +272,7 @@ void test_thash_f(void) {
     }
 }
 
-void test_wots_sign(void) {
+void test_wots(void) {
     bool debug = true;
 
     xmss_params p;
@@ -286,13 +288,89 @@ void test_wots_sign(void) {
         exit(-1);
     }
 
-    uint8_t pk[XMSS_OID_LEN + p.pk_bytes];
-    uint8_t sk[XMSS_OID_LEN + p.sk_bytes];
+    uint8_t seed[p.n];
+    uint8_t pub_seed[p.n];
+    uint8_t pk1[p.wots_sig_bytes];
+    uint8_t pk2[p.wots_sig_bytes];
+    uint8_t sig[p.wots_sig_bytes];
+    uint8_t m[p.n];
+    uint32_t addr[8] = {0};
 
-    size_t smlen;
-    size_t mlen;
+    // C functions replaced by corresponding Jasmin functions:
+    // [X] thash_f_jazz
+    // [X] prf_keygen_jazz
 
-    // TODO:
+    for (int i = 0; i < TESTS; i++) {
+        if (debug) {
+            printf("[WOTS signature and PK derivation] Test %d/%d\n", i, TESTS);
+        }
+
+        randombytes(seed, p.n);
+        randombytes(pub_seed, p.n);
+        randombytes(m, p.n);
+        randombytes((uint8_t *)addr, 8 * sizeof(uint32_t));
+
+        wots_pkgen(&p, pk1, seed, pub_seed, addr);
+        wots_sign(&p, sig, m, seed, pub_seed, addr);
+        wots_pk_from_sig(&p, pk2, sig, m, pub_seed, addr);
+
+        assert(memcmp(pk1, pk2, p.wots_sig_bytes) == 0);
+    }
+}
+
+void test_api(void) {
+    bool debug = true;
+
+    xmss_params p;
+    uint32_t oid;
+
+    if (xmss_str_to_oid(&oid, xstr(IMPL)) == -1) {
+        fprintf(stderr, "Failed to generate oid from impl name\n");
+        exit(-1);
+    }
+
+    if (xmss_parse_oid(&p, oid) == -1) {
+        fprintf(stderr, "Failed to generate params from oid\n");
+        exit(-1);
+    }
+
+    // C functions replaced by corresponding Jasmin functions:
+    //
+    //
+
+    unsigned char pk[XMSS_OID_LEN + p.pk_bytes];
+    unsigned char sk[XMSS_OID_LEN + p.sk_bytes];
+
+    unsigned char m[MAX_MLEN];
+    unsigned char sm[p.sig_bytes + MAX_MLEN];
+    unsigned char mout[p.sig_bytes + MAX_MLEN];
+    unsigned long long smlen;
+    unsigned long long mlen = MAX_MLEN;
+
+    for (int i = 0; i < 5; i++) {
+        if (debug) {
+            printf("[XMSS sign+verify] Test %d/%d\n", i, TESTS);
+
+            xmss_keypair(pk, sk, oid);
+            if (debug) {
+                puts("[DEBUG]: Finished keygen");
+            }
+
+            randombytes(m, MAX_MLEN);
+
+            xmss_sign(sk, sm, &smlen, m, MAX_MLEN);
+            if (debug) {
+                puts("[DEBUG]: Finished sign");
+            }
+
+            int res = xmss_sign_open(mout, &mlen, sm, smlen, pk);
+            if (debug) {
+                puts("[DEBUG]: Finished verify");
+            }
+
+            assert(res == 0);
+        }
+    }
 }
 
 int main(void) {
@@ -301,8 +379,8 @@ int main(void) {
     test_prf_keygen();
     test_thash_h();
     test_thash_f();
-    // TODO: Test hash message
-    // test_wots_sign();  // Wots sign but replaces all C [hash] functions with the respective Jasmin function
+    test_wots();  // Wots but replaces all C [hash] functions with the respective Jasmin function
+    test_api();   // Same as before but for XMSS
     printf("[%s]: Hash OK\n", xstr(IMPL));
     return 0;
 }

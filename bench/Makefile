@@ -9,12 +9,16 @@ LDLIBS   = -lcrypto
 
 # --------------------------------------------------------------------------------------------------
 
+BENCH_FLAGS ?= # Optinal flag -DALL_TIMINGS
+
+# --------------------------------------------------------------------------------------------------
+
 BIN_FILES := bin/bench_wots # bin/bench_xmss
 ASM_FILES := bin/wots.s # bin/xmss.s
 CSV_FILES := $(patsubst bin/%,csv/%.csv,$(BIN_FILES))
 
 default: $(BIN_FILES)
-run: $(CSV_FILES)
+run: bench_wots # bench_xmss
 asm_files: $(ASM_FILES)
 
 # --------------------------------------------------------------------------------------------------
@@ -38,13 +42,18 @@ bin/xmss.s: bin/
 
 bin/bench_wots: bin/wots.s
 	$(CC) $(CFLAGS) -o $@ -I./common -I../xmss-reference \
-	-DIMPL=XMSS-SHAKE_20_512 $(REF_SOURCES) $(BENCH_SOURCES) bench_wots.c $< $(LDLIBS)
+	-DIMPL=XMSS-SHAKE_20_512 $(REF_SOURCES) $(BENCH_SOURCES) $(BENCH_FLAGS) \
+	bench_wots.c $< $(LDLIBS)
 
 bin/bench_xmss: bin/xmss.s
 	$(CC) $(CFLAGS) -o $@ -I./common -I../xmss-reference \
-	-DIMPL=XMSS-SHAKE_20_512 $(REF_SOURCES) $(BENCH_SOURCES) bench_xmss.c $< $(LDLIBS)
+	-DIMPL=XMSS-SHAKE_20_512 $(REF_SOURCES) $(BENCH_SOURCES) $(BENCH_FLAGS) \
+	bench_xmss.c $< $(LDLIBS)
 
-csv/%.csv: bin/% | csv/
+bench_wots: bin/bench_wots
+	./$<
+
+bench_xmss: bin/bench_xmss
 	./$<
 
 # --------------------------------------------------------------------------------------------------

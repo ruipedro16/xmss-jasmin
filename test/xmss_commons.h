@@ -8,6 +8,9 @@
 void l_tree(const xmss_params *params, unsigned char *leaf, unsigned char *wots_pk, const unsigned char *pub_seed,
             uint32_t addr[8]);
 
+void compute_root(const xmss_params *params, unsigned char *root, const unsigned char *leaf, unsigned long leafidx,
+                  const unsigned char *auth_path, const unsigned char *pub_seed, uint32_t addr[8]);
+
 /**
  * Computes the leaf at a given address. First generates the WOTS key pair,
  * then computes leaf using l_tree. As this happens position independent, we
