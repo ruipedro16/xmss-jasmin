@@ -1,4 +1,4 @@
-name: Tests for jasmin-ref implementation
+name: Check CT jasmin-ref implementation
 
 on:
   workflow_dispatch:
@@ -16,10 +16,9 @@ jobs:
           - wots
     steps:
       - uses: actions/checkout@v4
-      - name: Compile tests
+      - name: Generate preprocessed files
         run:
-          JASMIN=$(which_jasminc) make -C test/${{ matrix.directory }}
-      - name: Run tests
+          JASMIN=$(which_jasminc) make -C test/${{ matrix.directory }} jpp_files
+      - name: Check CT
         run:
-          JASMIN=$(which_jasminc) make -C test/${{ matrix.directory }} run
-          
+          JASMIN=$(which_jasminc) make -C test/${{ matrix.directory }} checkct
