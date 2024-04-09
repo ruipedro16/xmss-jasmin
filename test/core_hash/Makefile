@@ -8,7 +8,7 @@ CFLAGS   ?= -Wall -g -O3 -Wextra -Wpedantic
 LDLIBS   = -lcrypto
 
 JASMIN   ?= jasminc
-JFLAGS   ?= ${JADDFLAGS}
+JFLAGS   ?= -nowarning ${JADDFLAGS}
 JINCLUDE ?= -I XMSS:../../ref-jasmin/
 
 JPP          ?= ../../scripts/jasmin-preprocessor/jpp
@@ -47,7 +47,7 @@ checkct: $(CHECKCT_FILES)
 
 # --------------------------------------------------------------------------------------------------
 
-REF_SOURCES := $(filter-out %xmss_core_fast.c,$(filter-out %randombytes.c, $(wildcard ../../xmss-reference/*.c)))
+REF_SOURCES := $(wildcard ../*.c)
 
 SOURCES := test_core_hash.c ../common/notrandombytes.c ../common/print.c
 
@@ -67,7 +67,7 @@ bin/%.s: bin/%.jpp
 
 $(TESTS):
 bin/%: bin/%.s | bin/
-	$(CC) $(CFLAGS) -o $@ -DIMPL=XMSS-SHAKE_20_512 -DINLEN=$(GET_INLEN) -I../common -I../../xmss-reference/ \
+	$(CC) $(CFLAGS) -o $@ -DIMPL=XMSS-SHAKE_20_512 -DINLEN=$(GET_INLEN) -I../common -I../ \
 	$(REF_SOURCES) $(SOURCES) $< $(LDLIBS)
 
 $(OBJ_FILES):
