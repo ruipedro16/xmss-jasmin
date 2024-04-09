@@ -7,7 +7,7 @@ export fn expand_seed_jazz(
     reg ptr u8[XMSS_N] inseed,
     reg ptr u8[XMSS_N] pub_seed
 ) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]  {
-    outseeds, addr = __expand_seed(outseeds, inseed, pub_seed, addr);
+    outseeds, addr = __expand_seed_(outseeds, inseed, pub_seed, addr);
     return outseeds, addr;
 }
 
@@ -44,75 +44,37 @@ export fn gen_chain_inplace_jazz(
     return out, addr;
 }
 
-export fn wots_pkgen_jazz(reg u64 pk_ptr seed_ptr pub_seed_ptr addr_ptr) {
-    stack u8[XMSS_WOTS_LEN * XMSS_N] pk; // TODO: replace with param pk size
-    stack u8[XMSS_N] seed;
-    stack u8[XMSS_N] pub_seed;
-    stack u32[8] addr;
-
-    inline int i;
-
-    for i=0 to XMSS_N { seed[i] = (u8) [seed_ptr + i];
-                        pub_seed[i] = (u8) [pub_seed_ptr + i]; }
-
-    for i=0 to 8 { addr[i] = (u32) [addr_ptr + 4*i]; }
-
-    () = #spill(pk_ptr, addr_ptr);
-
-    pk, addr = __wots_pkgen(pk, seed, pub_seed, addr);
-
-    () = #unspill(pk_ptr, addr_ptr);
-
-    for i=0 to XMSS_WOTS_LEN * XMSS_N { (u8) [pk_ptr + i] = pk[i]; }
-    for i=0 to 8 { (u32) [addr_ptr + 4*i] = addr[i]; }
+export fn wots_pkgen_jazz(
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk,
+    reg ptr u32[8] addr,
+    reg ptr u8[XMSS_N] seed,
+    reg ptr u8[XMSS_N] pub_seed
+) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8] 
+{
+    pk, addr = __wots_pkgen_(pk, seed, pub_seed, addr);
+    return pk, addr;
 }  
 
-export fn wots_sign_jazz(reg u64 sig_ptr msg_ptr seed_ptr pub_seed_ptr addr_ptr) {
-    stack u8[XMSS_WOTS_LEN * XMSS_N] sig; // TODO: replace with param pk size
-    stack u8[XMSS_N] msg;
-    stack u8[XMSS_N] seed;
-    stack u8[XMSS_N] pub_seed;
-    stack u32[8] addr;
-
-    inline int i;
-
-    for i=0 to XMSS_N { msg[i] = (u8) [msg_ptr + i];
-                        seed[i] = (u8) [seed_ptr + i];
-                        pub_seed[i] = (u8) [pub_seed_ptr + i]; }
-
-    for i=0 to 8 { addr[i] = (u32) [addr_ptr + 4*i]; }
-
-    () = #spill(sig_ptr, addr_ptr);
-
-    sig, addr = __wots_sign(sig, msg, seed, pub_seed, addr);
-
-    () = #unspill(sig_ptr, addr_ptr);
-
-    for i=0 to XMSS_WOTS_LEN * XMSS_N { (u8) [sig_ptr + i] = sig[i]; }
-    for i=0 to 8 { (u32) [addr_ptr + 4*i] = addr[i]; }
+export fn wots_sign_jazz(
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] sig,
+    reg ptr u32[8] addr,
+    reg ptr u8[XMSS_N] msg,
+    reg ptr u8[XMSS_N] seed,
+    reg ptr u8[XMSS_N] pub_seed
+) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]
+{
+    sig, addr = __wots_sign_(sig, msg, seed, pub_seed, addr);
+    return sig, addr;
 }  
 
-export fn wots_pk_from_sig_jazz(reg u64 pk_ptr sig_ptr msg_ptr pub_seed_ptr addr_ptr) {
-    stack u8[XMSS_WOTS_LEN * XMSS_N] pk; // TODO: replace with param pk size
-    stack u8[XMSS_N] msg;
-    stack u8[XMSS_N] pub_seed;
-    stack u32[8] addr;
-
-    inline int i;
-
-    for i=0 to XMSS_N { msg[i] = (u8) [msg_ptr + i];
-                        pub_seed[i] = (u8) [pub_seed_ptr + i]; }
-
-    for i=0 to 8 { addr[i] = (u32) [addr_ptr + 4*i]; }
-
-    () = #spill(pk_ptr, addr_ptr);
-
-    sig_ptr = sig_ptr;
-
-    pk, addr = __wots_pk_from_sig(pk, sig_ptr, msg, pub_seed, addr);
-
-    () = #unspill(pk_ptr, addr_ptr);
-
-    for i=0 to XMSS_WOTS_LEN * XMSS_N { (u8) [pk_ptr + i] = pk[i]; }
-    for i=0 to 8 { (u32) [addr_ptr + 4*i] = addr[i]; }
+export fn wots_pk_from_sig_jazz(
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk,
+    reg ptr u32[8] addr,
+    reg u64 sig_ptr,
+    reg ptr u8[XMSS_N] msg,
+    reg ptr u8[XMSS_N] pub_seed
+) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8] 
+{
+    pk, addr = __wots_pk_from_sig_(pk, sig_ptr, msg, pub_seed, addr);
+    return pk, addr;
 }

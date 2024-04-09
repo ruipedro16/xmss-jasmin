@@ -427,9 +427,8 @@ inline fn __chain_lengths_(
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-// FIXME: This should be a reg ptr and not stack 
 inline fn __wots_pkgen(
-    stack /* reg ptr */ u8[XMSS_WOTS_LEN * XMSS_N] pk, // TODO: Replace with param pk size
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk,
     reg ptr u8[XMSS_N] seed,
     reg ptr u8[XMSS_N] pub_seed,
     reg ptr u32[8] addr
@@ -439,32 +438,32 @@ inline fn __wots_pkgen(
     reg u32 chain;
     inline int i j;
 
-    reg ptr u8[XMSS_N] pk_ptr;
-
-    () = #spill(pub_seed);
+    () = #spill(pub_seed); // TODO: SEE if I can merge the two spills (ppub_seed needs to be live after expand seed)
 
     // expand_seed(params, pk, seed, pub_seed, addr);
     pk, addr = __expand_seed_(pk, seed, pub_seed, addr);
+    
+    () = #spill(pk);
 
     for i = 0 to XMSS_WOTS_LEN {
         // set_chain_addr(addr, i);
         chain = i;
         addr = __set_chain_addr(addr, chain);
 
-        // gen_chain(params, pk + i*params->n, pk + i*params->n, 0, params->wots_w - 1, pub_seed, addr);
-        () = #unspill(pub_seed);
+        () = #unspill(pk, pub_seed);
         for j=0 to XMSS_N { buf[j] = pk[i*XMSS_N + j]; }
-        pk[i*XMSS_N : XMSS_N], addr = __gen_chain_inplace(pk[i*XMSS_N : XMSS_N], buf, 0, XMSS_WOTS_W - 1, pub_seed, addr);
+        pk[i*XMSS_N : XMSS_N], addr = __gen_chain_inplace_(pk[i*XMSS_N : XMSS_N], buf, 0, XMSS_WOTS_W - 1, pub_seed, addr);
+        
+        () = #spill(pk);
     }
+
+    () = #unspill(pk);
 
     return pk, addr;
 }
 
-/*
-TODO: For this function to work, __wots_pkgen needs to receive pk as a reg ptr and not as a stack array,
-      but register allocation is failing for reg ptr but works for stack (???)
 fn _wots_pkgen(
-    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk, // TODO: Replace with param pk size
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk,
     reg ptr u8[XMSS_N] seed,
     reg ptr u8[XMSS_N] pub_seed,
     reg ptr u32[8] addr
@@ -475,7 +474,7 @@ fn _wots_pkgen(
 }
 
 inline fn __wots_pkgen_(
-    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk, // TODO: Replace with param pk size
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk,
     reg ptr u8[XMSS_N] seed,
     reg ptr u8[XMSS_N] pub_seed,
     reg ptr u32[8] addr
@@ -493,13 +492,11 @@ inline fn __wots_pkgen_(
 
     return pk, addr;
 }
-*/
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// FIXME: TODO: Same as before
 inline fn __wots_sign(
-    stack /* reg ptr */ u8[XMSS_WOTS_LEN * XMSS_N] sig,
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] sig,
     reg ptr u8[XMSS_N] msg,
     reg ptr u8[XMSS_N] seed,
     reg ptr u8[XMSS_N] pub_seed,
@@ -536,12 +533,44 @@ inline fn __wots_sign(
     return sig, addr;
 }
 
-// TODO: Add local and inline function
+fn _wots_sign(
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] sig,
+    reg ptr u8[XMSS_N] msg,
+    reg ptr u8[XMSS_N] seed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]
+{
+    sig, addr = __wots_sign(sig, msg, seed, pub_seed, addr);
+    return sig, addr;
+}
+
+inline fn __wots_sign_(
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] sig,
+    reg ptr u8[XMSS_N] msg,
+    reg ptr u8[XMSS_N] seed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]
+{
+    sig = sig;
+    msg = msg;
+    seed = seed;
+    pub_seed = pub_seed;
+    addr = addr;
+
+    sig, addr = _wots_sign(sig, msg, seed, pub_seed, addr);
+
+    sig = sig;
+    addr = addr;
+
+    return sig, addr;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 inline fn __wots_pk_from_sig(
-    stack /* reg ptr */  u8[XMSS_WOTS_LEN * XMSS_N] pk,
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk,
     reg u64 sig_ptr,
     reg ptr u8[XMSS_N] msg,
     reg ptr u8[XMSS_N] pub_seed,
@@ -574,6 +603,40 @@ inline fn __wots_pk_from_sig(
         t = sig_ptr; t += i*XMSS_N;
         pk[i*XMSS_N : XMSS_N], addr = __gen_chain_(pk[i*XMSS_N : XMSS_N], t, start, steps, pub_seed, addr);
     }
+
+    return pk, addr;
+}
+
+fn _wots_pk_from_sig(
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk,
+    reg u64 sig_ptr,
+    reg ptr u8[XMSS_N] msg,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]
+{
+    pk, addr = __wots_pk_from_sig(pk, sig_ptr, msg, pub_seed, addr);
+    return pk, addr;
+}
+
+inline fn __wots_pk_from_sig_(
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk,
+    reg u64 sig_ptr,
+    reg ptr u8[XMSS_N] msg,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]
+{
+    pk = pk;
+    sig_ptr = sig_ptr;
+    msg = msg;
+    pub_seed = pub_seed;
+    addr = addr;
+
+    pk, addr = __wots_pk_from_sig(pk, sig_ptr, msg, pub_seed, addr);
+
+    pk = pk;
+    addr = addr;
 
     return pk, addr;
 }

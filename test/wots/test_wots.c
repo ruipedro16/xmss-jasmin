@@ -23,10 +23,10 @@
 #define XMSS_N p.n
 #define XMSS_WOTS_LEN p.wots_len
 
-extern void wots_pkgen_jazz(uint8_t *, const uint8_t *, const uint8_t *, uint32_t *);
-extern void wots_sign_jazz(uint8_t *, const uint8_t *, const uint8_t *, const uint8_t *, uint32_t *);
-extern void wots_pk_from_sig_jazz(uint8_t *pk, const uint8_t *sig, const uint8_t *msg, const uint8_t *pub_seed,
-                                  uint32_t *);
+extern void wots_pkgen_jazz(uint8_t *, uint32_t *, const uint8_t *, const uint8_t *);
+extern void wots_sign_jazz(uint8_t *, uint32_t *, const uint8_t *, const uint8_t *, const uint8_t *);
+extern void wots_pk_from_sig_jazz(uint8_t *pk, uint32_t *, const uint8_t *sig, const uint8_t *msg,
+                                  const uint8_t *pub_seed);
 
 void test_wots(void) {
     // Same test as reference implementation
@@ -113,7 +113,7 @@ void test_wots_pkgen(void) {
         memcpy(addr_jazz, addr_ref, 8 * sizeof(uint32_t));
 
         wots_pkgen(&p, pk_ref, seed, pub_seed, addr_ref);
-        wots_pkgen_jazz(pk_jazz, seed, pub_seed, addr_jazz);
+        wots_pkgen_jazz(pk_jazz, addr_jazz, seed, pub_seed);
 
         if (memcmp(pk_ref, pk_jazz, p.wots_sig_bytes) != 0) {
             print_str_u8("pk ref", pk_ref, p.wots_sig_bytes);
@@ -165,7 +165,7 @@ void test_wots_sign(void) {
 
         // sign
         wots_sign(&p, sig_ref, m, seed, pub_seed, addr_ref);
-        wots_sign_jazz(sig_jazz, m, seed, pub_seed, addr_jazz);
+        wots_sign_jazz(sig_jazz, addr_jazz, m, seed, pub_seed);
 
         assert(memcmp(sig_ref, sig_jazz, p.wots_sig_bytes) == 0);
     }
@@ -214,7 +214,7 @@ void test_wots_pk_from_sig(void) {
         assert(memcmp(addr_jazz, addr_ref, 8 * sizeof(uint32_t)) == 0);
 
         wots_pk_from_sig(&p, pk_ref, sig, m, pub_seed, addr_ref);
-        wots_pk_from_sig_jazz(pk_jazz, sig, m, pub_seed, addr_jazz);
+        wots_pk_from_sig_jazz(pk_jazz, addr_jazz, sig, m, pub_seed);
 
         assert(memcmp(pk_ref, pk_jazz, p.wots_sig_bytes) == 0);
     }
@@ -254,9 +254,9 @@ void test_wots_jazz(void) {
         randombytes(m, p.n);
         randombytes((uint8_t *)addr, 8 * sizeof(uint32_t));
 
-        wots_pkgen_jazz(pk1, seed, pub_seed, addr);
-        wots_sign_jazz(sig, m, seed, pub_seed, addr);
-        wots_pk_from_sig_jazz(pk2, sig, m, pub_seed, addr);
+        wots_pkgen_jazz(pk1, addr, seed, pub_seed);
+        wots_sign_jazz(sig, addr, m, seed, pub_seed);
+        wots_pk_from_sig_jazz(pk2, addr, sig, m, pub_seed);
 
         assert(memcmp(pk1, pk2, p.wots_sig_bytes) == 0);
     }
