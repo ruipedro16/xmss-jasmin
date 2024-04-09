@@ -12,8 +12,7 @@ JINCLUDE ?= -I XMSS:../../ref-jasmin/
 
 # --------------------------------------------------------------------------------------------------
 
-SOURCES := test_hash_address.c ../../xmss-reference/hash_address.c \
-           ../common/notrandombytes.c ../common/print.c
+SOURCES := test_hash_address.c ../hash_address.c ../common/notrandombytes.c ../common/print.c
 
 # --------------------------------------------------------------------------------------------------
 
@@ -29,7 +28,7 @@ bin/test_hash_address.s: test_hash_address.jazz | bin/
 	$(JASMIN) $(JFLAGS) $(JINCLUDE) $< -o $@
 
 bin/test_hash_address: bin/test_hash_address.s | bin/
-	$(CC) $(CFLAGS) -o $@ -I../common -I../../xmss-reference/ $(SOURCES) $<
+	$(CC) $(CFLAGS) -o $@ -I../common -I../ $(SOURCES) $<
 
 %.o: %.s
 	$(AS) $< -o $@
