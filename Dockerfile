@@ -2,7 +2,6 @@ FROM debian:stable-slim
 
 LABEL MAINTAINER Rui Fernandes <ruipedro16@protonmail.com>
 
-
 ENV DEBIAN_FRONTEND=noninteractive
 
 ARG USERNAME=xmss_jasmin
@@ -12,7 +11,8 @@ ARG JASMIN_COMMIT=e84c0c59b4f4e005f2be4de5fdfbcaf1e3e2f975
 ARG JASMIN_COMPILER_COMMIT=252e602bd76606942d6e1b2aa7d44eb4d09f1712 # corresponding extracted sources on gitlab.com (builds faster)
 
 RUN apt-get -q -y update && apt-get -q -y upgrade && \
-    apt-get -q -y install apt-utils sudo wget build-essential curl opam git m4 libgmp-dev libpcre3-dev pkg-config zlib1g-dev cvc4 vim gcc clang && \
+    apt-get -q -y install apt-utils sudo wget build-essential curl opam git m4 libgmp-dev libpcre3-dev \
+                  pkg-config zlib1g-dev cvc4 vim gcc clang openssl libssl-dev && \
     apt-get -q -y clean
 
 RUN echo "%sudo  ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/sudoers && \
@@ -72,4 +72,5 @@ RUN git clone https://github.com/jasmin-lang/jasmin.git && \
 RUN echo "eval $(opam env)" >> /home/$USERNAME/.bashrc
 
 USER $USERNAME
-COPY . .
+RUN git clone --recurse-submodules https://github.com/ruipedro16/xmss-jasmin.git
+# FIXME: CP . . causes permission denied in ssh
