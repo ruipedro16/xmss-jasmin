@@ -60,7 +60,7 @@ void test_wots(void) {
 
     for (int i = 0; i < TESTS; i++) {
         if (debug) {
-            printf("[WOTS signature and PK derivation] Test %d/%d\n", i, TESTS);
+            printf("[WOTS signature and PK derivation] Test %d/%d\n", i + 1, TESTS);
         }
 
         randombytes(seed, p.n);
@@ -101,7 +101,7 @@ void test_wots_pkgen(void) {
 
     for (int i = 0; i < TESTS; i++) {
         if (debug) {
-            printf("[WOTS PK Gen] Test %d/%d\n", i, TESTS);
+            printf("[WOTS PK Gen] Test %d/%d\n", i + 1, TESTS);
         }
 
         memset(pk_ref, 0, p.wots_sig_bytes);
@@ -151,7 +151,7 @@ void test_wots_sign(void) {
 
     for (int i = 0; i < TESTS; i++) {
         if (debug) {
-            printf("[WOTS Sign] Test %d/%d\n", i, TESTS);
+            printf("[WOTS Sign] Test %d/%d\n", i + 1, TESTS);
         }
 
         randombytes(seed, p.n);
@@ -198,7 +198,7 @@ void test_wots_pk_from_sig(void) {
 
     for (int i = 0; i < TESTS; i++) {
         if (debug) {
-            printf("[WOTS PK from SIG] Test %d/%d\n", i, TESTS);
+            printf("[WOTS PK from SIG] Test %d/%d\n", i + 1, TESTS);
         }
 
         randombytes(seed, p.n);
@@ -246,7 +246,7 @@ void test_wots_jazz(void) {
 
     for (int i = 0; i < TESTS; i++) {
         if (debug) {
-            printf("[WOTS JAZZ] Test %d/%d\n", i, TESTS);
+            printf("[WOTS JAZZ] Test %d/%d\n", i + 1, TESTS);
         }
 
         randombytes(seed, p.n);

@@ -10,15 +10,15 @@
 #include "utils.h"
 
 #ifdef TEST_EXPAND_SEED
-extern void expand_seed_jazz(uint8_t *, const uint8_t *, const uint8_t *, uint32_t *);
+extern void expand_seed_jazz(uint8_t *, uint32_t *, const uint8_t *, const uint8_t *);
 #endif
 
 #ifdef TEST_GEN_CHAIN
-extern void gen_chain_jazz(uint8_t *, const uint8_t *, uint32_t, uint32_t, const uint8_t *, uint32_t *);
+extern void gen_chain_jazz(uint8_t *, uint32_t *, const uint8_t *, uint32_t, uint32_t, const uint8_t *);
 #endif
 
 #ifdef TEST_GEN_CHAIN_INPLACE
-extern void gen_chain_inplace_jazz(uint8_t *, const uint8_t *, uint32_t, uint32_t, const uint8_t *, uint32_t *);
+extern void gen_chain_inplace_jazz(uint8_t *, uint32_t *, const uint8_t *, uint32_t, uint32_t, const uint8_t *);
 #endif
 
 #ifdef TEST_WOTS_CHECKSUM
@@ -147,7 +147,7 @@ void wots_pkgen(const xmss_params *params, unsigned char *pk, const unsigned cha
 
 /* The WOTS+ private key is derived from the seed. */
 #ifdef TEST_EXPAND_SEED
-    expand_seed_jazz(pk, seed, pub_seed, addr);
+    expand_seed_jazz(pk, addr, seed, pub_seed);
 #else
     expand_seed(params, pk, seed, pub_seed, addr);
 #endif
@@ -155,9 +155,8 @@ void wots_pkgen(const xmss_params *params, unsigned char *pk, const unsigned cha
     for (i = 0; i < params->wots_len; i++) {
         set_chain_addr(addr, i);
 
-// TODO: run regular gen chain if gen chain inplace is not defined
 #ifdef TEST_GEN_CHAIN_INPLACE
-        gen_chain_inplace_jazz(pk + i * params->n, pk + i * params->n, 0, params->wots_w - 1, pub_seed, addr);
+        gen_chain_inplace_jazz(pk + i * params->n, addr, pk + i * params->n, 0, params->wots_w - 1, pub_seed);
 #else
         gen_chain(params, pk + i * params->n, pk + i * params->n, 0, params->wots_w - 1, pub_seed, addr);
 #endif
@@ -177,7 +176,7 @@ void wots_sign(const xmss_params *params, unsigned char *sig, const unsigned cha
 
 /* The WOTS+ private key is derived from the seed. */
 #ifdef TEST_EXPAND_SEED
-    expand_seed_jazz(sig, seed, pub_seed, addr);
+    expand_seed_jazz(sig, addr, seed, pub_seed);
 #else
     expand_seed(params, sig, seed, pub_seed, addr);
 #endif
@@ -186,7 +185,7 @@ void wots_sign(const xmss_params *params, unsigned char *sig, const unsigned cha
         set_chain_addr(addr, i);
 
 #ifdef TEST_GEN_CHAIN
-        gen_chain_inplace_jazz(sig + i * params->n, sig + i * params->n, 0, lengths[i], pub_seed, addr);
+        gen_chain_inplace_jazz(sig + i * params->n, addr, sig + i * params->n, 0, lengths[i], pub_seed);
 #else
         gen_chain(params, sig + i * params->n, sig + i * params->n, 0, lengths[i], pub_seed, addr);
 #endif
@@ -209,8 +208,8 @@ void wots_pk_from_sig(const xmss_params *params, unsigned char *pk, const unsign
         set_chain_addr(addr, i);
 
 #ifdef TEST_GEN_CHAIN
-        gen_chain_jazz(pk + i * params->n, sig + i * params->n, lengths[i], params->wots_w - 1 - lengths[i], pub_seed,
-                       addr);
+        gen_chain_jazz(pk + i * params->n, addr, sig + i * params->n, lengths[i], params->wots_w - 1 - lengths[i],
+                       pub_seed);
 #else
         gen_chain(params, pk + i * params->n, sig + i * params->n, lengths[i], params->wots_w - 1 - lengths[i],
                   pub_seed, addr);
