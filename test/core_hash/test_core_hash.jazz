@@ -8,7 +8,7 @@ export fn core_hash<INLEN>(
     reg ptr u8[INLEN] in
 ) -> reg ptr u8[64] 
 {
-    out = __core_hash_<64, INLEN>(out, in); 
+    out = __core_hash_<INLEN>(out, in); 
     return out;
 }//<>
 
@@ -17,6 +17,6 @@ export fn core_hash_in_ptr(
     reg u64 in_ptr inlen
 ) -> reg ptr u8[64] 
 {
-    out = _core_hash_in_ptr<64>(out, in_ptr, inlen);
+    out = _core_hash_in_ptr(out, in_ptr, inlen);
     return out;
 }

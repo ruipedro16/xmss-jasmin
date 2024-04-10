@@ -9,18 +9,14 @@ LDLIBS   = -lcrypto
 
 JASMIN   ?= jasminc
 JFLAGS   ?= -nowarning ${JADDFLAGS}
-JINCLUDE ?= -I XMSS:../../ref-jasmin/ -I Stdlib:../../ref-jasmin/stdlib
+JINCLUDE ?= -I XMSS:../../../ref-jasmin/
 
-JPP          ?= ../../scripts/jasmin-preprocessor/jpp
-PREPROCESSOR ?= ../../scripts/jasmin-preprocessor/preprocessor
-
-# --------------------------------------------------------------------------------------------------
-
-IMPLS := XMSS-SHAKE_20_512 XMSS-SHA2_10_256 # TODO: Test both implementations
+JPP          ?= ../../../scripts/jasmin-preprocessor/jpp
+PREPROCESSOR ?= ../../../scripts/jasmin-preprocessor/preprocessor
 
 # --------------------------------------------------------------------------------------------------
 
-TESTS := bin/test_hash_1 # $(addprefix bin/test_hash_, $(TLIST))
+TESTS := bin/test_sha256_in_ptr
 OUT   := $(addsuffix .out, $(TESTS))
 
 # --------------------------------------------------------------------------------------------------
@@ -29,12 +25,6 @@ JPP_FILES     := $(addsuffix .jpp, $(TESTS))
 ASM_FILES     := $(JPP_FILES:.jpp=.s)
 OBJ_FILES     := $(ASM_FILES:.s=.o)
 CHECKCT_FILES := $(JPP_FILES:.jpp=.check)
-
-# --------------------------------------------------------------------------------------------------
-
-REF_SOURCES := $(wildcard ../*.c)
-
-SOURCES := test_hash.c ../common/notrandombytes.c ../common/print.c
 
 # --------------------------------------------------------------------------------------------------
 
@@ -51,27 +41,28 @@ checkct: $(CHECKCT_FILES)
 $(JPP_FILES):
 .PRECIOUS: bin/%.jpp
 bin/%.jpp: | bin/
-	cp test_hash.jazz $@
+	cp test_sha256_in_ptr.jazz $@
 	$(JPP) $(JINCLUDE) -in $@ -out $@
 	$(PREPROCESSOR) --input_file $@ --output_file $@
 
 $(ASM_FILES):
 .PRECIOUS: bin/%.s
-bin/%.s: bin/%.jpp
+bin/%.s: bin/%.jpp | bin/
 	$(JASMIN) $(JFLAGS) $(JINCLUDE) $< -o $@
 
 $(TESTS):
 bin/%: bin/%.s | bin/
-	$(CC) $(CFLAGS) -o $@ -I../common -I../ -DIMPL=XMSS-SHA2_10_256 -DTEST_HASH \
-	$(SOURCES) $(REF_SOURCES) $< $(LDLIBS)
+	$(CC) $(CFLAGS) -o $@ -I../../common ../../common/notrandombytes.c  \
+	test_sha256_in_ptr.c $< $(LDLIBS)
 
 $(OBJ_FILES):
-bin/%.o: bin/%.s
+%.o: %.s
 	$(AS) $< -o $@
 
 $(CHECKCT_FILES):
-bin/%.check: bin/%.jpp
+bin/%.check: %.jazz | bin/
 	$(JASMIN) $(JFLAGS) $(JINCLUDE) -checkCT -infer $^ > $@
+
 
 bin/%.out: bin/%
 	@./$<
@@ -84,3 +75,7 @@ bin/:
 .PHONY: clean
 clean:
 	rm -fr bin/
+
+
+debug:
+	@echo $(ASM_FILES)

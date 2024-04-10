@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <stdio.h>
+
 #include "fips202.h"
 #include "hash_address.h"
 #include "params.h"

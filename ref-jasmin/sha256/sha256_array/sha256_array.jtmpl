@@ -40,6 +40,7 @@ fn _blocks_0_ref<INLEN>(
     for t=0 to 16
     { // v = (u32)[in + t*4];
       index = offset; index >>= 2; index += t; v = in[u32 index];
+      // v = in[u32 t]; // compilation error in function _blocks_0_ref_1 stack allocation: the region associated to variable in (defined at "bin/test_sha256_1.jpp", line 292 (16-18)) is partial
       v = #BSWAP_32(v);
       W[t] = v;
     }
@@ -145,7 +146,7 @@ inline fn __lastblocks_ref<INLEN>(reg ptr u8[INLEN] in, reg u64 inlen offset bit
   return sblocks, nblocks;
 }//<>
 
-inline fn __sha256_ref<INLEN>(reg ptr u8[32] out, reg ptr u8[INLEN] in) -> reg ptr u8[32]
+inline fn __sha256<INLEN>(reg ptr u8[32] out, reg ptr u8[INLEN] in) -> reg ptr u8[32]
 {
   reg u64 bits nblocks inlen offset;
   stack u32[8] H;

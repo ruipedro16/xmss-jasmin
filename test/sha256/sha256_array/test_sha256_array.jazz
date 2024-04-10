@@ -7,6 +7,6 @@ export fn sha256_array<INLEN>(reg ptr u8[32] out, reg ptr u8[INLEN] _in) -> reg 
 
   for i=0 to INLEN { in[i] = _in[i]; }
 
-  out = __sha256_ref<INLEN>(out, in); 
+  out = __sha256<INLEN>(out, in); 
   return out;
 }//<>

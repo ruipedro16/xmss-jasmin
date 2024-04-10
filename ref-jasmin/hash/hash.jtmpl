@@ -3,7 +3,8 @@ from Stdlib require "memcpy/memcpy.jtmpl"
 from XMSS require "utils/utils.jtmpl"
 from XMSS require "params.jinc"
 from XMSS require "hash_address/hash_address.jinc"
-from XMSS require "core_hash/core_hash_shake256_out_64.jtmpl" // TODO: Manage this in the Makefile
+// from XMSS require "core_hash/core_hash_shake256_out_64.jtmpl" // TODO: Manage this in the Makefile
+from XMSS require "core_hash/core_hash_sha2_10_256.jtmpl"
 
 inline fn __addr_to_bytes(
     reg ptr u8[32] addr_as_bytes,
@@ -52,7 +53,7 @@ inline fn __prf(
     buf_p, _ = _x_memcpy_u8u8<XMSS_PADDING_LEN + XMSS_N + 32, 32>(buf_p, offset, in);
 
     // out = __core_hash_ <OUTLEN, XMSS_PADDING_LEN + XMSS_N + 32>(out, buf_p);
-    out = __core_hash<XMSS_N, XMSS_PADDING_LEN + XMSS_N + 32>(out, buf_p);
+    out = __core_hash<XMSS_PADDING_LEN + XMSS_N + 32>(out, buf_p);
 
     return out;
 }//<>
@@ -106,7 +107,7 @@ inline fn __prf_keygen(
     buf, _ = _x_memcpy_u8u8<XMSS_PADDING_LEN + 2*XMSS_N + 32, XMSS_N + 32>(buf, offset, in);
 
     // core_hash(params, out, buf, params->padding_len + 2*params->n + 32);
-    out = __core_hash<XMSS_N, XMSS_PADDING_LEN + 2*XMSS_N + 32>(out, buf); // FIXME: Calling the local function causes register allocation to fail
+    out = __core_hash<XMSS_PADDING_LEN + 2*XMSS_N + 32>(out, buf); // FIXME: Calling the local function causes register allocation to fail
 
     return out; 
 }
@@ -170,7 +171,7 @@ inline fn __hash_message(
     // core_hash(params, out, m_with_prefix, mlen + params->padding_len + 3*params->n);
     len = mlen;
     len += XMSS_PADDING_LEN + 3*XMSS_N;
-    mhash = __core_hash_in_ptr_<XMSS_N>(mhash, m_with_prefix_ptr, len);
+    mhash = __core_hash_in_ptr_(mhash, m_with_prefix_ptr, len);
     return mhash;
 }
 
@@ -214,11 +215,14 @@ inline fn __thash_h(
     // addr_to_bytes(addr_as_bytes, addr);
     addr_as_bytes = __addr_to_bytes(addr_as_bytes, addr);
 
+    () = #spill(addr);
+
     // prf(params, bitmask, addr_as_bytes, pub_seed);
     () = #unspill(pub_seed);
     bitmask[0 : XMSS_N] = __prf_(bitmask[0 : XMSS_N], addr_as_bytes, pub_seed);
 
     // set_key_and_mask(addr, 2);
+    () = #unspill(addr);
     addr = __set_key_and_mask(addr, 2);
     () = #spill(addr);
 
@@ -241,7 +245,7 @@ inline fn __thash_h(
 
     // core_hash(params, out, buf, params->padding_len + 3 * params->n);
     () = #unspill(out);
-    out = __core_hash_<XMSS_N, XMSS_PADDING_LEN + 3*XMSS_N>(out, buf);
+    out = _core_hash<XMSS_PADDING_LEN + 3*XMSS_N>(out, buf);
 
     () = #unspill(addr);
 
@@ -332,7 +336,7 @@ inline fn __thash_f(
     }
 
     //core_hash(params, out, buf, params->padding_len + 2 * params->n);
-    out = __core_hash_<XMSS_N, XMSS_PADDING_LEN + 2*XMSS_N>(out, buf);
+    out = __core_hash_<XMSS_PADDING_LEN + 2*XMSS_N>(out, buf);
 
     () = #unspill(addr);
 
