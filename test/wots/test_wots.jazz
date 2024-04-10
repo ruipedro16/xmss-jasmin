@@ -1,4 +1,3 @@
-from XMSS require "params.jinc"
 from XMSS require "wots/wots.jtmpl"
 
 export fn expand_seed_jazz(
@@ -53,7 +52,7 @@ export fn wots_pkgen_jazz(
 {
     pk, addr = __wots_pkgen_(pk, seed, pub_seed, addr);
     return pk, addr;
-}  
+} 
 
 export fn wots_sign_jazz(
     reg ptr u8[XMSS_WOTS_LEN * XMSS_N] sig,

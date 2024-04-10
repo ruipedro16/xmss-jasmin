@@ -27,8 +27,8 @@ GET_IMPL_UPPER_CASE = $(shell echo $(subst $(SPACE),_,$(wordlist 3, 5, $(subst _
 
 # --------------------------------------------------------------------------------------------------
 
-BIN := $(addprefix bin/test_hash_, $(IMPL_STR))
-OUT := $(addsuffix .out, $(BIN))
+TESTS := $(addprefix bin/test_hash_, $(IMPL_STR))
+OUT := $(addsuffix .out, $(TESTS))
 
 # --------------------------------------------------------------------------------------------------
 
@@ -45,7 +45,7 @@ SOURCES := test_hash.c ../common/notrandombytes.c ../common/print.c
 
 # --------------------------------------------------------------------------------------------------
 
-default: $(BIN)
+default: $(TESTS)
 run: $(OUT)
 
 jpp_files: $(JPP_FILES)
@@ -97,4 +97,4 @@ clean:
 # --------------------------------------------------------------------------------------------------
 
 debug:
-	@echo $(BIN)
+	@echo $(TESTS)

@@ -16,8 +16,18 @@ PREPROCESSOR ?= ../../scripts/jasmin-preprocessor/preprocessor
 
 # --------------------------------------------------------------------------------------------------
 
-TESTS := bin/test_wots
-OUT   := $(addsuffix .out, $(TESTS))
+IMPLS := XMSS-SHAKE_20_512 XMSS-SHA2_10_256
+IMPL_STR := $(foreach impl,$(IMPLS),$(shell echo $(impl) | tr '[:upper:]' '[:lower:]'))
+
+SPACE = $(space) $(space)
+
+GET_IMPL = $(subst $(SPACE),_,$(wordlist 3, 5, $(subst _, ,$*)))
+GET_IMPL_UPPER_CASE = $(shell echo $(subst $(SPACE),_,$(wordlist 3, 5, $(subst _, ,$*))) | tr '[:lower:]' '[:upper:]')
+
+# --------------------------------------------------------------------------------------------------
+
+TESTS := $(addprefix bin/test_wots_, $(IMPL_STR))
+OUT := $(addsuffix .out, $(TESTS))
 
 # --------------------------------------------------------------------------------------------------
 
@@ -50,7 +60,9 @@ checkct: $(CHECKCT_FILES)
 $(JPP_FILES):
 .PRECIOUS: bin/%.jpp
 bin/%.jpp: | bin/
-	cp test_wots.jazz $@
+	echo "from XMSS require \"params/params-$(GET_IMPL).jinc\"\n" > $@
+	echo "from XMSS require \"core_hash/core_hash_$(GET_IMPL).jtmpl\"\n\n" >> $@
+	cat test_wots.jazz >> $@
 	$(JPP) $(JINCLUDE) -in $@ -out $@
 	$(PREPROCESSOR) --input_file $@ --output_file $@
 
@@ -61,7 +73,7 @@ bin/%.s: bin/%.jpp
 
 $(TESTS):
 bin/%: bin/%.s | bin/
-	$(CC) $(CFLAGS) -o $@ -I../common -I../ -DIMPL=XMSS-SHAKE_20_512 $(TEST_FLAGS) \
+	$(CC) $(CFLAGS) -o $@ -I../common -I../ -DIMPL=$(GET_IMPL_UPPER_CASE) $(TEST_FLAGS) \
 	$(SOURCES) $(REF_SOURCES) $< $(LDLIBS)
 
 $(OBJ_FILES):

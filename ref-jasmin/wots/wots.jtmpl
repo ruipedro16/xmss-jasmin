@@ -12,41 +12,37 @@ inline fn __expand_seed(
 {  
     stack u8[XMSS_N + 32] buf;
 
-    reg u32 chain;
     reg u64 offset;
     inline int i;
 
-    () = #spill(outseeds);
+    () = #spill(outseeds, inseed);
 
     // set_hash_addr(addr, 0);
     // set_key_and_mask(addr, 0);
     addr = __set_hash_addr(addr, 0);
     addr = __set_key_and_mask(addr, 0);
 
-    () = #spill(inseed, addr);
-
     // memcpy(buf, pub_seed, params->n);
     offset = 0;
     buf[0 : XMSS_N], _ = _x_memcpy_u8u8<XMSS_N, XMSS_N>(buf[0 : XMSS_N], offset, pub_seed);
 
     for i=0 to XMSS_WOTS_LEN {
+        // NOTE: addr is live at the beggining of the loop => we must unspill it at the end
         // set_chain_addr(addr, i);
-        () = #unspill(addr);
-        chain = i;
-        addr = __set_chain_addr(addr, chain);
-        
+        addr = __set_chain_addr(addr, i);
+        () = #spill(addr);
+
         // addr_to_bytes(buf + params->n, addr);
         buf[XMSS_N : 32] = __addr_to_bytes(buf[XMSS_N : 32], addr);
 
-        () = #spill(addr);
-
-        // prf_keygen(params, outseeds + i*params->n, buf, inseed);
         () = #unspill(outseeds, inseed);
         outseeds[i * XMSS_N : XMSS_N] = __prf_keygen_(outseeds[i * XMSS_N : XMSS_N], buf, inseed);
         () = #spill(outseeds);
+        () = #unspill(addr);
     }
-    
-    () = #unspill(addr, outseeds);
+
+    () = #unspill(outseeds);
+
     return outseeds, addr;
 }
 
