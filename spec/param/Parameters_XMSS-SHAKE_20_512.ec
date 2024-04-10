@@ -1,0 +1,29 @@
+op XMSS_OID_LEN : int = 4.
+op XMSS_SHAKE256 : int = 2.
+op XMSS_ADDR_TYPE_OTS : int = 0.
+op XMSS_ADDR_TYPE_LTREE : int = 1.
+op XMSS_ADDR_TYPE_HASHTREE : int = 2.
+op XMSS_HASH_PADDING_F : int = 0.
+op XMSS_HASH_PADDING_H : int = 1.
+op XMSS_HASH_PADDING_HASH : int = 2.
+op XMSS_HASH_PADDING_PRF : int = 3.
+op XMSS_HASH_PADDING_PRF_KEYGEN : int = 4.
+op XMSS_OID : int = 12.
+op XMSS_FUNC : int = 2.
+op XMSS_N : int = 64.
+op XMSS_PADDING_LEN : int = 64.
+op XMSS_WOTS_W : int = 16.
+op XMSS_WOTS_LOG_W : int = 4.
+op XMSS_WOTS_LEN1 : int = 128.
+op XMSS_WOTS_LEN2 : int = 3.
+op XMSS_WOTS_LEN : int = 131.
+op XMSS_WOTS_SIG_BYTES : int = 8384.
+op XMSS_FULL_HEIGHT : int = 20.
+op XMSS_TREE_HEIGHT : int = 20.
+op XMSS_D : int = 1.
+op XMSS_INDEX_BYTES : int = 4.
+op XMSS_SIG_BYTES : int = 9732.
+op XMSS_PK_BYTES : int = 128.
+op XMSS_SK_BYTES : int = 260.
+
+
