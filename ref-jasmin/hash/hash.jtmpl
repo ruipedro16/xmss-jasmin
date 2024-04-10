@@ -1,10 +1,7 @@
 from Stdlib require "memcpy/memcpy.jtmpl"
 
 from XMSS require "utils/utils.jtmpl"
-from XMSS require "params.jinc"
 from XMSS require "hash_address/hash_address.jinc"
-// from XMSS require "core_hash/core_hash_shake256_out_64.jtmpl" // TODO: Manage this in the Makefile
-from XMSS require "core_hash/core_hash_sha2_10_256.jtmpl"
 
 inline fn __addr_to_bytes(
     reg ptr u8[32] addr_as_bytes,

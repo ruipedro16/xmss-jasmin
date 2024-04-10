@@ -46,7 +46,6 @@ static void treehash(const xmss_params *params,
     set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
 
     for (idx = 0; idx < (uint32_t)(1 << params->tree_height); idx++) {
-        printf("DEBUG: idx=%d ; limit = %d ; tree height = %d\n", idx, (uint32_t)(1 << params->tree_height), params->tree_height);
         /* Add the next leaf node to the stack. */
         set_ltree_addr(ltree_addr, idx);
         set_ots_addr(ots_addr, idx);
