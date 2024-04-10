@@ -1,20 +1,12 @@
 from XMSS require "sha256/sha256_array/sha256_array.jtmpl"
 
-export fn sha256_array<INLEN>(reg u64 hash_ptr input_ptr)
+export fn sha256_array<INLEN>(reg ptr u8[32] out, reg ptr u8[INLEN] _in) -> reg ptr u8[32]
 {
-  stack u8[32] hash;
-  stack u8[INLEN] in;
-
+  stack  u8[INLEN] in;
   inline int i;
 
-  for i=0 to INLEN { in[i] = (u8) [input_ptr + i]; }
+  for i=0 to INLEN { in[i] = _in[i]; }
 
-  () = #spill(hash_ptr);
-
-  // TODO:
-  // hash = __sha256_ref<INLEN>(hash, in); 
-
-  () = #unspill(hash_ptr);
-
-  for i=0 to 32 { (u8)[hash_ptr + i] = hash[i]; }
+  out = __sha256_ref<INLEN>(out, in); 
+  return out;
 }//<>

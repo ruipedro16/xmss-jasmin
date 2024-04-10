@@ -8,7 +8,7 @@ CFLAGS   ?= -Wall -g -O3 -Wextra -Wpedantic
 LDLIBS   = -lcrypto
 
 JASMIN   ?= jasminc
-JFLAGS   ?= ${JADDFLAGS}
+JFLAGS   ?= -nowarning ${JADDFLAGS}
 JINCLUDE ?= -I XMSS:../../../ref-jasmin/
 
 JPP          ?= ../../../scripts/jasmin-preprocessor/jpp
@@ -61,7 +61,8 @@ bin/%.s: bin/%.jpp | bin/
 
 $(TESTS):
 bin/%: bin/%.s | bin/
-	$(CC) $(CFLAGS) -o $@ -I../../common ../../common/notrandombytes.c test_sha256_array.c $< $(LDLIBS)
+	$(CC) $(CFLAGS) -o $@ -I../../common ../../common/notrandombytes.c -DINLEN=$(GET_INLEN) \
+	test_sha256_array.c $< $(LDLIBS)
 
 $(OBJ_FILES):
 %.o: %.s

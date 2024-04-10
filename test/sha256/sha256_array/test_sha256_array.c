@@ -15,14 +15,14 @@
 #endif
 
 #ifndef TESTS
-#define TESTS 100
+#define TESTS 1000
 #endif
 
-#define sha256_array NAMESPACE1(sha256_array, INLEN)
+#define sha256_jazz NAMESPACE1(sha256_array, INLEN)
 extern void sha256_jazz(uint8_t *, const uint8_t *);
 
 int main(void) {
-    bool debug = true;
+    bool debug = false;
 
     uint8_t in[INLEN];
     uint8_t out_ref[SHA256_DIGEST_LENGTH], out_jazz[SHA256_DIGEST_LENGTH];  // SHA256_DIGEST_LENGTH = 32

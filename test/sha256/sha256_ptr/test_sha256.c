@@ -10,7 +10,7 @@
 #include "randombytes.h"
 
 #ifndef TESTS
-#define TESTS 100
+#define TESTS 1000
 #endif
 
 #ifndef MAX_INLEN
