@@ -1,4 +1,4 @@
-from XMSS require "utils/utils.jtmpl" // TODO: Move to Stdlib/bytes
+from Stdlib require "bytes/bytes.jtmpl" // TODO: Move to Stdlib/bytes
 from Stdlib require "memcpy/memcpy.jtmpl"
 
 /////////////////////////////////////////////////////////////////////// BYTES

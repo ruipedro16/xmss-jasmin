@@ -42,7 +42,7 @@ REF_SOURCES := $(wildcard ../*.c)
 
 SOURCES := test_hash.c ../common/notrandombytes.c ../common/print.c
 
-TEST_FLAGS := -DTEST_PRF -DTEST_PRF_KEYGEN -DTEST_THASH_F -DTEST_THASH_H
+TEST_FLAGS := -DTEST_PRF -DTEST_PRF_KEYGEN -DTEST_THASH_F -DTEST_THASH_H -DTEST_HASH_MESSAGE
 
 # --------------------------------------------------------------------------------------------------
 

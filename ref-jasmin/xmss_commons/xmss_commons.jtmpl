@@ -460,9 +460,6 @@ inline fn __xmssmt_core_sign_open(
     // sm += params->index_bytes + params->n;
     sm_offset += XMSS_INDEX_BYTES + XMSS_N;
 
-    // TODO: There may be unnecessary spills => I assume that at this point only mhash is live
-    // TODO: See which spills I can remove
-
     // For each subtree
     () = #unspill(idx);
     for i=0 to XMSS_D {

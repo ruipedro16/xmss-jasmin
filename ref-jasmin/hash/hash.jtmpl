@@ -1,6 +1,5 @@
 from Stdlib require "memcpy/memcpy.jtmpl"
-
-from XMSS require "utils/utils.jtmpl"
+from Stdlib require "bytes/bytes.jtmpl"
 from XMSS require "hash_address/hash_address.jinc"
 
 inline fn __addr_to_bytes(

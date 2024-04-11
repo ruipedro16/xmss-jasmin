@@ -160,9 +160,9 @@ void test_compute_root(void) {
 #undef XMSS_MLEN
 }
 
-void test_gen_leaf_wots(void) {}
+void test_gen_leaf_wots(void) {} // TODO:
 
-void test_api(void) {
+void test_xmss(void) {
     bool debug = true;
 
     xmss_params p;
@@ -188,8 +188,7 @@ void test_api(void) {
     // [X] ltree
     // [X] compute root
     // [X] gen_leaf_wots
-    // [ ] xmss_core_sign_open
-    // [ ] xmssmt_core_sign_open
+    // [X] xmss_core_sign_open
 
 #define XMSS_MLEN 32
 
@@ -204,25 +203,86 @@ void test_api(void) {
 
     for (int i = 0; i < 100; i++) {
         if (debug) {
-            printf("[XMSS sign+verify] Test %d/%d\n", i + 1, 100);
+            printf("[xmss_commons - XMSS] Test %d/%d\n", i + 1, 100);
         }
 
         xmss_keypair(pk, sk, oid);
         randombytes(m, XMSS_MLEN);
         xmss_sign(sk, sm, &smlen, m, XMSS_MLEN);
+        assert(smlen == p.sig_bytes + XMSS_MLEN);
         int res = xmss_sign_open(mout, &mlen, sm, smlen, pk);
+        assert(mlen == XMSS_MLEN);
         assert(res == 0);
     }
 
 #undef XMSS_MLEN
 
-    puts("[xmss_commons] OK");
+    puts("[xmss_commons - XMSS] OK");
 }
+
+void test_xmssmt(void) {
+    bool debug = true;
+
+    xmss_params p;
+    uint32_t oid;
+
+    if (xmss_str_to_oid(&oid, xstr(IMPL)) == -1) {
+        fprintf(stderr, "Failed to generate oid from impl name\n");
+        exit(-1);
+    }
+
+    if (xmss_parse_oid(&p, oid) == -1) {
+        fprintf(stderr, "Failed to generate params from oid\n");
+        exit(-1);
+    }
+
+    for (int i = 0; i < TESTS; i++) {
+        if (debug) {
+            printf("[xmss_commons]: Test %d/%d\n", i + 1, TESTS);
+        }
+    }
+
+    // C functions replaced by corresponding Jasmin functions:
+    // [X] ltree
+    // [X] compute root
+    // [X] gen_leaf_wots
+    // [X] xmssmt_core_sign_open
+
+#define XMSS_MLEN 32
+
+    uint8_t pk[XMSS_OID_LEN + p.pk_bytes];
+    uint8_t sk[XMSS_OID_LEN + p.sk_bytes];
+
+    uint8_t m[XMSS_MLEN];
+    uint8_t sm[p.sig_bytes + XMSS_MLEN];
+    uint8_t mout[p.sig_bytes + XMSS_MLEN];
+    unsigned long long smlen;
+    unsigned long long mlen = XMSS_MLEN;
+
+    for (int i = 0; i < 100; i++) {
+        if (debug) {
+            printf("[xmss_commons - XMSSMT] Test %d/%d\n", i + 1, 100);
+        }
+
+        xmssmt_keypair(pk, sk, oid);
+        randombytes(m, XMSS_MLEN);
+        xmssmt_sign(sk, sm, &smlen, m, XMSS_MLEN);
+        assert(smlen == p.sig_bytes + XMSS_MLEN);
+        int res = xmssmt_sign_open(mout, &mlen, sm, smlen, pk);
+        assert(mlen == XMSS_MLEN);
+        assert(res == 0);
+    }
+
+#undef XMSS_MLEN
+
+    puts("[xmss_commons - XMSSMT] OK");
+}
+
 
 int main(void) {
     test_ltree();
-    // test_compute_root();
     test_gen_leaf_wots();  // TODO:
-    test_api();
+    test_xmss();
+    test_xmssmt();
     printf("[%s]: XMSS Commons OK\n", xstr(IMPL));
 }

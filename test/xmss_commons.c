@@ -24,6 +24,10 @@ extern void compute_root_jazz(unsigned char *root, uint32_t addr[8], const unsig
                               const unsigned char *auth_path, const unsigned char *pub_seed);
 #endif
 
+#ifdef TEST_HASH_MESSAGE
+extern void hash_message_jazz(uint8_t *, const uint8_t *, const uint8_t *, uint64_t, const uint8_t *, size_t);
+#endif
+
 /**
  * Computes a leaf node from a WOTS public key using an L-tree.
  * Note that this destroys the used WOTS public key.
@@ -184,9 +188,15 @@ int xmssmt_core_sign_open(const xmss_params *params, unsigned char *m, unsigned 
      * prepend the required other inputs for the hash function. */
     memcpy(m + params->sig_bytes, sm + params->sig_bytes, *mlen);
 
-    /* Compute the message hash. */
+/* Compute the message hash. */
+#ifdef TEST_HASH_MESSAGE
+    hash_message_jazz(mhash, sm + params->index_bytes, pk, idx,
+                      m + params->sig_bytes - params->padding_len - 3 * params->n, *mlen);
+#else
     hash_message(params, mhash, sm + params->index_bytes, pk, idx,
                  m + params->sig_bytes - params->padding_len - 3 * params->n, *mlen);
+#endif
+
     sm += params->index_bytes + params->n;
 
     /* For each subtree.. */

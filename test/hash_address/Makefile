@@ -18,6 +18,8 @@ SOURCES := test_hash_address.c ../hash_address.c ../common/notrandombytes.c ../c
 
 default: bin/test_hash_address
 run: bin/test_hash_address.out
+
+asm_files: bin/test_hash_address.s
 obj_files: bin/test_hash_address.o
 checkct: bin/test_hash_address.check
 

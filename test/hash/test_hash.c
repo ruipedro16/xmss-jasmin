@@ -31,7 +31,6 @@
 extern void addr_to_bytes_jazz(uint8_t *, const uint32_t *);
 extern void prf_jazz(uint8_t *, const uint8_t *, const uint8_t *);
 extern void prf_keygen_jazz(uint8_t *, const uint8_t *, const uint8_t *);
-extern void hash_message_jazz(uint8_t *, const uint8_t *, const uint8_t *, uint64_t, uint8_t *, size_t);
 extern void thash_f_jazz(uint8_t *, uint32_t *, const uint8_t *);
 extern void thash_h_jazz(uint8_t *, uint32_t *, const uint8_t *, const uint8_t *);
 
@@ -144,51 +143,6 @@ void test_prf_keygen(void) {
     }
 
     puts("prf keygen: OK");
-}
-
-void test_hash_message(void) {
-    bool debug = false;
-
-    xmss_params p;
-    uint32_t oid;
-
-    if (xmss_str_to_oid(&oid, xstr(IMPL)) == -1) {
-        fprintf(stderr, "Failed to generate oid from impl name\n");
-        exit(-1);
-    }
-
-    if (xmss_parse_oid(&p, oid) == -1) {
-        fprintf(stderr, "Failed to generate params from oid\n");
-        exit(-1);
-    }
-
-    uint8_t hash_ref[p.n], hash_jazz[p.n];
-    uint8_t randomness[p.n];
-    uint8_t root[p.n];
-    uint64_t idx;
-    uint8_t msg_ref[MAX_MLEN], msg_jazz[MAX_MLEN];
-
-    for (int i = 0; i < TESTS; i++) {
-        for (size_t inlen = 1; inlen < MAX_MLEN; inlen++) {
-            if (debug) {
-                printf("[hash message (inlen=%ld)] Test %d/%d\n", inlen, i, TESTS);
-            }
-
-            randombytes(randomness, p.n);
-            randombytes(root, p.n);
-            randombytes((uint8_t *)&idx, sizeof(uint64_t));
-
-            randombytes(msg_ref, inlen);
-            memcpy(msg_jazz, msg_ref, inlen);
-
-            hash_message_jazz(hash_jazz, randomness, root, idx, msg_jazz, inlen);
-            hash_message(&p, hash_ref, randomness, root, idx, msg_ref, inlen);
-
-            // TODO: Asserts
-        }
-    }
-
-    puts("hash message: OK");
 }
 
 void test_thash_h(void) {
@@ -352,7 +306,7 @@ void test_api(void) {
     //
     // [X] prf
     // [X] prf_keygen
-    // [ ] hash_message // TODO:
+    // [X] hash_message
     // [X] thash_f
     // [X] thash_h
 
@@ -386,9 +340,8 @@ int main(void) {
     test_prf_keygen();
     test_thash_h();
     test_thash_f();
-    // TODO:: Test Message
     test_wots();  // Wots but replaces all C [hash] functions with the respective Jasmin function
-    test_api();   // Same as before but for XMSS
+    test_api();   // Same as before but for XMSS [hash_message is tested here]
     printf("[%s]: Hash OK\n\n", xstr(IMPL));
     return 0;
 }

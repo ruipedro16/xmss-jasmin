@@ -21,6 +21,10 @@ extern void prf_jazz(uint8_t *, const uint8_t *, const uint8_t *);
 extern void thash_h_jazz(uint8_t *, uint32_t *, const uint8_t *, const uint8_t *);
 #endif
 
+#ifdef TEST_HASH_MESSAGE
+extern void hash_message_jazz(uint8_t *, const uint8_t *, const uint8_t *, uint64_t, const uint8_t *, size_t);
+#endif
+
 #ifdef TEST_GEN_LEAF_WOTS
 extern void gen_leaf_wots_jazz(uint8_t *leaf, uint32_t ltree_addr[8], uint32_t ots_addr[8], const uint8_t *sk_seed,
                                const uint8_t *pub_seed);
@@ -252,9 +256,15 @@ int xmssmt_core_sign(const xmss_params *params, unsigned char *sk, unsigned char
     prf(params, sm + params->index_bytes, idx_bytes_32, sk_prf);
 #endif
 
-    /* Compute the message hash. */
+/* Compute the message hash. */
+#ifdef TEST_HASH_MESSAGE
+    hash_message_jazz(mhash, sm + params->index_bytes, pub_root, idx,
+                      sm + params->sig_bytes - params->padding_len - 3 * params->n, mlen);
+#else
     hash_message(params, mhash, sm + params->index_bytes, pub_root, idx,
                  sm + params->sig_bytes - params->padding_len - 3 * params->n, mlen);
+#endif
+
     sm += params->index_bytes + params->n;
 
     set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
