@@ -15,9 +15,8 @@ inline fn __store_ref_array(reg ptr u8[32] out, stack u32[8] H) -> reg ptr u8[32
 
 fn _blocks_0_ref<INLEN>(
   reg ptr u32[8] _H, 
-  reg ptr u8[INLEN] in,
-  reg u64 inlen
-) -> reg ptr u32[8], reg u64, reg u64
+  reg ptr u8[INLEN] in
+) -> reg ptr u32[8], reg u64
 {
   inline int t;
   reg u32 T1 T2 a b c d e f g h r v;
@@ -28,15 +27,30 @@ fn _blocks_0_ref<INLEN>(
   reg ptr u32[8] H;
   reg u64 tr;
   stack u64 in_s;
+  reg u64 inlen;
 
   offset = 0;
+  inlen = INLEN;
 
   Kp = SHA256_K;
   Hp = _H;
 
   H = Hp;
 
-  // TODO: Add a comment explaining this if 
+  // NOTE:
+  // The function _blocks_0_ref requires that the length of in is at least 64 bytes (it processes 64 byte blocks).
+  // If we want to compute the hash of a bytestring < 64 bytes, this function does nothing (i.e. the while loop is not run)
+  // => Only __lastblocks_ref and _blocks_1_ref do useful computation
+  // 
+  // Because the value of INLEN is known at compile time, this if [ if (INLEN >= 64) ] allows the compiler to remove 
+  // the while loop if INLEN < 64 (because this if statement is statically resolved)
+  //
+  // In other words, this if statement allows us to write a sha2 impl that works for all values of INLEN instead of having
+  // to implement two different versions 
+  //      1) A impl where INLEN >= 64 where we call _blocks_0_ref
+  //      2) A impl where INLEN <  64 where we only call __lastblocks_ref and _blocks_1_ref
+  // but while loop will only be in the impl where it is in fact needed (when INLEN >= 64). In the other case, 
+  // (when INLEN < 64), the while loop will be removed by the compiler
   if (INLEN >= 64) {
     while(inlen >= 64) {
       () = #spill(inlen);
@@ -105,7 +119,7 @@ fn _blocks_0_ref<INLEN>(
 
   _H = H;
   
-  return _H, inlen, offset;
+  return _H, offset;
 }//<>
 
 inline fn __lastblocks_ref<INLEN>(reg ptr u8[INLEN] in, reg u64 inlen offset bits) -> stack u32[32], reg u64
@@ -159,8 +173,7 @@ inline fn __sha256<INLEN>(reg ptr u8[32] out, reg ptr u8[INLEN] in) -> reg ptr u
 
   () = #spill(out);
 
-  inlen = INLEN;
-  bits = inlen;
+  bits = INLEN;
   bits <<= 3;
   () = #spill(bits);
 
@@ -168,9 +181,10 @@ inline fn __sha256<INLEN>(reg ptr u8[32] out, reg ptr u8[INLEN] in) -> reg ptr u
   
   () = #spill(in);
   Hp = H;
-  Hp, inlen, offset = _blocks_0_ref<INLEN>(Hp, in, inlen);
+  Hp, offset = _blocks_0_ref<INLEN>(Hp, in);
 
   () = #unspill(in, bits);
+  inlen = INLEN % 64;
   sblocks, nblocks = __lastblocks_ref<INLEN>(in, inlen, offset, bits);
   sblocksp = sblocks;
   Hp, _ = _blocks_1_ref(Hp, sblocksp, nblocks);
