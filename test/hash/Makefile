@@ -24,11 +24,10 @@ SPACE = $(space) $(space)
 GET_IMPL = $(subst $(SPACE),_,$(wordlist 3, 5, $(subst _, ,$*)))
 GET_IMPL_UPPER_CASE = $(shell echo $(subst $(SPACE),_,$(wordlist 3, 5, $(subst _, ,$*))) | tr '[:lower:]' '[:upper:]')
 
-
 # --------------------------------------------------------------------------------------------------
 
 TESTS := $(addprefix bin/test_hash_, $(IMPL_STR))
-OUT := $(addsuffix .out, $(TESTS))
+OUT   := $(addsuffix .out, $(TESTS))
 
 # --------------------------------------------------------------------------------------------------
 
@@ -42,6 +41,8 @@ CHECKCT_FILES := $(JPP_FILES:.jpp=.check)
 REF_SOURCES := $(wildcard ../*.c)
 
 SOURCES := test_hash.c ../common/notrandombytes.c ../common/print.c
+
+TEST_FLAGS := -DTEST_PRF -DTEST_PRF_KEYGEN -DTEST_THASH_F -DTEST_THASH_H
 
 # --------------------------------------------------------------------------------------------------
 
@@ -71,7 +72,7 @@ bin/%.s: bin/%.jpp
 
 $(TESTS):
 bin/%: bin/%.s | bin/
-	$(CC) $(CFLAGS) -o $@ -I../common -I../ -DIMPL=$(GET_IMPL_UPPER_CASE) -DTEST_HASH \
+	$(CC) $(CFLAGS) -o $@ -I../common -I../ -DIMPL=$(GET_IMPL_UPPER_CASE) $(TEST_FLAGS) \
 	$(SOURCES) $(REF_SOURCES) $< $(LDLIBS)
 
 $(OBJ_FILES):

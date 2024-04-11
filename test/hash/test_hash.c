@@ -32,8 +32,8 @@ extern void addr_to_bytes_jazz(uint8_t *, const uint32_t *);
 extern void prf_jazz(uint8_t *, const uint8_t *, const uint8_t *);
 extern void prf_keygen_jazz(uint8_t *, const uint8_t *, const uint8_t *);
 extern void hash_message_jazz(uint8_t *, const uint8_t *, const uint8_t *, uint64_t, uint8_t *, size_t);
-extern void thash_h_jazz(uint8_t *, uint32_t *, const uint8_t *, const uint8_t *);
 extern void thash_f_jazz(uint8_t *, uint32_t *, const uint8_t *);
+extern void thash_h_jazz(uint8_t *, uint32_t *, const uint8_t *, const uint8_t *);
 
 void test_addr_to_bytes(void) {
     uint32_t addr[8];
@@ -350,7 +350,11 @@ void test_api(void) {
 
     // C functions replaced by corresponding Jasmin functions:
     //
-    //
+    // [X] prf
+    // [X] prf_keygen
+    // [ ] hash_message // TODO:
+    // [X] thash_f
+    // [X] thash_h
 
     unsigned char pk[XMSS_OID_LEN + p.pk_bytes];
     unsigned char sk[XMSS_OID_LEN + p.sk_bytes];

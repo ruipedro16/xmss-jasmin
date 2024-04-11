@@ -25,9 +25,12 @@ extern void gen_chain_inplace_jazz(uint8_t *, uint32_t *, const uint8_t *, uint3
 extern void wots_checksum_jazz(int *, const int *);
 #endif
 
-#ifdef TEST_HASH
-extern void thash_f_jazz(uint8_t *, uint32_t *, const uint8_t *);
+#ifdef TEST_PRF_KEYGEN
 extern void prf_keygen_jazz(uint8_t *, const uint8_t *, const uint8_t *);
+#endif
+
+#ifdef TEST_THASH_F
+extern void thash_f_jazz(uint8_t *, uint32_t *, const uint8_t *);
 #endif
 
 /**
@@ -46,7 +49,7 @@ void expand_seed(const xmss_params *params, unsigned char *outseeds, const unsig
         set_chain_addr(addr, i);
         addr_to_bytes(buf + params->n, addr);
 
-#ifdef TEST_HASH
+#ifdef TEST_PRF_KEYGEN
         prf_keygen_jazz(outseeds + i * params->n, buf, inseed);
 #else
         prf_keygen(params, outseeds + i * params->n, buf, inseed);
@@ -72,7 +75,7 @@ static void gen_chain(const xmss_params *params, unsigned char *out, const unsig
     for (i = start; i < (start + steps) && i < params->wots_w; i++) {
         set_hash_addr(addr, i);
 
-#ifdef TEST_HASH
+#ifdef TEST_THASH_F
         thash_f_jazz(out, addr, pub_seed);
 #else
         thash_f(params, out, out, pub_seed, addr);

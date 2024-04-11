@@ -4,8 +4,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <stdio.h>
-
 #include "fips202.h"
 #include "hash_address.h"
 #include "params.h"
@@ -16,6 +14,10 @@
 #define XMSS_HASH_PADDING_HASH 2
 #define XMSS_HASH_PADDING_PRF 3
 #define XMSS_HASH_PADDING_PRF_KEYGEN 4
+
+#ifdef TEST_PRF
+extern void prf_jazz(uint8_t *, const uint8_t *, const uint8_t *);
+#endif
 
 void addr_to_bytes(unsigned char *bytes, const uint32_t addr[8]) {
     int i;
@@ -115,15 +117,26 @@ int thash_h(const xmss_params *params, unsigned char *out, const unsigned char *
     /* Generate the 2n-byte mask. */
     set_key_and_mask(addr, 1);
     addr_to_bytes(addr_as_bytes, addr);
+
+#ifdef TEST_PRF
+    prf_jazz(bitmask, addr_as_bytes, pub_seed);
+#else
     prf(params, bitmask, addr_as_bytes, pub_seed);
+#endif
 
     set_key_and_mask(addr, 2);
     addr_to_bytes(addr_as_bytes, addr);
+
+#ifdef TEST_PRF
+    prf_jazz(bitmask + params->n, addr_as_bytes, pub_seed);
+#else
     prf(params, bitmask + params->n, addr_as_bytes, pub_seed);
+#endif
 
     for (i = 0; i < 2 * params->n; i++) {
         buf[params->padding_len + params->n + i] = in[i] ^ bitmask[i];
     }
+
     return core_hash(params, out, buf, params->padding_len + 3 * params->n);
 }
 
@@ -140,12 +153,22 @@ int thash_f(const xmss_params *params, unsigned char *out, const unsigned char *
     /* Generate the n-byte key. */
     set_key_and_mask(addr, 0);
     addr_to_bytes(addr_as_bytes, addr);
+
+#ifdef TEST_PRF
+    prf_jazz(buf + params->padding_len, addr_as_bytes, pub_seed);
+#else
     prf(params, buf + params->padding_len, addr_as_bytes, pub_seed);
+#endif
 
     /* Generate the n-byte mask. */
     set_key_and_mask(addr, 1);
     addr_to_bytes(addr_as_bytes, addr);
+
+#ifdef TEST_PRF
+    prf_jazz(bitmask, addr_as_bytes, pub_seed);
+#else
     prf(params, bitmask, addr_as_bytes, pub_seed);
+#endif
 
     for (i = 0; i < params->n; i++) {
         buf[params->padding_len + params->n + i] = in[i] ^ bitmask[i];
