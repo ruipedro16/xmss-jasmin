@@ -25,8 +25,6 @@
 #define XMSS_WOTS_SIG_BYTES p.wots_sig_bytes
 
 extern void l_tree_jazz(uint8_t *, uint8_t *, uint32_t *, const uint8_t *);
-extern void compute_root_jazz(uint8_t *root, uint32_t addr[8], const uint8_t *leaf, uint64_t leaf_idx,
-                              const uint8_t *auth_path, const uint8_t *pub_seed);
 extern void gen_leaf_wots_jazz(uint8_t *leaf, uint32_t ltree_addr[8], uint32_t ots_addr[8], const uint8_t *sk_seed,
                                const uint8_t *pub_seed);
 
@@ -178,12 +176,6 @@ void test_xmss(void) {
         exit(-1);
     }
 
-    for (int i = 0; i < TESTS; i++) {
-        if (debug) {
-            printf("[xmss_commons]: Test %d/%d\n", i + 1, TESTS);
-        }
-    }
-
     // C functions replaced by corresponding Jasmin functions:
     // [X] ltree
     // [X] compute root
@@ -285,4 +277,5 @@ int main(void) {
     test_xmss();
     test_xmssmt();
     printf("[%s]: XMSS Commons OK\n", xstr(IMPL));
+    return 0;
 }
