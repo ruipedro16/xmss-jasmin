@@ -616,7 +616,7 @@ fn _wots_pk_from_sig(
 }
 
 inline fn __wots_pk_from_sig_(
-    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk,
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk, // TODO: REPLACE WITH XMSS_WOTS_SIG_BYTES
     reg u64 sig_ptr,
     reg ptr u8[XMSS_N] msg,
     reg ptr u8[XMSS_N] pub_seed,

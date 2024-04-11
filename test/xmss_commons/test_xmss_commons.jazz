@@ -35,3 +35,25 @@ export fn gen_leaf_wots_jazz(
     leaf, ltree_addr, ots_addr = __gen_leaf_wots_(leaf, sk_seed, pub_seed, ltree_addr, ots_addr);
     return leaf, ltree_addr, ots_addr;
 }
+
+export fn xmssmt_core_sign_open_jazz(
+    reg u64 m_ptr mlen_ptr,
+    reg u64 sm_ptr smlen,
+    reg ptr u8[XMSS_PK_BYTES] pk
+) -> reg u64
+{
+    reg u64 res;
+    res = __xmssmt_core_sign_open_(m_ptr, mlen_ptr, sm_ptr, smlen, pk);
+    return res;
+}
+
+export fn xmss_core_sign_open_jazz(
+    reg u64 m_ptr mlen_ptr,
+    reg u64 sm_ptr smlen,
+    reg ptr u8[XMSS_PK_BYTES] pk
+) -> reg u64
+{
+    reg u64 res;
+    res = __xmss_core_sign_open_(m_ptr, mlen_ptr, sm_ptr, smlen, pk);
+    return res;
+}
