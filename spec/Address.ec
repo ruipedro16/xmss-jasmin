@@ -207,11 +207,16 @@ wp.
 progress.
 qed.
 
+lemma truncateu32_shr (x : int) : truncateu32 (SHR_64 (W64.of_int x) (W8.of_int 32)).`6 = truncateu32 (W64.of_int x).
+proof.
+congr.
+admit. (* FIXME: Este lemma nao f az sentido *)
+qed.
 
 pred set_tree_addr_pre (tree_address : int) = 0 <= tree_address.
 op set_tree_addr (address : adrs, tree_address : int) : adrs = 
-    let t = W2u32.truncateu32 (W64.of_int tree_address) in
-    address.[1 <- t].[2 <- (truncateu32 (W64.of_int tree_address))].
+    let t : W32.t = truncateu32 ((SHR_64 (W64.of_int tree_address) (W8.of_int 32)).`6) in
+       address.[1 <- t].[2 <- (truncateu32 (W64.of_int tree_address))].
 
 lemma set_tree_addr_op_impl (address : adrs, tree_address : int):
     set_tree_addr_pre tree_address => 
@@ -220,10 +225,9 @@ lemma set_tree_addr_op_impl (address : adrs, tree_address : int):
 proof.
 move => pre_cond.
 proc.
-progress.
-admit. (* FIXME: *) 
+wp.
+progress. 
 qed.
-
 
 pred set_type_pre (_type : int) = 0 <= _type /\ _type <= 2.
 op set_type (address : adrs, _type : int) : adrs = 
@@ -336,7 +340,7 @@ lemma zero_addr_op_impl (address : adrs):
         arg = address ==> res = zero_addr address].
 proof.
 proc.
-while (aux = 4 /\ 0 <= i < aux /\ address = addr).
+while (0 <= i <= 4 /\ address = addr).
     - admit. (* FIXME: *)
     - admit. (* FIXME: *)
 qed.
