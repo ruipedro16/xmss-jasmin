@@ -1,4 +1,75 @@
+require import AllCore List RealExp IntDiv.
+require (*  *)  Subtype.
+
+from Jasmin require import JModel.
+
+require import Notation Address Parameters.
+
+pragma Goals : printall.
+
+op n : { int | 0 <= n } as ge0_n.
+op len1 : int = ceil (8%r + n%r / log2 w%r).
+op len2 : int = floor (log2 (len1 * (w-1))%r / log2 w%r) + 1.
+op len : int = len1 + len2.
+
+lemma ge0_len : 0 <= len by admit. (* or lemma? *)
+
+clone import Subtype as NBytes with 
+   type T = byte list,
+   op P = fun l => size l = n
+   rename "T" as "nbytes"
+   proof inhabited by (exists (nseq n W8.zero);smt(size_nseq ge0_n))
+   proof *.
+
+type key = nbytes.
+type seed = nbytes.
+
 op prf : seed -> adrs -> key.
 op f : key -> nbytes -> nbytes.
+
 op nbytexor(a b : nbytes) = 
-    map (fun (ab : W8.t*W8.t) => ab.`1 `^` ab.`2) (zip a b).
+    map (fun (ab : byte * byte) => ab.`1 `^` ab.`2) (zip a b).
+
+module Chain = {
+  proc chain(X : nbytes, i s : int, _seed : seed, address : adrs) : nbytes = {
+    var t : nbytes <- X;
+    var _key : key; 
+    var chain_count : int <- 0;
+    var bitmask : nbytes;
+
+    while (chain_count < s) {
+      address <- set_hash_addr address (i + chain_count);
+      address <- set_key_and_mask address 0;
+      _key <- prf _seed address;
+      address <- set_key_and_mask address 1;
+      bitmask <- prf _seed address;
+
+      t <- f _key (nbytexor t bitmask);
+      chain_count <- chain_count + 1;
+    }
+    return t;
+  }
+}.
+
+op chain_pre (X : nbytes, i s : int, _seed : seed, address : adrs) = 
+  0 <= s <= w - 1.
+
+op chain (X : nbytes, i s : int, _seed : seed, address : adrs) : nbytes.
+
+(* Definition of the chain operator for s = 0 *)
+axiom chain0 (X : nbytes, i s : int,  _seed : seed, address) : 
+  s = 0 => chain X i s _seed address = X.
+
+axiom chainS (X : nbytes, i s : int, _seed : seed, address : adrs) :
+  0 < s => chain X i s _seed address = 
+    let t = chain X i (s - 1) _seed address in
+    let address = set_hash_addr address (i + s - 1) in
+    let address = set_key_and_mask address 0 in
+    let _key = prf _seed address in
+    let address = set_key_and_mask address 1 in
+    let bitmask = prf _seed address in
+    let t = f _key (nbytexor t bitmask) in
+    t.
+
+lemma chain_ll : islossless Chain.chain.
+    by proc; while (true) (s - chain_count); by auto => /#.
