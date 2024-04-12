@@ -10,14 +10,14 @@
 #include "randombytes.h"
 
 #ifndef TESTS
-#define TESTS 100
+#define TESTS 1000
 #endif
 
 #ifndef MAX_INLEN
 #define MAX_INLEN 2048
 #endif
 
-extern void sha256_jazz(uint8_t *, const uint8_t *, size_t);
+extern void sha256_in_ptr_jazz(uint8_t *, const uint8_t *, size_t);
 
 int main(void) {
     bool debug = true;
@@ -28,10 +28,10 @@ int main(void) {
     for (int i = 0; i < TESTS; i++) {
         for (size_t inlen = 0; inlen < MAX_INLEN; inlen++) {
             if (debug) {
-                printf("[sha256_ptr]: Test %d/%d (INLEN=%ld)\n", i, TESTS, inlen);
+                printf("[sha256_in_ptr]: Test %d/%d (INLEN=%ld)\n", i, TESTS, inlen);
             }
 
-            sha256_jazz(out_jazz, in, inlen);
+            sha256_in_ptr_jazz(out_jazz, in, inlen);
             SHA256((unsigned char *)in, inlen, (unsigned char *)out_ref);
 
             assert(memcmp(out_jazz, out_jazz, SHA256_DIGEST_LENGTH) == 0);

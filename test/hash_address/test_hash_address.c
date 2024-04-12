@@ -34,7 +34,7 @@ void test_set_layer_addr(void) {
 
     for (int i = 0; i < TESTS; i++) {
         if (debug) {
-            printf("[set_layer_addr] Test %d/%d\n", i, TESTS);
+            printf("[set_layer_addr] Test %d/%d\n", i + 1, TESTS);
         }
 
         randombytes((uint8_t *)addr_ref, 8 * sizeof(uint32_t));
@@ -64,7 +64,7 @@ void test_set_tree_addr(void) {
 
     for (int i = 0; i < TESTS; i++) {
         if (debug) {
-            printf("[set_tree_addr] Test %d/%d\n", i, TESTS);
+            printf("[set_tree_addr] Test %d/%d\n", i + 1 + 1, TESTS);
         }
 
         randombytes((uint8_t *)addr_ref, 8 * sizeof(uint32_t));
@@ -94,7 +94,7 @@ void test_set_type(void) {
 
     for (int i = 0; i < TESTS; i++) {
         if (debug) {
-            printf("[set_type] Test %d/%d\n", i, TESTS);
+            printf("[set_type] Test %d/%d\n", i + 1 + 1, TESTS);
         }
 
         randombytes((uint8_t *)addr_ref, 8 * sizeof(uint32_t));
@@ -124,7 +124,7 @@ void test_set_key_and_mask(void) {
 
     for (int i = 0; i < TESTS; i++) {
         if (debug) {
-            printf("[set_key_and_mask] Test %d/%d\n", i, TESTS);
+            printf("[set_key_and_mask] Test %d/%d\n", i + 1, TESTS);
         }
 
         randombytes((uint8_t *)addr_ref, 8 * sizeof(uint32_t));
@@ -154,7 +154,7 @@ void test_copy_subtree_addr_jazz(void) {
 
     for (int i = 0; i < TESTS; i++) {
         if (debug) {
-            printf("[copy_subtree_addr] Test %d/%d\n", i, TESTS);
+            printf("[copy_subtree_addr] Test %d/%d\n", i + 1, TESTS);
         }
 
         randombytes((uint8_t *)in_ref, 8 * sizeof(uint32_t));
@@ -186,7 +186,7 @@ void test_set_ots_addr(void) {
 
     for (int i = 0; i < TESTS; i++) {
         if (debug) {
-            printf("[set_ots_addr] Test %d/%d\n", i, TESTS);
+            printf("[set_ots_addr] Test %d/%d\n", i + 1, TESTS);
         }
 
         randombytes((uint8_t *)addr_ref, 8 * sizeof(uint32_t));
@@ -216,7 +216,7 @@ void test_set_chain_addr(void) {
 
     for (int i = 0; i < TESTS; i++) {
         if (debug) {
-            printf("[set_chain_addr] Test %d/%d\n", i, TESTS);
+            printf("[set_chain_addr] Test %d/%d\n", i + 1, TESTS);
         }
 
         randombytes((uint8_t *)addr_ref, 8 * sizeof(uint32_t));
@@ -246,7 +246,7 @@ void test_set_hash_addr(void) {
 
     for (int i = 0; i < TESTS; i++) {
         if (debug) {
-            printf("[set_hash_addr] Test %d/%d\n", i, TESTS);
+            printf("[set_hash_addr] Test %d/%d\n", i + 1, TESTS);
         }
 
         randombytes((uint8_t *)addr_ref, 8 * sizeof(uint32_t));
@@ -276,7 +276,7 @@ void test_set_ltree_addr(void) {
 
     for (int i = 0; i < TESTS; i++) {
         if (debug) {
-            printf("[set_ltree_addr] Test %d/%d\n", i, TESTS);
+            printf("[set_ltree_addr] Test %d/%d\n", i + 1, TESTS);
         }
 
         randombytes((uint8_t *)addr_ref, 8 * sizeof(uint32_t));
@@ -306,7 +306,7 @@ void test_set_tree_height(void) {
 
     for (int i = 0; i < TESTS; i++) {
         if (debug) {
-            printf("[set_tree_height] Test %d/%d\n", i, TESTS);
+            printf("[set_tree_height] Test %d/%d\n", i + 1, TESTS);
         }
 
         randombytes((uint8_t *)addr_ref, 8 * sizeof(uint32_t));
@@ -336,7 +336,7 @@ void test_set_tree_index(void) {
 
     for (int i = 0; i < TESTS; i++) {
         if (debug) {
-            printf("[set_tree_index] Test %d/%d\n", i, TESTS);
+            printf("[set_tree_index] Test %d/%d\n", i + 1, TESTS);
         }
 
         randombytes((uint8_t *)addr_ref, 8 * sizeof(uint32_t));

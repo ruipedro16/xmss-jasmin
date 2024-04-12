@@ -1,42 +1,22 @@
+from XMSS require "params.jinc"
 from XMSS require "core_hash/core_hash_shake256_out_64.jtmpl"
 
 // NOTE: Outlen is 64
 
-export fn core_hash<INLEN>(reg u64 out_ptr in_ptr) {
-    stack u8[64] out;
-    reg ptr u8[64] out_p;
-
-    stack u8[INLEN] in;
-    reg ptr u8[INLEN] in_p;
-
-    inline int i;
-
-    for i=0 to INLEN { in[i] = (u8) [in_ptr + i]; }
-
-    () = #spill(out_ptr);
-
-    out_p = out;
-    in_p = in;
-    out_p = __core_hash_<64, INLEN>(out_p, in_p); 
-
-    () = #unspill(out_ptr);
-
-    for i=0 to 64 { (u8) [out_ptr + i] = out[i]; }
+export fn core_hash<INLEN>(
+    reg ptr u8[64] out,
+    reg ptr u8[INLEN] in
+) -> reg ptr u8[64] 
+{
+    out = __core_hash_<INLEN>(out, in); 
+    return out;
 }//<>
 
-export fn core_hash_in_ptr(reg u64 out_ptr in_ptr inlen) {
-    stack u8[64] out;
-    reg ptr u8[64] out_p;
-
-    inline int i;
-
-    () = #spill(out_ptr);
-
-    out_p = out;
-    out_p = _core_hash_in_ptr<64>(out_p, in_ptr, inlen);
-    out = out_p;
-
-    () = #unspill(out_ptr);
-
-    for i=0 to 64 { (u8) [out_ptr + i] = out[i]; }
+export fn core_hash_in_ptr(
+    reg ptr u8[64] out,
+    reg u64 in_ptr inlen
+) -> reg ptr u8[64] 
+{
+    out = _core_hash_in_ptr(out, in_ptr, inlen);
+    return out;
 }

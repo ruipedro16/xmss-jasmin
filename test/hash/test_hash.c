@@ -31,9 +31,8 @@
 extern void addr_to_bytes_jazz(uint8_t *, const uint32_t *);
 extern void prf_jazz(uint8_t *, const uint8_t *, const uint8_t *);
 extern void prf_keygen_jazz(uint8_t *, const uint8_t *, const uint8_t *);
-extern void hash_message_jazz(uint8_t *, const uint8_t *, const uint8_t *, uint64_t, uint8_t *, size_t);
-extern void thash_h_jazz(uint8_t *, uint32_t *, const uint8_t *, const uint8_t *);
 extern void thash_f_jazz(uint8_t *, uint32_t *, const uint8_t *);
+extern void thash_h_jazz(uint8_t *, uint32_t *, const uint8_t *, const uint8_t *);
 
 void test_addr_to_bytes(void) {
     uint32_t addr[8];
@@ -52,10 +51,12 @@ void test_addr_to_bytes(void) {
 
         assert(memcmp(addr_as_bytes_ref, addr_as_bytes_jazz, 32 * sizeof(uint8_t)) == 0);
     }
+
+    puts("addr to bytes: OK");
 }
 
 void test_prf(void) {
-    bool debug = true;
+    bool debug = false;
 
     xmss_params p;
     uint32_t oid;
@@ -95,10 +96,12 @@ void test_prf(void) {
 
         assert(memcmp(out_ref, out_jazz, p.n * sizeof(uint8_t)) == 0);
     }
+
+    puts("prf: OK");
 }
 
 void test_prf_keygen(void) {
-    bool debug = true;
+    bool debug = false;
 
     xmss_params p;
     uint32_t oid;
@@ -138,53 +141,12 @@ void test_prf_keygen(void) {
 
         assert(memcmp(out_ref, out_jazz, p.n * sizeof(uint8_t)) == 0);
     }
-}
 
-void test_hash_message(void) {
-    bool debug = true;
-
-    xmss_params p;
-    uint32_t oid;
-
-    if (xmss_str_to_oid(&oid, xstr(IMPL)) == -1) {
-        fprintf(stderr, "Failed to generate oid from impl name\n");
-        exit(-1);
-    }
-
-    if (xmss_parse_oid(&p, oid) == -1) {
-        fprintf(stderr, "Failed to generate params from oid\n");
-        exit(-1);
-    }
-
-    uint8_t hash_ref[p.n], hash_jazz[p.n];
-    uint8_t randomness[p.n];
-    uint8_t root[p.n];
-    uint64_t idx;
-    uint8_t msg_ref[MAX_MLEN], msg_jazz[MAX_MLEN];
-
-    for (int i = 0; i < TESTS; i++) {
-        for (size_t inlen = 1; inlen < MAX_MLEN; inlen++) {
-            if (debug) {
-                printf("[hash message (inlen=%ld)] Test %d/%d\n", inlen, i, TESTS);
-            }
-
-            randombytes(randomness, p.n);
-            randombytes(root, p.n);
-            randombytes((uint8_t *)&idx, sizeof(uint64_t));
-
-            randombytes(msg_ref, inlen);
-            memcpy(msg_jazz, msg_ref, inlen);
-
-            hash_message_jazz(hash_jazz, randomness, root, idx, msg_jazz, inlen);
-            hash_message(&p, hash_ref, randomness, root, idx, msg_ref, inlen);
-
-            // TODO: Asserts
-        }
-    }
+    puts("prf keygen: OK");
 }
 
 void test_thash_h(void) {
-    bool debug = true;
+    bool debug = false;
 
     xmss_params p;
     uint32_t oid;
@@ -229,10 +191,12 @@ void test_thash_h(void) {
         assert(memcmp(out_ref, out_jazz, XMSS_N) == 0);
         assert(memcmp(addr_jazz, addr_ref, 8 * sizeof(uint32_t)) == 0);
     }
+
+    puts("thash_h: OK");
 }
 
 void test_thash_f(void) {
-    bool debug = true;
+    bool debug = false;
 
     xmss_params p;
     uint32_t oid;
@@ -270,10 +234,12 @@ void test_thash_f(void) {
         assert(memcmp(out_ref, out_jazz, XMSS_N) == 0);
         assert(memcmp(addr_ref, addr_jazz, 8 * sizeof(uint32_t)) == 0);
     }
+
+    puts("thash_f: OK");
 }
 
 void test_wots(void) {
-    bool debug = true;
+    bool debug = false;
 
     xmss_params p;
     uint32_t oid;
@@ -316,10 +282,12 @@ void test_wots(void) {
 
         assert(memcmp(pk1, pk2, p.wots_sig_bytes) == 0);
     }
+
+    puts("WOTS: OK");
 }
 
 void test_api(void) {
-    bool debug = true;
+    bool debug = false;
 
     xmss_params p;
     uint32_t oid;
@@ -336,7 +304,11 @@ void test_api(void) {
 
     // C functions replaced by corresponding Jasmin functions:
     //
-    //
+    // [X] prf
+    // [X] prf_keygen
+    // [X] hash_message
+    // [X] thash_f
+    // [X] thash_h
 
     unsigned char pk[XMSS_OID_LEN + p.pk_bytes];
     unsigned char sk[XMSS_OID_LEN + p.sk_bytes];
@@ -350,37 +322,26 @@ void test_api(void) {
     for (int i = 0; i < 5; i++) {
         if (debug) {
             printf("[XMSS sign+verify] Test %d/%d\n", i, TESTS);
-
-            xmss_keypair(pk, sk, oid);
-            if (debug) {
-                puts("[DEBUG]: Finished keygen");
-            }
-
-            randombytes(m, MAX_MLEN);
-
-            xmss_sign(sk, sm, &smlen, m, MAX_MLEN);
-            if (debug) {
-                puts("[DEBUG]: Finished sign");
-            }
-
-            int res = xmss_sign_open(mout, &mlen, sm, smlen, pk);
-            if (debug) {
-                puts("[DEBUG]: Finished verify");
-            }
-
-            assert(res == 0);
         }
+
+        xmss_keypair(pk, sk, oid);
+        randombytes(m, MAX_MLEN);
+        xmss_sign(sk, sm, &smlen, m, MAX_MLEN);
+        int res = xmss_sign_open(mout, &mlen, sm, smlen, pk);
+        assert(res == 0);
     }
+    puts("XMSS: OK");
 }
 
 int main(void) {
+    printf("HASH: Running tests for [%s]\n", xstr(IMPL));
     test_addr_to_bytes();
     test_prf();
     test_prf_keygen();
     test_thash_h();
     test_thash_f();
     test_wots();  // Wots but replaces all C [hash] functions with the respective Jasmin function
-    test_api();   // Same as before but for XMSS
-    printf("[%s]: Hash OK\n", xstr(IMPL));
+    test_api();   // Same as before but for XMSS [hash_message is tested here]
+    printf("[%s]: Hash OK\n\n", xstr(IMPL));
     return 0;
 }

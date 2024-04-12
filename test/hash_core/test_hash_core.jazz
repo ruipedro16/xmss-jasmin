@@ -7,6 +7,6 @@ export fn core_hash_shake256_out_64_jazz<INLEN>(
     reg ptr u8[INLEN] in
 ) -> reg ptr u8[64]
 {
-    out = __core_hash_<64, INLEN>(out, in);
+    out = __core_hash_<INLEN>(out, in);
     return out;
 }//<>

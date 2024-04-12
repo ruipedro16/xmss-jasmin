@@ -26,7 +26,7 @@ GET_IMPL_UPPER_CASE = $(shell echo $(subst $(SPACE),_,$(wordlist 4, 6, $(subst _
 
 # ----------------------------------------------------------------------------------------------------------------------
 
-TESTS := $(addprefix bin/test_xmss_commons_, $(IMPL_STR))
+TESTS := $(addprefix bin/test_xmss_core_, $(IMPL_STR))
 OUT   := $(addsuffix .out, $(TESTS))
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -40,10 +40,9 @@ CHECKCT_FILES := $(JPP_FILES:.jpp=.check)
 
 REF_SOURCES := $(wildcard ../*.c)
 
-SOURCES := test_xmss_commons.c ../common/notrandombytes.c ../common/print.c
+SOURCES := test_xmss_core.c ../common/notrandombytes.c ../common/print.c
 
-TEST_FLAGS := -DTEST_LTREE -DTEST_GEN_LEAF_WOTS -DTEST_COMPUTE_ROOT # -DTEST_XMSS_CORE_SIGN_OPEN \
-              -DTEST_XMSSMT_CORE_SIGN_OPEN 
+TEST_FLAGS := 
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -62,7 +61,7 @@ $(JPP_FILES):
 bin/%.jpp: | bin/
 	echo "from XMSS require \"params/params-$(GET_IMPL).jinc\"\n" > $@
 	echo "from XMSS require \"core_hash/core_hash_$(GET_IMPL).jtmpl\"\n\n" >> $@
-	cat test_xmss_commons.jazz  >> $@
+	cat test_xmss_core.jazz  >> $@
 	$(JPP) $(JINCLUDE) -in $@ -out $@
 	$(PREPROCESSOR) --input_file $@ --output_file $@
 
@@ -74,7 +73,7 @@ bin/%.s: bin/%.jpp
 $(TESTS):
 bin/%: bin/%.s | bin/
 	$(CC) $(CFLAGS) -o $@ -I../common -I../ -DIMPL=$(GET_IMPL_UPPER_CASE)  $(TEST_FLAGS) \
-	$(SOURCES) $(REF_SOURCES) $< $(LDLIBS) -DDEBUG
+	$(SOURCES) $(REF_SOURCES) $< $(LDLIBS)
 
 $(OBJ_FILES):
 bin/%.o: bin/%.s

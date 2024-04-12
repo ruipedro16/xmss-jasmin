@@ -37,6 +37,7 @@ typecheck: extract
 	$(EASYCRYPT) $(EC_INCLUDE) Notation.ec
 	$(EASYCRYPT) $(EC_INCLUDE) Address.ec
 	$(EASYCRYPT) $(EC_INCLUDE) Primitives.ec
+	$(EASYCRYPT) $(EC_INCLUDE) Wots.ec
 	$(EASYCRYPT) $(EC_INCLUDE) XMSS.ec
 
 # --------------------------------------------------------------------------------------------------

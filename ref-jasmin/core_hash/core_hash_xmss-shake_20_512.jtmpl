@@ -2,66 +2,62 @@ from XMSS require "fips202/shake256_in_ptr/shake256_in_ptr.jtmpl"
 from XMSS require "fips202/shake256_array/shake256.jtmpl"
 
 // Precondition: XMSS_N == 64 && XMSS_FUNC == XMSS_SHAKE256
-inline fn __core_hash<OUTLEN, INLEN>( // TODO: Remove the outlen param
+inline fn __core_hash<INLEN>(
     reg ptr u8[XMSS_N] out, 
     reg ptr u8[INLEN] in
 ) -> reg ptr u8[XMSS_N] {
-
-    out = __shake256<64, INLEN>(out, in);
-    
+    out = __shake256<XMSS_N, INLEN>(out, in);
     return out;
 }//<>
 
-fn _core_hash<OUTLEN, INLEN>(
-    reg ptr u8[OUTLEN] out,
+fn _core_hash<INLEN>(
+    reg ptr u8[XMSS_N] out,
     reg ptr u8[INLEN] in
-) -> reg ptr u8[OUTLEN]
+) -> reg ptr u8[XMSS_N]
 {
-    out = __core_hash<OUTLEN, INLEN>(out, in);
+    out = __core_hash<INLEN>(out, in);
     return out;
 }//<>
 
-inline fn __core_hash_<OUTLEN, INLEN>(
-    reg ptr u8[OUTLEN] out,
+inline fn __core_hash_<INLEN>(
+    reg ptr u8[XMSS_N] out,
     reg ptr u8[INLEN] in
-) -> reg ptr u8[OUTLEN]
+) -> reg ptr u8[XMSS_N]
 {  
     in = in; out = out;
-    out = _core_hash<OUTLEN, INLEN>(out, in);
+    out = _core_hash<INLEN>(out, in);
     out = out;
     return out;
 }//<>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline fn __core_hash_in_ptr<OUTLEN>( // TODO: remove outlen parameter
+inline fn __core_hash_in_ptr(
     reg ptr u8[XMSS_N] out, 
     reg u64 in_ptr inlen
 ) -> reg ptr u8[XMSS_N] {
     reg ptr u8[64] buf;
-
-    out = __shake256_in_ptr_<64>(out, in_ptr, inlen);
-    
+    out = __shake256_in_ptr_<XMSS_N>(out, in_ptr, inlen);
     return out;
 }//<>
 
-fn _core_hash_in_ptr<OUTLEN>(
-    reg ptr u8[OUTLEN] out,
+fn _core_hash_in_ptr(
+    reg ptr u8[XMSS_N] out,
     reg u64 in_ptr inlen
-) -> reg ptr u8[OUTLEN]
+) -> reg ptr u8[XMSS_N]
 {
-    out = __core_hash_in_ptr<OUTLEN>(out, in_ptr, inlen);
+    out = __core_hash_in_ptr(out, in_ptr, inlen);
     return out;
 }//<>
 
-inline fn __core_hash_in_ptr_<OUTLEN>(
-    reg ptr u8[OUTLEN] out,
+inline fn __core_hash_in_ptr_(
+    reg ptr u8[XMSS_N] out,
     reg u64 in_ptr inlen
-) -> reg ptr u8[OUTLEN]
+) -> reg ptr u8[XMSS_N]
 {  
     out = out;
     in_ptr = in_ptr;
     inlen = inlen;
-    out = _core_hash_in_ptr<OUTLEN>(out, in_ptr, inlen);
+    out = _core_hash_in_ptr(out, in_ptr, inlen);
     return out;
 }//<>

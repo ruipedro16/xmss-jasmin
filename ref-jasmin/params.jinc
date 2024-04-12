@@ -1,1 +1,2 @@
-from XMSS require "params/params-xmss-shake_20_512.jinc"
+// from XMSS require "params/params-xmss-shake_20_512.jinc" // XMSS-SHAKE_20_512
+from XMSS require "params/params-xmss-sha2_10_256.jinc" // XMSS-SHA2_10_256

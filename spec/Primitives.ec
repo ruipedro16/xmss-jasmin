@@ -5,6 +5,8 @@ from Jasmin require import JModel.
 require import Notation Address.
 require import Array8.
 
+pragma Goals : printall.
+
 type adrs = W32.t Array8.t.
 
 op n : { int | 0 <= n } as ge0_n.
@@ -43,13 +45,14 @@ module Chain = {
     while (chain_count < s) {
      address <- set_hash_addr address (i + chain_count);
      address <- set_key_and_mask address 0;
-     _key <- prf _seed  address;
+     _key <- prf _seed address;
      address <- set_key_and_mask address 1;
      bitmask <- prf _seed address;
 
      t <- f _key (nbytexor t bitmask);
-     chain_count <- chain_count + 1;       
+     chain_count <- chain_count + 1;
     }
+    
     return t;
   }
 }.

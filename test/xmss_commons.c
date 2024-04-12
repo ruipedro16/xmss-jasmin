@@ -1,6 +1,7 @@
 #include "xmss_commons.h"
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -10,12 +11,21 @@
 #include "utils.h"
 #include "wots.h"
 
-#ifdef DEBUG
-#include "print.h"
+#ifdef TEST_THASH_H
+extern void thash_h_jazz(uint8_t *, uint32_t *, const uint8_t *, const uint8_t *);
 #endif
 
-#ifdef TEST_HASH
-extern void thash_h_jazz(uint8_t *, uint32_t *, const uint8_t *, const uint8_t *);
+#ifdef TEST_LTREE
+extern void l_tree_jazz(uint8_t *, uint8_t *, uint32_t *, const uint8_t *);
+#endif
+
+#ifdef TEST_COMPUTE_ROOT
+extern void compute_root_jazz(unsigned char *root, uint32_t addr[8], const unsigned char *leaf, unsigned long leaf_idx,
+                              const unsigned char *auth_path, const unsigned char *pub_seed);
+#endif
+
+#ifdef TEST_HASH_MESSAGE
+extern void hash_message_jazz(uint8_t *, const uint8_t *, const uint8_t *, uint64_t, const uint8_t *, size_t);
 #endif
 
 /**
@@ -35,13 +45,11 @@ void l_tree(const xmss_params *params, unsigned char *leaf, unsigned char *wots_
         parent_nodes = l >> 1;
         for (i = 0; i < parent_nodes; i++) {
             set_tree_index(addr, i);
-
-#ifdef TEST_HASH
-            thash_h_jazz(wots_pk + i * params->n, addr, wots_pk + (i * 2) * params->n, pub_seed);
-#else
+            /* Hashes the nodes at (i*2)*params->n and (i*2)*params->n + 1 */
             thash_h(params, wots_pk + i * params->n, wots_pk + (i * 2) * params->n, pub_seed, addr);
-#endif
         }
+        /* If the row contained an odd number of nodes, the last node was not
+           hashed. Instead, we pull it up to the next layer. */
         if (l & 1) {
             memcpy(wots_pk + (l >> 1) * params->n, wots_pk + (l - 1) * params->n, params->n);
             l = (l >> 1) + 1;
@@ -80,7 +88,8 @@ void compute_root(const xmss_params *params, unsigned char *root, const unsigned
 
         /* Pick the right or left neighbor, depending on parity of the node. */
         if (leafidx & 1) {
-#ifdef TEST_HASH
+#ifdef TEST_THASH_H
+            // NOTE: in the jasmin impl, addr is the 2nd argument because writable ptrs must come first in the arguments
             thash_h_jazz(buffer + params->n, addr, buffer, pub_seed);
 #else
             thash_h(params, buffer + params->n, buffer, pub_seed, addr);
@@ -88,14 +97,15 @@ void compute_root(const xmss_params *params, unsigned char *root, const unsigned
 
             memcpy(buffer, auth_path, params->n);
         } else {
-#ifdef TEST_HASH
+#ifdef TEST_THASH_H
+            // NOTE: in the jasmin impl, addr is the 2nd argument because writable ptrs must come first in the arguments
             thash_h_jazz(buffer, addr, buffer, pub_seed);
 #else
             thash_h(params, buffer, buffer, pub_seed, addr);
 #endif
-
             memcpy(buffer + params->n, auth_path, params->n);
         }
+
         auth_path += params->n;
     }
 
@@ -104,7 +114,8 @@ void compute_root(const xmss_params *params, unsigned char *root, const unsigned
     leafidx >>= 1;
     set_tree_index(addr, leafidx);
 
-#ifdef TEST_HASH
+#ifdef TEST_THASH_H
+    // NOTE: in the jasmin impl, addr is the 2nd argument because writable ptrs must come first in the arguments
     thash_h_jazz(root, addr, buffer, pub_seed);
 #else
     thash_h(params, root, buffer, pub_seed, addr);
@@ -122,7 +133,13 @@ void gen_leaf_wots(const xmss_params *params, unsigned char *leaf, const unsigne
 
     wots_pkgen(params, pk, sk_seed, pub_seed, ots_addr);
 
+#ifdef TEST_LTREE
+    // NOTE: The addr is before pub_seed in the jasmin impl because the writable ptrs must come first
+    // in the list of arguments
+    l_tree_jazz(leaf, pk, ltree_addr, pub_seed);
+#else
     l_tree(params, leaf, pk, pub_seed, ltree_addr);
+#endif
 }
 
 /**
@@ -171,9 +188,15 @@ int xmssmt_core_sign_open(const xmss_params *params, unsigned char *m, unsigned 
      * prepend the required other inputs for the hash function. */
     memcpy(m + params->sig_bytes, sm + params->sig_bytes, *mlen);
 
-    /* Compute the message hash. */
+/* Compute the message hash. */
+#ifdef TEST_HASH_MESSAGE
+    hash_message_jazz(mhash, sm + params->index_bytes, pk, idx,
+                      m + params->sig_bytes - params->padding_len - 3 * params->n, *mlen);
+#else
     hash_message(params, mhash, sm + params->index_bytes, pk, idx,
                  m + params->sig_bytes - params->padding_len - 3 * params->n, *mlen);
+#endif
+
     sm += params->index_bytes + params->n;
 
     /* For each subtree.. */
@@ -200,8 +223,15 @@ int xmssmt_core_sign_open(const xmss_params *params, unsigned char *m, unsigned 
         set_ltree_addr(ltree_addr, idx_leaf);
         l_tree(params, leaf, wots_pk, pub_seed, ltree_addr);
 
-        /* Compute the root node of this subtree. */
+/* Compute the root node of this subtree. */
+#ifdef TEST_COMPUTE_ROOT
+        // NOTE: The addr is the 2nd argument in the jasmin impl because the writable ptrs must come first
+        // in the list of arguments
+        compute_root_jazz(root, node_addr, leaf, idx_leaf, sm, pub_seed);
+#else
         compute_root(params, root, leaf, idx_leaf, sm, pub_seed, node_addr);
+#endif
+
         sm += params->tree_height * params->n;
     }
 
