@@ -1,0 +1,4 @@
+[general]
+
+rdirs = common
+rdirs = extraction

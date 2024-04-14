@@ -4,6 +4,7 @@ EASYCRYPT  ?= easycrypt
 EC_INCLUDE ?= -I common -I extraction
 
 JASMIN ?= jasminc
+JFLAGS ?= -nowarning ${JADDFLAGS}
 
 JASMIN_SRC := ../ref-jasmin
 TEST_SRC   := ../test
@@ -15,7 +16,7 @@ extract: extraction/xmss_impl.ec
 
 # NOTE: __copy_subtree_addr missing
 
-extraction/xmss_impl.ec: | extraction/
+extraction/xmss_impl.ec: | extraction/ common/
 	make -C $(TEST_SRC)/wots/ bin/test_wots_xmss-sha2_10_256.jpp
 	cp $(TEST_SRC)/wots/bin/test_wots_xmss-sha2_10_256.jpp $(@:.ec=.jinc)
 	$(JASMIN) -ec __set_layer_addr \
@@ -32,9 +33,8 @@ extraction/xmss_impl.ec: | extraction/
 			  -ec __wots_pkgen \
 			  -ec __wots_sign \
 			  -ec __wots_pk_from_sig -oec $@ $(@:.ec=.jinc)
-
-extraction/xmss.ec: extraction/
-	touch $@ # TODO:
+	mv Array*.ec common/
+	mv WArray*.ec common/
 
 # --------------------------------------------------------------------------------------------------
 
@@ -62,4 +62,7 @@ distclean:
 # --------------------------------------------------------------------------------------------------
 
 extraction/:
+	mkdir -p $@
+
+common/:
 	mkdir -p $@

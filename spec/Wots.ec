@@ -89,3 +89,34 @@ module WOTS = {
   }
 
 }.
+op sample_n_bytes : nbytes -> nbytes.
+op genSKWots (sk : skey) = map sample_n_bytes sk.
+
+(* Given a list [(a, b)], maps f over  *)
+op map1 ['a] (f : nbytes -> nbytes) (xs : (nbytes * 'a) list) =
+    with xs = [] => []
+    with xs = h::t => (f h.`1, h.`2) :: (map1 f t).
+
+op genPKWots (pk : pkey, sk : skey, _seed : seed, address : adrs) : pkey =
+  let keypair = zip pk sk in
+  let f : nbytes -> nbytes = fun sk_i => chain sk_i 0 (w-1) _seed address in
+  unzip1 (map1 f keypair).
+
+lemma pk_imp_fun (sk : skey, _seed : seed, address : adrs) :
+    hoare [WOTS.genPK : arg = (sk, _seed, address) ==> res = genPKWots witness sk _seed address].
+proof.
+proc.
+simplify.
+admit. (* FIXME: *)
+qed.
+
+op genKeyPairWots (kp : wots_keypair, _seed : seed, address : adrs) : wots_keypair = 
+  let sk = genSKWots kp.`2 in
+  let pk = genPKWots kp.`1 sk _seed address in
+  (pk, sk).
+
+lemma keypair_imp_fun (_seed : seed, address : adrs) :
+    hoare [WOTS.kg : arg = (_seed, address) ==> res = genKeyPairWots witness _seed address].
+proof.
+admit. (* FIXME: *)
+qed.
