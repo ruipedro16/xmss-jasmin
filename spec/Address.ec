@@ -9,6 +9,15 @@ require import Array8.
 
 require import Notation.
 
+
+(* AUX LEMMAS *)
+(* Can this be an axiom ? *)
+lemma word_int (i : int) :
+    W32.to_uint (W32.of_int i) = i.
+proof.
+admit. (* FIXME: *)
+qed.
+
 (************************************** EXTRACTION ********************************************************************)
 (* FIXME: REMOVE THIS FROM HERE *)
 
@@ -209,9 +218,6 @@ qed.
 
 pred set_tree_addr_pre (tree_address : int) = 0 <= tree_address.
 
-
-
-
 op set_tree_addr (address : adrs, tree_address : int) : adrs = 
 (* 
 FIXME: Should use >> instead of SHR_64.`6 but I cant prove it
@@ -300,8 +306,13 @@ qed.
 
 
 pred set_tree_height_pre (tree_height : int) = 0 <= tree_height. 
+
 op set_tree_height (address : adrs, tree_height : int) : adrs = 
     address.[5 <- W32.of_int tree_height].
+
+op get_tree_height (address : adrs) : int =
+  W32.to_uint (address.[5]).
+
 lemma set_tree_height_op_impl (address : adrs, tree_height : int):
     set_tree_height_pre tree_height =>
         hoare[M.__set_tree_height :
@@ -313,11 +324,21 @@ wp.
 progress.
 qed.
 
+lemma get_set_tree_height (address : adrs, tree_height : int) :
+    get_tree_height (set_tree_height address tree_height) = tree_height.
+proof.
+rewrite /get_tree_height /set_tree_height.
+progress.
+apply word_int. (* FIXME: This lemma is not proved *)
+qed.
 
 (* TODO: Add Precondition *)
 op set_tree_index (address : adrs, tree_index : int) : adrs = 
     address.[6 <- W32.of_int tree_index].
-lemma set_tree_index_op_impl (address : adrs, tree_index : int):
+
+op get_tree_index (address : adrs) : int = to_uint (address.[6]).
+
+lemma set_tree_index_op_impl (address : adrs, tree_index : int) :
     hoare[M.__set_tree_index :
         arg = (address, W32.of_int tree_index) ==> res = set_tree_index address tree_index].
 proof.
@@ -325,6 +346,15 @@ proc.
 wp.
 progress.
 qed.
+
+lemma get_set_tree_index (address : adrs, tree_index : int) :
+  get_tree_index (set_tree_index address tree_index) = tree_index.  
+proof.
+rewrite /get_tree_index /set_tree_index.
+progress.
+apply word_int. (* FIXME: This lemma is not proved *)
+qed.
+
 
 op set_key_and_mask (address : adrs, key_and_mask : int) : adrs = 
     address.[7 <- W32.of_int key_and_mask].

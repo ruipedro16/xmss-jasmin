@@ -14,7 +14,7 @@
 #define MAXBUFSIZE 1024
 
 static void print_param(FILE *f, const char *name, int value) {
-    if (!f) {
+    if (!f || !name) {
         return;
     }
 
