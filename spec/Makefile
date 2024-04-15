@@ -19,20 +19,20 @@ extract: extraction/xmss_impl.ec
 extraction/xmss_impl.ec: | extraction/ common/
 	make -C $(TEST_SRC)/wots/ bin/test_wots_xmss-sha2_10_256.jpp
 	cp $(TEST_SRC)/wots/bin/test_wots_xmss-sha2_10_256.jpp $(@:.ec=.jinc)
-	$(JASMIN) -ec __set_layer_addr \
-	          -ec __set_tree_addr \
-			  -ec __set_type \
-			  -ec __set_key_and_mask \
-			  -ec __set_ots_addr \
-			  -ec __set_chain_addr \
-			  -ec __set_hash_addr \
-			  -ec __set_ltree_addr \
-			  -ec __set_tree_height \
-			  -ec __set_tree_index \
-			  -ec _zero_address \
-			  -ec __wots_pkgen \
-			  -ec __wots_sign \
-			  -ec __wots_pk_from_sig -oec $@ $(@:.ec=.jinc)
+	$(JASMIN) $(JFLAGS) -ec __set_layer_addr \
+	          			-ec __set_tree_addr \
+			  			-ec __set_type \
+			  			-ec __set_key_and_mask \
+			  			-ec __set_ots_addr \
+			  			-ec __set_chain_addr \
+			  			-ec __set_hash_addr \
+			  			-ec __set_ltree_addr \
+			  			-ec __set_tree_height \
+			  			-ec __set_tree_index \
+			  			-ec _zero_address \
+			  			-ec __wots_pkgen \
+			  			-ec __wots_sign \
+			  			-ec __wots_pk_from_sig -oec $@ $(@:.ec=.jinc)
 	mv Array*.ec common/
 	mv WArray*.ec common/
 
@@ -56,8 +56,7 @@ clean:
 
 .PHONY: distclean
 distclean:	
-	rm -rf extraction/
-	rm -rf Array*.ec WArray*.ec
+	rm -rf extraction/ common/
 
 # --------------------------------------------------------------------------------------------------
 
