@@ -171,6 +171,40 @@ inline fn __hash_message(
     return mhash;
 }
 
+fn _hash_message(
+    reg ptr u8[XMSS_N] mhash,
+    reg ptr u8[XMSS_N] R,
+    reg ptr u8[XMSS_N] root,
+    reg u64 idx,
+    reg u64 m_with_prefix_ptr mlen
+) -> reg ptr u8[XMSS_N]
+{
+    mhash = __hash_message(mhash, R, root, idx, m_with_prefix_ptr, mlen);
+    return mhash;
+}
+
+inline fn __hash_message_(
+    reg ptr u8[XMSS_N] mhash,
+    reg ptr u8[XMSS_N] R,
+    reg ptr u8[XMSS_N] root,
+    reg u64 idx,
+    reg u64 m_with_prefix_ptr mlen
+) -> reg ptr u8[XMSS_N]
+{   
+    mhash = mhash;
+    R = R;
+    root = root;
+    idx = idx;
+    m_with_prefix_ptr = m_with_prefix_ptr;
+    mlen = mlen;
+
+    mhash = _hash_message(mhash, R, root, idx, m_with_prefix_ptr, mlen);
+
+    mhash = mhash;
+
+    return mhash;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // NOTE: `in` and `out` are not necessarily disjoint in the reference implementation (e.g. in compute root)

@@ -16,9 +16,7 @@ inline fn __cond_u32_a_below_b_and_a_below_c(reg u32 a b c) -> reg bool
 }
 
 // cond = a >= b && c == d
-// a    : u64
-// b    : inline int
-// c, d : u32
+// used in treehash
 inline fn __cond_u32_geq_u32_u32_eq_u32(
   reg u32 a b,
   reg u32 c d
