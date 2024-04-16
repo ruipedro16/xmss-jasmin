@@ -845,19 +845,19 @@ inline fn __sha256_in_ptr(reg ptr u8[32] out, reg u64 in inlen) -> reg ptr u8[32
   return out;
 }
 
-inline fn __core_hash_96(
-    reg ptr u8[XMSS_N] out, 
-    reg ptr u8[96] in
-) -> reg ptr u8[XMSS_N] {
-    out = __sha256_96(out, in);
-    return out;
-}
-
 inline fn __core_hash_128(
     reg ptr u8[XMSS_N] out, 
     reg ptr u8[128] in
 ) -> reg ptr u8[XMSS_N] {
     out = __sha256_128(out, in);
+    return out;
+}
+
+inline fn __core_hash_96(
+    reg ptr u8[XMSS_N] out, 
+    reg ptr u8[96] in
+) -> reg ptr u8[XMSS_N] {
+    out = __sha256_96(out, in);
     return out;
 }
 
@@ -922,100 +922,6 @@ inline fn __core_hash_in_ptr_(
     return out;
 }//<>
 
-// cond = a < b && a < c
-inline fn __cond_u32_a_below_b_and_a_below_c(reg u32 a b c) -> reg bool
-{
-  reg bool c1 c2 c3;
-  reg u8 bc1 bc2;
-
-  ?{ "<u" = c1 } = #CMP_32(a, b);
-  bc1 = #SETcc(c1);
-
-  ?{ "<u" = c2 } = #CMP_32(a, c);
-  bc2 = #SETcc(c2);
-
-  ?{ "!=" = c3 } = #TEST_8(bc1, bc2); 
-
-  return c3;
-}
-
-fn _zero_address(reg ptr u32[8] addr) -> reg ptr u32[8] {
-    inline int i;
-    for i=0 to 8/2 { addr[u64 i] = 0; }
-    return addr;
-}
-
-inline fn __zero_address(reg ptr u32[8] addr) -> reg ptr u32[8] {
-    addr = addr;
-    addr = _zero_address(addr);
-    addr = addr;
-    return addr;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-inline fn __set_layer_addr(reg ptr u32[8] addr, reg u32 layer) -> reg ptr u32[8] {
-    addr[0] = layer;
-    return addr;
-}
-
-inline fn __set_tree_addr(reg ptr u32[8] addr, reg u64 tree) -> reg ptr u32[8] {
-    reg u64 t;
-
-    t = tree;
-    ?{}, t = #SHR(t, 32);
-
-    addr[1] = (32u) t;
-    addr[2] = (32u) tree;
-    return addr;
-}
-
-inline fn __set_type(reg ptr u32[8] addr, reg u32 type) -> reg ptr u32[8] {
-    addr[3] = type;
-    return addr;
-}
-
-inline fn __set_key_and_mask(reg ptr u32[8] addr, reg u32 key_and_mask) -> reg ptr u32[8] {
-    addr[7] = key_and_mask;
-    return addr;
-}
-
-inline fn __copy_subtree_addr(reg ptr u32[8] out, reg ptr u32[8] in) -> reg ptr u32[8] {
-    out[0] = in[0];
-    out[1] = in[1];
-    out[2] = in[2];
-    return out;
-}
-
-inline fn __set_ots_addr(reg ptr u32[8] addr, reg u32 ots) -> reg ptr u32[8] {
-    addr[4] = ots;
-    return addr;
-}
-
-inline fn __set_chain_addr(reg ptr u32[8] addr, reg u32 chain) -> reg ptr u32[8] {
-    addr[5] = chain;
-    return addr;
-}
-
-inline fn __set_hash_addr(reg ptr u32[8] addr, reg u32 hash) -> reg ptr u32[8] {
-    addr[6] = hash;
-    return addr;
-}
-
-inline fn __set_ltree_addr(reg ptr u32[8] addr, reg u32 ltree) -> reg ptr u32[8] {
-    addr[4] = ltree;
-    return addr;
-}
-
-inline fn __set_tree_height(reg ptr u32[8] addr, reg u32 tree_height) -> reg ptr u32[8] {
-    addr[5] = tree_height;
-    return addr;
-}
-
-inline fn __set_tree_index(reg ptr u32[8] addr, reg u32 tree_index) -> reg ptr u32[8] {
-    addr[6] = tree_index;
-    return addr;
-}
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 inline fn __memcpy_u8u8_96_32(
@@ -1036,11 +942,11 @@ inline fn __memcpy_u8u8_96_32(
     return out, offset;
 }
 
-inline fn __memcpy_u8u8_128_32(
-    reg ptr u8[128] out,
+inline fn __memcpy_u8u8_64_32(
+    reg ptr u8[64] out,
     reg u64 offset,
     reg ptr u8[32] in
-) -> reg ptr u8[128], reg u64
+) -> reg ptr u8[64], reg u64
 {
     reg u64 i;
     
@@ -1072,6 +978,24 @@ inline fn __memcpy_u8u8_32_32(
     return out, offset;
 }
 
+inline fn __memcpy_u8u8_128_32(
+    reg ptr u8[128] out,
+    reg u64 offset,
+    reg ptr u8[32] in
+) -> reg ptr u8[128], reg u64
+{
+    reg u64 i;
+    
+    i = 0;
+    while( i < 32) {
+        out[offset] = in[i];
+        i += 1;
+        offset += 1;
+    }
+
+    return out, offset;
+}
+
 inline fn __memcpy_u8u8_128_64(
     reg ptr u8[128] out,
     reg u64 offset,
@@ -1082,6 +1006,24 @@ inline fn __memcpy_u8u8_128_64(
     
     i = 0;
     while( i < 64) {
+        out[offset] = in[i];
+        i += 1;
+        offset += 1;
+    }
+
+    return out, offset;
+}
+
+inline fn __memcpy_u8u8_2144_32(
+    reg ptr u8[2144] out,
+    reg u64 offset,
+    reg ptr u8[32] in
+) -> reg ptr u8[2144], reg u64
+{
+    reg u64 i;
+    
+    i = 0;
+    while( i < 32) {
         out[offset] = in[i];
         i += 1;
         offset += 1;
@@ -1102,13 +1044,13 @@ fn _memcpy_u8u8_96_32(
 }
 
 #[returnaddress="stack"]
-fn _memcpy_u8u8_128_32(
-    reg ptr u8[128] out,
+fn _memcpy_u8u8_64_32(
+    reg ptr u8[64] out,
     reg u64 offset,
     reg ptr u8[32] in
-) -> reg ptr u8[128], reg u64
+) -> reg ptr u8[64], reg u64
 {
-    out, offset = __memcpy_u8u8_128_32(out, offset, in);
+    out, offset = __memcpy_u8u8_64_32(out, offset, in);
     return out, offset;
 }
 
@@ -1120,6 +1062,17 @@ fn _memcpy_u8u8_32_32(
 ) -> reg ptr u8[32], reg u64
 {
     out, offset = __memcpy_u8u8_32_32(out, offset, in);
+    return out, offset;
+}
+
+#[returnaddress="stack"]
+fn _memcpy_u8u8_128_32(
+    reg ptr u8[128] out,
+    reg u64 offset,
+    reg ptr u8[32] in
+) -> reg ptr u8[128], reg u64
+{
+    out, offset = __memcpy_u8u8_128_32(out, offset, in);
     return out, offset;
 }
 
@@ -1152,17 +1105,17 @@ inline fn _x_memcpy_u8u8_96_32(
     return out, offset;
 }
 
-inline fn _x_memcpy_u8u8_128_32(
-    reg ptr u8[128] out,
+inline fn _x_memcpy_u8u8_64_32(
+    reg ptr u8[64] out,
     reg u64 offset,
     reg ptr u8[32] in
-) -> reg ptr u8[128], reg u64
+) -> reg ptr u8[64], reg u64
 {
     out = out;
     offset = offset;
     in = in;
 
-    out, offset = _memcpy_u8u8_128_32(out, offset, in);
+    out, offset = _memcpy_u8u8_64_32(out, offset, in);
 
     out = out;
     offset = offset;
@@ -1181,6 +1134,24 @@ inline fn _x_memcpy_u8u8_32_32(
     in = in;
 
     out, offset = _memcpy_u8u8_32_32(out, offset, in);
+
+    out = out;
+    offset = offset;
+
+    return out, offset;
+}
+
+inline fn _x_memcpy_u8u8_128_32(
+    reg ptr u8[128] out,
+    reg u64 offset,
+    reg ptr u8[32] in
+) -> reg ptr u8[128], reg u64
+{
+    out = out;
+    offset = offset;
+    in = in;
+
+    out, offset = _memcpy_u8u8_128_32(out, offset, in);
 
     out = out;
     offset = offset;
@@ -1229,6 +1200,25 @@ inline fn __memcpy_u8u8p_32(
     return out, offset;
 }
 
+inline fn __memcpy_u8u8p_64(
+    reg ptr u8[64] out,
+    reg u64 offset,
+    reg u64 in,
+    reg u64 inlen
+) -> reg ptr u8[64], reg u64
+{
+    reg u64 i;
+
+    i = 0;
+    while( i < inlen ) {
+      out[offset] = (u8)[in + i];
+      i += 1;
+      offset += 1;
+    }
+
+    return out, offset;
+}
+
 #[returnaddress="stack"]
 fn _memcpy_u8u8p_32(
     reg ptr u8[32] out,
@@ -1238,6 +1228,18 @@ fn _memcpy_u8u8p_32(
 ) -> reg ptr u8[32], reg u64
 {
     out, offset = __memcpy_u8u8p_32(out, offset, in, inlen);
+    return out, offset;
+}
+
+#[returnaddress="stack"]
+fn _memcpy_u8u8p_64(
+    reg ptr u8[64] out,
+    reg u64 offset,
+    reg u64 in,
+    reg u64 inlen
+) -> reg ptr u8[64], reg u64
+{
+    out, offset = __memcpy_u8u8p_64(out, offset, in, inlen);
     return out, offset;
 }
 
@@ -1260,9 +1262,70 @@ inline fn _x_memcpy_u8u8p_32(
     return out, offset;
 }
 
+inline fn _x_memcpy_u8u8p_64(
+    reg ptr u8[64] out,
+    reg u64 offset,
+    reg u64 in,
+    reg u64 inlen
+) -> reg ptr u8[64], reg u64
+{
+    out = out;
+    offset = offset;
+    in = in;
+
+    out, offset = _memcpy_u8u8p_64(out, offset, in, inlen);
+
+    out = out;
+    offset = offset;
+  
+    return out, offset;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Same as _x_memcpy_u8u8 but with offset in and out
+
+inline fn __memcpy_u8u8_2_64_2144(
+    reg ptr u8[64] out,
+    reg u64 out_offset,
+    reg ptr u8[2144] in,
+    reg u64 in_offset,
+    reg u64 bytes
+) -> reg ptr u8[64], reg u64, reg u64
+{
+    reg u64 i;
+
+    i = 0;
+    while( i < bytes) {
+        out[out_offset] = in[in_offset];
+        i += 1;
+        in_offset += 1;
+        out_offset += 1;
+    }
+
+    return out, out_offset, in_offset;
+}
+
+inline fn __memcpy_u8u8_2_32_2144(
+    reg ptr u8[32] out,
+    reg u64 out_offset,
+    reg ptr u8[2144] in,
+    reg u64 in_offset,
+    reg u64 bytes
+) -> reg ptr u8[32], reg u64, reg u64
+{
+    reg u64 i;
+
+    i = 0;
+    while( i < bytes) {
+        out[out_offset] = in[in_offset];
+        i += 1;
+        in_offset += 1;
+        out_offset += 1;
+    }
+
+    return out, out_offset, in_offset;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1276,8 +1339,7 @@ inline fn __memcpy_u8pu8p(
     reg u64 bytes
 ) -> reg u64, reg u64, reg u64
 {
-    reg u64 i t64;
-    reg u8 t8;
+    reg u64 i;
 
     i = 0;
     while(i < bytes) {
@@ -1432,6 +1494,83 @@ inline fn __bytes_to_ull_ptr(reg u64 in_ptr inlen) -> reg u64 {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+fn _zero_address(reg ptr u32[8] addr) -> reg ptr u32[8] {
+    inline int i;
+    for i=0 to 8/2 { addr[u64 i] = 0; }
+    return addr;
+}
+
+inline fn __zero_address(reg ptr u32[8] addr) -> reg ptr u32[8] {
+    addr = addr;
+    addr = _zero_address(addr);
+    addr = addr;
+    return addr;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __set_layer_addr(reg ptr u32[8] addr, reg u32 layer) -> reg ptr u32[8] {
+    addr[0] = layer;
+    return addr;
+}
+
+inline fn __set_tree_addr(reg ptr u32[8] addr, reg u64 tree) -> reg ptr u32[8] {
+    reg u64 t;
+
+    t = tree;
+    ?{}, t = #SHR(t, 32);
+
+    addr[1] = (32u) t;
+    addr[2] = (32u) tree;
+    return addr;
+}
+
+inline fn __set_type(reg ptr u32[8] addr, reg u32 type) -> reg ptr u32[8] {
+    addr[3] = type;
+    return addr;
+}
+
+inline fn __set_key_and_mask(reg ptr u32[8] addr, reg u32 key_and_mask) -> reg ptr u32[8] {
+    addr[7] = key_and_mask;
+    return addr;
+}
+
+inline fn __copy_subtree_addr(reg ptr u32[8] out, reg ptr u32[8] in) -> reg ptr u32[8] {
+    out[0] = in[0];
+    out[1] = in[1];
+    out[2] = in[2];
+    return out;
+}
+
+inline fn __set_ots_addr(reg ptr u32[8] addr, reg u32 ots) -> reg ptr u32[8] {
+    addr[4] = ots;
+    return addr;
+}
+
+inline fn __set_chain_addr(reg ptr u32[8] addr, reg u32 chain) -> reg ptr u32[8] {
+    addr[5] = chain;
+    return addr;
+}
+
+inline fn __set_hash_addr(reg ptr u32[8] addr, reg u32 hash) -> reg ptr u32[8] {
+    addr[6] = hash;
+    return addr;
+}
+
+inline fn __set_ltree_addr(reg ptr u32[8] addr, reg u32 ltree) -> reg ptr u32[8] {
+    addr[4] = ltree;
+    return addr;
+}
+
+inline fn __set_tree_height(reg ptr u32[8] addr, reg u32 tree_height) -> reg ptr u32[8] {
+    addr[5] = tree_height;
+    return addr;
+}
+
+inline fn __set_tree_index(reg ptr u32[8] addr, reg u32 tree_index) -> reg ptr u32[8] {
+    addr[6] = tree_index;
+    return addr;
+}
 
 inline fn __addr_to_bytes(
     reg ptr u8[32] addr_as_bytes,
@@ -1599,6 +1738,40 @@ inline fn __hash_message(
     len = mlen;
     len += XMSS_PADDING_LEN + 3*XMSS_N;
     mhash = __core_hash_in_ptr_(mhash, m_with_prefix_ptr, len);
+    return mhash;
+}
+
+fn _hash_message(
+    reg ptr u8[XMSS_N] mhash,
+    reg ptr u8[XMSS_N] R,
+    reg ptr u8[XMSS_N] root,
+    reg u64 idx,
+    reg u64 m_with_prefix_ptr mlen
+) -> reg ptr u8[XMSS_N]
+{
+    mhash = __hash_message(mhash, R, root, idx, m_with_prefix_ptr, mlen);
+    return mhash;
+}
+
+inline fn __hash_message_(
+    reg ptr u8[XMSS_N] mhash,
+    reg ptr u8[XMSS_N] R,
+    reg ptr u8[XMSS_N] root,
+    reg u64 idx,
+    reg u64 m_with_prefix_ptr mlen
+) -> reg ptr u8[XMSS_N]
+{   
+    mhash = mhash;
+    R = R;
+    root = root;
+    idx = idx;
+    m_with_prefix_ptr = m_with_prefix_ptr;
+    mlen = mlen;
+
+    mhash = _hash_message(mhash, R, root, idx, m_with_prefix_ptr, mlen);
+
+    mhash = mhash;
+
     return mhash;
 }
 
@@ -1796,6 +1969,43 @@ inline fn __thash_f_(
     addr = addr;
 
     return out, addr;
+}
+// cond = a < b && a < c
+inline fn __cond_u32_a_below_b_and_a_below_c(reg u32 a b c) -> reg bool
+{
+  reg bool c1 c2 c3;
+  reg u8 bc1 bc2;
+
+  ?{ "<u" = c1 } = #CMP_32(a, b);
+  bc1 = #SETcc(c1);
+
+  ?{ "<u" = c2 } = #CMP_32(a, c);
+  bc2 = #SETcc(c2);
+
+  ?{ "!=" = c3 } = #TEST_8(bc1, bc2); 
+
+  return c3;
+}
+
+// cond = a >= b && c == d
+// used in treehash
+inline fn __cond_u32_geq_u32_u32_eq_u32(
+  reg u32 a b,
+  reg u32 c d
+)  -> reg bool 
+{
+  reg bool c1 c2 c3;
+  reg u8 bc1 bc2;
+
+  ?{ ">=u" = c1 } = #CMP_32(a, b);
+  bc1 = #SETcc(c1);
+
+  ?{ "==" = c2} = #CMP_32(c, d);
+  bc2 = #SETcc(c2);
+
+  ?{ "!=" = c3 } = #TEST_8(bc1, bc2); 
+
+  return c3;
 }
 
 inline fn __expand_seed(
@@ -2035,10 +2245,10 @@ inline fn __gen_chain_inplace_(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline fn __base_w_3_2(
-  reg ptr u32[3] output,
-  reg ptr u8[2] input
-) -> reg ptr u32[3]
+inline fn __base_w_67_32(
+  reg ptr u32[67] output,
+  reg ptr u8[32] input
+) -> reg ptr u32[67]
 {
     reg u64 in out;
     reg u8 total;
@@ -2051,7 +2261,7 @@ inline fn __base_w_3_2(
 
     // for (consumed = 0; consumed < out_len; consumed++) 
     consumed = 0;
-    while (consumed < 3)
+    while (consumed < 67)
     {
         // if (bits == 0) { total = input[in]; in++; bits += 8; }
         if (bits == 0) 
@@ -2078,10 +2288,10 @@ inline fn __base_w_3_2(
     return output;
 }
 
-inline fn __base_w_67_32(
-  reg ptr u32[67] output,
-  reg ptr u8[32] input
-) -> reg ptr u32[67]
+inline fn __base_w_3_2(
+  reg ptr u32[3] output,
+  reg ptr u8[2] input
+) -> reg ptr u32[3]
 {
     reg u64 in out;
     reg u8 total;
@@ -2094,7 +2304,7 @@ inline fn __base_w_67_32(
 
     // for (consumed = 0; consumed < out_len; consumed++) 
     consumed = 0;
-    while (consumed < 67)
+    while (consumed < 3)
     {
         // if (bits == 0) { total = input[in]; in++; bits += 8; }
         if (bits == 0) 
@@ -2450,80 +2660,551 @@ inline fn __wots_pk_from_sig_(
     return pk, addr;
 }
 
-export fn expand_seed_jazz(
-    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] outseeds,
-    reg ptr u32[8] addr,
-    reg ptr u8[XMSS_N] inseed,
-    reg ptr u8[XMSS_N] pub_seed
-) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]  {
-    outseeds, addr = __expand_seed_(outseeds, inseed, pub_seed, addr);
-    return outseeds, addr;
+// Returns 0 if a and b are equal
+// Returns -1 otherwise
+inline fn __memcmp(reg ptr u8[XMSS_N] a, reg ptr u8[XMSS_N] b) -> reg u64 {
+    reg u64 i r;
+    reg u64 are_equal;
+    reg u8 t acc;
+    reg bool zf;
+
+    r = -1;
+
+    are_equal = 0;
+    acc = 0;
+  
+    i = 0;
+    while (i < XMSS_N) {
+        t = a[i];
+        t ^= b[i];
+        acc |= t;
+        i += 1;
+    }
+
+    ?{ zf } = #AND_8(acc, acc);
+    r = are_equal if zf;
+
+    return r;
 }
 
-export fn wots_checksum_jazz(
-    reg ptr u32[XMSS_WOTS_LEN2] csum_base_w,
-    reg ptr u32[XMSS_WOTS_LEN] msg_base_w
-) -> reg ptr u32[XMSS_WOTS_LEN2] 
+inline fn __memset_u8_ptr(reg u64 a_ptr inlen, reg u8 value) {
+    reg u64 i _ptr;
+
+    _ptr = a_ptr;
+    i = 0;
+    while (i < inlen) {
+        (u8) [_ptr] = value;
+        _ptr += 1;
+        i += 1;
+    }
+}
+
+inline fn __l_tree(
+    reg ptr u8[XMSS_N] leaf,
+    reg ptr u8[XMSS_WOTS_SIG_BYTES] wots_pk,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u8[XMSS_WOTS_SIG_BYTES], reg ptr u32[8]
 {
-    csum_base_w = __wots_checksum_(csum_base_w, msg_base_w);
-    return csum_base_w;
+    stack u8[XMSS_N] buf0;
+    stack u8[2 * XMSS_N] buf1;
+
+    reg u32 tree_index height;
+    reg u64 t l parent_nodes;
+    reg u64 offset_in offset_out bytes;
+    reg u64 i in_index out_index;
+
+    inline int j;
+
+    stack u8[XMSS_WOTS_SIG_BYTES] debug;
+
+    // unsigned int l = params->wots_len;
+    l = XMSS_WOTS_LEN;
+
+    // uint32_t height = 0;
+    height = 0;
+
+    () = #spill(leaf, wots_pk, pub_seed, height);
+
+    // set_tree_height(addr, height);
+    addr = __set_tree_height(addr, height);
+
+    while (l > 1) {
+        // parent_nodes = l >> 1;
+        parent_nodes = l;
+        ?{}, parent_nodes = #SHR(parent_nodes, 1);
+
+        () = #spill(l);
+
+        i = 0;
+        while (i < parent_nodes) {
+            () = #spill(i, parent_nodes);
+
+            // set_tree_index(addr, i);
+            tree_index = (32u) i;
+            addr = __set_tree_index(addr, tree_index);
+
+            // thash_h(params, wots_pk + i*params->n, wots_pk + (i*2)*params->n, pub_seed, addr);
+
+            // First we need to copy wots_pk + i*params->n and wots_pk + (i*2)*params->n to the respective buffers
+            () = #unspill(wots_pk);
+            offset_out = 0;
+            offset_in = i * XMSS_N;
+            bytes = XMSS_N;
+            buf0, _, _ = __memcpy_u8u8_2_32_2144(buf0, offset_out, wots_pk, offset_in, bytes);
+
+            offset_out = 0;
+            offset_in = (i * 2); offset_in *= XMSS_N;
+            bytes = 2 * XMSS_N;
+            buf1, _, _ = __memcpy_u8u8_2_64_2144(buf1, offset_out, wots_pk, offset_in, bytes);
+
+            () = #unspill(pub_seed);
+            buf0, addr = __thash_h(buf0, buf1, pub_seed, addr);
+
+            // Copy the result back to wots_pk: same as memcpy(wots_pk + i*XMSS_N, buf0, XMSS_N)
+            () = #unspill(i, wots_pk);
+            offset_out = i * XMSS_N;
+            wots_pk, _ = __memcpy_u8u8_2144_32(wots_pk, offset_out, buf0);
+            () = #spill(wots_pk);
+
+            () = #unspill(parent_nodes);
+            i += 1;
+        }
+
+        // if (l & 1)
+        () = #unspill(l);
+        t = l;
+        t &= 1;
+        if (t != 0) {
+            // memcpy(wots_pk + (l >> 1)*params->n, wots_pk + (l - 1)*params->n, params->n);
+            // offset out = (l >> 1) * XMSS_N
+            // offset_in = (l - 1) * XMSS_N
+            () = #unspill(wots_pk);
+            offset_out = l; ?{}, offset_out = #SHR(offset_out, 1); offset_out *= XMSS_N;
+            offset_in = l; offset_in -= 1; offset_in *= XMSS_N;
+            for j = 0 to XMSS_N { wots_pk[offset_out + j] = wots_pk[offset_in + j]; }
+            () = #spill(wots_pk);
+
+            // l = (l >> 1) + 1;
+            ?{}, l = #SHR(l, 1);
+            l += 1;
+        } else {
+            // l = l >> 1;
+            ?{}, l = #SHR(l, 1);
+        }
+
+        // height++;
+        // set_tree_height(addr, height);
+        () = #unspill(height);
+        
+        height += 1;
+        addr = __set_tree_height(addr, height);
+
+        () = #spill(height);
+    }
+
+    // memcpy(leaf, wots_pk, params->n);
+    () = #unspill(leaf, wots_pk);
+    offset_out = 0;
+    leaf, _ =  _x_memcpy_u8u8_32_32(leaf, offset_out, wots_pk[0: XMSS_N]);
+
+    return leaf, wots_pk, addr;
 }
 
-export fn gen_chain_jazz(
-    reg ptr u8[XMSS_N] out,
+fn _l_tree(
+    reg ptr u8[XMSS_N] leaf,
+    reg ptr u8[XMSS_WOTS_SIG_BYTES] wots_pk,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u8[XMSS_WOTS_SIG_BYTES], reg ptr u32[8]
+{
+    leaf, wots_pk, addr = __l_tree(leaf, wots_pk, pub_seed, addr);
+    return leaf, wots_pk, addr;
+}
+
+inline fn __l_tree_(
+    reg ptr u8[XMSS_N] leaf,
+    reg ptr u8[XMSS_WOTS_SIG_BYTES] wots_pk,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u8[XMSS_WOTS_SIG_BYTES], reg ptr u32[8]
+{
+    leaf = leaf;
+    addr = addr;
+    wots_pk = wots_pk;
+    pub_seed = pub_seed;
+
+    leaf, wots_pk, addr = _l_tree(leaf, wots_pk, pub_seed, addr);
+
+    leaf = leaf;
+    wots_pk = wots_pk;
+    addr = addr;
+
+    return leaf, wots_pk, addr;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __compute_root(
+    reg ptr u8[XMSS_N] root,
+    reg ptr u8[XMSS_N] leaf,
+    reg u32 leaf_idx,
+    reg u64 _auth_path_ptr,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8]
+{
+    stack u8[2 * XMSS_N] buffer;
+    stack u8[2 * XMSS_N] thash_in;
+    stack u8[2 * XMSS_N] debug;
+
+    reg u32 t32 tree_height;
+    reg u64 offset_out len;
+
+    reg u64 i;
+    inline int j;
+
+    stack u64 auth_path_ptr;
+
+    auth_path_ptr = _auth_path_ptr;
+
+    () = #spill(root, leaf_idx, addr);
+
+    // if (leafidx & 1)
+    t32 = leaf_idx; t32 &= 1;
+    if (t32 != 0) {
+        // memcpy(buffer + params->n, leaf, params->n);
+        // memcpy(buffer, auth_path, params->n);
+        // i.e. buffer = auth path || leaf
+        
+        offset_out = XMSS_N;
+        buffer, _ = _x_memcpy_u8u8_64_32(buffer, offset_out, leaf);
+
+        offset_out = 0;
+        len = XMSS_N;
+        buffer, _ = _x_memcpy_u8u8p_64(buffer, offset_out, auth_path_ptr, len);
+    } else {
+        // memcpy(buffer, leaf, params->n);
+        // memcpy(buffer + params->n, auth_path, params->n);
+        // i.e. buffer = leaf || auth path
+
+        offset_out = 0;
+        buffer, _ = _x_memcpy_u8u8_64_32(buffer, offset_out, leaf);
+
+        offset_out = XMSS_N;
+        len = XMSS_N;
+        buffer, _ = _x_memcpy_u8u8p_64(buffer, offset_out, auth_path_ptr, len);
+    }
+        
+    // auth_path += params->n;
+    auth_path_ptr += XMSS_N;
+
+    () = #spill(pub_seed);
+
+    // for (i = 0; i < params->tree_height - 1; i++)
+    i = 0;
+    while (i < XMSS_TREE_HEIGHT - 1) {
+        () = #spill(i);
+
+        // set_tree_height(addr, i);
+        () = #unspill(addr);
+        tree_height = (32u) i;
+        addr = __set_tree_height(addr, tree_height);
+
+        // leafidx >>= 1;
+        // set_tree_index(addr, leafidx);
+        () = #unspill(leaf_idx);
+
+        ?{}, leaf_idx = #SHR_32(leaf_idx, 1);
+        addr = __set_tree_index(addr, leaf_idx);
+
+        () = #spill(addr, leaf_idx);
+
+        // if (leafidx & 1)
+        () = #unspill(pub_seed, addr);
+        t32 = leaf_idx; t32 &= 1;
+        if (t32 != 0) {
+            // thash_h(params, buffer + params->n, buffer, pub_seed, addr);
+            thash_in = #copy(buffer);
+            buffer[XMSS_N : XMSS_N], addr = __thash_h(buffer[XMSS_N : XMSS_N], thash_in, pub_seed, addr);
+            
+            // memcpy(buffer, auth_path, params->n);
+            offset_out = 0;
+            len = XMSS_N;
+            buffer, _ = _x_memcpy_u8u8p_64(buffer, offset_out, auth_path_ptr, len);
+        } else {
+            // thash_h(params, buffer, buffer, pub_seed, addr);
+            thash_in = #copy(buffer);
+            buffer[0 : XMSS_N], addr = __thash_h(buffer[0 : XMSS_N], thash_in, pub_seed, addr);
+
+            // memcpy(buffer + params->n, auth_path, params->n);
+            offset_out = XMSS_N;
+            len = XMSS_N;
+            buffer, _ = _x_memcpy_u8u8p_64(buffer, offset_out, auth_path_ptr, len);
+        }
+
+        () = #spill(addr);
+
+        // auth_path += params->n;
+        auth_path_ptr += XMSS_N;
+
+        () = #unspill(i);
+        i += 1;
+    }
+
+    // set_tree_height(addr, params->tree_height - 1);
+    () = #unspill(addr, leaf_idx, root);
+    addr = __set_tree_height(addr, XMSS_TREE_HEIGHT - 1);
+
+    // leafidx >>= 1;
+    ?{}, leaf_idx = #SHR_32(leaf_idx, 1);
+
+    // set_tree_index(addr, leafidx);
+    addr = __set_tree_index(addr, leaf_idx);
+
+    // thash_h(params, root, buffer, pub_seed, addr);
+    () = #unspill(pub_seed);
+
+    root, addr = __thash_h(root, buffer, pub_seed, addr);
+
+    return root, addr;
+}
+
+fn _compute_root(
+    reg ptr u8[XMSS_N] root,
+    reg ptr u8[XMSS_N] leaf,
+    reg u32 leaf_idx,
+    reg u64 auth_path_ptr,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8]
+{
+    root, addr = __compute_root(root, leaf, leaf_idx, auth_path_ptr, pub_seed, addr);
+    return root, addr;
+}
+
+inline fn __compute_root_(
+    reg ptr u8[XMSS_N] root,
+    reg ptr u8[XMSS_N] leaf,
+    reg u32 leaf_idx,
+    reg u64 auth_path_ptr,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8]
+{
+    root = root;
+    leaf = leaf;
+    leaf_idx = leaf_idx;
+    auth_path_ptr = auth_path_ptr;
+    pub_seed = pub_seed;
+    addr = addr;
+
+    root, addr = _compute_root(root, leaf, leaf_idx, auth_path_ptr, pub_seed, addr);
+    
+    root = root;
+    addr = addr;
+
+    return root, addr;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __gen_leaf_wots(
+    reg ptr u8[XMSS_N] leaf,
+    reg ptr u8[XMSS_N] sk_seed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] ltree_addr,
+    reg ptr u32[8] ots_addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8], reg ptr u32[8]
+{
+    stack u8[XMSS_WOTS_SIG_BYTES] pk;
+
+    () = #spill(leaf, sk_seed, pub_seed, ltree_addr);
+
+    // wots_pkgen(params, pk, sk_seed, pub_seed, ots_addr);
+    pk, ots_addr = __wots_pkgen(pk, sk_seed, pub_seed, ots_addr);
+    () = #spill(ots_addr);
+
+    // l_tree(params, leaf, pk, pub_seed, ltree_addr);
+    () = #unspill(leaf, sk_seed, pub_seed, ltree_addr);
+    leaf, _, ltree_addr = __l_tree_(leaf, pk, pub_seed, ltree_addr);
+    
+    () = #unspill(ots_addr);
+
+    return leaf, ltree_addr, ots_addr;
+}
+
+fn _gen_leaf_wots(
+    reg ptr u8[XMSS_N] leaf,
+    reg ptr u8[XMSS_N] sk_seed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] ltree_addr,
+    reg ptr u32[8] ots_addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8], reg ptr u32[8]
+{
+    leaf, ltree_addr, ots_addr = __gen_leaf_wots(leaf, sk_seed, pub_seed, ltree_addr, ots_addr);
+    return leaf, ltree_addr, ots_addr;
+}
+
+inline fn __gen_leaf_wots_(
+    reg ptr u8[XMSS_N] leaf,
+    reg ptr u8[XMSS_N] sk_seed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] ltree_addr,
+    reg ptr u32[8] ots_addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8], reg ptr u32[8]
+{
+    leaf = leaf;
+    sk_seed = sk_seed;
+    pub_seed = pub_seed;
+    ltree_addr = ltree_addr;
+    ots_addr = ots_addr;
+
+    leaf, ltree_addr, ots_addr = _gen_leaf_wots(leaf, sk_seed, pub_seed, ltree_addr, ots_addr);
+
+    leaf = leaf;
+    ltree_addr = ltree_addr;
+    ots_addr = ots_addr;
+
+    return leaf, ltree_addr, ots_addr;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __xmssmt_core_sign_open(
+    reg u64 m_ptr mlen_ptr,
+    reg u64 sm_ptr smlen,
+    reg ptr u8[XMSS_PK_BYTES] pk
+) -> reg u64
+{
+    stack u8[XMSS_WOTS_SIG_BYTES] wots_pk;
+    stack u8[XMSS_N] leaf root buf;
+    stack u32[8] ots_addr ltree_addr node_addr;
+
+    reg ptr u8[XMSS_N] pub_root pub_seed mhash;
+
+    reg u32 idx_leaf;
+    reg u64 idx;
+    reg u64 t64 offset_in offset_out bytes;
+    reg u64 are_equal;
+    reg u64 res;
+
+    reg u32 i;
+    inline u64 sm_offset;
+    reg u64 tmp; // FIXME: TODO: Parameter expansion should be able to compute +* of param int
+
+    return res;
+}
+
+fn _xmssmt_core_sign_open(
+    reg u64 m_ptr mlen_ptr,
+    reg u64 sm_ptr smlen,
+    reg ptr u8[XMSS_PK_BYTES] pk
+) -> reg u64
+{
+    reg u64 res;
+    res = __xmssmt_core_sign_open(m_ptr, mlen_ptr, sm_ptr, smlen, pk);
+    return res;
+}
+
+inline fn __xmssmt_core_sign_open_(
+    reg u64 m_ptr mlen_ptr,
+    reg u64 sm_ptr smlen,
+    reg ptr u8[XMSS_PK_BYTES] pk
+) -> reg u64
+{
+    reg u64 res;
+    
+    m_ptr = m_ptr;
+    mlen_ptr = mlen_ptr;
+    sm_ptr = sm_ptr;
+    smlen = smlen;
+    pk = pk;
+
+    res = _xmssmt_core_sign_open(m_ptr, mlen_ptr, sm_ptr, smlen, pk);
+
+    res = res;
+
+    return res;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __xmss_core_sign_open_(
+    reg u64 m_ptr mlen_ptr,
+    reg u64 sm_ptr smlen,
+    reg ptr u8[XMSS_PK_BYTES] pk
+) -> reg u64
+{
+    reg u64 res;
+    
+    m_ptr = m_ptr;
+    mlen_ptr = mlen_ptr;
+    sm_ptr = sm_ptr;
+    smlen = smlen;
+    pk = pk;
+
+    res = _xmssmt_core_sign_open(m_ptr, mlen_ptr, sm_ptr, smlen, pk);
+
+    res = res;
+
+    return res;
+}
+
+export fn l_tree_jazz(
+    reg ptr u8[XMSS_N] leaf,
+    reg ptr u8[XMSS_WOTS_SIG_BYTES] wots_pk,
     reg ptr u32[8] addr,
-    reg u64 in_ptr,
-    reg u32 start steps, 
+    reg ptr u8[XMSS_N] pub_seed 
+) -> reg ptr u8[XMSS_N], reg ptr u8[XMSS_WOTS_SIG_BYTES], reg ptr u32[8]
+{
+    leaf, wots_pk, addr = __l_tree_(leaf, wots_pk, pub_seed, addr);
+    return leaf, wots_pk, addr;
+}
+
+export fn compute_root_jazz(
+    reg ptr u8[XMSS_N] root,
+    reg ptr u32[8] addr,
+    reg ptr u8[XMSS_N] leaf,
+    reg u32 leaf_idx,
+    reg u64 auth_path_ptr,
     reg ptr u8[XMSS_N] pub_seed
 ) -> reg ptr u8[XMSS_N], reg ptr u32[8]
 {
-    out, addr = __gen_chain(out, in_ptr, start, steps, pub_seed, addr);
-    return out, addr;
-} 
-
-export fn gen_chain_inplace_jazz(
-    reg ptr u8[XMSS_N] out,
-    reg ptr u32[8] addr,
-    reg ptr u8[XMSS_N] in,
-    reg u32 start steps, 
-    reg ptr u8[XMSS_N] pub_seed
-) -> reg ptr u8[XMSS_N], reg ptr u32[8]
-{
-    out, addr = __gen_chain_inplace_(out, in, start, steps, pub_seed, addr);
-    return out, addr;
+    root, addr = _compute_root(root, leaf, leaf_idx, auth_path_ptr, pub_seed, addr);
+    return root, addr;
 }
 
-export fn wots_pkgen_jazz(
-    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk,
-    reg ptr u32[8] addr,
-    reg ptr u8[XMSS_N] seed,
+export fn gen_leaf_wots_jazz(
+    reg ptr u8[XMSS_N] leaf,
+    reg ptr u32[8] ltree_addr,
+    reg ptr u32[8] ots_addr,
+    reg ptr u8[XMSS_N] sk_seed,
     reg ptr u8[XMSS_N] pub_seed
-) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8] 
+) -> reg ptr u8[XMSS_N], reg ptr u32[8], reg ptr u32[8]
 {
-    pk, addr = __wots_pkgen_(pk, seed, pub_seed, addr);
-    return pk, addr;
-} 
+    leaf, ltree_addr, ots_addr = __gen_leaf_wots_(leaf, sk_seed, pub_seed, ltree_addr, ots_addr);
+    return leaf, ltree_addr, ots_addr;
+}
 
-export fn wots_sign_jazz(
-    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] sig,
-    reg ptr u32[8] addr,
-    reg ptr u8[XMSS_N] msg,
-    reg ptr u8[XMSS_N] seed,
-    reg ptr u8[XMSS_N] pub_seed
-) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]
+export fn xmssmt_core_sign_open_jazz(
+    reg u64 m_ptr mlen_ptr,
+    reg u64 sm_ptr smlen,
+    reg ptr u8[XMSS_PK_BYTES] pk
+) -> reg u64
 {
-    sig, addr = __wots_sign_(sig, msg, seed, pub_seed, addr);
-    return sig, addr;
-}  
+    reg u64 res;
+    res = __xmssmt_core_sign_open_(m_ptr, mlen_ptr, sm_ptr, smlen, pk);
+    return res;
+}
 
-export fn wots_pk_from_sig_jazz(
-    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk,
-    reg ptr u32[8] addr,
-    reg u64 sig_ptr,
-    reg ptr u8[XMSS_N] msg,
-    reg ptr u8[XMSS_N] pub_seed
-) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8] 
+export fn xmss_core_sign_open_jazz(
+    reg u64 m_ptr mlen_ptr,
+    reg u64 sm_ptr smlen,
+    reg ptr u8[XMSS_PK_BYTES] pk
+) -> reg u64
 {
-    pk, addr = __wots_pk_from_sig_(pk, sig_ptr, msg, pub_seed, addr);
-    return pk, addr;
+    reg u64 res;
+    res = __xmss_core_sign_open_(m_ptr, mlen_ptr, sm_ptr, smlen, pk);
+    return res;
 }

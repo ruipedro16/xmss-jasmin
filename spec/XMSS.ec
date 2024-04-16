@@ -80,9 +80,11 @@ type msg_t = byte list.
 
 op bytes_to_sk : byte list -> sk_t.
 
-(* ?????? *)
+(* i.e. number of leaves *)
 op max_signatures : int = 2^h.
 
+(* XMSS is existentially unforgeable under adaptively chosen message attacks in the
+   standard model, provided H is second preimage resistant *)
 op H : nbytes -> two_n_bytes -> nbytes.
 op H_msg : tree_n_bytes -> byte list -> nbytes.
 
@@ -146,7 +148,7 @@ op remove_last (x : 'a list) : 'a list =
 with x = [] => []
 with x = h::t => if t = [] then [] else remove_last t.
 
-abbrev push (x : 'a list) (a : 'a) : 'a list= rcons x a. 
+abbrev push (x : 'a list) (a : 'a) : 'a list = rcons x a. 
 abbrev pop (x : 'a list) : 'a list * 'a = 
     let last_elem : 'a = last witness x in
     let new_list = remove_last x in

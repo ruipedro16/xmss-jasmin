@@ -17,8 +17,8 @@ extract: extraction/xmss_impl.ec
 # NOTE: __copy_subtree_addr missing
 
 extraction/xmss_impl.ec: | extraction/ common/
-	make -C $(TEST_SRC)/wots/ bin/test_wots_xmss-sha2_10_256.jpp
-	cp $(TEST_SRC)/wots/bin/test_wots_xmss-sha2_10_256.jpp $(@:.ec=.jinc)
+	make -C $(TEST_SRC)/xmss_commons/ bin/test_xmss_commons_xmss-sha2_10_256.jpp
+	cp $(TEST_SRC)/xmss_commons/bin/test_xmss_commons_xmss-sha2_10_256.jpp $(@:.ec=.jinc)
 	$(JASMIN) $(JFLAGS) -ec __set_layer_addr \
 	          			-ec __set_tree_addr \
 			  			-ec __set_type \
@@ -32,7 +32,8 @@ extraction/xmss_impl.ec: | extraction/ common/
 			  			-ec _zero_address \
 			  			-ec __wots_pkgen \
 			  			-ec __wots_sign \
-			  			-ec __wots_pk_from_sig -oec $@ $(@:.ec=.jinc)
+			  			-ec __wots_pk_from_sig \
+						-ec __memcmp -oec $@ $(@:.ec=.jinc)
 	mv Array*.ec common/
 	mv WArray*.ec common/
 
@@ -45,6 +46,7 @@ typecheck: extract
 	$(EASYCRYPT) $(EC_INCLUDE) Primitives.ec
 	$(EASYCRYPT) $(EC_INCLUDE) Wots.ec
 	$(EASYCRYPT) $(EC_INCLUDE) XMSS.ec
+	$(EASYCRYPT) $(EC_INCLUDE) Utils.ec
 
 # --------------------------------------------------------------------------------------------------
 

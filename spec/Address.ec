@@ -7,15 +7,16 @@ from Jasmin require import JModel_x86.
 
 require import Array8.
 
-require import Notation.
-
+require import Notation Parameters.
 
 (* AUX LEMMAS *)
-(* Can this be an axiom ? *)
+(* TODO: Generalize to any word size *)
 lemma word_int (i : int) :
-    W32.to_uint (W32.of_int i) = i.
+    0 <= i < W32.modulus => W32.to_uint (W32.of_int i) = i.
 proof.
-admit. (* FIXME: *)
+move => pre.
+rewrite /of_int /to_uint.
+smt.
 qed.
 
 (************************************** EXTRACTION ********************************************************************)
@@ -305,7 +306,7 @@ progress.
 qed.
 
 
-pred set_tree_height_pre (tree_height : int) = 0 <= tree_height. 
+pred tree_height_pre (tree_height : int) = 0 <= tree_height <= XMSS_TREE_HEIGHT. 
 
 op set_tree_height (address : adrs, tree_height : int) : adrs = 
     address.[5 <- W32.of_int tree_height].
@@ -314,7 +315,7 @@ op get_tree_height (address : adrs) : int =
   W32.to_uint (address.[5]).
 
 lemma set_tree_height_op_impl (address : adrs, tree_height : int):
-    set_tree_height_pre tree_height =>
+    tree_height_pre tree_height =>
         hoare[M.__set_tree_height :
             arg = (address, W32.of_int tree_height) ==> res = set_tree_height address tree_height].
 proof.
@@ -325,11 +326,13 @@ progress.
 qed.
 
 lemma get_set_tree_height (address : adrs, tree_height : int) :
+    tree_height_pre tree_height => 
     get_tree_height (set_tree_height address tree_height) = tree_height.
 proof.
 rewrite /get_tree_height /set_tree_height.
 progress.
-apply word_int. (* FIXME: This lemma is not proved *)
+apply word_int.
+progress by (elim H ; smt).
 qed.
 
 (* TODO: Add Precondition *)
@@ -338,7 +341,7 @@ op set_tree_index (address : adrs, tree_index : int) : adrs =
 
 op get_tree_index (address : adrs) : int = to_uint (address.[6]).
 
-lemma set_tree_index_op_impl (address : adrs, tree_index : int) :
+lemma set_tree_index_op_impl (address : adrs, tree_index) : 
     hoare[M.__set_tree_index :
         arg = (address, W32.of_int tree_index) ==> res = set_tree_index address tree_index].
 proof.
@@ -348,11 +351,13 @@ progress.
 qed.
 
 lemma get_set_tree_index (address : adrs, tree_index : int) :
+  0 <= tree_index < W32.modulus => (* i.e. tree_index fits in a u32 *)
   get_tree_index (set_tree_index address tree_index) = tree_index.  
 proof.
 rewrite /get_tree_index /set_tree_index.
 progress.
-apply word_int. (* FIXME: This lemma is not proved *)
+apply word_int.
+progress by (elim H; smt).
 qed.
 
 
