@@ -1,4 +1,26 @@
-namespace memcmp_XMSS_N {
-    param int INLEN = XMSS_N;
-    require "_memcmp.jinc"
+// Returns 0 if a and b are equal
+// Returns -1 otherwise
+inline fn __memcmp(reg ptr u8[XMSS_N] a, reg ptr u8[XMSS_N] b) -> reg u64 {
+    reg u64 i r;
+    reg u64 are_equal;
+    reg u8 t acc;
+    reg bool zf;
+
+    r = -1;
+
+    are_equal = 0;
+    acc = 0;
+  
+    i = 0;
+    while (i < XMSS_N) {
+        t = a[i];
+        t ^= b[i];
+        acc |= t;
+        i += 1;
+    }
+
+    ?{ zf } = #AND_8(acc, acc);
+    r = are_equal if zf;
+
+    return r;
 }

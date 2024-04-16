@@ -8,7 +8,7 @@ CFLAGS   ?= -Wall -g -O3 -Wextra -Wpedantic
 LDLIBS   = -lcrypto
 
 JASMIN   ?= jasminc
-JFLAGS   ?= -nowarning ${JADDFLAGS}
+JFLAGS   ?= -nowarning -g ${JADDFLAGS}
 JINCLUDE ?= -I XMSS:../../ref-jasmin/ -I Stdlib:../../ref-jasmin/stdlib
 
 JPP          ?= ../../scripts/jasmin-preprocessor/jpp
@@ -42,8 +42,7 @@ REF_SOURCES := $(wildcard ../*.c)
 
 SOURCES := test_xmss_commons.c ../common/notrandombytes.c ../common/print.c
 
-TEST_FLAGS := -DTEST_LTREE -DTEST_GEN_LEAF_WOTS -DTEST_COMPUTE_ROOT # -DTEST_XMSS_CORE_SIGN_OPEN \
-              -DTEST_XMSSMT_CORE_SIGN_OPEN 
+TEST_FLAGS := -DTEST_LTREE -DTEST_GEN_LEAF_WOTS -DTEST_COMPUTE_ROOT -DTEST_XMSS_CORE_SIGN_OPEN
 
 # ----------------------------------------------------------------------------------------------------------------------
 
