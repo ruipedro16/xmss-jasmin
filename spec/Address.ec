@@ -9,35 +9,31 @@ require import Array8.
 
 require import Notation Parameters.
 
-(* AUX LEMMAS *)
 (* TODO: Generalize to any word size *)
 lemma word_int (i : int) :
     0 <= i < W32.modulus => W32.to_uint (W32.of_int i) = i.
 proof.
 move => pre.
 rewrite /of_int /to_uint.
-smt.
+smt. (* FIXME: does not terminate if I use smt() instead of smt *)
 qed.
 
 (************************************** EXTRACTION ********************************************************************)
 (* FIXME: REMOVE THIS FROM HERE *)
 
 module M = {
-  proc _zero_address (addr:W32.t Array8.t) : W32.t Array8.t = {
+ proc _zero_address (addr:W32.t Array8.t) : W32.t Array8.t = {
     var aux: int;
     
     var i:int;
     
-    aux <- (8 %/ 2);
     i <- 0;
-    while (i < aux) {
-      addr <-
-      Array8.init
-      (WArray32.get32 (WArray32.set64 (WArray32.init32 (fun i_0 => (addr).[i_0])) i ((W64.of_int 0))));
+    while (i < 8) {
+      addr.[i] <- (W32.of_int 0);
       i <- i + 1;
     }
     return (addr);
-  }
+  } 
   
   proc __set_layer_addr (addr:W32.t Array8.t, layer:W32.t) : W32.t Array8.t = {
     
@@ -134,7 +130,7 @@ module M = {
 
 type byte = W8.t.
 
-type adrs = W32.t Array8.t.      (* u32[8] in Jasmin *)
+type adrs = W32.t Array8.t.
 
 type addr_type = [ ADDR_TYPE_OTS | ADDR_TYPE_LTREE | ADDR_TYPE_HASHTREE ].
 
@@ -142,6 +138,11 @@ op addr_type_to_int (_type : addr_type) : int =
     with _type = ADDR_TYPE_OTS      => 0
     with _type = ADDR_TYPE_LTREE    => 1    
     with _type = ADDR_TYPE_HASHTREE => 2.
+
+op int_to_addr_type : int -> addr_type.
+axiom int_to_addr_type_0 (_type : int) : _type = 0 => int_to_addr_type _type = ADDR_TYPE_OTS.
+axiom int_to_addr_type_1 (_type : int) : _type = 1 => int_to_addr_type _type = ADDR_TYPE_LTREE.
+axiom int_to_addr_type_2 (_type : int) : _type = 2 => int_to_addr_type _type = ADDR_TYPE_HASHTREE.
 
 (* 4th-6th positions differ depending on the type of the address *)
 
@@ -239,7 +240,7 @@ wp.
 progress.
 qed.
 
-pred set_type_pre (_type : int) = 0 <= _type /\ _type <= 2.
+pred set_type_pre (_type : int) = 0 <= _type <= 2.
 op set_type (address : adrs, _type : int) : adrs = 
     address.[3 <- W32.of_int _type].
 lemma set_type_op_impl (address : adrs, _type : int):
@@ -372,13 +373,11 @@ wp.
 progress.
 qed.
 
-op zero_addr(address : adrs) : adrs = map (fun _ => W32.zero) address. 
-lemma zero_addr_op_impl (address : adrs):
-    hoare[M._zero_address : 
-        arg = address ==> res = zero_addr address].
+op zero_addr : adrs = Array8.init (fun _ => W32.zero). 
+lemma zero_addr_op_impl (address : adrs) :
+    hoare[M._zero_address : true ==> res = zero_addr].
 proof.
 proc.
-while (0 <= i <= 4 /\ address = addr).
-    - admit. (* FIXME: *)
-    - admit. (* FIXME: *)
+while (0 <= i <= 8 /\ 
+      (forall (k : int), 0 <= k < i => (addr.[k] = W32.zero))); auto => /> ; smt(get_setE tP initiE).
 qed.

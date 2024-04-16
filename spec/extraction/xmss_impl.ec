@@ -744,21 +744,6 @@ module M = {
     return (out, offset);
   }
   
-  proc __memcpy_u8u8_32_32 (out:W8.t Array32.t, offset:W64.t,
-                            in_0:W8.t Array32.t) : W8.t Array32.t * W64.t = {
-    
-    var i:W64.t;
-    
-    i <- (W64.of_int 0);
-    
-    while ((i \ult (W64.of_int 32))) {
-      out.[(W64.to_uint offset)] <- in_0.[(W64.to_uint i)];
-      i <- (i + (W64.of_int 1));
-      offset <- (offset + (W64.of_int 1));
-    }
-    return (out, offset);
-  }
-  
   proc __memcpy_u8u8_128_32 (out:W8.t Array128.t, offset:W64.t,
                              in_0:W8.t Array32.t) : W8.t Array128.t * W64.t = {
     
@@ -789,21 +774,27 @@ module M = {
     return (out, offset);
   }
   
+  proc __memcpy_u8u8_32_32 (out:W8.t Array32.t, offset:W64.t,
+                            in_0:W8.t Array32.t) : W8.t Array32.t * W64.t = {
+    
+    var i:W64.t;
+    
+    i <- (W64.of_int 0);
+    
+    while ((i \ult (W64.of_int 32))) {
+      out.[(W64.to_uint offset)] <- in_0.[(W64.to_uint i)];
+      i <- (i + (W64.of_int 1));
+      offset <- (offset + (W64.of_int 1));
+    }
+    return (out, offset);
+  }
+  
   proc _memcpy_u8u8_96_32 (out:W8.t Array96.t, offset:W64.t,
                            in_0:W8.t Array32.t) : W8.t Array96.t * W64.t = {
     
     
     
     (out, offset) <@ __memcpy_u8u8_96_32 (out, offset, in_0);
-    return (out, offset);
-  }
-  
-  proc _memcpy_u8u8_32_32 (out:W8.t Array32.t, offset:W64.t,
-                           in_0:W8.t Array32.t) : W8.t Array32.t * W64.t = {
-    
-    
-    
-    (out, offset) <@ __memcpy_u8u8_32_32 (out, offset, in_0);
     return (out, offset);
   }
   
@@ -825,6 +816,15 @@ module M = {
     return (out, offset);
   }
   
+  proc _memcpy_u8u8_32_32 (out:W8.t Array32.t, offset:W64.t,
+                           in_0:W8.t Array32.t) : W8.t Array32.t * W64.t = {
+    
+    
+    
+    (out, offset) <@ __memcpy_u8u8_32_32 (out, offset, in_0);
+    return (out, offset);
+  }
+  
   proc _x_memcpy_u8u8_96_32 (out:W8.t Array96.t, offset:W64.t,
                              in_0:W8.t Array32.t) : W8.t Array96.t * W64.t = {
     
@@ -834,20 +834,6 @@ module M = {
     offset <- offset;
     in_0 <- in_0;
     (out, offset) <@ _memcpy_u8u8_96_32 (out, offset, in_0);
-    out <- out;
-    offset <- offset;
-    return (out, offset);
-  }
-  
-  proc _x_memcpy_u8u8_32_32 (out:W8.t Array32.t, offset:W64.t,
-                             in_0:W8.t Array32.t) : W8.t Array32.t * W64.t = {
-    
-    
-    
-    out <- out;
-    offset <- offset;
-    in_0 <- in_0;
-    (out, offset) <@ _memcpy_u8u8_32_32 (out, offset, in_0);
     out <- out;
     offset <- offset;
     return (out, offset);
@@ -876,6 +862,20 @@ module M = {
     offset <- offset;
     in_0 <- in_0;
     (out, offset) <@ _memcpy_u8u8_128_64 (out, offset, in_0);
+    out <- out;
+    offset <- offset;
+    return (out, offset);
+  }
+  
+  proc _x_memcpy_u8u8_32_32 (out:W8.t Array32.t, offset:W64.t,
+                             in_0:W8.t Array32.t) : W8.t Array32.t * W64.t = {
+    
+    
+    
+    out <- out;
+    offset <- offset;
+    in_0 <- in_0;
+    (out, offset) <@ _memcpy_u8u8_32_32 (out, offset, in_0);
     out <- out;
     offset <- offset;
     return (out, offset);
@@ -935,21 +935,6 @@ module M = {
     return (out);
   }
   
-  proc __ull_to_bytes_4 (out:W8.t Array4.t, in_0:W64.t) : W8.t Array4.t = {
-    var aux: int;
-    
-    var i:int;
-    
-    aux <- (- 1);
-    i <- (4 - 1);
-    while (aux < i) {
-      out.[i] <- (truncateu8 in_0);
-      in_0 <- (in_0 `>>` (W8.of_int 8));
-      i <- i - 1;
-    }
-    return (out);
-  }
-  
   proc __ull_to_bytes_2 (out:W8.t Array2.t, in_0:W64.t) : W8.t Array2.t = {
     var aux: int;
     
@@ -965,17 +950,29 @@ module M = {
     return (out);
   }
   
+  proc __ull_to_bytes_4 (out:W8.t Array4.t, in_0:W64.t) : W8.t Array4.t = {
+    var aux: int;
+    
+    var i:int;
+    
+    aux <- (- 1);
+    i <- (4 - 1);
+    while (aux < i) {
+      out.[i] <- (truncateu8 in_0);
+      in_0 <- (in_0 `>>` (W8.of_int 8));
+      i <- i - 1;
+    }
+    return (out);
+  }
+  
   proc _zero_address (addr:W32.t Array8.t) : W32.t Array8.t = {
     var aux: int;
     
     var i:int;
     
-    aux <- (8 %/ 2);
     i <- 0;
-    while (i < aux) {
-      addr <-
-      Array8.init
-      (WArray32.get32 (WArray32.set64 (WArray32.init32 (fun i_0 => (addr).[i_0])) i ((W64.of_int 0))));
+    while (i < 8) {
+      addr.[i] <- (W32.of_int 0);
       i <- i + 1;
     }
     return (addr);

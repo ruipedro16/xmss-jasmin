@@ -1,4 +1,8 @@
 [general]
+timeout = 30
+
+provers = Z3@4.12.4
+provers = Alt-Ergo@2.5.2
 
 rdirs = common
 rdirs = extraction

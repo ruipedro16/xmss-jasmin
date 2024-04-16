@@ -17,7 +17,7 @@ extract: extraction/xmss_impl.ec
 # NOTE: __copy_subtree_addr missing
 
 extraction/xmss_impl.ec: | extraction/ common/
-	make -C $(TEST_SRC)/xmss_commons/ bin/test_xmss_commons_xmss-sha2_10_256.jpp
+	make -C $(TEST_SRC)/xmss_commons/ clean bin/test_xmss_commons_xmss-sha2_10_256.jpp
 	cp $(TEST_SRC)/xmss_commons/bin/test_xmss_commons_xmss-sha2_10_256.jpp $(@:.ec=.jinc)
 	$(JASMIN) $(JFLAGS) -ec __set_layer_addr \
 	          			-ec __set_tree_addr \
