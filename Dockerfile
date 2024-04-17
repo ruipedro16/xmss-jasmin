@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 ARG USERNAME=xmss_jasmin
 
-ARG EASYCRYPT_COMMIT=4201fddc14b81d2a69a33f034c9c7db4dfd58d0e
+ARG EASYCRYPT_COMMIT=f7992e1fe5a443a9dcbce2941f708ea7bc78f6e0
 ARG JASMIN_COMMIT=e84c0c59b4f4e005f2be4de5fdfbcaf1e3e2f975
 ARG JASMIN_COMPILER_COMMIT=252e602bd76606942d6e1b2aa7d44eb4d09f1712 # corresponding extracted sources on gitlab.com (builds faster)
 
