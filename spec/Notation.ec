@@ -1,3 +1,5 @@
+pragma Goals : printall.
+
 require import AllCore List RealExp IntDiv.
 
 from Jasmin require import JModel.
@@ -40,7 +42,7 @@ module BaseW = {
 
     bits <- bits - floor(log2 w%r);
 
-    base_w <- put base_w out (W8.to_uint ((total `>>` W8.of_int bits) `&` W8.of_int (w -1)));
+    base_w <- put base_w out (W8.to_uint ((total `>>` W8.of_int bits) `&` W8.of_int (w - 1)));
 
     out <- out + 1;
     consumed <- consumed + 1;
@@ -50,8 +52,28 @@ module BaseW = {
 }.
 
 pred base_w_pre (X : byte list, outlen : int) =
-  outlen <= 8 * size X %/ floor (log2 w%r).
+  0 <= outlen <= 8 * size X %/ floor (log2 w%r).
 
-pred base_w_post (X : byte list, outlen : int, base_w : byte list) =
+pred base_w_post (X : byte list, outlen : int, base_w : int list) =
   size base_w = outlen /\
-  all (fun x => 0 <= W8.to_uint x <= w - 1) base_w.
+  all (fun x => 0 <= x <= w - 1) base_w.
+
+(* TODO: Finish this *)
+op base_w (X : byte list, outlen : int) : int list = 
+  let out = nseq outlen 0 in
+(* mkseq (fun i => ) *)
+  out.
+
+lemma base_w_imp_fun (_X : byte list, _outlen : int) : base_w_pre _X _outlen =>
+    hoare [BaseW.base_w :
+      arg = (_X, _outlen) ==> res = base_w _X _outlen /\ base_w_post _X _outlen res].
+proof.
+move => pre_cond.
+proc.
+auto => /> *.
+while (0 <= consumed <= outlen /\ _outlen = outlen).
+- auto => /> *.
+- auto => /> *. split. smt().
+- move => h0 h1 h2 h3. (* TODO: Continue here when Im done writing the operator *)
+admit.
+qed.

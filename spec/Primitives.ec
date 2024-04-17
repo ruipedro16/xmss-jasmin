@@ -1,13 +1,11 @@
+pragma Goals : printall.
+
 require import AllCore List RealExp IntDiv.
 require (*  *) Subtype. 
 from Jasmin require import JModel.
 
 require import Notation Address.
 require import Array8.
-
-pragma Goals : printall.
-
-type adrs = W32.t Array8.t.
 
 op n : { int | 0 <= n } as ge0_n.
 

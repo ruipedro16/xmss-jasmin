@@ -1,3 +1,5 @@
+pragma Goals : printall.
+
 require import AllCore List Distr RealExp IntDiv.
 require (*  *) Subtype.
 
@@ -16,23 +18,29 @@ clone import Subtype as LEN_N with
    proof inhabited by (exists (nseq len (nseq n W8.zero));smt(size_nseq ge0_len))
    proof *.
 
+axiom ge0_len1 : 0 <= len1.
+clone import Subtype as LEN1 with 
+   type T = byte list,
+   op P = fun l => size l = len1
+   rename "T" as "len1_bytes"
+   proof inhabited by (exists (nseq len1 W8.zero);smt(size_nseq ge0_len1))
+   proof *.
+
 
 type wots_message = nbytes. (* TODO: CONFIRMAR *)
-type pkey = len_n_bytes.
-type skey = len_n_bytes.
-type wots_keypair = pkey * skey.
+type wots_message_base_w = len1_bytes.
+type wots_pk = len_n_bytes.
+type wots_sk = len_n_bytes.
+type wots_keypair = wots_pk * wots_sk.
 type wots_signature = len_n_bytes.
 
 op from_int_list (x : int list) : byte list = map W8.of_int x.
 
-(* Imperative definition of WOTS+ *)
-
 module WOTS = {
-  proc genSK() : skey = {
-    var sk : skey <- nseq len (nseq n W8.zero);
+  proc genSK() : wots_sk = {
+    var sk : wots_sk <- nseq len (nseq n W8.zero);
     var sk_i : nbytes;
     var i : int <- 0;
-
 
     while (i < len) {
       sk_i <$ DList.dlist W8.dword n;
@@ -43,8 +51,8 @@ module WOTS = {
     return sk;
   }
 
-  proc genPK(sk : skey, _seed : seed, address : adrs) : pkey = {
-    var pk : pkey <- nseq len (nseq n W8.zero);
+  proc genPK(sk : wots_sk, _seed : seed, address : adrs) : wots_pk = {
+    var pk : wots_pk <- nseq len (nseq n W8.zero);
     var i : int <- 0;
     var pk_i, sk_i : nbytes;
 
@@ -60,8 +68,8 @@ module WOTS = {
   }
 
   proc kg(_seed : seed, address : adrs) : wots_keypair = {
-    var pk : pkey;
-    var sk : skey;
+    var pk : wots_pk;
+    var sk : wots_sk;
 
     sk <@ genSK();
     pk <@ genPK(sk, _seed, address);
@@ -69,7 +77,7 @@ module WOTS = {
     return (pk, sk);
   }
 
-  proc sign(m : wots_message, sk : skey, _seed : seed, address : adrs) : wots_signature = {
+  proc sign(m : wots_message, sk : wots_sk, _seed : seed, address : adrs) : wots_signature = {
     var csum : W8.t <- W8.zero;
     var m_i : W8.t;
     var sig : wots_signature;
@@ -114,8 +122,8 @@ module WOTS = {
     return sig;
   }
 
-  proc pkFromSig(m : wots_message, sig : wots_signature, _seed : seed, address : adrs) : pkey = {
-    var tmp_pk : pkey;
+  proc pkFromSig(m : wots_message, sig : wots_signature, _seed : seed, address : adrs) : wots_pk = {
+    var tmp_pk : wots_pk;
     var csum : W8.t <- W8.zero;
     var pk_i : nbytes;
     var m_i : W8.t;
@@ -160,45 +168,9 @@ module WOTS = {
     return tmp_pk;
   }
 
-  proc verify(pk : pkey, M : wots_message, sig : wots_signature, _seed : seed, address : adrs) : bool = {
-    var tmp_pk : pkey;
+  proc verify(pk : wots_pk, M : wots_message, sig : wots_signature, _seed : seed, address : adrs) : bool = {
+    var tmp_pk : wots_pk;
     tmp_pk <@ pkFromSig(M, sig, _seed, address);
     return pk = tmp_pk;
   }
-
 }.
-
-(* Functional definition of WOTS+ *)
-
-op sample_n_bytes : nbytes -> nbytes.
-op genSKWots (sk : skey) = map sample_n_bytes sk.
-
-(* Given a list [(a, b)], maps f over  *)
-op map1 ['a] (f : nbytes -> nbytes) (xs : (nbytes * 'a) list) =
-    with xs = [] => []
-    with xs = h::t => (f h.`1, h.`2) :: (map1 f t).
-
-op genPKWots (pk : pkey, sk : skey, _seed : seed, address : adrs) : pkey =
-  let keypair = zip pk sk in
-  (* FIXME: Address needs to be updated here *)
-  let f : nbytes -> nbytes = fun sk_i => chain sk_i 0 (w-1) _seed address in
-  unzip1 (map1 f keypair).
-
-lemma pk_imp_fun (sk : skey, _seed : seed, address : adrs) :
-    hoare [WOTS.genPK : arg = (sk, _seed, address) ==> res = genPKWots witness sk _seed address].
-proof.
-proc.
-simplify.
-admit. (* FIXME: *)
-qed.
-
-op genKeyPairWots (kp : wots_keypair, _seed : seed, address : adrs) : wots_keypair = 
-  let sk = genSKWots kp.`2 in
-  let pk = genPKWots kp.`1 sk _seed address in
-  (pk, sk).
-
-lemma keypair_imp_fun (_seed : seed, address : adrs) :
-    hoare [WOTS.kg : arg = (_seed, address) ==> res = genKeyPairWots witness _seed address].
-proof.
-admit. (* FIXME: *)
-qed.
