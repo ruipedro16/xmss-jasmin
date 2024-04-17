@@ -10,7 +10,7 @@ inline fn __memset_u8<INLEN>(reg ptr u8[INLEN] a, reg u8 value) -> reg ptr u8[IN
     return a;
 }//<>
 
-inline fn __memset_u8_ptr(reg ptr 64 a_ptr inlen, reg u8 value) {
+inline fn __memset_u8_ptr(reg u64 a_ptr inlen, reg u8 value) {
     reg u64 i _ptr;
 
     _ptr = a_ptr;

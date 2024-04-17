@@ -36,7 +36,7 @@ int main(void) {
     for (int t = 0; t < TESTS; t++) {
         for (size_t inlen = 1; inlen < MAX_INLEN; inlen++) {
             if (debug) {
-                printf("[Test %d/%d]: shake256_in_ptr { outlen: %d ; inlen: %ld}\n", t, TESTS, OUTLEN, inlen);
+                printf("[Test %d/%d]: shake256_in_ptr { outlen: %d ; inlen: %ld}\n", t+1, TESTS, OUTLEN, inlen);
             }
 
             randombytes(in, inlen);

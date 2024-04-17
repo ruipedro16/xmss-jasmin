@@ -18,6 +18,8 @@ SOURCES := test_shake256_ptr.c ../../fips202.c
 
 default: bin/test_shake256_ptr
 run: bin/test_shake256_ptr.out
+
+asm_files: bin/test_shake256_ptr.s
 obj_files: bin/test_shake256_ptr.o
 checkct: bin/test_shake256_ptr.check
 

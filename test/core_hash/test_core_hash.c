@@ -26,41 +26,12 @@
 #endif
 
 #ifndef TESTS
-#define TESTS 100
+#define TESTS 1000
 #endif
 
 #define core_hash_jazz NAMESPACE1(core_hash, INLEN)
 extern void core_hash_jazz(uint8_t *, const uint8_t *);
-
 extern void core_hash_in_ptr(uint8_t *, const uint8_t *, size_t);
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-static int core_hash(const xmss_params *params, unsigned char *out, const unsigned char *in, unsigned long long inlen) {
-    unsigned char buf[64];
-
-    if (params->n == 24 && params->func == XMSS_SHA2) {
-        SHA256(in, inlen, buf);
-        memcpy(out, buf, 24);
-    } else if (params->n == 24 && params->func == XMSS_SHAKE256) {
-        shake256(out, 24, in, inlen);
-    } else if (params->n == 32 && params->func == XMSS_SHA2) {
-        SHA256(in, inlen, out);
-    } else if (params->n == 32 && params->func == XMSS_SHAKE128) {
-        shake128(out, 32, in, inlen);
-    } else if (params->n == 32 && params->func == XMSS_SHAKE256) {
-        shake256(out, 32, in, inlen);
-    } else if (params->n == 64 && params->func == XMSS_SHA2) {
-        SHA512(in, inlen, out);
-    } else if (params->n == 64 && params->func == XMSS_SHAKE256) {
-        shake256(out, 64, in, inlen);
-    } else {
-        return -1;
-    }
-    return 0;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void test_core_hash(void) {
     bool debug = true;
@@ -83,7 +54,7 @@ void test_core_hash(void) {
 
     for (int i = 0; i < TESTS; i++) {
         if (debug) {
-            printf("[core_hash (INLEN=%d)]: Test %d/%d\n", INLEN, i, TESTS);
+            printf("[core_hash (INLEN=%d)]: Test %d/%d\n", INLEN, i + 1, TESTS);
 
             randombytes(in, INLEN);
             core_hash_jazz(out_jazz, in);
@@ -114,9 +85,9 @@ void test_core_hash_in_ptr(void) {
     uint8_t in[MAX_INLEN];
 
     for (int i = 0; i < TESTS; i++) {
-        for (size_t inlen = 1; inlen < MAX_INLEN; inlen++) {
+        for (size_t inlen = 1; inlen <= MAX_INLEN; inlen++) {
             if (debug) {
-                printf("[core_hash_in_ptr (INLEN=%d)]: Test %d/%d\n", INLEN, i, TESTS);
+                printf("[core_hash_in_ptr (INLEN=%d)]: Test %d/%d\n", INLEN, i + 1, TESTS);
             }
 
             randombytes(in, inlen);

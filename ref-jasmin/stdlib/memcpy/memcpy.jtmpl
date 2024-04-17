@@ -221,8 +221,7 @@ inline fn __memcpy_u8pu8p(
     reg u64 bytes
 ) -> reg u64, reg u64, reg u64
 {
-    reg u64 i t64;
-    reg u8 t8;
+    reg u64 i;
 
     i = 0;
     while(i < bytes) {

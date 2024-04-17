@@ -1,24 +1,10 @@
 from XMSS require "fips202/shake256_array/shake256.jtmpl"
 
-export fn shake256<OUTLEN, INLEN>(reg u64 out_ptr in_ptr) {
-    stack u8[OUTLEN] out;
-    reg ptr u8[OUTLEN] out_p;
-
-    stack u8[INLEN] in;
-    reg ptr u8[INLEN] in_p;
-
-    inline int i;
-
-    for i=0 to INLEN { in[i] = (u8) [in_ptr + i]; }
-
-    () = #spill(out_ptr);
-
-    out_p = out;
-    in_p = in;
-    out_p = __shake256<OUTLEN, INLEN>(out_p, in_p);
-    out = out_p;
-
-    () = #unspill(out_ptr);
-
-    for i=0 to OUTLEN { (u8) [out_ptr + i] = out[i]; }
+export fn shake256<OUTLEN, INLEN>(
+    reg ptr u8[OUTLEN] out,
+    reg ptr u8[INLEN] in
+) -> reg ptr u8[OUTLEN]
+{
+    out = __shake256<OUTLEN, INLEN>(out, in);
+    return out;
 }//<>

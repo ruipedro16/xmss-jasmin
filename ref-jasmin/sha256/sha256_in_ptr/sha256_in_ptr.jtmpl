@@ -1,4 +1,4 @@
-from XMSS require "sha256/common/sha256_common.jinc"
+from XMSS require "sha256/sha256_array/sha256_array.jtmpl"
 
 inline fn __store_ref(reg u64 out, stack u32[8] H)
 {
@@ -132,16 +132,16 @@ inline fn __lastblocks_ref(reg u64 in inlen bits) -> stack u32[32], reg u64
   return sblocks, nblocks;
 }
 
-inline fn __sha256_ref(reg u64 out in inlen)
+inline fn __sha256_in_ptr(reg ptr u8[32] out, reg u64 in inlen) -> reg ptr u8[32]
 {
   reg u64 bits nblocks;
-  stack u64 s_out s_bits;
+  stack u64 s_bits;
   stack u32[8] H;
   reg ptr u32[8] Hp;
   stack u32[32] sblocks;
   reg ptr u32[32] sblocksp;
 
-  s_out = out;
+  () = #spill(out);
 
   bits = inlen;
   bits <<= 3;
@@ -156,7 +156,9 @@ inline fn __sha256_ref(reg u64 out in inlen)
   sblocksp = sblocks;
   Hp, _ = _blocks_1_ref(Hp, sblocksp, nblocks);
 
-  out = s_out;
+  () = #unspill(out);
+
   H = Hp;
-  __store_ref(out, H);
+  out = __store_ref_array(out, H);
+  return out;
 }

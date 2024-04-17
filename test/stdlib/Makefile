@@ -21,10 +21,8 @@ TLIST := $(foreach I,$(INLEN_LIST),$(I))
 
 # --------------------------------------------------------------------------------------------------
 
-TESTS := $(addprefix bin/test_utils_, $(TLIST))
+TESTS := $(addprefix bin/test_utils_, $(TLIST)) bin/test_conditions
 OUT   := $(addsuffix .out, $(TESTS))
-
-GET_INLEN  = $(word 3, $(subst _, ,$*))
 
 # --------------------------------------------------------------------------------------------------
 
@@ -51,10 +49,14 @@ checkct: $(CHECKCT_FILES)
 
 $(JPP_FILES):
 .PRECIOUS: bin/%.jpp
-bin/%.jpp: | bin/
+bin/test_utils_%.jpp: | bin/
 	cp test_utils.jazz $@
 	$(JPP) $(JINCLUDE) -in $@ -out $@
-	$(PREPROCESSOR) --input_file $@ --output_file $@ --task "fn:bytes_to_ull_jazz p:INLEN:$(GET_INLEN)"
+	$(PREPROCESSOR) --input_file $@ --output_file $@ --task "fn:bytes_to_ull_jazz p:INLEN:$*"
+
+bin/test_conditions.jpp: bin/
+	cp test_conditions.jazz $@
+	$(JPP) $(JINCLUDE) -in $@ -out $@
 
 $(ASM_FILES):
 .PRECIOUS: bin/%.s
@@ -62,8 +64,12 @@ bin/%.s: bin/%.jpp
 	$(JASMIN) $(JFLAGS) $(JINCLUDE) $< -o $@
 
 $(TESTS):
-bin/%: bin/%.s | bin/
-	$(CC) $(CFLAGS) -o $@ -I../common -I../../xmss-reference/ -DINLEN=$(GET_INLEN) $(SOURCES) $<
+bin/test_utils_%: bin/test_utils_%.s | bin/
+	$(CC) $(CFLAGS) -o $@ -I../common -I../../xmss-reference/ -DINLEN=$* $(SOURCES) $<
+
+bin/test_conditions: bin/test_conditions.s | bin/
+	$(CC) $(CFLAGS) -o $@ -I../common -I../../xmss-reference/ \
+	test_conditions.c ../common/notrandombytes.c $<
 
 $(OBJ_FILES):
 bin/%.o: bin/%.s
@@ -88,6 +94,4 @@ clean:
 # --------------------------------------------------------------------------------------------------
 
 debug:
-	@echo $(TESTS)
-	@echo $(JPP_FILES)
-	@echo $(TLIST)
+	@echo $(OUT)

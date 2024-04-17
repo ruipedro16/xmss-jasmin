@@ -1,0 +1,1 @@
+from XMSS require "xmss_core/xmss_core.jtmpl"

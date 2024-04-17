@@ -1,14 +1,23 @@
+#include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "params.h"
 #include "xmss_core.h"
+
+#ifdef TEST_XMSS_CORE_SIGN_OPEN
+extern int xmss_core_sign_open_jazz(uint8_t *m, size_t *mlen, const uint8_t *sm, size_t smlen, const uint8_t *pk);
+#endif
+
+#ifdef TEST_XMSSMT_CORE_SIGN_OPEN
+extern int xmssmt_core_sign_open_jazz(uint8_t *m, size_t *mlen, const uint8_t *sm, size_t smlen, const uint8_t *pk);
+#endif
 
 /* This file provides wrapper functions that take keys that include OIDs to
 identify the parameter set to be used. After setting the parameters accordingly
 it falls back to the regular XMSS core functions. */
 
-int xmss_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid)
-{
+int xmss_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid) {
     xmss_params params;
     unsigned int i;
 
@@ -25,10 +34,8 @@ int xmss_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid)
     return xmss_core_keypair(&params, pk + XMSS_OID_LEN, sk + XMSS_OID_LEN);
 }
 
-int xmss_sign(unsigned char *sk,
-              unsigned char *sm, unsigned long long *smlen,
-              const unsigned char *m, unsigned long long mlen)
-{
+int xmss_sign(unsigned char *sk, unsigned char *sm, unsigned long long *smlen, const unsigned char *m,
+              unsigned long long mlen) {
     xmss_params params;
     uint32_t oid = 0;
     unsigned int i;
@@ -42,10 +49,8 @@ int xmss_sign(unsigned char *sk,
     return xmss_core_sign(&params, sk + XMSS_OID_LEN, sm, smlen, m, mlen);
 }
 
-int xmss_sign_open(unsigned char *m, unsigned long long *mlen,
-                   const unsigned char *sm, unsigned long long smlen,
-                   const unsigned char *pk)
-{
+int xmss_sign_open(unsigned char *m, unsigned long long *mlen, const unsigned char *sm, unsigned long long smlen,
+                   const unsigned char *pk) {
     xmss_params params;
     uint32_t oid = 0;
     unsigned int i;
@@ -56,11 +61,16 @@ int xmss_sign_open(unsigned char *m, unsigned long long *mlen,
     if (xmss_parse_oid(&params, oid)) {
         return -1;
     }
+
+#ifdef TEST_XMSS_CORE_SIGN_OPEN
+    puts("DEBUG: Running jasmin core sign open");
+    return xmss_core_sign_open_jazz(m, (size_t *)mlen, sm, smlen, pk + XMSS_OID_LEN);
+#else
     return xmss_core_sign_open(&params, m, mlen, sm, smlen, pk + XMSS_OID_LEN);
+#endif
 }
 
-int xmssmt_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid)
-{
+int xmssmt_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid) {
     xmss_params params;
     unsigned int i;
 
@@ -74,10 +84,8 @@ int xmssmt_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid)
     return xmssmt_core_keypair(&params, pk + XMSS_OID_LEN, sk + XMSS_OID_LEN);
 }
 
-int xmssmt_sign(unsigned char *sk,
-                unsigned char *sm, unsigned long long *smlen,
-                const unsigned char *m, unsigned long long mlen)
-{
+int xmssmt_sign(unsigned char *sk, unsigned char *sm, unsigned long long *smlen, const unsigned char *m,
+                unsigned long long mlen) {
     xmss_params params;
     uint32_t oid = 0;
     unsigned int i;
@@ -91,10 +99,8 @@ int xmssmt_sign(unsigned char *sk,
     return xmssmt_core_sign(&params, sk + XMSS_OID_LEN, sm, smlen, m, mlen);
 }
 
-int xmssmt_sign_open(unsigned char *m, unsigned long long *mlen,
-                     const unsigned char *sm, unsigned long long smlen,
-                     const unsigned char *pk)
-{
+int xmssmt_sign_open(unsigned char *m, unsigned long long *mlen, const unsigned char *sm, unsigned long long smlen,
+                     const unsigned char *pk) {
     xmss_params params;
     uint32_t oid = 0;
     unsigned int i;
@@ -105,5 +111,11 @@ int xmssmt_sign_open(unsigned char *m, unsigned long long *mlen,
     if (xmssmt_parse_oid(&params, oid)) {
         return -1;
     }
+
+#ifdef TEST_XMSSMT_CORE_SIGN_OPEN
+    puts("DEBUG: Running jasmin core sign open (XMSS MT)");
+    return xmssmt_core_sign_open_jazz(m, (size_t *)mlen, sm, smlen, pk + XMSS_OID_LEN);
+#else
     return xmssmt_core_sign_open(&params, m, mlen, sm, smlen, pk + XMSS_OID_LEN);
+#endif
 }
