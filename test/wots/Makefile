@@ -82,7 +82,7 @@ bin/%.o: bin/%.s
 
 $(CHECKCT_FILES):
 bin/%.check: bin/%.jpp
-	$(JASMIN) $(JFLAGS) $(JINCLUDE) -checkCT -infer $^ > $@
+	$(JAZZCT) --infer $^ > $@
 
 bin/%.out: bin/%
 	@./$<

@@ -36,7 +36,7 @@ bin/test_shake256_ptr: bin/test_shake256_ptr.s | bin/
 	$(AS) $< -o $@
 
 bin/test_shake256_ptr.check: test_shake256_ptr.jazz | bin/
-	$(JASMIN) $(JFLAGS) $(JINCLUDE) -checkCT -infer $^ > $@
+	$(JAZZCT) --infer $^ > $@
 
 
 bin/test_shake256_ptr.out: bin/test_shake256_ptr
