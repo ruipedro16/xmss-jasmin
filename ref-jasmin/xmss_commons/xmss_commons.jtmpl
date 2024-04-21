@@ -22,8 +22,6 @@ inline fn __l_tree(
 
     inline int j;
 
-    stack u8[XMSS_WOTS_SIG_BYTES] debug;
-
     // unsigned int l = params->wots_len;
     l = XMSS_WOTS_LEN;
 
@@ -388,17 +386,168 @@ inline fn __xmssmt_core_sign_open(
     stack u8[XMSS_N] leaf root buf;
     stack u32[8] ots_addr ltree_addr node_addr;
 
-    reg ptr u8[XMSS_N] pub_root pub_seed mhash;
+    reg ptr u8[XMSS_N] pub_root pub_seed;
 
     reg u32 idx_leaf;
-    reg u64 idx;
+    reg u64 idx idx_hash;
     reg u64 t64 offset_in offset_out bytes;
     reg u64 are_equal;
     reg u64 res;
 
     reg u32 i;
-    inline u64 sm_offset;
-    reg u64 tmp; // FIXME: TODO: Parameter expansion should be able to compute +* of param int
+    stack u64 sm_offset;
+
+    sm_offset = 0;
+
+    // const unsigned char *pub_root = pk;
+    pub_root = pk[0 : XMSS_N];
+
+    // const unsigned char *pub_seed = pk + params->n;
+    pub_seed = pk[XMSS_N : XMSS_N];
+
+    // unsigned long long idx = 0;
+    idx = 0;
+
+    () = #spill(mlen_ptr, m_ptr, sm_ptr, pub_seed, pub_root);
+
+    // uint32_t ots_addr[8] = {0};
+    // uint32_t ltree_addr[8] = {0};
+    // uint32_t node_addr[8] = {0};
+    ots_addr = __zero_address(ots_addr);
+    ltree_addr = __zero_address(ltree_addr);
+    node_addr = __zero_address(node_addr);
+
+    // set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
+    // set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
+    // set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
+    ots_addr = __set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
+    ltree_addr = __set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
+    node_addr = __set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
+
+    // *mlen = smlen - params->sig_bytes;
+    t64 = smlen; t64 -= XMSS_SIG_BYTES;
+    (u64) [mlen_ptr] = t64;
+
+    // idx = bytes_to_ull(sm, params->index_bytes);
+    idx = __bytes_to_ull_ptr(sm_ptr, XMSS_INDEX_BYTES);
+    () = #spill(idx);
+
+    // memcpy(m + params->sig_bytes, sm + params->sig_bytes, *mlen);
+    offset_out = XMSS_SIG_BYTES; 
+    offset_in = XMSS_SIG_BYTES;
+    bytes = (u64) [mlen_ptr];
+    _, _, _ = _x__memcpy_u8pu8p(m_ptr, offset_out, sm_ptr, offset_in, bytes);
+
+    // hash_message(params, mhash, sm + params->index_bytes, pk, idx,
+    //              m + params->sig_bytes - params->padding_len - 3*params->n,
+    //              *mlen);
+    // 
+    // 1) First we need to copy the randomness from sm + params->index_bytes to buf
+    offset_out = 0;
+    t64 = sm_ptr; t64 += XMSS_INDEX_BYTES;
+    bytes = XMSS_N;
+    buf, _ = _x_memcpy_u8u8p<XMSS_N>(buf, offset_out, t64, bytes);
+
+    t64 = m_ptr;
+    t64 += XMSS_SIG_BYTES - XMSS_PADDING_LEN - (3 * XMSS_N);
+
+    bytes = (u64) [mlen_ptr];
+    
+    idx_hash = idx;
+
+    // NOTE: We use root instead of mhash because mhash is just a pointer to root
+    root = __hash_message(root, buf, pk[0 : XMSS_N], idx_hash, t64, bytes);
+
+    // sm += params->index_bytes + params->n;
+    t64 = XMSS_INDEX_BYTES + XMSS_N;
+    sm_offset += t64;
+
+    i = 0;
+    while(i < XMSS_D) {
+        () = #spill(i);
+        () = #unspill(idx);
+
+        // idx_leaf = (idx & ((1 << params->tree_height)-1));
+        idx_leaf = ((1 << XMSS_TREE_HEIGHT) - 1);
+        idx_leaf &= idx;   
+
+        // idx = idx >> params->tree_height;
+        ?{}, idx = #SHR_64(idx,  XMSS_TREE_HEIGHT); // This doesnt work
+        () = #spill(idx, idx_leaf);
+
+        // set_layer_addr(ots_addr, i);
+        // set_layer_addr(ltree_addr, i);
+        // set_layer_addr(node_addr, i);
+        ots_addr = __set_layer_addr(ots_addr, i);
+        ltree_addr = __set_layer_addr(ltree_addr, i);
+        node_addr = __set_layer_addr(node_addr, i);
+
+        // set_tree_addr(ltree_addr, idx);
+        // set_tree_addr(ots_addr, idx);
+        // set_tree_addr(node_addr, idx);
+        ltree_addr = __set_tree_addr(ltree_addr, idx);
+        ots_addr = __set_tree_addr(ots_addr, idx);
+        node_addr = __set_tree_addr(node_addr, idx);
+
+        // set_ots_addr(ots_addr, idx_leaf);
+        ots_addr = __set_ots_addr(ots_addr, idx_leaf);
+
+        // wots_pk_from_sig(params, wots_pk, sm, root, pub_seed, ots_addr);
+        () = #unspill(sm_ptr, pub_seed);
+        t64 = sm_ptr; t64 += sm_offset;
+        wots_pk, ots_addr = __wots_pk_from_sig_(wots_pk, t64, root, pub_seed, ots_addr);
+
+        // sm += params->wots_sig_bytes;
+        t64 = sm_offset;
+        t64 += XMSS_WOTS_SIG_BYTES;
+        sm_offset = t64;
+
+        // set_ltree_addr(ltree_addr, idx_leaf);
+        () = #unspill(idx_leaf);
+        ltree_addr = __set_ltree_addr(ltree_addr, idx_leaf);
+
+        // l_tree(params, leaf, wots_pk, pub_seed, ltree_addr);
+        () = #unspill(pub_seed);
+        leaf, wots_pk, ltree_addr = __l_tree_(leaf, wots_pk, pub_seed, ltree_addr);
+
+        // // compute_root(params, root, leaf, idx_leaf, sm, pub_seed, node_addr);
+        () = #unspill(idx_leaf, sm_ptr, pub_seed);
+        t64 = sm_ptr; t64 += sm_offset;
+        root, node_addr = __compute_root_(root, leaf, idx_leaf, t64, pub_seed, node_addr);   
+
+        // sm += params->tree_height * params->n;
+        t64 = sm_offset;
+        t64 += (XMSS_TREE_HEIGHT * XMSS_N);
+        sm_offset = t64;
+        
+        () = #unspill(i);
+        i += 1;
+    }
+    
+    // if (memcmp(root, pub_root, params->n)) { memset(m, 0, *mlen); *mlen = 0; return -1; }
+    () = #unspill(pub_root);
+    are_equal = __memcmp_(root, pub_root);
+    if (are_equal != 0) {
+        res = -1;
+
+        () = #unspill(mlen_ptr, m_ptr);
+
+        // memset(m, 0, *mlen);
+        bytes =  (u64) [mlen_ptr];
+        __memset_u8_ptr(m_ptr, bytes, 0);
+
+        // *mlen = 0;
+        (u64) [mlen_ptr] = 0;
+    } else {
+        res = 0;
+
+        () = #unspill(mlen_ptr, m_ptr, sm_ptr);
+
+        // memcpy(m, sm, *mlen);
+        bytes =  (u64) [mlen_ptr];
+        offset_in = sm_offset;
+        _, _, _ = _x__memcpy_u8pu8p(m_ptr, 0, sm_ptr, offset_in, bytes);
+    }
 
     return res;
 }

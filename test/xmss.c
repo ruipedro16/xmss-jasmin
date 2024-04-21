@@ -63,8 +63,7 @@ int xmss_sign_open(unsigned char *m, unsigned long long *mlen, const unsigned ch
     }
 
 #ifdef TEST_XMSS_CORE_SIGN_OPEN
-    puts("DEBUG: Running jasmin core sign open");
-    return xmss_core_sign_open_jazz(m, (size_t *)mlen, sm, smlen, pk + XMSS_OID_LEN);
+    return xmss_core_sign_open_jazz(m, mlen, sm, smlen, pk + XMSS_OID_LEN);
 #else
     return xmss_core_sign_open(&params, m, mlen, sm, smlen, pk + XMSS_OID_LEN);
 #endif
@@ -113,7 +112,6 @@ int xmssmt_sign_open(unsigned char *m, unsigned long long *mlen, const unsigned 
     }
 
 #ifdef TEST_XMSSMT_CORE_SIGN_OPEN
-    puts("DEBUG: Running jasmin core sign open (XMSS MT)");
     return xmssmt_core_sign_open_jazz(m, (size_t *)mlen, sm, smlen, pk + XMSS_OID_LEN);
 #else
     return xmssmt_core_sign_open(&params, m, mlen, sm, smlen, pk + XMSS_OID_LEN);

@@ -10,6 +10,7 @@
 #include "params.h"
 #include "utils.h"
 #include "wots.h"
+#include "print.h"
 
 #ifdef TEST_THASH_H
 extern void thash_h_jazz(uint8_t *, uint32_t *, const uint8_t *, const uint8_t *);

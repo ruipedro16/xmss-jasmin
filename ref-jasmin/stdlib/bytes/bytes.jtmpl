@@ -32,6 +32,8 @@ inline fn __bytes_to_ull<INLEN>(reg ptr u8[INLEN] in) -> reg u64 {
 
     ?{}, t = #SHL(t, u);
 
+    result = result;
+    t = t;
     result |= t;
 
     i += 1;

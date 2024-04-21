@@ -7,6 +7,7 @@ CC       ?= clang
 CFLAGS   ?= -Wall -g -O3 -Wextra -Wpedantic
 
 JASMIN   ?= jasminc
+JAZZCT   ?= jazzct
 JFLAGS   ?= ${JADDFLAGS}
 JINCLUDE ?= -I XMSS:../../ref-jasmin/
 
