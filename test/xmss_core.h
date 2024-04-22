@@ -3,6 +3,10 @@
 
 #include "params.h"
 
+void treehash(const xmss_params *params, unsigned char *root, unsigned char *auth_path,
+                     const unsigned char *sk_seed, const unsigned char *pub_seed, uint32_t leaf_idx,
+                     const uint32_t subtree_addr[8]);
+
 /**
  * Given a set of parameters, this function returns the size of the secret key.
  * This is implementation specific, as varying choices in tree traversal will

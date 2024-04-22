@@ -8,6 +8,7 @@
 #include "hash.h"
 #include "hash_address.h"
 #include "params.h"
+#include "print.h"
 #include "randombytes.h"
 #include "utils.h"
 #include "wots.h"
@@ -30,14 +31,22 @@ extern void gen_leaf_wots_jazz(uint8_t *leaf, uint32_t ltree_addr[8], uint32_t o
                                const uint8_t *pub_seed);
 #endif
 
+#ifdef TEST_TREEHASH_ARRAY
+extern void treehash_array_jazz(unsigned char *root, unsigned char *auth_path, const unsigned char *sk_seed,
+                                const unsigned char *pub_seed, uint32_t leaf_idx, const uint32_t subtree_addr[8]);
+#endif
+
+#ifdef TEST_KEYPAIR_SEED
+extern int xmssmt_core_seed_keypair_jazz(uint8_t *pk, uint8_t *sk, const uint8_t *seed);
+#endif
+
 /**
  * For a given leaf index, computes the authentication path and the resulting
  * root node using Merkle's TreeHash algorithm.
  * Expects the layer and tree parts of subtree_addr to be set.
  */
-static void treehash(const xmss_params *params, unsigned char *root, unsigned char *auth_path,
-                     const unsigned char *sk_seed, const unsigned char *pub_seed, uint32_t leaf_idx,
-                     const uint32_t subtree_addr[8]) {
+void treehash(const xmss_params *params, unsigned char *root, unsigned char *auth_path, const unsigned char *sk_seed,
+              const unsigned char *pub_seed, uint32_t leaf_idx, const uint32_t subtree_addr[8]) {
     unsigned char stack[(params->tree_height + 1) * params->n];
     unsigned int heights[params->tree_height + 1];
     unsigned int offset = 0;
@@ -79,15 +88,9 @@ static void treehash(const xmss_params *params, unsigned char *root, unsigned ch
             memcpy(auth_path, stack + (offset - 1) * params->n, params->n);
         }
 
-        /* While the top-most nodes are of equal height.. */
         while (offset >= 2 && heights[offset - 1] == heights[offset - 2]) {
-            /* Compute index of the new node, in the next layer. */
             tree_idx = (idx >> (heights[offset - 1] + 1));
 
-            /* Hash the top-most nodes from the stack together. */
-            /* Note that tree height is the 'lower' layer, even though we use
-               the index of the new node on the 'higher' layer. This follows
-               from the fact that we address the hash function calls. */
             set_tree_height(node_addr, heights[offset - 1]);
             set_tree_index(node_addr, tree_idx);
 
@@ -99,10 +102,8 @@ static void treehash(const xmss_params *params, unsigned char *root, unsigned ch
 #endif
 
             offset--;
-            /* Note that the top-most node is now one layer higher. */
             heights[offset - 1]++;
 
-            /* If this is a node we need for the auth path.. */
             if (((leaf_idx >> heights[offset - 1]) ^ 0x1) == tree_idx) {
                 memcpy(auth_path + heights[offset - 1] * params->n, stack + (offset - 1) * params->n, params->n);
             }
@@ -168,8 +169,15 @@ int xmssmt_core_seed_keypair(const xmss_params *params, unsigned char *pk, unsig
     memcpy(sk + 3 * params->n, seed + 2 * params->n, params->n);
     memcpy(pk + params->n, sk + 3 * params->n, params->n);
 
-    /* Compute root node of the top-most subtree. */
+/* Compute root node of the top-most subtree. */
+#ifdef TEST_TREEHASH_ARRAY
+    // NOTE: auth path is first because in jasmin mutable arrays must come first
+    puts("DEBUG: TREEHASH ARRAY JASMIN IMPL");
+    treehash_array_jazz(pk, auth_path, sk, pk + params->n, 0, top_tree_addr);
+#else
     treehash(params, pk, auth_path, sk, pk + params->n, 0, top_tree_addr);
+#endif
+
     memcpy(sk + 2 * params->n, pk, params->n);
 
     return 0;
@@ -184,7 +192,12 @@ int xmssmt_core_keypair(const xmss_params *params, unsigned char *pk, unsigned c
     unsigned char seed[3 * params->n];
 
     randombytes(seed, 3 * params->n);
+#ifdef TEST_KEYPAIR_SEED
+    puts("DEBUG: SEED KEYPAIR JASMIN IMPL");
+    xmssmt_core_seed_keypair_jazz(pk, sk, seed);
+#else
     xmssmt_core_seed_keypair(params, pk, sk, seed);
+#endif
 
     return 0;
 }
@@ -283,8 +296,14 @@ int xmssmt_core_sign(const xmss_params *params, unsigned char *sk, unsigned char
         wots_sign(params, sm, root, sk_seed, pub_seed, ots_addr);
         sm += params->wots_sig_bytes;
 
-        /* Compute the authentication path for the used WOTS leaf. */
+/* Compute the authentication path for the used WOTS leaf. */
+#ifdef TEST_TREEHASH_ARRAY
+        puts("DEBUG: TREEHASH ARRAY JASMIN IMPL 2");
+        treehash_array_jazz(root, sm, sk_seed, pub_seed, idx_leaf, ots_addr);
+#else
         treehash(params, root, sm, sk_seed, pub_seed, idx_leaf, ots_addr);
+#endif
+
         sm += params->tree_height * params->n;
     }
 

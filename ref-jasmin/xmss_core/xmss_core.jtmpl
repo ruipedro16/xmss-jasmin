@@ -4,4 +4,314 @@ from Stdlib require "memset/memset.jtmpl"
 from Stdlib require "memcpy/memcpy.jtmpl"
 
 from XMSS require "hash_address/hash_address.jinc"
+from XMSS require "xmss_commons/xmss_commons.jtmpl"
 
+/////////////////////////////////// TREEHASH ///////////////////////////////////
+
+inline fn __treehash_array(
+    reg ptr u8[XMSS_N] root,
+    reg ptr u8[XMSS_TREE_HEIGHT * XMSS_N] auth_path,
+    reg ptr u8[XMSS_N] sk_seed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg u32 leaf_idx,
+    reg ptr u32[8] subtree_addr
+) -> reg ptr u8[XMSS_N], reg ptr u8[XMSS_TREE_HEIGHT * XMSS_N]
+{
+    stack u8[(XMSS_TREE_HEIGHT + 1) * XMSS_N] _stack;   
+    stack u32[(XMSS_TREE_HEIGHT + 1)] heights;
+    stack u32[8] ots_addr ltree_addr node_addr;
+
+    stack u8[XMSS_N] buf;
+    reg u64 index;
+    inline int j;
+
+    reg u32 idx tree_idx;
+    reg u32 t u;
+    reg u64 offset t64;
+    reg u64 offset_in offset_out;
+
+    reg bool cond;
+    reg u32 a b;
+
+    stack u8[XMSS_N] buf;
+    stack u8[2 * XMSS_N] buf2;
+
+    // unsigned int offset = 0;
+    offset = 0;
+
+    () = #spill(root, auth_path, offset, sk_seed, pub_seed, leaf_idx);
+
+    // uint32_t ots_addr[8] = {0};
+    // uint32_t ltree_addr[8] = {0};
+    // uint32_t node_addr[8] = {0};
+    ots_addr = __zero_address(ots_addr);
+    ltree_addr = __zero_address(ltree_addr);
+    node_addr = __zero_address(node_addr);
+
+    // copy_subtree_addr(ots_addr, subtree_addr);
+    // copy_subtree_addr(ltree_addr, subtree_addr);
+    // copy_subtree_addr(node_addr, subtree_addr);
+    ots_addr = __copy_subtree_addr(ots_addr, subtree_addr);
+    ltree_addr = __copy_subtree_addr(ltree_addr, subtree_addr);
+    node_addr = __copy_subtree_addr(node_addr, subtree_addr);
+
+    // set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
+    // set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
+    // set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
+    ots_addr = __set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
+    ltree_addr = __set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
+    node_addr = __set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
+
+    idx = 0;
+    while (idx < (1 << XMSS_TREE_HEIGHT)) {
+        () = #spill(idx);
+
+        // set_ltree_addr(ltree_addr, idx);
+        // set_ots_addr(ots_addr, idx);
+        ltree_addr = __set_ltree_addr(ltree_addr, idx);
+        ots_addr = __set_ots_addr(ots_addr, idx);
+
+
+        // gen_buf_wots(params, stack + offset*params->n, sk_seed, pub_seed, ltree_addr, ots_addr);
+        
+            // We need to load the buf first 
+            () = #unspill(offset, sk_seed, pub_seed);
+            for j=0 to XMSS_N { index = offset; index *= XMSS_N; buf[j] = _stack[index + j]; }
+
+        buf, ltree_addr, ots_addr = __gen_leaf_wots_(buf, sk_seed, pub_seed, ltree_addr, ots_addr);
+        
+            // Write the result back
+            () = #unspill(offset);
+            for j=0 to XMSS_N { index = offset; index *= XMSS_N; _stack[index + j] = buf[j]; }
+
+        // TODO: 
+        // FIXME: Pode se poupar uma adicao (offset - 1) ao trocar a ordem destas operacoes
+        
+        // offset++;
+        offset += 1;
+        
+        // heights[offset - 1] = 0;
+        index = offset; index -= 1;
+        heights[index] = 0; 
+
+        () = #spill(offset);
+
+        // if ((leaf_idx ^ 0x1) == idx) { memcpy(auth_path, stack + (offset - 1)*params->n, params->n); }
+        () = #unspill(leaf_idx, idx);
+        t = leaf_idx; t ^= 0x1;
+        if (t == idx) {
+            () = #unspill(auth_path);
+            for j=0 to XMSS_N { index = offset; index -= 1; index *= XMSS_N; auth_path[j] = _stack[index + j]; }
+            () = #spill(auth_path);
+        }
+
+
+        /////////////////////////////// INNER LOOP /////////////////////////////
+        () = #unspill(offset);
+        while { 
+            a = heights[offset - 1];
+            b = heights[offset - 2];
+            cond = __cond_u64_geq_u64_u32_eq_u32(offset, 2, a, b);
+        } (cond) {
+            // tree_idx = (idx >> (heights[offset - 1] + 1));
+            index = offset; index -= 1;
+            t = heights[index]; 
+            t += 1; // At this point, t = heights[offset - 1] + 1
+
+            u = idx;
+            ?{}, u = #SHR_32(u, t);
+            tree_idx = u;
+            () = #spill(tree_idx);
+
+            // set_tree_height(node_addr, heights[offset - 1]);
+            node_addr = __set_tree_height(node_addr, heights[offset - 1]);
+
+            // set_tree_index(node_addr, tree_idx);
+            node_addr = __set_tree_index(node_addr, tree_idx);
+
+            // thash_h(params, stack + (offset-2)*params->n, stack + (offset-2)*params->n, pub_seed, node_addr);
+            // 1) Load input to buf2
+            index = offset; index -= 2; index *= XMSS_N;
+            for j=0 to 2*XMSS_N { buf2[j] = _stack[index + j]; }
+            
+            () = #unspill(pub_seed);
+            buf, node_addr = __thash_h_(buf, buf2, pub_seed, node_addr);
+
+            // 2) Write the result back to stack
+            () = #unspill(offset);
+            index = offset; index -= 2; index *= XMSS_N;
+            for j=0 to XMSS_N { _stack[index + j] = buf[j]; }
+
+            // offset--;
+            offset -= 1;
+            () = #spill(offset);
+            
+            // heights[offset - 1]++;
+            index = offset;
+            index -= 1;
+            t = heights[index];
+            t += 1;
+            heights[index] = t;
+
+            // if (((leaf_idx >> heights[offset - 1]) ^ 0x1) == tree_idx)
+            () = #unspill(leaf_idx, tree_idx);
+            index = offset;
+            index -= 1;
+            t = heights[index]; // t = heights[offset - 1]
+            u = leaf_idx;
+            ?{}, u = #SHR_32(u, t); // u = (leaf_idx >> heights[offset - 1])
+            u ^= 0x1; // u = ((leaf_idx >> heights[offset - 1]) ^ 0x1)
+            if (u == tree_idx) {
+                // memcpy(auth_path + heights[offset - 1]*params->n, stack + (offset - 1)*params->n, params->n);
+                () = #unspill(auth_path);
+                index = offset; index -= 1;
+                t64 = (64u) heights[index];
+                t64 *= XMSS_N; // t = heights[offset - 1]*params->n
+                index *= XMSS_N; // index = (offset - 1)*params->n
+                for j=0 to XMSS_N { auth_path[t64 + j] = _stack[index + j]; }
+                () = #spill(auth_path);
+            }
+        }
+
+
+        /////////////////////////////// INNER LOOP /////////////////////////////
+
+        () = #unspill(idx);
+        idx += 1;
+    }
+
+    () = #unspill(root, auth_path);
+
+    // memcpy(root, stack, params->n);
+    for j=0 to XMSS_N { root[j] = _stack[j]; }
+
+    return root, auth_path;
+}
+
+fn _treehash_array(
+    reg ptr u8[XMSS_N] root,
+    reg ptr u8[XMSS_TREE_HEIGHT * XMSS_N] auth_path,
+    reg ptr u8[XMSS_N] sk_seed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg u32 leaf_idx,
+    reg ptr u32[8] subtree_addr
+) -> reg ptr u8[XMSS_N], reg ptr u8[XMSS_TREE_HEIGHT * XMSS_N]
+{
+    root, auth_path = __treehash_array(root, auth_path, sk_seed, pub_seed, leaf_idx, subtree_addr);
+    return root, auth_path;
+}
+
+inline fn __treehash_array_(
+    reg ptr u8[XMSS_N] root,
+    reg ptr u8[XMSS_TREE_HEIGHT * XMSS_N] auth_path,
+    reg ptr u8[XMSS_N] sk_seed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg u32 leaf_idx,
+    reg ptr u32[8] subtree_addr
+) -> reg ptr u8[XMSS_N], reg ptr u8[XMSS_TREE_HEIGHT * XMSS_N]
+{
+    root = root;
+    auth_path = auth_path;
+    sk_seed = sk_seed;
+    pub_seed = pub_seed;
+    leaf_idx = leaf_idx;
+    subtree_addr = subtree_addr;
+
+    root, auth_path = _treehash_array(root, auth_path, sk_seed, pub_seed, leaf_idx, subtree_addr);
+
+    root = root;
+    auth_path = auth_path;
+
+    return root, auth_path;
+}
+
+/////////////////////////////////// KEY PAIR SEED //////////////////////////////
+
+inline fn __xmssmt_core_seed_keypair(
+    reg ptr u8[XMSS_PK_BYTES] pk, 
+    reg ptr u8[XMSS_SK_BYTES] sk,
+    reg ptr u8[3 * XMSS_N] seed
+) -> reg ptr u8[XMSS_PK_BYTES], reg ptr u8[XMSS_SK_BYTES]
+{
+    stack u8[XMSS_TREE_HEIGHT * XMSS_N] auth_path;
+    stack u32[8] top_tree_addr;
+    inline int i;
+    stack u8[XMSS_N] buf;
+
+    top_tree_addr = __zero_address(top_tree_addr);
+
+    top_tree_addr =  __set_layer_addr(top_tree_addr, XMSS_D - 1);
+    
+    // memset(sk, 0, params->index_bytes);
+    sk[0 : XMSS_INDEX_BYTES] = __memset_u8<XMSS_INDEX_BYTES>(sk[0 : XMSS_INDEX_BYTES], 0);
+    
+    // memcpy(sk, seed, 2 * params->n);
+    sk[XMSS_INDEX_BYTES : 2 * XMSS_N], _ = _x_memcpy_u8u8<2*XMSS_N, 2*XMSS_N>(sk[XMSS_INDEX_BYTES : 2 * XMSS_N], 0, seed[0 : 2 * XMSS_N]);
+
+    // memcpy(sk + 3 * params->n, seed + 2 * params->n, params->n);
+    sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N], _ = _x_memcpy_u8u8<XMSS_N, XMSS_N>(sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N], 0, seed[2*XMSS_N : XMSS_N]);
+    // sk = #randombytes(sk);
+
+    // memcpy(pk + params->n, sk + 3*params->n, params->n);
+    pk[XMSS_N : XMSS_N], _  = _x_memcpy_u8u8<XMSS_N, XMSS_N>(pk[XMSS_N : XMSS_N], 0, sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N]);
+
+    // treehash(params, pk, auth_path, sk, pk + params->n, 0, top_tree_addr);
+    // FIXME: Regalloc fails with pk[0 : XMSS_N] as the 1st argument
+    
+    () = #spill(pk, sk);
+    buf, _ = __treehash_array_(buf, auth_path, sk[XMSS_INDEX_BYTES : XMSS_N], pk[XMSS_N : XMSS_N], 0, top_tree_addr);
+    
+    // memcpy(sk + 2*params->n, pk, params->n);
+    () = #unspill(pk, sk);
+    for i=0 to XMSS_N { pk[i] = buf[i]; }
+    for i=0 to XMSS_N { sk[XMSS_INDEX_BYTES + 2 * XMSS_N + i] = pk[i]; }
+
+    return pk, sk;
+}
+
+/////////////////////////////////// KEY PAIR ///////////////////////////////////
+
+inline fn __xmssmt_core_keypair(
+    reg ptr u8[XMSS_PK_BYTES] pk, 
+    reg ptr u8[XMSS_SK_BYTES] sk
+) -> reg ptr u8[XMSS_PK_BYTES], reg ptr u8[XMSS_SK_BYTES]
+{
+    stack u8 [3 * XMSS_N] seed;
+    reg ptr u8[3 * XMSS_N] seed_p;
+
+    seed_p = seed;
+    seed_p = #randombytes(seed_p);
+
+    pk, sk = __xmssmt_core_seed_keypair(pk, sk, seed);
+
+    return pk, sk;
+}
+
+fn _xmssmt_core_keypair(
+    reg ptr u8[XMSS_PK_BYTES] pk, 
+    reg ptr u8[XMSS_SK_BYTES] sk
+) -> reg ptr u8[XMSS_PK_BYTES], reg ptr u8[XMSS_SK_BYTES]
+{
+    pk, sk = __xmssmt_core_keypair(pk, sk);
+
+    return pk, sk;
+}
+
+inline fn __xmssmt_core_keypair_(
+    reg ptr u8[XMSS_PK_BYTES] pk, 
+    reg ptr u8[XMSS_SK_BYTES] sk
+) -> reg ptr u8[XMSS_PK_BYTES], reg ptr u8[XMSS_SK_BYTES]
+{
+    pk = pk;
+    sk = sk;
+
+    pk, sk = _xmssmt_core_keypair(pk, sk);
+
+    pk = pk;
+    sk = sk;
+    
+
+    return pk, sk;
+}
+
+/////////////////////////////////// SIGN ///////////////////////////////////////

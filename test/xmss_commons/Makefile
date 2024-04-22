@@ -74,7 +74,7 @@ bin/%.s: bin/%.jpp
 $(TESTS):
 bin/%: bin/%.s | bin/
 	$(CC) $(CFLAGS) -o $@ -I../common -I../ -DIMPL=$(GET_IMPL_UPPER_CASE)  $(TEST_FLAGS) \
-	$(SOURCES) $(REF_SOURCES) $< $(LDLIBS) -DDEBUG
+	$(SOURCES) $(REF_SOURCES) $< $(LDLIBS)
 
 $(OBJ_FILES):
 bin/%.o: bin/%.s

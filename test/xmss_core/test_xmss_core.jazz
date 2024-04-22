@@ -1,1 +1,67 @@
 from XMSS require "xmss_core/xmss_core.jtmpl"
+
+/////////////////////////////////// TREEHASH ///////////////////////////////////////////////////////
+
+export fn treehash_array_jazz(
+    reg ptr u8[XMSS_N] root,
+    reg ptr u8[XMSS_TREE_HEIGHT * XMSS_N] auth_path,
+    reg ptr u8[XMSS_N] sk_seed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg u32 leaf_idx,
+    reg ptr u32[8] subtree_addr
+) -> reg ptr u8[XMSS_N], reg ptr u8[XMSS_TREE_HEIGHT * XMSS_N]
+{
+    root, auth_path = __treehash_array_(root, auth_path, sk_seed, pub_seed, leaf_idx, subtree_addr);
+    return root, auth_path;
+}
+/////////////////////////////////// KEY PAIR ///////////////////////////////////////////////////////
+
+export fn xmssmt_core_seed_keypair_jazz(
+    reg ptr u8[XMSS_PK_BYTES] pk, 
+    reg ptr u8[XMSS_SK_BYTES] sk,
+    reg ptr u8[3 * XMSS_N] seed
+) -> reg ptr u8[XMSS_PK_BYTES], reg ptr u8[XMSS_SK_BYTES], reg u64
+{
+    reg u64 res;
+    
+    pk, sk = __xmssmt_core_seed_keypair(pk, sk, seed);
+
+    ?{}, res = #set0();
+    return pk, sk, res;
+}
+
+export fn xmssmt_core_keypair_jazz(
+    reg ptr u8[XMSS_PK_BYTES] pk, 
+    reg ptr u8[XMSS_SK_BYTES] sk
+) -> reg ptr u8[XMSS_PK_BYTES], reg ptr u8[XMSS_SK_BYTES], reg u64
+{
+    reg u64 res;
+
+    pk = pk; sk = sk; 
+
+    pk, sk = __xmssmt_core_keypair_(pk, sk);
+
+    pk = pk; sk = sk; 
+
+    ?{}, res = #set0();
+    return pk, sk, res;
+}
+
+export fn xmss_core_keypair_jazz(
+    reg ptr u8[XMSS_PK_BYTES] pk, 
+    reg ptr u8[XMSS_SK_BYTES] sk
+) -> reg ptr u8[XMSS_PK_BYTES], reg ptr u8[XMSS_SK_BYTES], reg u64
+{
+    reg u64 res;
+
+    pk = pk; sk = sk; 
+
+    pk, sk = __xmssmt_core_keypair_(pk, sk);
+
+    pk = pk; sk = sk; 
+
+    ?{}, res = #set0();
+    return pk, sk, res;
+}
+
+/////////////////////////////////// SIGN ///////////////////////////////////////////////////////////
