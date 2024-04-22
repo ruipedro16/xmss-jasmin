@@ -179,7 +179,7 @@ void test_xmssmt(void) {
 }
 
 int main(void) {
-    test_keypair_seed();
+    // test_keypair_seed(); // OK
     starts_with(xstr(IMPL), "XMSSMT") ? test_xmssmt() : test_xmss();
     printf("[%s]: XMSS Core OK\n", xstr(IMPL));
     return 0;

@@ -43,7 +43,7 @@ REF_SOURCES := $(wildcard ../*.c)
 
 SOURCES := test_xmss_core.c ../common/notrandombytes.c ../common/print.c
 
-TEST_FLAGS := -DDEBUG -DTEST_TREEHASH_ARRAY -DTEST_KEYPAIR_SEED 
+TEST_FLAGS := -DDEBUG -DTEST_TREEHASH_ARRAY -DTEST_KEYPAIR_SEED -DTEST_CORE_SIGN
 
 # ----------------------------------------------------------------------------------------------------------------------
 

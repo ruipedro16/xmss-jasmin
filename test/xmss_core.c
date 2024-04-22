@@ -40,6 +40,11 @@ extern void treehash_array_jazz(unsigned char *root, unsigned char *auth_path, c
 extern int xmssmt_core_seed_keypair_jazz(uint8_t *pk, uint8_t *sk, const uint8_t *seed);
 #endif
 
+#ifdef TEST_CORE_SIGN
+extern int xmssmt_core_sign_jazz(unsigned char *sk, unsigned char *sm, unsigned long long *smlen,
+                                 const unsigned char *m, unsigned long long mlen);
+#endif
+
 /**
  * For a given leaf index, computes the authentication path and the resulting
  * root node using Merkle's TreeHash algorithm.
@@ -141,7 +146,12 @@ int xmss_core_sign(const xmss_params *params, unsigned char *sk, unsigned char *
        For d=1, as is the case with XMSS, some of the calls in the XMSSMT
        routine become vacuous (i.e. the loop only iterates once, and address
        management can be simplified a bit).*/
+#ifdef TEST_CORE_SIGN
+    puts("DEBUG: CORE SIGN JASMIN IMPL");
+    return xmssmt_core_sign_jazz(sk, sm, smlen, m, mlen);
+#else
     return xmssmt_core_sign(params, sk, sm, smlen, m, mlen);
+#endif
 }
 
 /*

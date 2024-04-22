@@ -315,3 +315,165 @@ inline fn __xmssmt_core_keypair_(
 }
 
 /////////////////////////////////// SIGN ///////////////////////////////////////
+
+inline fn __xmssmt_core_sign(
+    reg ptr u8[XMSS_SK_BYTES] sk,
+    reg u64 sm_ptr smlen_ptr m_ptr mlen
+) -> reg ptr u8[XMSS_SK_BYTES], reg u64
+{
+    stack u8[XMSS_N] root;
+
+    reg ptr u8[XMSS_N] sk_seed sk_prf pub_root pub_seed;
+
+    reg u32 i idx_leaf;
+    reg u64 idx idx_hash;
+
+    stack u8[32] idx_bytes;
+    stack u32[8] ots_addr;
+
+    stack u8[XMSS_N] buf;
+    stack u8[XMSS_WOTS_LEN * XMSS_N] sig;
+    stack u8[XMSS_TREE_HEIGHT * XMSS_N] auth_path;
+
+    reg u64 t64;
+
+    stack u8 exit;
+
+    inline int j;
+
+    reg u64 res;
+
+    () = #spill(mlen, sk);
+
+    // uint32_t ots_addr[8] = {0};
+    ots_addr = __zero_address(ots_addr);
+
+    // set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
+    ots_addr = __set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
+
+    // memcpy(sm + params->sig_bytes, m, mlen);
+    _, _, _ = _x__memcpy_u8pu8p(sm_ptr, XMSS_SIG_BYTES, m_ptr, 0, mlen);
+
+    // *smlen = params->sig_bytes + mlen;
+    t64 = mlen; t64 += XMSS_SIG_BYTES;
+    (u64) [smlen_ptr] = t64;
+
+    // idx = (unsigned long)bytes_to_ull(sk, params->index_bytes);
+    idx = __bytes_to_ull<XMSS_INDEX_BYTES>(sk[0 : XMSS_INDEX_BYTES]);
+    () = #spill(idx);
+
+    // if (idx >= ((1ULL << params->full_height) - 1)) 
+    if (idx >= ((1 << XMSS_FULL_HEIGHT) - 1)) {
+        () = #unspill(sk);
+
+        // memset(sk, 0xFF, params->index_bytes);
+        sk[0 : XMSS_INDEX_BYTES] =  __memset_u8<XMSS_INDEX_BYTES>(sk[0 : XMSS_INDEX_BYTES], 0xFF);
+
+        // memset(sk + params->index_bytes, 0, (params->sk_bytes - params->index_bytes));
+        sk[XMSS_INDEX_BYTES : XMSS_SK_BYTES - XMSS_INDEX_BYTES] = 
+            __memset_u8<XMSS_SK_BYTES - XMSS_INDEX_BYTES>(sk[XMSS_INDEX_BYTES : XMSS_SK_BYTES - XMSS_INDEX_BYTES], 0);
+
+        () = #spill(sk);
+        
+        if (idx > ((1 << XMSS_FULL_HEIGHT) - 1)) { exit = 1; }
+
+        if ((idx == ((1 << XMSS_FULL_HEIGHT) - 1)) && XMSS_FULL_HEIGHT == 64) { exit = 1; }
+    }
+
+    if (exit != 1) {
+        // memcpy(sm, sk, params->index_bytes);
+        sm_ptr, _ = _x_memcpy_u8pu8<XMSS_INDEX_BYTES>(sm_ptr, 0, sk[0 : XMSS_INDEX_BYTES]);
+
+        /*************************************************************************
+         * THIS IS WHERE PRODUCTION IMPLEMENTATIONS WOULD UPDATE THE SECRET KEY. *
+         *************************************************************************/
+        // ull_to_bytes(sk, params->index_bytes, idx + 1);
+        () = #unspill(sk);
+        t64 = idx; t64 += 1;
+        sk[0 : XMSS_INDEX_BYTES] = __ull_to_bytes<XMSS_INDEX_BYTES>(sk[0 : XMSS_INDEX_BYTES], t64);
+        () = #spill(sk);
+
+        // ull_to_bytes(idx_bytes_32, 32, idx);
+        idx_bytes = __ull_to_bytes<32>(idx_bytes, idx);
+
+        // prf(params, sm + params->index_bytes, idx_bytes_32, sk_prf);
+        sk_prf = sk[XMSS_INDEX_BYTES + XMSS_N : XMSS_N];
+        buf = __prf_(buf, idx_bytes, sk_prf);
+        sm_ptr, _ = _x_memcpy_u8pu8<XMSS_N>(sm_ptr, XMSS_INDEX_BYTES, buf);
+
+        // hash_message(params, mhash, sm + params->index_bytes, pub_root, idx, sm + params->sig_bytes - params->padding_len - 3*params->n, mlen);
+        () = #unspill(sk, idx, mlen);
+
+        pub_root = sk[XMSS_INDEX_BYTES + 2*XMSS_N : XMSS_N];
+
+        for j=0 to XMSS_N { buf[j] = (u8) [sm_ptr + XMSS_INDEX_BYTES + j]; }
+        
+        idx_hash = idx;
+        
+        t64 = sm_ptr; t64 += XMSS_SIG_BYTES - XMSS_PADDING_LEN - 3*XMSS_N;
+        
+        root[0 : XMSS_N] = __hash_message_(root[0 : XMSS_N], buf, pub_root, idx_hash, t64, mlen);
+
+        // sm += params->index_bytes + params->n;
+        sm_ptr += XMSS_INDEX_BYTES + XMSS_N;
+        () = #spill(sm_ptr);
+
+        // set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
+        ots_addr = __set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
+
+        i = 0;
+        while (i < XMSS_D) {
+            () = #spill(i);
+
+            () = #unspill(idx);
+
+            // idx_leaf = (idx & ((1 << params->tree_height)-1));
+            idx_leaf = ((1 << XMSS_TREE_HEIGHT) - 1);
+            idx_leaf &= idx;   
+
+            // idx = idx >> params->tree_height;
+            ?{}, idx = #SHR_64(idx,  XMSS_TREE_HEIGHT);
+            () = #spill(idx, idx_leaf);
+
+            // set_layer_addr(ots_addr, i);
+            // set_tree_addr(ots_addr, idx);
+            // set_ots_addr(ots_addr, idx_leaf);
+            ots_addr = __set_layer_addr(ots_addr, i);
+            ots_addr = __set_tree_addr(ots_addr, idx);
+            ots_addr = __set_ots_addr(ots_addr, idx_leaf);
+
+            // wots_sign(params, sm, root, sk_seed, pub_seed, ots_addr);
+            () = #unspill(sk);
+            sk_seed = sk[XMSS_INDEX_BYTES : XMSS_N];
+            pub_seed = sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N];
+            sig, ots_addr = __wots_sign_(sig, root, sk_seed, pub_seed, ots_addr);
+            () = #unspill(sm_ptr);
+            for j=0 to XMSS_WOTS_LEN * XMSS_N { (u8)[sm_ptr + j] = sig[j]; }
+            
+            // sm += params->wots_sig_bytes;
+            sm_ptr += XMSS_WOTS_SIG_BYTES;
+            () = #spill(sm_ptr);
+
+            // treehash(params, root, sm, sk_seed, pub_seed, idx_leaf, ots_addr);
+            () = #unspill(sk, idx_leaf);
+            sk_seed = sk[XMSS_INDEX_BYTES : XMSS_N];
+            pub_seed = sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N];
+            for j=0 to XMSS_TREE_HEIGHT * XMSS_N { auth_path[j] = (u8)[sm_ptr + j]; }
+            root, auth_path = __treehash_array_(root, auth_path, sk_seed, pub_seed, idx_leaf, ots_addr);
+            
+            () = #unspill(sm_ptr);
+            for j=0 to XMSS_TREE_HEIGHT * XMSS_N { (u8)[sm_ptr + j] = auth_path[j]; }
+
+            // sm += params->tree_height*params->n;
+            sm_ptr += XMSS_TREE_HEIGHT * XMSS_N;
+            () = #spill(sm_ptr);
+
+            () = #unspill(i);
+            i += 1;
+        }
+    }  
+
+    if (exit == 1) { res = -2; } else { res = 0; }
+
+    return sk, res;
+}
