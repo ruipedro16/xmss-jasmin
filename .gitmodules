@@ -1,11 +1,10 @@
 [submodule "submodules/xmss-reference"]
 	path = submodules/xmss-reference
 	url = https://github.com/XMSS/xmss-reference.git
-[submodule "submodules/--force"]
-	path = submodules/--force
-	url = https://github.com/ruipedro16/jasmin-preprocessor.git
-	branch = stable
 [submodule "submodules/jasmin-preprocessor"]
 	path = submodules/jasmin-preprocessor
 	url = https://github.com/ruipedro16/jasmin-preprocessor.git
 	branch = stable
+[submodule "submodules/crypto-specs"]
+	path = submodules/crypto-specs
+	url = https://github.com/formosa-crypto/crypto-specs.git
