@@ -8,11 +8,12 @@ CFLAGS   ?= -Wall -g -O3 -Wextra -Wpedantic
 LDLIBS   = -lcrypto
 
 JASMIN   ?= jasminc
+JAZZCT   ?= jazzct
 JFLAGS   ?= ${JADDFLAGS}
 JINCLUDE ?= -I XMSS:../../ref-jasmin/
 
-JPP          ?= ../../scripts/jasmin-preprocessor/jpp
-PREPROCESSOR ?= ../../scripts/jasmin-preprocessor/preprocessor
+JPP          ?= ../../submodules/jasmin-preprocessor/jpp
+PREPROCESSOR ?= ../../submodules/jasmin-preprocessor/preprocessor
 
 # --------------------------------------------------------------------------------------------------
 
@@ -78,7 +79,7 @@ bin/test_hash_core_%.o: bin/test_hash_core_%.s
 
 $(CHECKCT_FILES):
 bin/test_hash_core_%.check: bin/test_hash_core_%.jpp
-	$(JASMIN) $(JFLAGS) $(JINCLUDE) -checkCT -infer $^ > $@
+	$(JAZZCT) --infer $^ > $@
 
 bin/test_hash_core_%.out: bin/test_hash_core_%
 	@./$<

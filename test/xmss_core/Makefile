@@ -8,11 +8,12 @@ CFLAGS   ?= -Wall -g -O3 -Wextra -Wpedantic
 LDLIBS   = -lcrypto
 
 JASMIN   ?= jasminc
+JAZZCT   ?= jazzct
 JFLAGS   ?= -nowarning ${JADDFLAGS}
 JINCLUDE ?= -I XMSS:../../ref-jasmin/ -I Stdlib:../../ref-jasmin/stdlib
 
-JPP          ?= ../../scripts/jasmin-preprocessor/jpp
-PREPROCESSOR ?= ../../scripts/jasmin-preprocessor/preprocessor
+JPP          ?= ../../submodules/jasmin-preprocessor/jpp
+PREPROCESSOR ?= ../../submodules/jasmin-preprocessor/preprocessor
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -42,7 +43,7 @@ REF_SOURCES := $(wildcard ../*.c)
 
 SOURCES := test_xmss_core.c ../common/notrandombytes.c ../common/print.c
 
-TEST_FLAGS := 
+TEST_FLAGS := -DDEBUG -DTEST_TREEHASH_ARRAY -DTEST_KEYPAIR_SEED -DTEST_CORE_SIGN
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -81,7 +82,7 @@ bin/%.o: bin/%.s
 
 $(CHECKCT_FILES):
 bin/%.check: bin/%.jpp
-	$(JASMIN) $(JFLAGS) $(JINCLUDE) -checkCT -infer $^ > $@
+	$(JAZZCT) --infer $^ > $@
 
 bin/%.out: bin/%
 	@./$<

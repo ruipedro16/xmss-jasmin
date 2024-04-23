@@ -8,11 +8,12 @@ CFLAGS   ?= -Wall -g -O3 -Wextra -Wpedantic
 LDLIBS   = -lcrypto
 
 JASMIN   ?= jasminc
+JAZZCT   ?= jazzct
 JFLAGS   ?= -nowarning ${JADDFLAGS}
 JINCLUDE ?= -I XMSS:../../../ref-jasmin/
 
-JPP          ?= ../../../scripts/jasmin-preprocessor/jpp
-PREPROCESSOR ?= ../../../scripts/jasmin-preprocessor/preprocessor
+JPP          ?= ../../../submodules/jasmin-preprocessor/jpp
+PREPROCESSOR ?= ../../../submodules/jasmin-preprocessor/preprocessor
 
 # --------------------------------------------------------------------------------------------------
 
@@ -61,7 +62,7 @@ $(OBJ_FILES):
 
 $(CHECKCT_FILES):
 bin/%.check: %.jazz | bin/
-	$(JASMIN) $(JFLAGS) $(JINCLUDE) -checkCT -infer $^ > $@
+	$(JAZZCT) --infer $^ > $@
 
 
 bin/%.out: bin/%

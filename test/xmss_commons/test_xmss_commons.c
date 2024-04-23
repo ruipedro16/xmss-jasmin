@@ -29,6 +29,8 @@ extern void gen_leaf_wots_jazz(uint8_t *leaf, uint32_t ltree_addr[8], uint32_t o
                                const uint8_t *pub_seed);
 extern void compute_root_jazz(unsigned char *root, uint32_t addr[8], const unsigned char *leaf, unsigned long leaf_idx,
                               const unsigned char *auth_path, const unsigned char *pub_seed);
+extern int xmss_core_sign_open_jazz(uint8_t *m, size_t *mlen, const uint8_t *sm, size_t smlen, const uint8_t *pk);
+extern int xmssmt_core_sign_open_jazz(uint8_t *m, size_t *mlen, const uint8_t *sm, size_t smlen, const uint8_t *pk);
 
 static int starts_with(const char *str, const char *prefix) { return strncmp(str, prefix, strlen(prefix)) == 0; }
 
@@ -164,6 +166,63 @@ void test_compute_root(void) {
 
 void test_gen_leaf_wots(void) {}  // TODO:
 
+void test_sign_open_xmss(void) {
+bool debug = true;
+
+    xmss_params p;
+    uint32_t oid;
+
+    if (xmss_str_to_oid(&oid, xstr(IMPL)) == -1) {
+        fprintf(stderr, "Failed to generate oid from impl name\n");
+        exit(-1);
+    }
+
+    if (xmss_parse_oid(&p, oid) == -1) {
+        fprintf(stderr, "Failed to generate params from oid\n");
+        exit(-1);
+    }
+
+    #define XMSS_MLEN 32
+
+    uint8_t pk[XMSS_OID_LEN + p.pk_bytes];
+    uint8_t sk[XMSS_OID_LEN + p.sk_bytes];
+
+    uint8_t m[XMSS_MLEN];
+    uint8_t sm[p.sig_bytes + XMSS_MLEN];
+    
+    uint8_t mout_ref[p.sig_bytes + XMSS_MLEN];
+    uint8_t mout_jasmin[p.sig_bytes + XMSS_MLEN];
+
+    unsigned long long smlen;
+    unsigned long long mlen_ref, mlen_jasmin;
+
+
+    for (int i = 0; i < 100; i++) {
+        if (debug) {
+            printf("[xmss sign open] Test %d/%d\n", i + 1, 100);
+        }
+
+        xmss_keypair(pk, sk, oid);
+        randombytes(m, XMSS_MLEN);
+        xmss_sign(sk, sm, &smlen, m, XMSS_MLEN);
+
+        assert(smlen == p.sig_bytes + XMSS_MLEN);
+
+        int res_jasmin = xmssmt_core_sign_open_jazz(mout_jasmin, &mlen_jasmin, sm, smlen, pk + XMSS_OID_LEN);
+        int res_ref = xmss_core_sign_open(&p, mout_ref, &mlen_ref, sm, smlen, pk + XMSS_OID_LEN);
+
+        assert(mlen_ref == mlen_jasmin);
+        assert(res_jasmin == res_ref);
+    }
+
+#undef XMSS_MLEN
+
+    puts("[xmss sign open] OK");
+
+}
+
+void test_sign_open_xmssmt(void) { } // TODO:
+
 void test_xmss(void) {
     bool debug = true;
 
@@ -184,7 +243,7 @@ void test_xmss(void) {
     // [X] ltree
     // [X] compute root
     // [X] gen_leaf_wots
-    // [X] xmss_core_sign_open FIXME: This fails
+    // [X] xmss_core_sign_open
 
 #define XMSS_MLEN 32
 
@@ -195,7 +254,7 @@ void test_xmss(void) {
     uint8_t sm[p.sig_bytes + XMSS_MLEN];
     uint8_t mout[p.sig_bytes + XMSS_MLEN];
     unsigned long long smlen;
-    unsigned long long mlen = XMSS_MLEN;
+    unsigned long long mlen;
 
     for (int i = 0; i < 100; i++) {
         if (debug) {
@@ -207,8 +266,9 @@ void test_xmss(void) {
         xmss_sign(sk, sm, &smlen, m, XMSS_MLEN);
         assert(smlen == p.sig_bytes + XMSS_MLEN);
         int res = xmss_sign_open(mout, &mlen, sm, smlen, pk);
-        // assert(mlen == XMSS_MLEN);
-        // assert(res == 0);
+
+        assert(mlen == XMSS_MLEN);
+        assert(res == 0);
     }
 
 #undef XMSS_MLEN
@@ -253,7 +313,7 @@ void test_xmssmt(void) {
     uint8_t sm[p.sig_bytes + XMSS_MLEN];
     uint8_t mout[p.sig_bytes + XMSS_MLEN];
     unsigned long long smlen;
-    unsigned long long mlen = XMSS_MLEN;
+    unsigned long long mlen;
 
     for (int i = 0; i < 100; i++) {
         if (debug) {
@@ -265,8 +325,9 @@ void test_xmssmt(void) {
         xmssmt_sign(sk, sm, &smlen, m, XMSS_MLEN);
         assert(smlen == p.sig_bytes + XMSS_MLEN);
         int res = xmssmt_sign_open(mout, &mlen, sm, smlen, pk);
-        // assert(mlen == XMSS_MLEN);
-        // assert(res == 0);
+        
+        assert(mlen == XMSS_MLEN);
+        assert(res == 0);
     }
 
 #undef XMSS_MLEN
@@ -276,7 +337,8 @@ void test_xmssmt(void) {
 
 int main(void) {
     test_ltree();
-    test_gen_leaf_wots();  // TODO:
+    // test_gen_leaf_wots();  // TODO: TODO: 
+    // starts_with(xstr(IMPL), "XMSSMT") ? test_sign_open_xmssmt() : test_sign_open_xmss(); 
     starts_with(xstr(IMPL), "XMSSMT") ? test_xmssmt() : test_xmss();
     printf("[%s]: XMSS Commons OK\n", xstr(IMPL));
     return 0;

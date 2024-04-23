@@ -7,6 +7,7 @@ CC       ?= clang
 CFLAGS   ?= -Wall -g -O3 -Wextra -Wpedantic
 
 JASMIN   ?= jasminc
+JAZZCT   ?= jazzct
 JFLAGS   ?= ${JADDFLAGS}
 JINCLUDE ?= -I XMSS:../../ref-jasmin/
 
@@ -36,7 +37,7 @@ bin/test_hash_address: bin/test_hash_address.s | bin/
 	$(AS) $< -o $@
 
 bin/test_hash_address.check: test_hash_address.jazz | bin/
-	$(JASMIN) $(JFLAGS) $(JINCLUDE) -checkCT -infer $^ > $@
+	$(JAZZCT) --infer $^ > $@
 
 
 bin/test_hash_address.out: bin/test_hash_address
