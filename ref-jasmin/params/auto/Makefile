@@ -9,7 +9,7 @@ LDLIBS   = -lcrypto
 
 # --------------------------------------------------------------------------------------------------
 
-REF_SOURCES := $(filter-out %xmss_core_fast.c, $(wildcard ../../../xmss-reference/*.c))
+REF_SOURCES := $(filter-out %xmss_core_fast.c, $(wildcard ../../../submodules/xmss-reference/*.c))
 
 # --------------------------------------------------------------------------------------------------
 
@@ -19,7 +19,7 @@ run: bin/gen_params.out
 # --------------------------------------------------------------------------------------------------
 
 bin/gen_params: | bin/
-	$(CC) $(CFLAGS) -o $@ -I../../../xmss-reference/ gen_params.c $(REF_SOURCES) $(LDLIBS)
+	$(CC) $(CFLAGS) -o $@ -I../../../submodules/xmss-reference/ gen_params.c $(REF_SOURCES) $(LDLIBS)
 
 bin/gen_params.out: bin/gen_params
 	@./$<
