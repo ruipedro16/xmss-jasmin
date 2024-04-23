@@ -1,3 +1,11 @@
-[submodule "ref"]
-	path = xmss-reference
+[submodule "submodules/xmss-reference"]
+	path = submodules/xmss-reference
 	url = https://github.com/XMSS/xmss-reference.git
+[submodule "submodules/--force"]
+	path = submodules/--force
+	url = https://github.com/ruipedro16/jasmin-preprocessor.git
+	branch = stable
+[submodule "submodules/jasmin-preprocessor"]
+	path = submodules/jasmin-preprocessor
+	url = https://github.com/ruipedro16/jasmin-preprocessor.git
+	branch = stable

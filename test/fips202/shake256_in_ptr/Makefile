@@ -8,11 +8,11 @@ CFLAGS   ?= -Wall -g -O3 -Wextra -Wpedantic
 
 JASMIN   ?= jasminc
 JAZZCT   ?= jazzct
-JFLAGS   ?= ${JADDFLAGS}
+JFLAGS   ?= -nowarning ${JADDFLAGS}
 JINCLUDE ?= -I XMSS:../../../ref-jasmin/
 
-JPP          ?= ../../../scripts/jasmin-preprocessor/jpp
-PREPROCESSOR ?= ../../../scripts/jasmin-preprocessor/preprocessor
+JPP          ?= ../../../submodules/jasmin-preprocessor/jpp
+PREPROCESSOR ?= ../../../submodules/jasmin-preprocessor/preprocessor
 
 # --------------------------------------------------------------------------------------------------
 

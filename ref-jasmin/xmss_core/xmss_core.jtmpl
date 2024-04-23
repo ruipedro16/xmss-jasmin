@@ -464,6 +464,7 @@ inline fn __xmssmt_core_sign(
             () = #unspill(sm_ptr);
             for j=0 to XMSS_TREE_HEIGHT * XMSS_N { (u8)[sm_ptr + j] = auth_path[j]; }
 
+            () = #unspill(sm_ptr);
             // sm += params->tree_height*params->n;
             sm_ptr += XMSS_TREE_HEIGHT * XMSS_N;
             () = #spill(sm_ptr);

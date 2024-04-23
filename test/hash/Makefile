@@ -12,8 +12,8 @@ JAZZCT   ?= jazzct
 JFLAGS   ?= -nowarning ${JADDFLAGS}
 JINCLUDE ?= -I XMSS:../../ref-jasmin/ -I Stdlib:../../ref-jasmin/stdlib
 
-JPP          ?= ../../scripts/jasmin-preprocessor/jpp
-PREPROCESSOR ?= ../../scripts/jasmin-preprocessor/preprocessor
+JPP          ?= ../../submodules/jasmin-preprocessor/jpp
+PREPROCESSOR ?= ../../submodules/jasmin-preprocessor/preprocessor
 
 # --------------------------------------------------------------------------------------------------
 
