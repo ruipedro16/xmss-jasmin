@@ -1,0 +1,84 @@
+from XMSS require "xmss/xmss.jtmpl"
+
+export fn xmss_keypair_jazz(
+    reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk, 
+    reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES] sk
+) -> reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES],
+     reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES],
+     reg u64
+{
+    reg u64 res;
+
+    pk, sk = __xmss_keypair(pk, sk);
+
+    ?{}, res = #set0();
+
+    return pk, sk, res;
+}
+
+export fn xmssmt_keypair_jazz(
+    reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk, 
+    reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES] sk
+) -> reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES],
+     reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES],
+     reg u64
+
+{
+    reg u64 res;
+
+    pk, sk = __xmssmt_keypair(pk, sk);
+
+    ?{}, res = #set0();
+
+    return pk, sk, res;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export fn xmss_sign_jazz(
+    reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES] sk,
+    reg u64 sm_ptr smlen_ptr,
+    reg u64 m_ptr mlen
+) -> reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES], reg u64
+{
+    reg u64 res;
+    
+    sk, res = __xmss_sign(sk, sm_ptr, smlen_ptr, m_ptr, mlen);
+    
+    return sk, res;
+}
+
+export fn xmssmt_sign_jazz(
+    reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES] sk,
+    reg u64 sm_ptr smlen_ptr,
+    reg u64 m_ptr mlen
+) -> reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES], reg u64
+{
+    reg u64 res;
+    
+    sk, res = __xmssmt_sign(sk, sm_ptr, smlen_ptr, m_ptr, mlen);
+    
+    return sk, res;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export fn xmss_sign_open_jazz(
+    reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk,
+    reg u64 m_ptr mlen_ptr sm_ptr smlen
+) -> reg u64
+{
+    reg u64 res;
+    res = __xmss_sign_open(pk, m_ptr, mlen_ptr, sm_ptr, smlen);
+    return res;
+}
+
+export fn xmssmt_sign_open_jazz(
+    reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk,
+    reg u64 m_ptr mlen_ptr sm_ptr smlen
+) -> reg u64
+{
+    reg u64 res;
+    res = __xmssmt_sign_open(pk, m_ptr, mlen_ptr, sm_ptr, smlen);
+    return res;
+}
