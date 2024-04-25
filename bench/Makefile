@@ -9,16 +9,17 @@ LDLIBS   = -lcrypto
 
 # --------------------------------------------------------------------------------------------------
 
-BENCH_FLAGS ?= # Optinal flag -DALL_TIMINGS
+# Optinal flag -DALL_TIMINGS
+BENCH_FLAGS ?= 
 
 # --------------------------------------------------------------------------------------------------
 
-BIN_FILES := bin/bench_wots # bin/bench_xmss
-ASM_FILES := bin/wots.s # bin/xmss.s
+BIN_FILES := bin/bench_wots bin/bench_xmss
+ASM_FILES := bin/wots.s bin/xmss.s
 CSV_FILES := $(patsubst bin/%,csv/%.csv,$(BIN_FILES))
 
 default: $(BIN_FILES)
-run: bench_wots # bench_xmss
+run: bench_wots bench_xmss
 asm_files: $(ASM_FILES)
 
 # --------------------------------------------------------------------------------------------------
@@ -32,28 +33,29 @@ BENCH_SOURCES := common/notrandombytes.c common/cpucycles.c
 # --------------------------------------------------------------------------------------------------
 
 bin/wots.s: bin/
-	make -C ../test/wots asm_files
+	make -C ../test/wots clean asm_files
 	cp ../test/wots/bin/test_wots.s $@
 
 bin/xmss.s: bin/
-	touch $@ # TODO: /submodules/
+	make -C ../test/xmss/ clean asm_files
+	cp ../test/xmss/bin/test_xmss_xmss-sha2_10_256.s $@
 
 # --------------------------------------------------------------------------------------------------
 
 bin/bench_wots: bin/wots.s
-	$(CC) $(CFLAGS) -o $@ -I./common -I../xmss-reference \
+	$(CC) $(CFLAGS) -o $@ -I./common -I../submodules/xmss-reference \
 	-DIMPL=XMSS-SHAKE_20_512 $(REF_SOURCES) $(BENCH_SOURCES) $(BENCH_FLAGS) \
 	bench_wots.c $< $(LDLIBS)
 
 bin/bench_xmss: bin/xmss.s
-	$(CC) $(CFLAGS) -o $@ -I./common -I../xmss-reference \
+	$(CC) $(CFLAGS) -o $@ -I./common -I../submodules/xmss-reference \
 	-DIMPL=XMSS-SHAKE_20_512 $(REF_SOURCES) $(BENCH_SOURCES) $(BENCH_FLAGS) \
 	bench_xmss.c $< $(LDLIBS)
 
-bench_wots: bin/bench_wots
+bench_wots: bin/bench_wots | csv/
 	./$<
 
-bench_xmss: bin/bench_xmss
+bench_xmss: bin/bench_xmss | csv/
 	./$<
 
 # --------------------------------------------------------------------------------------------------
