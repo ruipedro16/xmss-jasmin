@@ -20,45 +20,31 @@
 #endif
 
 #ifndef TIMINGS
-#define TIMINGS 20
+#define TIMINGS 100
 #endif
 
 #ifndef LOOPS
 #define LOOPS 10
 #endif
 
-// TODO: extern void go here
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static void print_results(FILE *f, int loop, size_t message_len, const char *function, uint64_t cycles_ref[TIMINGS],
-                          uint64_t cycles_jasmin[TIMINGS]) {
-    if (!f) {
-        fprintf(stderr, "FILE *f is NULL in print_results\n");
-        exit(-1);
-    }
+extern int xmss_keypair_jazz(uint8_t *pk, uint8_t *sk);
+extern int xmssmt_keypair_jazz(uint8_t *pk, uint8_t *sk);
 
-    if (!function) {
-        fprintf(stderr, "char* function is NULL in print_results\n");
-    }
+extern int xmss_sign_jazz(uint8_t *sk, uint8_t *sm, size_t *smlen, const uint8_t *m, size_t mlen);
+extern int xmssmt_sign_jazz(uint8_t *sk, uint8_t *sm, size_t *smlen, const uint8_t *m, size_t mlen);
 
-#ifdef ALL_TIMINGS
-    cpucycles_median(cycles_ref, TIMINGS);
-    cpucycles_median(cycles_jasmin, TIMINGS);
+extern int xmss_sign_open_jazz(uint8_t *m, size_t *mlen, const uint8_t *sm, size_t smlen, const uint8_t *pk);
+extern int xmssmt_sign_open_jazz(uint8_t *m, size_t *mlen, const uint8_t *sm, size_t smlen, const uint8_t *pk);
 
-    for (size_t i = 0; i < TIMINGS - 1; i++) {
-        uint64_t diff = cycles_jasmin[i] - cycles_ref[i];
-        fprintf(f, "%d,%s,%ld,%ld,%ld,%ld\n", loop, function, message_len, cycles_ref[i], cycles_jasmin[i], diff);
-    }
-#else
-    uint64_t median_ref = cpucycles_median(cycles_ref, TIMINGS);
-    uint64_t median_jasmin = cpucycles_median(cycles_jasmin, TIMINGS);
-    uint64_t diff = median_jasmin - median_ref;  // TODO: Can I compute it like this?
-    fprintf(f, "%d,%s,%ld,%ld,%ld,%ld\n", loop, function, message_len, median_ref, median_jasmin, diff);
-#endif
-}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-int main(void) {
-    bool debug = true;
+static int starts_with(const char *str, const char *prefix) { return strncmp(str, prefix, strlen(prefix)) == 0; }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void bench_xmss(void) {
     xmss_params p;
     uint32_t oid;
 
@@ -72,131 +58,44 @@ int main(void) {
         exit(-1);
     }
 
-    #ifdef ALL_TIMINGS
-    const char *filename = "csv/bench_xmss_all_timings.csv";
-#else
-    const char *filename = "csv/bench_xmss.csv";
-#endif
+}
 
-    FILE *f;
-    if ((f = fopen(filename, "w")) == NULL) {
-        fprintf(stderr, "Failed to open file csv/bench_xmss.csv\n");
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void bench_xmssmt(void) {
+    xmss_params p;
+    uint32_t oid;
+
+    if (xmss_str_to_oid(&oid, xstr(IMPL)) == -1) {
+        fprintf(stderr, "Failed to generate oid from impl name\n");
         exit(-1);
     }
 
-    fprintf(f, "Loop,Function,MessageLen,Reference,Jasmin,Diff\n");
+    if (xmss_parse_oid(&p, oid) == -1) {
+        fprintf(stderr, "Failed to generate params from oid\n");
+        exit(-1);
+    }
 
-    uint64_t cycles_ref[LOOPS][TIMINGS], cycles_jasmin[LOOPS][TIMINGS];
-
+    uint8_t m[MAX_MSG_LEN];
     uint8_t pk[XMSS_OID_LEN + p.pk_bytes];
     uint8_t sk[XMSS_OID_LEN + p.sk_bytes];
-    uint8_t m[MAX_MSG_LEN];
-    uint8_t sm[p.sig_bytes + 1];
-    unsigned long long smlen = 0;
+    uint8_t sm[p.sig_bytes + MAX_MSG_LEN];
+    size_t mlen, smlen;
 
+    // Warmup
     for (int i = 0; i < 10; i++) {
-        // warmup
+        xmss_keypair_jazz(pk, sk);
+        xmss_sign_jazz(sk, sm, &smlen, m, MAX_MSG_LEN);
+        xmss_sign_open_jazz(m, &mlen, sm, smlen, pk);
     }
 
-    // TODO:
+    puts("Finished Warmup")
+}
 
-    for (int loop = 0; loop < LOOPS; loop++) {
-        // XMSS_KEYPAIR [ref]
-        for (int i = 0; i < TIMINGS; i++) {
-            cycles_ref[loop][i] = cpucycles();
-            xmss_keypair(pk, sk, oid);
-        }
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-        // XMSS_KEYPAIR [jasmin]
-        for (int i = 0; i < TIMINGS; i++) {
-            cycles_jasmin[loop][i] = cpucycles();
-            // TODO:
-            // xmss_keypair_jazz(pk, sk);
-        }
-
-        print_results(f, loop, -1, "xmss_keypair", cycles_ref[loop], cycles_jasmin[loop]);
-
-        for (size_t message_len = 1; message_len <= MAX_MSG_LEN; message_len++) {
-            if (debug) {
-                printf("[MessageLen=%ld]: Loop iteration: %d\n", message_len, loop);
-            }
-
-            // XMSS_SIGN [ref]
-            for (int i = 0; i < TIMINGS; i++) {
-                cycles_ref[loop][i] = cpucycles();
-                xmss_sign(sk, sm, &smlen, m, message_len);
-            }
-
-            // XMSS_SIGN [jasmin]
-            for (int i = 0; i < TIMINGS; i++) {
-                cycles_jasmin[loop][i] = cpucycles();
-                // TODO:
-                // xmss_sign_jazz(sk, sm, &smlen, m, message_len);
-            }
-
-            print_results(f, loop, message_len, "xmss_sign", cycles_ref[loop], cycles_jasmin[loop]);
-
-            // XMSS_SIGN [ref]
-            for (int i = 0; i < TIMINGS; i++) {
-                cycles_ref[loop][i] = cpucycles();
-                xmss_sign_open(m, (unsigned long long *)&message_len, sm, smlen, pk);
-            }
-
-            // XMSS_SIGN [jasmin]
-            for (int i = 0; i < TIMINGS; i++) {
-                cycles_jasmin[loop][i] = cpucycles();
-                // TODO:
-                // xmss_sign_open_jazz(m, &message_len, sm, smlen, pk);
-            }
-
-            print_results(f, loop, message_len, "xmss_sign_open", cycles_ref[loop], cycles_jasmin[loop]);
-
-            // XMSSMT_KEYPAIR [ref]
-            for (int i = 0; i < TIMINGS; i++) {
-                cycles_ref[loop][i] = cpucycles();
-                xmssmt_keypair(pk, sk, oid);
-            }
-
-            // XMSSMT_KEYPAIR [jasmin]
-            for (int i = 0; i < TIMINGS; i++) {
-                cycles_jasmin[loop][i] = cpucycles();
-                // TODO:
-                // xmssmt_keypair_jazz(pk, sk);
-            }
-
-            print_results(f, loop, message_len, "xmssmt_keypair", cycles_ref[loop], cycles_jasmin[loop]);
-
-            // XMSSMT_SIGN [ref]
-            for (int i = 0; i < TIMINGS; i++) {
-                cycles_ref[loop][i] = cpucycles();
-                xmssmt_sign(sk, sm, &smlen, m, message_len);
-            }
-
-            // XMSSMT_SIGN [jasmin]
-            for (int i = 0; i < TIMINGS; i++) {
-                cycles_jasmin[loop][i] = cpucycles();
-                // TODO:
-                // xmssmt_sign_jazz(sk, sm, &smlen, m, message_len);
-            }
-
-            print_results(f, loop, message_len, "xmssmt_sign", cycles_ref[loop], cycles_jasmin[loop]);
-
-            // XMSSMT_SIGN [ref]
-            for (int i = 0; i < TIMINGS; i++) {
-                cycles_ref[loop][i] = cpucycles();
-                xmssmt_sign_open(m, (unsigned long long *)&message_len, sm, smlen, pk);
-            }
-
-            // XMSSMT_SIGN [jasmin]
-            for (int i = 0; i < TIMINGS; i++) {
-                cycles_jasmin[loop][i] = cpucycles();
-                // TODO:
-                // xmssmt_sign_open_jazz(m, &message_len, sm, smlen, pk);
-            }
-
-            print_results(f, loop, message_len, "xmssmt_sign_open", cycles_ref[loop], cycles_jasmin[loop]);
-        }
-    }
-
+int main(void) {
+    starts_with(xstr(IMPL), "XMSSMT") ? bench_xmssmt() : bench_xmss();
+    printf("Finished running benchmarks for %s\n", xstr(IMPL));
     return 0;
 }

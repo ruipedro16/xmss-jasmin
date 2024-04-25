@@ -23,9 +23,9 @@ asm_files: $(ASM_FILES)
 
 # --------------------------------------------------------------------------------------------------
 
-REF_SOURCES := $(filter-out ../xmss-reference/xmss_core_fast.c \
-                            ../xmss-reference/randombytes.c \
-							../xmss-reference/randombytes.h, $(wildcard ../xmss-reference/*.c))
+REF_SOURCES := $(filter-out ../submodules/xmss-reference/xmss_core_fast.c \
+                            ../submodules/xmss-reference/randombytes.c \
+							../submodules/xmss-reference/randombytes.h, $(wildcard ../submodules/xmss-reference/*.c))
 
 BENCH_SOURCES := common/notrandombytes.c common/cpucycles.c 
 
@@ -36,7 +36,7 @@ bin/wots.s: bin/
 	cp ../test/wots/bin/test_wots.s $@
 
 bin/xmss.s: bin/
-	touch $@ # TODO:
+	touch $@ # TODO: /submodules/
 
 # --------------------------------------------------------------------------------------------------
 

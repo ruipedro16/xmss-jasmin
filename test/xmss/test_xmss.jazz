@@ -64,8 +64,8 @@ export fn xmssmt_sign_jazz(
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 export fn xmss_sign_open_jazz(
-    reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk,
-    reg u64 m_ptr mlen_ptr sm_ptr smlen
+    reg u64 m_ptr mlen_ptr sm_ptr smlen,
+    reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk
 ) -> reg u64
 {
     reg u64 res;
@@ -74,8 +74,8 @@ export fn xmss_sign_open_jazz(
 }
 
 export fn xmssmt_sign_open_jazz(
-    reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk,
-    reg u64 m_ptr mlen_ptr sm_ptr smlen
+    reg u64 m_ptr mlen_ptr sm_ptr smlen,
+    reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk
 ) -> reg u64
 {
     reg u64 res;
