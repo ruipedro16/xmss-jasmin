@@ -19,13 +19,19 @@
 #define MAX_MSG_LEN 1024
 #endif
 
+#ifndef MIN_MSG_LEN
+#define MIN_MSG_LEN 1
+#endif
+
 #ifndef TIMINGS
-#define TIMINGS 100
+#define TIMINGS 10000
 #endif
 
 #ifndef LOOPS
 #define LOOPS 10
 #endif
+
+#define MAX_BUF_SIZE 2048
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -53,26 +59,19 @@ static void print_results(FILE *f, int loop, size_t message_len, const char *ope
         fprintf(stderr, "char* operation is NULL in print_results\n");
     }
 
-#ifdef ALL_TIMINGS
     cpucycles_median(cycles_ref, TIMINGS);
     cpucycles_median(cycles_jasmin, TIMINGS);
 
     for (size_t i = 0; i < TIMINGS - 1; i++) {
-        uint64_t diff = cycles_jasmin[i] - cycles_ref[i];
-        fprintf(f, "%d,%s,%ld,%ld,%ld,%ld\n", loop, function, message_len, cycles_ref[i], cycles_jasmin[i], diff);
+        fprintf(f, "%d,%s,%ld,%ld,%ld\n", loop, operation, message_len, cycles_ref[i], cycles_jasmin[i]);
     }
-#else
-    uint64_t median_ref = cpucycles_median(cycles_ref, TIMINGS);
-    uint64_t median_jasmin = cpucycles_median(cycles_jasmin, TIMINGS);
-    // uint64_t diff = median_jasmin - median_ref;  // TODO: Can I compute it like this?
-    fprintf(f, "%d,%s,%ld,%ld,%ld,%ld\n", loop, operation, message_len, median_ref, median_jasmin, "--");
-#endif
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void bench_xmss(void) {
-    bool debug = true;
+    bool verbose = true;
     xmss_params p;
     uint32_t oid;
 
@@ -86,19 +85,17 @@ void bench_xmss(void) {
         exit(-1);
     }
 
-#ifdef ALL_TIMINGS
-    const char *filename = "csv/bench_xmss_all_timings.csv";
-#else
-    const char *filename = "csv/bench_xmss.csv";
-#endif
+    char filename[MAX_BUF_SIZE] = {0};
+
+    sprintf(filename, "csv/bench_%s.csv", xstr(IMPL));
 
     FILE *f;
     if ((f = fopen(filename, "w")) == NULL) {
-        fprintf(stderr, "Failed to open file csv/bench_xmss.csv\n");
+        fprintf(stderr, "Failed to open file %s\n", filename);
         exit(-1);
     }
 
-    fprintf(f, "Loop,Operation,MessageLen,Reference,Jasmin,Diff\n");  // Header of the CSV
+    fprintf(f, "Loop,Operation,MessageLen,Reference,Jasmin\n");  // Header of the CSV
 
     uint8_t m[MAX_MSG_LEN];
     uint8_t pk[XMSS_OID_LEN + p.pk_bytes];
@@ -128,12 +125,14 @@ void bench_xmss(void) {
             xmss_keypair_jazz(pk, sk);
         }
 
-        if (debug) { puts("Finished keypair"); }
+        if (verbose) {
+            puts("Finished keypair");
+        }
 
         print_results(f, loop, -1, "keypair", cycles_ref[loop], cycles_jasmin[loop]);
 
-        for (size_t message_len = 1; message_len <= MAX_MSG_LEN; message_len++) {
-            if (debug) {
+        for (size_t message_len = MIN_MSG_LEN; message_len <= MAX_MSG_LEN; message_len++) {
+            if (verbose) {
                 printf("[MessageLen=%ld]: Loop iteration: %d\n", message_len, loop);
             }
 
@@ -149,7 +148,9 @@ void bench_xmss(void) {
                 xmss_sign_jazz(sk, sm, &smlen, m, message_len);
             }
 
-            if (debug) { puts("Finished sign"); }
+            if (verbose) {
+                puts("Finished sign");
+            }
 
             print_results(f, loop, message_len, "sign", cycles_ref[loop], cycles_jasmin[loop]);
 
@@ -165,7 +166,9 @@ void bench_xmss(void) {
                 xmss_sign_open_jazz(m, &mlen, sm, smlen, pk);
             }
 
-            if (debug) { puts("Finished sign open"); }
+            if (verbose) {
+                puts("Finished sign open");
+            }
 
             print_results(f, loop, message_len, "sign_open", cycles_ref[loop], cycles_jasmin[loop]);
         }
@@ -175,7 +178,7 @@ void bench_xmss(void) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void bench_xmssmt(void) {
-    bool debug = true;
+    bool verbose = true;
     xmss_params p;
     uint32_t oid;
 
@@ -189,10 +192,12 @@ void bench_xmssmt(void) {
         exit(-1);
     }
 
+    char filename[MAX_BUF_SIZE] = {0};
+
 #ifdef ALL_TIMINGS
-    const char *filename = "csv/bench_xmssmt_all_timings.csv";
+    sprintf(filename, "csv/bench_%s_all_timings.csv", xstr(IMPL));
 #else
-    const char *filename = "csv/bench_xmssmt.csv";
+    sprintf(filename, "csv/bench_%s.csv", xstr(IMPL));
 #endif
 
     FILE *f;
@@ -201,7 +206,7 @@ void bench_xmssmt(void) {
         exit(-1);
     }
 
-    fprintf(f, "Loop,Operation,MessageLen,Reference,Jasmin,Diff\n");  // Header of the CSV
+    fprintf(f, "Loop,Operation,MessageLen,Reference,Jasmin\n");  // Header of the CSV
 
     uint8_t m[MAX_MSG_LEN];
     uint8_t pk[XMSS_OID_LEN + p.pk_bytes];
@@ -231,12 +236,14 @@ void bench_xmssmt(void) {
             xmssmt_keypair_jazz(pk, sk);
         }
 
-        if (debug) { puts("Finished keypair"); }
+        if (verbose) {
+            puts("Finished keypair");
+        }
 
         print_results(f, loop, -1, "keypair", cycles_ref[loop], cycles_jasmin[loop]);
 
         for (size_t message_len = 1; message_len <= MAX_MSG_LEN; message_len++) {
-            if (debug) {
+            if (verbose) {
                 printf("[MessageLen=%ld]: Loop iteration: %d\n", message_len, loop);
             }
 
@@ -252,7 +259,9 @@ void bench_xmssmt(void) {
                 xmssmt_sign_jazz(sk, sm, &smlen, m, message_len);
             }
 
-            if (debug) { puts("Finished sign"); }
+            if (verbose) {
+                puts("Finished sign");
+            }
 
             print_results(f, loop, message_len, "sign", cycles_ref[loop], cycles_jasmin[loop]);
 
@@ -268,7 +277,9 @@ void bench_xmssmt(void) {
                 xmssmt_sign_open_jazz(m, &mlen, sm, smlen, pk);
             }
 
-            if (debug) { puts("Finished sign open"); }
+            if (verbose) {
+                puts("Finished sign open");
+            }
 
             print_results(f, loop, message_len, "sign_open", cycles_ref[loop], cycles_jasmin[loop]);
         }

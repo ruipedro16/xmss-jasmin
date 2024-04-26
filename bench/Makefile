@@ -12,15 +12,14 @@ LDLIBS   = -lcrypto
 # Optinal flag -DALL_TIMINGS
 BENCH_FLAGS ?= 
 
+MIN_MSG_LEN := 1
+MAX_MSG_LEN := 5
+
 # --------------------------------------------------------------------------------------------------
 
-BIN_FILES := bin/bench_wots bin/bench_xmss
-ASM_FILES := bin/wots.s bin/xmss.s
-CSV_FILES := $(patsubst bin/%,csv/%.csv,$(BIN_FILES))
-
-default: $(BIN_FILES)
-run: bench_wots bench_xmss
-asm_files: $(ASM_FILES)
+default: bin/bench_wots bin/bench_xmss
+bench_wots: results/results_wots.json
+bench_xmss: results/results_xmss.json
 
 # --------------------------------------------------------------------------------------------------
 
@@ -28,13 +27,13 @@ REF_SOURCES := $(filter-out ../submodules/xmss-reference/xmss_core_fast.c \
                             ../submodules/xmss-reference/randombytes.c \
 							../submodules/xmss-reference/randombytes.h, $(wildcard ../submodules/xmss-reference/*.c))
 
-BENCH_SOURCES := common/notrandombytes.c common/cpucycles.c 
+BENCH_SOURCES := common/notrandombytes.c 
 
 # --------------------------------------------------------------------------------------------------
 
 bin/wots.s: bin/
 	make -C ../test/wots clean asm_files
-	cp ../test/wots/bin/test_wots.s $@
+	cp ../test/wots/bin/test_wots_xmss-sha2_10_256.s $@
 
 bin/xmss.s: bin/
 	make -C ../test/xmss/ clean asm_files
@@ -44,19 +43,29 @@ bin/xmss.s: bin/
 
 bin/bench_wots: bin/wots.s
 	$(CC) $(CFLAGS) -o $@ -I./common -I../submodules/xmss-reference \
-	-DIMPL=XMSS-SHAKE_20_512 $(REF_SOURCES) $(BENCH_SOURCES) $(BENCH_FLAGS) \
-	bench_wots.c $< $(LDLIBS)
+	-DIMPL=XMSS-SHAKE_20_512 -DMAX_MSG_LEN=$(MAX_MSG_LEN) -DMIN_MSG_LEN=$(MIN_MSG_LEN) \
+	$(REF_SOURCES) $(BENCH_SOURCES) $(BENCH_FLAGS) bench_wots.c $< $(LDLIBS)
 
 bin/bench_xmss: bin/xmss.s
 	$(CC) $(CFLAGS) -o $@ -I./common -I../submodules/xmss-reference \
 	-DIMPL=XMSS-SHAKE_20_512 $(REF_SOURCES) $(BENCH_SOURCES) $(BENCH_FLAGS) \
 	bench_xmss.c $< $(LDLIBS)
 
-bench_wots: bin/bench_wots | csv/
+# --------------------------------------------------------------------------------------------------
+
+csv/bench_wots.csv: bin/bench_wots | csv/
 	./$<
 
-bench_xmss: bin/bench_xmss | csv/
+csv/bench_xmss.csv: bin/bench_xmss | csv/
 	./$<
+
+# --------------------------------------------------------------------------------------------------
+
+results/results_wots.json: csv/bench_wots.csv | results/
+	./print_results.py -in $< -out $@
+
+results/results_xmss.json: csv/bench_xmss.csv | results/
+	./print_results.py -in $< -out $@
 
 # --------------------------------------------------------------------------------------------------
 
@@ -64,6 +73,9 @@ bin/:
 	mkdir -p $@
 
 csv/:
+	mkdir -p $@
+
+results/:
 	mkdir -p $@
 
 # --------------------------------------------------------------------------------------------------

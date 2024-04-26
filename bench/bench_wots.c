@@ -20,7 +20,7 @@
 #endif
 
 #ifndef LOOPS
-#define LOOPS 1
+#define LOOPS 10
 #endif
 
 extern void wots_pkgen_jazz(uint8_t *, const uint8_t *, const uint8_t *, uint32_t *);
@@ -39,24 +39,16 @@ static void print_results(FILE *f, int loop, const char *function, uint64_t cycl
         fprintf(stderr, "char* function is NULL in print_results\n");
     }
 
-#ifdef ALL_TIMINGS
     cpucycles_median(cycles_ref, TIMINGS);
     cpucycles_median(cycles_jasmin, TIMINGS);
 
     for (size_t i = 0; i < TIMINGS - 1; i++) {
-        uint64_t diff = cycles_jasmin[i] - cycles_ref[i];
-        fprintf(f, "%d,%s,%ld,%ld,%ld\n", loop, function, cycles_ref[i], cycles_jasmin[i], diff);
+        fprintf(f, "%d,%s,%ld,%ld\n", loop, function, cycles_ref[i], cycles_jasmin[i]);
     }
-#else
-    uint64_t median_ref = cpucycles_median(cycles_ref, TIMINGS);
-    uint64_t median_jasmin = cpucycles_median(cycles_jasmin, TIMINGS);
-    uint64_t diff = median_jasmin - median_ref;  // TODO: Can I compute it like this?
-    fprintf(f, "%d,%s,%ld,%ld,%ld\n", loop, function, median_ref, median_jasmin, diff);
-#endif
 }
 
 int main(void) {
-    bool debug = true;
+    bool verbose = true;
 
     xmss_params p;
     uint32_t oid;
@@ -71,11 +63,7 @@ int main(void) {
         exit(-1);
     }
 
-#ifdef ALL_TIMINGS
-    const char *filename = "csv/bench_wots_all_timings.csv";
-#else
     const char *filename = "csv/bench_wots.csv";
-#endif
 
     FILE *f;
     if ((f = fopen(filename, "w")) == NULL) {
@@ -83,7 +71,7 @@ int main(void) {
         exit(-1);
     }
 
-    fprintf(f, "Loop,Function,Reference,Jasmin,Diff\n");
+    fprintf(f, "Loop,Function,Reference,Jasmin\n"); // Header of the csv 
 
     uint64_t cycles_ref[LOOPS][TIMINGS], cycles_jasmin[LOOPS][TIMINGS];
 
@@ -106,7 +94,7 @@ int main(void) {
     }
 
     for (int loop = 0; loop < LOOPS; loop++) {
-        if (debug) {
+        if (verbose) {
             printf("Loop: %d\n", loop);
         }
 
@@ -124,7 +112,7 @@ int main(void) {
 
         print_results(f, loop, "pkgen", cycles_ref[loop], cycles_jasmin[loop]);
 
-        if (debug) {
+        if (verbose) {
             printf("Benched PK_Gen\n");
         }
 
@@ -142,7 +130,7 @@ int main(void) {
 
         print_results(f, loop, "sign", cycles_ref[loop], cycles_jasmin[loop]);
 
-        if (debug) {
+        if (verbose) {
             printf("Benched Sign\n");
         }
 
@@ -160,12 +148,14 @@ int main(void) {
 
         print_results(f, loop, "pk_from_sig", cycles_ref[loop], cycles_jasmin[loop]);
 
-        if (debug) {
+        if (verbose) {
             printf("Benched PKFromSig\n");
         }
     }
 
-    fclose(f);
+    if (f != NULL) {
+        fclose(f);
+    }
 
     return 0;
 }
