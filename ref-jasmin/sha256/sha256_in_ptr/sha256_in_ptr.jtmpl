@@ -21,7 +21,6 @@ fn _blocks_0_ref(reg ptr u32[8] _H, reg u64 in inlen) -> reg ptr u32[8], reg u64
   stack ptr u32[8] Hp;
   reg ptr u32[8] H;
   reg u64 tr;
-  stack u64 in_s;
 
   Kp = SHA256_K;
   Hp = _H;
@@ -35,7 +34,7 @@ fn _blocks_0_ref(reg ptr u32[8] _H, reg u64 in inlen) -> reg ptr u32[8], reg u64
       v = #BSWAP_32(v);
       W[t] = v;
     }
-    in_s = in;
+    () = #spill(in);
 
     for t=16 to 64
     { W = __Wt_ref(W, t); }
@@ -86,7 +85,7 @@ fn _blocks_0_ref(reg ptr u32[8] _H, reg u64 in inlen) -> reg ptr u32[8], reg u64
 
     H = __store_H_ref(H,a,b,c,d,e,f,g,h);
 
-    in = in_s;
+    () = #unspill(in);
     in += 64;
     inlen -= 64;
   }
@@ -135,7 +134,6 @@ inline fn __lastblocks_ref(reg u64 in inlen bits) -> stack u32[32], reg u64
 inline fn __sha256_in_ptr(reg ptr u8[32] out, reg u64 in inlen) -> reg ptr u8[32]
 {
   reg u64 bits nblocks;
-  stack u64 s_bits;
   stack u32[8] H;
   reg ptr u32[8] Hp;
   stack u32[32] sblocks;
@@ -145,13 +143,13 @@ inline fn __sha256_in_ptr(reg ptr u8[32] out, reg u64 in inlen) -> reg ptr u8[32
 
   bits = inlen;
   bits <<= 3;
-  s_bits = bits;
+  () = #spill(bits);
 
   H = __initH_ref();
   Hp = H;
   Hp, in, inlen = _blocks_0_ref(Hp, in, inlen);
 
-  bits = s_bits;
+  () = #unspill(bits);
   sblocks, nblocks = __lastblocks_ref(in, inlen, bits);
   sblocksp = sblocks;
   Hp, _ = _blocks_1_ref(Hp, sblocksp, nblocks);

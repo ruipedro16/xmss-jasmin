@@ -5,10 +5,6 @@ export fn sha256_in_ptr_jazz(
   #transient reg u64 in inlen
 ) -> reg ptr u8[32]
 {
-  #msf reg u64 ms;
-
-  ms = #init_msf();
-
-  out = __sha256_in_ptr(out, in, inlen, ms); 
+  out = __sha256_in_ptr(out, in, inlen); 
   return out;
 }
