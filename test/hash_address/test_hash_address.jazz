@@ -42,7 +42,7 @@ export fn set_key_and_mask_jazz(
 ) -> reg ptr u32[8] 
 {
     _ = #init_msf();
-
+    
     addr = __set_key_and_mask(addr, key_and_mask);
 
     return addr;
@@ -62,7 +62,10 @@ export fn set_ots_addr_jazz(
     #transient reg u32 ots
 ) -> reg ptr u32[8] 
 {
+    _ = #init_msf();
+
     addr = __set_ots_addr(addr, ots);
+
     return addr;
 }
 
@@ -71,7 +74,10 @@ export fn set_chain_addr_jazz(
     #transient reg u32 chain
 ) -> reg ptr u32[8] 
 {
+    _ = #init_msf();
+
     addr = __set_chain_addr(addr, chain);
+
     return addr;
 }
 
@@ -80,7 +86,10 @@ export fn set_hash_addr_jazz(
     #transient reg u32 hash
 ) -> reg ptr u32[8] 
 {
+    _ = #init_msf();
+
     addr = __set_hash_addr(addr, hash);
+
     return addr;
 }
 
@@ -89,7 +98,10 @@ export fn set_ltree_addr_jazz(
     #transient reg u32 ltree
 ) -> reg ptr u32[8]
 {
+    _ = #init_msf();
+
     addr = __set_ltree_addr(addr, ltree);
+
     return addr;
 }
 
@@ -98,7 +110,10 @@ export fn set_tree_height_jazz(
     #transient reg u32 tree_height
 ) -> reg ptr u32[8]
 {
+    _ = #init_msf();
+
     addr = __set_tree_height(addr, tree_height);    
+
     return addr;
 }
 
@@ -107,7 +122,10 @@ export fn set_tree_index_jazz(
     #transient reg u32 tree_index
 ) -> reg ptr u32[8]
 {
+    _ = #init_msf();
+
     addr = __set_tree_index(addr, tree_index);
+
     return addr;
 }
 

@@ -1,7 +1,14 @@
 from XMSS require "sha256/sha256_in_ptr/sha256_in_ptr.jtmpl"
 
-export fn sha256_in_ptr_jazz(reg ptr u8[32] out, reg u64 in inlen) -> reg ptr u8[32]
+export fn sha256_in_ptr_jazz(
+  reg ptr u8[32] out, 
+  #transient reg u64 in inlen
+) -> reg ptr u8[32]
 {
-  out = __sha256_in_ptr(out, in, inlen); 
+  #msf reg u64 ms;
+
+  ms = #init_msf();
+
+  out = __sha256_in_ptr(out, in, inlen, ms); 
   return out;
 }
