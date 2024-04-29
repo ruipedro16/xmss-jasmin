@@ -26,7 +26,6 @@ fn _blocks_0_ref<INLEN>(
   stack ptr u32[8] Hp;
   reg ptr u32[8] H;
   reg u64 tr;
-  stack u64 in_s;
   reg u64 inlen;
 
   offset = 0;

@@ -27,6 +27,7 @@ obj_files: bin/test_hash_address.o
 
 ct:  bin/test_hash_address.check_ct
 sct: bin/test_hash_address.check_sct
+
 # --------------------------------------------------------------------------------------------------
 
 .PRECIOUS: bin/test_hash_address.s

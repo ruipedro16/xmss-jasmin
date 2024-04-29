@@ -34,7 +34,9 @@ GET_INLEN   = $(word 4, $(subst _, ,$*))
 JPP_FILES     := $(addsuffix .jpp, $(TESTS))
 ASM_FILES     := $(JPP_FILES:.jpp=.s)
 OBJ_FILES     := $(ASM_FILES:.s=.o)
-CHECKCT_FILES := $(JPP_FILES:.jpp=.check)
+
+CHECK_CT  := $(JPP_FILES:.jpp=.check_ct)
+CHECK_SCT := $(JPP_FILES:.jpp=.check_sct)
 
 # --------------------------------------------------------------------------------------------------
 
@@ -44,7 +46,9 @@ run: $(OUT)
 jpp_files: $(JPP_FILES)
 asm_files: $(ASM_FILES)
 obj_files: $(OBJ_FILES)
-checkct: $(CHECKCT_FILES)
+
+ct: $(CHECK_CT)
+sct: $(CHECK_SCT)
 
 # --------------------------------------------------------------------------------------------------
 
@@ -75,9 +79,13 @@ $(OBJ_FILES):
 bin/%.o: bin/%.s
 	$(AS) $< -o $@
 
-$(CHECKCT_FILES):
-bin/%.check: bin/%.jpp
-	$(JAZZCT) --infer $^ > $@
+$(CHECK_CT):
+bin/%.check_ct: bin/%.jpp | bin/
+	$(JAZZCT) --infer $^
+
+$(CHECK_SCT):
+bin/%.check_sct: bin/%.jpp | bin/
+	$(JAZZCT) --sct --infer $^
 
 bin/%.out: bin/%
 	@./$<
@@ -89,9 +97,4 @@ bin/:
 
 .PHONY: clean
 clean:
-	rm -fr bin/
-
-# --------------------------------------------------------------------------------------------------
-
-debug:
-	@echo $(TESTS)
+	$(RM) -fr bin/
