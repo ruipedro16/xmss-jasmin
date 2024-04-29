@@ -10,6 +10,8 @@ require import Notation Address Primitives Wots.
 
 require import Array8.
 
+require import XMSS_IMPL.
+
 import DList.
 import NBytes.
 

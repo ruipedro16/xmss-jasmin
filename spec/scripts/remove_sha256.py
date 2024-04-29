@@ -56,15 +56,23 @@ def remove_sha256_functions(input_text: str, template_functions_dict) -> str:
     # Regular expression to remove the global variable SHA256_K
     global_k_pattern = r"abbrev sHA256_K[\s\S]+\]\."
 
-    generic_functions: list[str] = ["__lastblocks_ref", "__sha256", "_blocks_0_ref"]
+    generic_functions: list[str] = [
+        "__lastblocks_ref",
+        "__sha256",
+        "_blocks_0_ref",
+        "__core_hash",
+        "_core_hash",
+        "__core_hash_",
+    ]
+    
     resolved_functions: list[str] = []
 
     for f in generic_functions:
         try:
             resolved_functions += [item.strip() for item in template_functions_dict[f]["resolved fn"].split(",")]
-        except KeyError: # "resolved fn" does not exist in the template functions_dict 
-            print(f'could not find {f} in template_functions_dict')
- 
+        except KeyError:  # "resolved fn" does not exist in the template functions_dict
+            print(f"could not find {f} in template_functions_dict")
+
     regular_functions: list[str] = [
         "__initH_ref",
         "__load_H_ref",
@@ -83,6 +91,7 @@ def remove_sha256_functions(input_text: str, template_functions_dict) -> str:
         "__ROTR_ref",
         "__CH_ref",
         "__sha256_in_ptr",
+        "__core_hash_in_ptr",
     ]
 
     functions_to_remove: list[str] = resolved_functions + regular_functions
@@ -101,6 +110,8 @@ def remove_sha256_functions(input_text: str, template_functions_dict) -> str:
 def preprocess_ec(ec_in: str, template_functions_dict) -> str:
     ec_out = ec_in.replace("module M", "module _M_")
     ec_out = remove_sha256_functions(ec_out, template_functions_dict)
+    ec_out = ec_out.replace("(* Erased call to spill *)", "")
+    ec_out = ec_out.replace("(* Erased call to unspill *)", "")
     return ec_out
 
 
@@ -141,6 +152,10 @@ def main():
 
     try:
         input_str = sys.stdin.read()
+
+        if args.debug:
+            print(input_str)
+
         template_functions_dict = json.loads(input_str)
     except TypeError:
         sys.stderr.write("[TypeError]: could not load JSON - the JSON object must be str, bytes or bytearray\n")

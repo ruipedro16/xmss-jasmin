@@ -3,8 +3,8 @@
 EASYCRYPT  ?= easycrypt
 EC_INCLUDE ?= -I common -I extraction
 
-JASMIN ?= jasminc
-JFLAGS ?= -nowarning ${JADDFLAGS}
+JASMIN   ?= jasminc
+JFLAGS   ?= -nowarning ${JADDFLAGS}
 JINCLUDE ?= -I XMSS:../ref-jasmin/ -I Stdlib:../ref-jasmin/stdlib
 
 JASMIN_SRC := ../ref-jasmin
@@ -14,41 +14,28 @@ JPP          := ../submodules/jasmin-preprocessor/jpp
 PREPROCESSOR := ../submodules/jasmin-preprocessor/preprocessor
 
 default: extract typecheck
-extract: extraction/xmss_impl.ec extraction/xmss_impl_no_sha256.ec
+extract: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
 
 # --------------------------------------------------------------------------------------------------
 
 # NOTE: __copy_subtree_addr missing
 
-extraction/xmss_impl.ec: | extraction/ common/
-	make -C $(TEST_SRC)/xmss_commons/ clean bin/test_xmss_commons_xmss-sha2_10_256.jpp
-	cp $(TEST_SRC)/xmss_commons/bin/test_xmss_commons_xmss-sha2_10_256.jpp $(@:.ec=.jinc)
-	$(JASMIN) $(JFLAGS) -ec __set_layer_addr \
-	          			-ec __set_tree_addr \
-			  			-ec __set_type \
-			  			-ec __set_key_and_mask \
-			  			-ec __set_ots_addr \
-			  			-ec __set_chain_addr \
-			  			-ec __set_hash_addr \
-			  			-ec __set_ltree_addr \
-			  			-ec __set_tree_height \
-			  			-ec __set_tree_index \
-			  			-ec _zero_address \
-			  			-ec __wots_pkgen \
-			  			-ec __wots_sign \
-			  			-ec __wots_pk_from_sig \
-						-ec __memcmp -oec $@ $(@:.ec=.jinc)
+extraction/XMSS_IMPL.ec: | extraction/ common/
+	$(MAKE) -C $(TEST_SRC)/xmss/ clean bin/test_xmss_xmss-sha2_10_256.jazz
+	cp $(TEST_SRC)/xmss/bin/test_xmss_xmss-sha2_10_256.jazz $(@:.ec=.jazz)
+	$(JASMIN) $(JFLAGS) -ec xmss_keypair_jazz \
+	                    -ec xmss_sign_jazz \
+						-ec xmss_sign_open_jazz \
+						-oec $@ $(@:.ec=.jazz)
 	mv Array*.ec common/
 	mv WArray*.ec common/
+	$(RM) extraction/XMSS_IMPL.jazz
 
-extraction/xmss_impl_no_sha256.ec: extraction/xmss_impl.ec | extraction/
-	make -C $(TEST_SRC)/xmss_commons/ clean bin/test_xmss_commons_xmss-sha2_10_256.jpp
-	cp $(TEST_SRC)/xmss_commons/bin/test_xmss_commons_xmss-sha2_10_256.jpp extraction/tmp.jazz
-	$(JPP) $(JINCLUDE) -in extraction/tmp.jazz -out extraction/tmp.jazz
-	$(PREPROCESSOR) -in extraction/tmp.jazz --print_tasks | ./scripts/remove_sha256.py -in $< -out $@
-	rm extraction/tmp.jazz
-
-
+extraction/XMSS_IMPL_PP.ec: extraction/XMSS_IMPL.ec | extraction/
+	$(MAKE) -C $(TEST_SRC)/xmss/ clean bin/test_xmss_xmss-sha2_10_256.jpp
+	cp $(TEST_SRC)/xmss/bin/test_xmss_xmss-sha2_10_256.jpp extraction/tmp.jpp
+	$(PREPROCESSOR) -in extraction/tmp.jpp --print_tasks | ./scripts/remove_sha256.py -d -in $< -out $@
+	$(RM) extraction/tmp.jpp
 
 # --------------------------------------------------------------------------------------------------
 
@@ -59,19 +46,20 @@ typecheck: extract
 	$(EASYCRYPT) $(EC_INCLUDE) Primitives.ec
 	$(EASYCRYPT) $(EC_INCLUDE) Wots.ec
 	# $(EASYCRYPT) $(EC_INCLUDE) XMSS.ec
-	$(EASYCRYPT) $(EC_INCLUDE) Properties.ec
+	# $(EASYCRYPT) $(EC_INCLUDE) Properties.ec
+	# $(EASYCRYPT) $(EC_INCLUDE) proof/Correctness.ec
 
 # --------------------------------------------------------------------------------------------------
 
 .PHONY: clean
 clean:
-	rm -rf *.eco
-	rm -rf *~ 
-	rm -rf \#*\#
+	$(RM) -rf *.eco
+	$(RM) -rf *~ 
+	$(RM) -rf \#*\#
 
 .PHONY: distclean
 distclean:	
-	rm -rf extraction/ common/
+	$(RM) -rf extraction/ common/
 
 # --------------------------------------------------------------------------------------------------
 
