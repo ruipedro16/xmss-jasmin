@@ -1,13 +1,11 @@
 // adapted from SUPERCOP implementations;
 
 #include <inttypes.h>
+#include <stdarg.h>
 #include <string.h>
 
-#include "randombytes.h"
-
-#ifdef DEBUG
 #include "print.h"
-#endif
+#include "randombytes.h"
 
 // ////////////////////////////////////////////////////////////////////////////
 
@@ -197,17 +195,7 @@ void resetrandombytes(void) {
     memset(g0, 0, KEYBYTES);
 }
 
-#ifndef STUPID_RANDOMBYTES
 void randombytes(uint8_t *x, uint64_t xlen) { randombytes_internal(x, xlen, g0, r0, &pos0); }
-#else
-void randombytes(uint8_t *x, uint64_t xlen) {
-    for (size_t i = 0; i < xlen; i++) {
-        x[i] = 0x123456;
-    }
-}
-#endif
-
-// ////////
 
 void resetrandombytes1(void) {
     pos1 = OUTPUTBYTES;
@@ -219,10 +207,10 @@ void randombytes1(uint8_t *x, uint64_t xlen) { randombytes_internal(x, xlen, g1,
 // ////////
 
 uint8_t *__jasmin_syscall_randombytes__(uint8_t *x, uint64_t xlen) {
-    #ifdef DEBUG
+#ifdef DEBUG
     print_str_u8("jasmin buffer", x, xlen);
-    #else
-    randombytes(x, xlen);
-    #endif
+#else
+    randombytes1(x, xlen);
+#endif
     return x;
 }

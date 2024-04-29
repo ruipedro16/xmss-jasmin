@@ -32,7 +32,7 @@ static uint64_t median(uint64_t *l, size_t llen) {
         return (l[llen / 2 - 1] + l[llen / 2]) / 2;
 }
 
-static uint64_t cpucycles_median(uint64_t *cycles, size_t timings) {
+uint64_t cpucycles_median(uint64_t *cycles, size_t timings) {
     for (size_t i = 0; i < timings - 1; i++) {
         cycles[i] = cycles[i + 1] - cycles[i];
     }
