@@ -30,11 +30,13 @@ OUT   := $(addsuffix .out, $(TESTS))
 JPP_FILES     := $(addsuffix .jpp, $(TESTS))
 ASM_FILES     := $(JPP_FILES:.jpp=.s)
 OBJ_FILES     := $(ASM_FILES:.s=.o)
-CHECKCT_FILES := $(JPP_FILES:.jpp=.check)
+
+CHECK_CT  := $(JPP_FILES:.jpp=.check_ct)
+CHECK_SCT := $(JPP_FILES:.jpp=.check_sct)
 
 # --------------------------------------------------------------------------------------------------
 
-SOURCES := test_utils.c ../common/notrandombytes.c ../common/print.c ../../xmss-reference/utils.c
+SOURCES := test_utils.c ../common/notrandombytes.c ../common/print.c ../utils.c
 
 # --------------------------------------------------------------------------------------------------
 
@@ -44,7 +46,9 @@ run: $(OUT)
 jpp_files: $(JPP_FILES)
 asm_files: $(ASM_FILES)
 obj_files: $(OBJ_FILES)
-checkct: $(CHECKCT_FILES)
+
+ct: $(CHECK_CT)
+sct: $(CHECK_SCT)
 
 # --------------------------------------------------------------------------------------------------
 
@@ -66,19 +70,22 @@ bin/%.s: bin/%.jpp
 
 $(TESTS):
 bin/test_utils_%: bin/test_utils_%.s | bin/
-	$(CC) $(CFLAGS) -o $@ -I../common -I../../xmss-reference/ -DINLEN=$* $(SOURCES) $<
+	$(CC) $(CFLAGS) -o $@ -I../common -I../ -DINLEN=$* $(SOURCES) $<
 
 bin/test_conditions: bin/test_conditions.s | bin/
-	$(CC) $(CFLAGS) -o $@ -I../common -I../../xmss-reference/ \
-	test_conditions.c ../common/notrandombytes.c $<
+	$(CC) $(CFLAGS) -o $@ -I../common -I../ test_conditions.c ../common/notrandombytes.c $<
 
 $(OBJ_FILES):
 bin/%.o: bin/%.s
 	$(AS) $< -o $@
 
-$(CHECKCT_FILES):
-bin/%.check: bin/%.jpp
-	$(JAZZCT) --infer $^ > $@
+$(CHECK_CT):
+bin/%.check_ct: bin/%.jpp | bin/
+	$(JAZZCT) --infer $^
+
+$(CHECK_SCT):
+bin/%.check_sct: bin/%.jpp | bin/
+	$(JAZZCT) --sct --infer $^
 
 bin/%.out: bin/%
 	@./$<
@@ -90,9 +97,4 @@ bin/:
 
 .PHONY: clean
 clean:
-	rm -fr bin/
-
-# --------------------------------------------------------------------------------------------------
-
-debug:
-	@echo $(OUT)
+	$(RM) -fr bin/

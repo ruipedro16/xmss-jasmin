@@ -81,17 +81,11 @@ results/:
 # --------------------------------------------------------------------------------------------------
 
 clean:
-	rm -rf bin/
+	$(RM) -rf bin/
 
 .PHONY: clean_executables
 clean_executables:
 	find bin/ -type f -executable -delete || true
 
 distclean:
-	rm -rf csv/
-
-# --------------------------------------------------------------------------------------------------
-
-debug:
-	@echo $(CSV_FILES)
-	@echo $(REF_SOURCES)
+	$(RM) -rf csv/

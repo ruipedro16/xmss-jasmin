@@ -1,6 +1,3 @@
-from XMSS require "params.jinc"
-from XMSS require "core_hash/core_hash_shake256_out_64.jtmpl"
-
 // NOTE: Outlen is 64
 
 export fn core_hash<INLEN>(

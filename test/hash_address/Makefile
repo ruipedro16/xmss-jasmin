@@ -11,6 +11,8 @@ JAZZCT   ?= jazzct
 JFLAGS   ?= ${JADDFLAGS}
 JINCLUDE ?= -I XMSS:../../ref-jasmin/
 
+JPP ?= ../../submodules/jasmin-preprocessor/jpp
+
 # --------------------------------------------------------------------------------------------------
 
 SOURCES := test_hash_address.c ../hash_address.c ../common/notrandombytes.c ../common/print.c
@@ -22,7 +24,9 @@ run: bin/test_hash_address.out
 
 asm_files: bin/test_hash_address.s
 obj_files: bin/test_hash_address.o
-checkct: bin/test_hash_address.check
+
+ct:  bin/test_hash_address.check_ct
+sct: bin/test_hash_address.check_sct
 
 # --------------------------------------------------------------------------------------------------
 
@@ -36,9 +40,16 @@ bin/test_hash_address: bin/test_hash_address.s | bin/
 %.o: %.s
 	$(AS) $< -o $@
 
-bin/test_hash_address.check: test_hash_address.jazz | bin/
-	$(JAZZCT) --infer $^ > $@
+.PHONY: bin/test_hash_address.check_ct bin/test_hash_address.check_sct
+bin/test_hash_address.check_ct: test_hash_address.jazz | bin/
+	$(JPP) $(JINCLUDE) -in $< -out $@
+	$(JAZZCT) --infer $@
+	$(RM) $@
 
+bin/test_hash_address.check_sct: test_hash_address.jazz | bin/
+	$(JPP) $(JINCLUDE) -in $< -out $@
+	$(JAZZCT) --sct --infer $@
+	$(RM) $@
 
 bin/test_hash_address.out: bin/test_hash_address
 	@./$<
@@ -50,4 +61,4 @@ bin/:
 
 .PHONY: clean
 clean:
-	rm -fr bin/
+	$(RM) -fr bin/

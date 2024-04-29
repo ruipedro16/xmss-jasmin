@@ -30,7 +30,7 @@ def get_system_info():
     info["processor"] = cpuname
     info["min_requency"] = f"{cpufreq.min:.2f}Mhz"
     info["max_requency"] = f"{cpufreq.max:.2f}Mhz"
-    info["system_info"]["frequency_used"] = "3.6Mhz"
+    info["frequency_used"] = "3.6Mhz"
     info["physical cores"] = psutil.cpu_count(logical=False)
     info["total cores"] = psutil.cpu_count(logical=True)
     info["ram"] = f"{round(psutil.virtual_memory().total/1000000000, 2)} GB"
