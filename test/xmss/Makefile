@@ -41,6 +41,9 @@ JAZZ_FILES    := $(JPP_FILES:.jpp=.jazz)
 ASM_FILES     := $(JAZZ_FILES:.jazz=.s)
 OBJ_FILES     := $(ASM_FILES:.s=.o)
 
+CHECK_CT  := $(JPP_FILES:.jpp=.check_ct)
+CHECK_SCT := $(JPP_FILES:.jpp=.check_sct)
+
 # ----------------------------------------------------------------------------------------------------------------------
 
 REF_SOURCES := $(wildcard ../*.c)
@@ -56,6 +59,9 @@ jpp_files: $(JPP_FILES)
 jazz_files: $(JAZZ_FILES)
 asm_files: $(ASM_FILES)
 obj_files: $(OBJ_FILES)
+
+ct: $(CHECK_CT)
+sct: $(CHECK_SCT)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -86,6 +92,14 @@ $(OBJ_FILES):
 bin/%.o: bin/%.s
 	$(AS) $< -o $@
 
+$(CHECK_CT):
+bin/%.check_ct: bin/%.jazz | bin/
+	$(JAZZCT) --infer $^
+
+$(CHECK_SCT):
+bin/%.check_sct: bin/%.jazz | bin/
+	$(JAZZCT) --sct --infer $^
+
 bin/%.out: bin/%
 	@./$<
 
@@ -96,13 +110,8 @@ bin/:
 
 .PHONY: clean
 clean:
-	rm -fr bin/
+	$(RM) -fr bin/
 
 .PHONY: clean_executables
 clean_executables:
 	find bin/ -type f -executable -delete || true
-
-# ----------------------------------------------------------------------------------------------------------------------
-
-debug:
-	echo $(REF_SOURCES)

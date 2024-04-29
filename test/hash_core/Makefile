@@ -51,7 +51,6 @@ run: $(OUT)
 jpp_files: $(JPP_FILES)
 asm_files: $(ASM_FILES)
 obj_files: $(OBJ_FILES)
-checkct: $(CHECKCT_FILES)
 
 # --------------------------------------------------------------------------------------------------
 
@@ -77,9 +76,6 @@ $(OBJ_FILES):
 bin/test_hash_core_%.o: bin/test_hash_core_%.s
 	$(AS) $< -o $@
 
-$(CHECKCT_FILES):
-bin/test_hash_core_%.check: bin/test_hash_core_%.jpp
-	$(JAZZCT) --infer $^ > $@
 
 bin/test_hash_core_%.out: bin/test_hash_core_%
 	@./$<
@@ -91,9 +87,4 @@ bin/:
 
 .PHONY: clean
 clean:
-	rm -fr bin/
-
-# --------------------------------------------------------------------------------------------------
-
-debug:
-	@echo $(TESTS)
+	$(RM) -fr bin/

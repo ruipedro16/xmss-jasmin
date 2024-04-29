@@ -102,13 +102,9 @@ bin/:
 
 .PHONY: clean
 clean:
-	rm -fr bin/
+	$(RM) -fr bin/
 
 .PHONY: clean_executables
 clean_executables:
 	find bin/ -type f -executable -delete || true
 
-# ----------------------------------------------------------------------------------------------------------------------
-
-debug:
-	@echo $(REF_SOURCES)
