@@ -5,12 +5,16 @@ EC_INCLUDE ?= -I common -I extraction
 
 JASMIN ?= jasminc
 JFLAGS ?= -nowarning ${JADDFLAGS}
+JINCLUDE ?= -I XMSS:../ref-jasmin/ -I Stdlib:../ref-jasmin/stdlib
 
 JASMIN_SRC := ../ref-jasmin
 TEST_SRC   := ../test
 
+JPP          := ../submodules/jasmin-preprocessor/jpp
+PREPROCESSOR := ../submodules/jasmin-preprocessor/preprocessor
+
 default: extract typecheck
-extract: extraction/xmss_impl.ec
+extract: extraction/xmss_impl.ec extraction/xmss_impl_no_sha256.ec
 
 # --------------------------------------------------------------------------------------------------
 
@@ -36,6 +40,15 @@ extraction/xmss_impl.ec: | extraction/ common/
 						-ec __memcmp -oec $@ $(@:.ec=.jinc)
 	mv Array*.ec common/
 	mv WArray*.ec common/
+
+extraction/xmss_impl_no_sha256.ec: extraction/xmss_impl.ec | extraction/
+	make -C $(TEST_SRC)/xmss_commons/ clean bin/test_xmss_commons_xmss-sha2_10_256.jpp
+	cp $(TEST_SRC)/xmss_commons/bin/test_xmss_commons_xmss-sha2_10_256.jpp extraction/tmp.jazz
+	$(JPP) $(JINCLUDE) -in extraction/tmp.jazz -out extraction/tmp.jazz
+	$(PREPROCESSOR) -in extraction/tmp.jazz --print_tasks | ./scripts/remove_sha256.py -in $< -out $@
+	rm extraction/tmp.jazz
+
+
 
 # --------------------------------------------------------------------------------------------------
 

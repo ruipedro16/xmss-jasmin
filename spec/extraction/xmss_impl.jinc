@@ -845,19 +845,19 @@ inline fn __sha256_in_ptr(reg ptr u8[32] out, reg u64 in inlen) -> reg ptr u8[32
   return out;
 }
 
-inline fn __core_hash_128(
-    reg ptr u8[XMSS_N] out, 
-    reg ptr u8[128] in
-) -> reg ptr u8[XMSS_N] {
-    out = __sha256_128(out, in);
-    return out;
-}
-
 inline fn __core_hash_96(
     reg ptr u8[XMSS_N] out, 
     reg ptr u8[96] in
 ) -> reg ptr u8[XMSS_N] {
     out = __sha256_96(out, in);
+    return out;
+}
+
+inline fn __core_hash_128(
+    reg ptr u8[XMSS_N] out, 
+    reg ptr u8[128] in
+) -> reg ptr u8[XMSS_N] {
+    out = __sha256_128(out, in);
     return out;
 }
 
@@ -924,6 +924,24 @@ inline fn __core_hash_in_ptr_(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+inline fn __memcpy_u8u8_64_32(
+    reg ptr u8[64] out,
+    reg u64 offset,
+    reg ptr u8[32] in
+) -> reg ptr u8[64], reg u64
+{
+    reg u64 i;
+    
+    i = 0;
+    while( i < 32) {
+        out[offset] = in[i];
+        i += 1;
+        offset += 1;
+    }
+
+    return out, offset;
+}
+
 inline fn __memcpy_u8u8_128_32(
     reg ptr u8[128] out,
     reg u64 offset,
@@ -978,24 +996,6 @@ inline fn __memcpy_u8u8_128_64(
     return out, offset;
 }
 
-inline fn __memcpy_u8u8_64_32(
-    reg ptr u8[64] out,
-    reg u64 offset,
-    reg ptr u8[32] in
-) -> reg ptr u8[64], reg u64
-{
-    reg u64 i;
-    
-    i = 0;
-    while( i < 32) {
-        out[offset] = in[i];
-        i += 1;
-        offset += 1;
-    }
-
-    return out, offset;
-}
-
 inline fn __memcpy_u8u8_32_32(
     reg ptr u8[32] out,
     reg u64 offset,
@@ -1033,6 +1033,17 @@ inline fn __memcpy_u8u8_2144_32(
 }
 
 #[returnaddress="stack"]
+fn _memcpy_u8u8_64_32(
+    reg ptr u8[64] out,
+    reg u64 offset,
+    reg ptr u8[32] in
+) -> reg ptr u8[64], reg u64
+{
+    out, offset = __memcpy_u8u8_64_32(out, offset, in);
+    return out, offset;
+}
+
+#[returnaddress="stack"]
 fn _memcpy_u8u8_128_32(
     reg ptr u8[128] out,
     reg u64 offset,
@@ -1066,17 +1077,6 @@ fn _memcpy_u8u8_128_64(
 }
 
 #[returnaddress="stack"]
-fn _memcpy_u8u8_64_32(
-    reg ptr u8[64] out,
-    reg u64 offset,
-    reg ptr u8[32] in
-) -> reg ptr u8[64], reg u64
-{
-    out, offset = __memcpy_u8u8_64_32(out, offset, in);
-    return out, offset;
-}
-
-#[returnaddress="stack"]
 fn _memcpy_u8u8_32_32(
     reg ptr u8[32] out,
     reg u64 offset,
@@ -1084,6 +1084,24 @@ fn _memcpy_u8u8_32_32(
 ) -> reg ptr u8[32], reg u64
 {
     out, offset = __memcpy_u8u8_32_32(out, offset, in);
+    return out, offset;
+}
+
+inline fn _x_memcpy_u8u8_64_32(
+    reg ptr u8[64] out,
+    reg u64 offset,
+    reg ptr u8[32] in
+) -> reg ptr u8[64], reg u64
+{
+    out = out;
+    offset = offset;
+    in = in;
+
+    out, offset = _memcpy_u8u8_64_32(out, offset, in);
+
+    out = out;
+    offset = offset;
+
     return out, offset;
 }
 
@@ -1134,24 +1152,6 @@ inline fn _x_memcpy_u8u8_128_64(
     in = in;
 
     out, offset = _memcpy_u8u8_128_64(out, offset, in);
-
-    out = out;
-    offset = offset;
-
-    return out, offset;
-}
-
-inline fn _x_memcpy_u8u8_64_32(
-    reg ptr u8[64] out,
-    reg u64 offset,
-    reg ptr u8[32] in
-) -> reg ptr u8[64], reg u64
-{
-    out = out;
-    offset = offset;
-    in = in;
-
-    out, offset = _memcpy_u8u8_64_32(out, offset, in);
 
     out = out;
     offset = offset;
@@ -1285,13 +1285,13 @@ inline fn _x_memcpy_u8u8p_64(
 
 // Same as _x_memcpy_u8u8 but with offset in and out
 
-inline fn __memcpy_u8u8_2_64_2144(
-    reg ptr u8[64] out,
+inline fn __memcpy_u8u8_2_32_2144(
+    reg ptr u8[32] out,
     reg u64 out_offset,
     reg ptr u8[2144] in,
     reg u64 in_offset,
     reg u64 bytes
-) -> reg ptr u8[64], reg u64, reg u64
+) -> reg ptr u8[32], reg u64, reg u64
 {
     reg u64 i;
 
@@ -1306,13 +1306,13 @@ inline fn __memcpy_u8u8_2_64_2144(
     return out, out_offset, in_offset;
 }
 
-inline fn __memcpy_u8u8_2_32_2144(
-    reg ptr u8[32] out,
+inline fn __memcpy_u8u8_2_64_2144(
+    reg ptr u8[64] out,
     reg u64 out_offset,
     reg ptr u8[2144] in,
     reg u64 in_offset,
     reg u64 bytes
-) -> reg ptr u8[32], reg u64, reg u64
+) -> reg ptr u8[64], reg u64, reg u64
 {
     reg u64 i;
 
@@ -1420,11 +1420,44 @@ inline fn _x_memcpy_u8pu8_32(reg u64 out offset, reg ptr u8[32] in) -> reg u64, 
     return out, offset;
 }
 
+inline fn __ull_to_bytes_4(
+  reg ptr u8[4] out,
+  reg u64 in
+) -> reg ptr u8[4]
+{
+  // if 4 == 4 { 
+  //   out[u64 0] = in; 
+  // } else if 4 == 32 { 
+  //   out[u64 0] = in; 
+  //   out[u64 1] = 0; 
+  //   out[u64 2] = 0; 
+  //   out[u64 3] = 0; 
+  // }
+
+  inline int i;
+
+  for i=4-1 downto -1 {
+    out[i] = (8u) in;
+    in >>= 8;
+  }
+
+  return out;
+}
+
 inline fn __ull_to_bytes_32(
   reg ptr u8[32] out,
   reg u64 in
 ) -> reg ptr u8[32]
 {
+  // if 32 == 4 { 
+  //   out[u64 0] = in; 
+  // } else if 32 == 32 { 
+  //   out[u64 0] = in; 
+  //   out[u64 1] = 0; 
+  //   out[u64 2] = 0; 
+  //   out[u64 3] = 0; 
+  // }
+
   inline int i;
 
   for i=32-1 downto -1 {
@@ -1440,24 +1473,18 @@ inline fn __ull_to_bytes_2(
   reg u64 in
 ) -> reg ptr u8[2]
 {
+  // if 2 == 4 { 
+  //   out[u64 0] = in; 
+  // } else if 2 == 32 { 
+  //   out[u64 0] = in; 
+  //   out[u64 1] = 0; 
+  //   out[u64 2] = 0; 
+  //   out[u64 3] = 0; 
+  // }
+
   inline int i;
 
   for i=2-1 downto -1 {
-    out[i] = (8u) in;
-    in >>= 8;
-  }
-
-  return out;
-}
-
-inline fn __ull_to_bytes_4(
-  reg ptr u8[4] out,
-  reg u64 in
-) -> reg ptr u8[4]
-{
-  inline int i;
-
-  for i=4-1 downto -1 {
     out[i] = (8u) in;
     in >>= 8;
   }
@@ -2008,6 +2035,27 @@ inline fn __cond_u32_geq_u32_u32_eq_u32(
   return c3;
 }
 
+// cond = a >= b && c == d
+// used in treehash
+inline fn __cond_u64_geq_u64_u32_eq_u32(
+  reg u64 a b,
+  reg u32 c d
+)  -> reg bool 
+{
+  reg bool c1 c2 c3;
+  reg u8 bc1 bc2;
+
+  ?{ ">=u" = c1 } = #CMP_64(a, b);
+  bc1 = #SETcc(c1);
+
+  ?{ "==" = c2} = #CMP_32(c, d);
+  bc2 = #SETcc(c2);
+
+  ?{ "!=" = c3 } = #TEST_8(bc1, bc2); 
+
+  return c3;
+}
+
 inline fn __expand_seed(
     reg ptr u8[XMSS_WOTS_LEN * XMSS_N] outseeds,
     reg ptr u8[XMSS_N] inseed,
@@ -2245,10 +2293,10 @@ inline fn __gen_chain_inplace_(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline fn __base_w_3_2(
-  reg ptr u32[3] output,
-  reg ptr u8[2] input
-) -> reg ptr u32[3]
+inline fn __base_w_67_32(
+  reg ptr u32[67] output,
+  reg ptr u8[32] input
+) -> reg ptr u32[67]
 {
     reg u64 in out;
     reg u8 total;
@@ -2261,7 +2309,7 @@ inline fn __base_w_3_2(
 
     // for (consumed = 0; consumed < out_len; consumed++) 
     consumed = 0;
-    while (consumed < 3)
+    while (consumed < 67)
     {
         // if (bits == 0) { total = input[in]; in++; bits += 8; }
         if (bits == 0) 
@@ -2288,10 +2336,10 @@ inline fn __base_w_3_2(
     return output;
 }
 
-inline fn __base_w_67_32(
-  reg ptr u32[67] output,
-  reg ptr u8[32] input
-) -> reg ptr u32[67]
+inline fn __base_w_3_2(
+  reg ptr u32[3] output,
+  reg ptr u8[2] input
+) -> reg ptr u32[3]
 {
     reg u64 in out;
     reg u8 total;
@@ -2304,7 +2352,7 @@ inline fn __base_w_67_32(
 
     // for (consumed = 0; consumed < out_len; consumed++) 
     consumed = 0;
-    while (consumed < 67)
+    while (consumed < 3)
     {
         // if (bits == 0) { total = input[in]; in++; bits += 8; }
         if (bits == 0) 
@@ -2662,7 +2710,7 @@ inline fn __wots_pk_from_sig_(
 
 // Returns 0 if a and b are equal
 // Returns -1 otherwise
-inline fn __memcmp(reg ptr u8[XMSS_N] a, reg ptr u8[XMSS_N] b) -> reg u64 {
+inline fn __memcmp(reg ptr u8[XMSS_N] a b) -> reg u64 {
     reg u64 i r;
     reg u64 are_equal;
     reg u8 t acc;
@@ -2683,6 +2731,24 @@ inline fn __memcmp(reg ptr u8[XMSS_N] a, reg ptr u8[XMSS_N] b) -> reg u64 {
 
     ?{ zf } = #AND_8(acc, acc);
     r = are_equal if zf;
+
+    return r;
+}
+
+fn _memcmp(reg ptr u8[XMSS_N] a b) -> reg u64 {
+    reg u64 r;
+    r = __memcmp(a, b);
+    return r;
+}
+
+inline fn __memcmp_(reg ptr u8[XMSS_N] a b) -> reg u64 {
+    reg u64 r;
+
+    a = a; b = b;
+
+    r = _memcmp(a, b);
+
+    r = r;
 
     return r;
 }
@@ -2715,8 +2781,6 @@ inline fn __l_tree(
     reg u64 i in_index out_index;
 
     inline int j;
-
-    stack u8[XMSS_WOTS_SIG_BYTES] debug;
 
     // unsigned int l = params->wots_len;
     l = XMSS_WOTS_LEN;
@@ -3081,17 +3145,168 @@ inline fn __xmssmt_core_sign_open(
     stack u8[XMSS_N] leaf root buf;
     stack u32[8] ots_addr ltree_addr node_addr;
 
-    reg ptr u8[XMSS_N] pub_root pub_seed mhash;
+    reg ptr u8[XMSS_N] pub_root pub_seed;
 
     reg u32 idx_leaf;
-    reg u64 idx;
+    reg u64 idx idx_hash;
     reg u64 t64 offset_in offset_out bytes;
     reg u64 are_equal;
     reg u64 res;
 
     reg u32 i;
-    inline u64 sm_offset;
-    reg u64 tmp; // FIXME: TODO: Parameter expansion should be able to compute +* of param int
+    stack u64 sm_offset;
+
+    sm_offset = 0;
+
+    // const unsigned char *pub_root = pk;
+    pub_root = pk[0 : XMSS_N];
+
+    // const unsigned char *pub_seed = pk + params->n;
+    pub_seed = pk[XMSS_N : XMSS_N];
+
+    // unsigned long long idx = 0;
+    idx = 0;
+
+    () = #spill(mlen_ptr, m_ptr, sm_ptr, pub_seed, pub_root);
+
+    // uint32_t ots_addr[8] = {0};
+    // uint32_t ltree_addr[8] = {0};
+    // uint32_t node_addr[8] = {0};
+    ots_addr = __zero_address(ots_addr);
+    ltree_addr = __zero_address(ltree_addr);
+    node_addr = __zero_address(node_addr);
+
+    // set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
+    // set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
+    // set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
+    ots_addr = __set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
+    ltree_addr = __set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
+    node_addr = __set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
+
+    // *mlen = smlen - params->sig_bytes;
+    t64 = smlen; t64 -= XMSS_SIG_BYTES;
+    (u64) [mlen_ptr] = t64;
+
+    // idx = bytes_to_ull(sm, params->index_bytes);
+    idx = __bytes_to_ull_ptr(sm_ptr, XMSS_INDEX_BYTES);
+    () = #spill(idx);
+
+    // memcpy(m + params->sig_bytes, sm + params->sig_bytes, *mlen);
+    offset_out = XMSS_SIG_BYTES; 
+    offset_in = XMSS_SIG_BYTES;
+    bytes = (u64) [mlen_ptr];
+    _, _, _ = _x__memcpy_u8pu8p(m_ptr, offset_out, sm_ptr, offset_in, bytes);
+
+    // hash_message(params, mhash, sm + params->index_bytes, pk, idx,
+    //              m + params->sig_bytes - params->padding_len - 3*params->n,
+    //              *mlen);
+    // 
+    // 1) First we need to copy the randomness from sm + params->index_bytes to buf
+    offset_out = 0;
+    t64 = sm_ptr; t64 += XMSS_INDEX_BYTES;
+    bytes = XMSS_N;
+    buf, _ = _x_memcpy_u8u8p_32(buf, offset_out, t64, bytes);
+
+    t64 = m_ptr;
+    t64 += XMSS_SIG_BYTES - XMSS_PADDING_LEN - (3 * XMSS_N);
+
+    bytes = (u64) [mlen_ptr];
+    
+    idx_hash = idx;
+
+    // NOTE: We use root instead of mhash because mhash is just a pointer to root
+    root = __hash_message(root, buf, pk[0 : XMSS_N], idx_hash, t64, bytes);
+
+    // sm += params->index_bytes + params->n;
+    t64 = XMSS_INDEX_BYTES + XMSS_N;
+    sm_offset += t64;
+
+    i = 0;
+    while(i < XMSS_D) {
+        () = #spill(i);
+        () = #unspill(idx);
+
+        // idx_leaf = (idx & ((1 << params->tree_height)-1));
+        idx_leaf = ((1 << XMSS_TREE_HEIGHT) - 1);
+        idx_leaf &= idx;   
+
+        // idx = idx >> params->tree_height;
+        ?{}, idx = #SHR_64(idx,  XMSS_TREE_HEIGHT); // This doesnt work
+        () = #spill(idx, idx_leaf);
+
+        // set_layer_addr(ots_addr, i);
+        // set_layer_addr(ltree_addr, i);
+        // set_layer_addr(node_addr, i);
+        ots_addr = __set_layer_addr(ots_addr, i);
+        ltree_addr = __set_layer_addr(ltree_addr, i);
+        node_addr = __set_layer_addr(node_addr, i);
+
+        // set_tree_addr(ltree_addr, idx);
+        // set_tree_addr(ots_addr, idx);
+        // set_tree_addr(node_addr, idx);
+        ltree_addr = __set_tree_addr(ltree_addr, idx);
+        ots_addr = __set_tree_addr(ots_addr, idx);
+        node_addr = __set_tree_addr(node_addr, idx);
+
+        // set_ots_addr(ots_addr, idx_leaf);
+        ots_addr = __set_ots_addr(ots_addr, idx_leaf);
+
+        // wots_pk_from_sig(params, wots_pk, sm, root, pub_seed, ots_addr);
+        () = #unspill(sm_ptr, pub_seed);
+        t64 = sm_ptr; t64 += sm_offset;
+        wots_pk, ots_addr = __wots_pk_from_sig_(wots_pk, t64, root, pub_seed, ots_addr);
+
+        // sm += params->wots_sig_bytes;
+        t64 = sm_offset;
+        t64 += XMSS_WOTS_SIG_BYTES;
+        sm_offset = t64;
+
+        // set_ltree_addr(ltree_addr, idx_leaf);
+        () = #unspill(idx_leaf);
+        ltree_addr = __set_ltree_addr(ltree_addr, idx_leaf);
+
+        // l_tree(params, leaf, wots_pk, pub_seed, ltree_addr);
+        () = #unspill(pub_seed);
+        leaf, wots_pk, ltree_addr = __l_tree_(leaf, wots_pk, pub_seed, ltree_addr);
+
+        // // compute_root(params, root, leaf, idx_leaf, sm, pub_seed, node_addr);
+        () = #unspill(idx_leaf, sm_ptr, pub_seed);
+        t64 = sm_ptr; t64 += sm_offset;
+        root, node_addr = __compute_root_(root, leaf, idx_leaf, t64, pub_seed, node_addr);   
+
+        // sm += params->tree_height * params->n;
+        t64 = sm_offset;
+        t64 += (XMSS_TREE_HEIGHT * XMSS_N);
+        sm_offset = t64;
+        
+        () = #unspill(i);
+        i += 1;
+    }
+    
+    // if (memcmp(root, pub_root, params->n)) { memset(m, 0, *mlen); *mlen = 0; return -1; }
+    () = #unspill(pub_root);
+    are_equal = __memcmp_(root, pub_root);
+    if (are_equal != 0) {
+        res = -1;
+
+        () = #unspill(mlen_ptr, m_ptr);
+
+        // memset(m, 0, *mlen);
+        bytes =  (u64) [mlen_ptr];
+        __memset_u8_ptr(m_ptr, bytes, 0);
+
+        // *mlen = 0;
+        (u64) [mlen_ptr] = 0;
+    } else {
+        res = 0;
+
+        () = #unspill(mlen_ptr, m_ptr, sm_ptr);
+
+        // memcpy(m, sm, *mlen);
+        bytes =  (u64) [mlen_ptr];
+        offset_in = sm_offset;
+        _, _, _ = _x__memcpy_u8pu8p(m_ptr, 0, sm_ptr, offset_in, bytes);
+    }
 
     return res;
 }
