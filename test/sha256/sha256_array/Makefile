@@ -66,7 +66,7 @@ bin/%.s: bin/%.jpp | bin/
 
 $(TESTS):
 bin/%: bin/%.s | bin/
-	$(CC) $(CFLAGS) -o $@ -I../../common ../../common/notrandombytes.c ../../common/print.c -DINLEN=$(GET_INLEN) \
+	$(CC) $(CFLAGS) -o $@ -I../../common ../../common/notrandombytes.c -DINLEN=$(GET_INLEN) \
 	test_sha256_array.c $< $(LDLIBS)
 
 $(OBJ_FILES):

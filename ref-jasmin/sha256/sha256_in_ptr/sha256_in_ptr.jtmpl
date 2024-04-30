@@ -1,10 +1,18 @@
 from XMSS require "sha256/sha256_array/sha256_array.jtmpl"
 
-fn _blocks_0_ref(
-  reg ptr u32[8] _H, 
-  #public #spill_to_mmx reg u64 in inlen,
-  #msf reg u64 ms
-) -> reg ptr u32[8], reg u64, reg u64, #msf reg u64
+inline fn __store_ref(reg u64 out, stack u32[8] H)
+{
+  inline int i;
+  reg u32 v;
+
+  for i=0 to 8
+  { v = H[i];
+    v = #BSWAP_32(v);
+    (u32)[out + i*4] = v;
+  }
+}
+
+fn _blocks_0_ref(reg ptr u32[8] _H, reg u64 in inlen) -> reg ptr u32[8], reg u64, reg u64
 {
   inline int t;
   reg u32 T1 T2 a b c d e f g h r v;
@@ -12,25 +20,20 @@ fn _blocks_0_ref(
   reg ptr u32[64] Kp;
   stack ptr u32[8] Hp;
   reg ptr u32[8] H;
-  reg u64 tr; 
-
-  reg bool cond;
+  reg u64 tr;
 
   Kp = SHA256_K;
   Hp = _H;
 
   H = Hp;
 
-  while { cond = inlen >= 64; } (cond)
+  while(inlen >= 64)
   {
-    ms = #update_msf(cond, ms);
-
     for t=0 to 16
     { v = (u32)[in + t*4];
       v = #BSWAP_32(v);
       W[t] = v;
     }
-
     () = #spill(in);
 
     for t=16 to 64
@@ -40,10 +43,8 @@ fn _blocks_0_ref(
     Hp = H;
 
     tr = 0;
-    while { cond = tr < 64; } (cond)
+    while(tr < 64)
     {
-      ms = #update_msf(cond, ms);
-
       //T1 = h + BSIG1(e) + CH(e,f,g) + Kt + Wt
       T1  = h;
       r   = __BSIG1_ref(e);
@@ -69,10 +70,8 @@ fn _blocks_0_ref(
       a  = T1;
       a += T2;
 
-      tr += 1;
+      tr+= 1;
     }
-
-    ms = #update_msf(!cond, ms);
 
     H = Hp;
     a += H[0];
@@ -89,26 +88,18 @@ fn _blocks_0_ref(
     () = #unspill(in);
     in += 64;
     inlen -= 64;
+  }
 
-  } 
-
-  ms = #update_msf(!cond, ms);
   _H = H;
-
-  return _H, in, inlen, ms;
+  return _H, in, inlen;
 }
 
-inline fn __lastblocks_ref(
-  reg u64 in inlen bits,
-  #msf reg u64 ms
-) -> stack u32[32], reg u64, #msf reg u64
+inline fn __lastblocks_ref(reg u64 in inlen bits) -> stack u32[32], reg u64
 {
   stack u32[32] sblocks;
   inline int k;
   reg u64 i j nblocks;
   reg u8 v;
-
-  reg bool cond;
 
   i = 0;
 
@@ -116,74 +107,56 @@ inline fn __lastblocks_ref(
   for k = 0 to 32 { sblocks[k] = i; }
 
   // copy in to sblocks
-  while { cond = i < inlen; } (cond)
-  { 
-    ms = #update_msf(cond, ms);
-    v = (u8)[in + i];
+  while(i < inlen)
+  { v = (u8)[in + i];
     sblocks[u8 i] = v;
     i += 1;
   }
-
-  ms = #update_msf(!cond, ms);
 
   // set first byte after input to 0x80 
   sblocks[u8 i] = 0x80;
 
   // check if one or two blocks are needed
-  cond = inlen < 56;
-  if (cond) // 448 / 8 = 56
-  { 
-    ms = #update_msf(cond, ms);
-    j = (64-8); nblocks = 1; i = 63; 
-  } else { 
-    ms = #update_msf(!cond, ms);
-    j = (128-8); nblocks = 2; i = 127; 
-  }
+  if(inlen < 56) // 448 / 8 = 56
+  { j = (64-8); nblocks = 1; i = 63; }
+  else
+  { j = (128-8); nblocks = 2; i = 127; }
 
-  while { cond = i >= j; } (cond)
-  { 
-    ms = #update_msf(cond, ms);
-    sblocks[u8 i] = (8u) bits;
+  while(i >= j)
+  { sblocks[u8 i] = (8u) bits;
     bits >>= 8;
     i -= 1;
   }
 
-  ms = #update_msf(!cond, ms);
-
-  return sblocks, nblocks, ms;
+  return sblocks, nblocks;
 }
 
-inline fn __sha256_in_ptr(
-  #spill_to_mmx reg ptr u8[32] out, 
-  #public reg u64 in inlen,
-  #msf reg u64 ms
-) -> reg ptr u8[32]
+inline fn __sha256_in_ptr(reg ptr u8[32] out, reg u64 in inlen) -> reg ptr u8[32]
 {
-  #spill_to_mmx reg u64 bits;
-  reg u64 nblocks;
+  reg u64 bits nblocks;
   stack u32[8] H;
   reg ptr u32[8] Hp;
   stack u32[32] sblocks;
   reg ptr u32[32] sblocksp;
 
+  () = #spill(out);
+
   bits = inlen;
   bits <<= 3;
-  () = #spill(bits, out);
+  () = #spill(bits);
 
   H = __initH_ref();
   Hp = H;
-  Hp, in, inlen, ms = _blocks_0_ref(Hp, in, inlen, ms);
+  Hp, in, inlen = _blocks_0_ref(Hp, in, inlen);
 
   () = #unspill(bits);
-  sblocks, nblocks, ms = __lastblocks_ref(in, inlen, bits, ms);
-  
+  sblocks, nblocks = __lastblocks_ref(in, inlen, bits);
   sblocksp = sblocks;
-  Hp, _, ms = _blocks_1_ref(Hp, sblocksp, nblocks, ms);
+  Hp, _ = _blocks_1_ref(Hp, sblocksp, nblocks);
 
   () = #unspill(out);
 
   H = Hp;
   out = __store_ref_array(out, H);
-
   return out;
 }

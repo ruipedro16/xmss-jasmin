@@ -57,7 +57,7 @@ bin/%.s: bin/%.jpp | bin/
 
 $(TESTS):
 bin/%: bin/%.s | bin/
-	$(CC) $(CFLAGS) -o $@ -I../../common ../../common/notrandombytes.c ../../common/print.c  \
+	$(CC) $(CFLAGS) -o $@ -I../../common ../../common/notrandombytes.c  \
 	test_sha256_in_ptr.c $< $(LDLIBS)
 
 $(OBJ_FILES):
