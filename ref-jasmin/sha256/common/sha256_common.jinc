@@ -187,7 +187,12 @@ inline fn __Wt_ref(stack u32[64] W, inline int t) -> stack u32[64]
   return W;
 }
 
-fn _blocks_1_ref(reg ptr u32[8] _H, reg ptr u32[32] sblocks, reg u64 nblocks) -> reg ptr u32[8], reg ptr u32[32]
+fn _blocks_1_ref(
+  reg ptr u32[8] _H, 
+  #spill_to_mmx reg ptr u32[32] sblocks, 
+  reg u64 nblocks,
+  #msf reg u64 ms
+) -> reg ptr u32[8], reg ptr u32[32], #msf reg u64 
 {
   inline int t;
   reg u32 T1 T2 a b c d e f g h r v;
@@ -195,8 +200,10 @@ fn _blocks_1_ref(reg ptr u32[8] _H, reg ptr u32[32] sblocks, reg u64 nblocks) ->
   reg ptr u32[64] Kp;
   stack ptr u32[8] Hp;
   reg ptr u32[8] H;
-  stack ptr u32[32] s_sblocks;
-  reg u64 i oblocks tr;
+  #spill_to_mmx reg u64 i;
+  reg u64 oblocks tr;
+
+  reg bool cond;
 
   Kp = SHA256_K;
   Hp = _H;
@@ -204,8 +211,9 @@ fn _blocks_1_ref(reg ptr u32[8] _H, reg ptr u32[32] sblocks, reg u64 nblocks) ->
 
   H = Hp;
 
-  while(i < nblocks)
-  {
+  while { cond = i < nblocks; } (cond) {
+    ms = #update_msf(cond, ms);
+
     () = #spill(i);
     oblocks = i << 4;
     for t=0 to 16
@@ -213,7 +221,7 @@ fn _blocks_1_ref(reg ptr u32[8] _H, reg ptr u32[32] sblocks, reg u64 nblocks) ->
       v = #BSWAP_32(v);
       W[t] = v;
     }
-    s_sblocks = sblocks;
+    () = #spill(sblocks);
 
     for t=16 to 64
     { W = __Wt_ref(W, t); }
@@ -222,8 +230,10 @@ fn _blocks_1_ref(reg ptr u32[8] _H, reg ptr u32[32] sblocks, reg u64 nblocks) ->
     Hp = H;
 
     tr = 0;
-    while(tr < 64)
+    while { cond = tr < 64; } (cond) 
     {
+      ms = #update_msf(cond, ms);
+
       //T1 = h + BSIG1(e) + CH(e,f,g) + Kt + Wt
       T1  = h;
       r   = __BSIG1_ref(e);
@@ -249,8 +259,10 @@ fn _blocks_1_ref(reg ptr u32[8] _H, reg ptr u32[32] sblocks, reg u64 nblocks) ->
       a  = T1;
       a += T2;
 
-      tr+= 1;
+      tr + = 1;
     }
+
+    ms = #update_msf(!cond, ms);
 
     H = Hp;
     a += H[0];
@@ -264,11 +276,13 @@ fn _blocks_1_ref(reg ptr u32[8] _H, reg ptr u32[32] sblocks, reg u64 nblocks) ->
 
     H = __store_H_ref(H,a,b,c,d,e,f,g,h);
 
-    sblocks = s_sblocks;
-    () = #unspill(i);
+    () = #unspill(i, sblocks);
     i += 1;
   }
 
+  ms = #update_msf(!cond, ms);
+
   _H = H;
-  return _H, sblocks;
+
+  return _H, sblocks, ms;
 }
