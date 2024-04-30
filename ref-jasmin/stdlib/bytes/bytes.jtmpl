@@ -1,3 +1,9 @@
+inline fn __u32_to_bytes(reg ptr u8[4] out, reg u32 in) -> reg ptr u8[4] {
+  in = #BSWAP_32(in);
+  out.[u32 0] = in; // unaligned access
+  return out;
+}
+
 inline fn __ull_to_bytes<OUTLEN>(
   reg ptr u8[OUTLEN] out,
   reg u64 in

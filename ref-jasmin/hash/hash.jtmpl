@@ -8,13 +8,11 @@ inline fn __addr_to_bytes(
 ) -> reg ptr u8[32]
 {
     inline int i;
-    reg u64 t;
     reg ptr u8[4] buf; 
 
     for i=0 to 8 {
-        t = (64u) addr[i];
         buf = addr_as_bytes[4*i : 4];
-        buf = __ull_to_bytes<4>(buf, t);
+        buf = __u32_to_bytes(buf, addr[i]);
         addr_as_bytes[4*i : 4] = buf;
     }
 
