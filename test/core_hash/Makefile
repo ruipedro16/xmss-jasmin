@@ -72,7 +72,7 @@ bin/%.s: bin/%.jpp
 
 $(TESTS):
 bin/%: bin/%.s | bin/
-	$(CC) $(CFLAGS) -o $@ -DIMPL=XMSS-SHAKE_20_512 -DINLEN=$(GET_INLEN) -I../common -I../ \
+	$(CC) $(CFLAGS) -o $@ -DIMPL=XMSS-SHA2_10_256 -DINLEN=$(GET_INLEN) -I../common -I../ \
 	$(REF_SOURCES) $(SOURCES) $< $(LDLIBS)
 
 $(OBJ_FILES):

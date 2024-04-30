@@ -1,19 +1,29 @@
-// NOTE: Outlen is 64
+// NOTE: Outlen is XMSS_N
+from XMSS require "params.jinc"
+from XMSS require "core_hash/core_hash_xmss-sha2_10_256.jtmpl"
 
 export fn core_hash<INLEN>(
-    reg ptr u8[64] out,
+    reg ptr u8[XMSS_N] out,
     reg ptr u8[INLEN] in
-) -> reg ptr u8[64] 
+) -> reg ptr u8[XMSS_N] 
 {
-    out = __core_hash_<INLEN>(out, in); 
+    #msf reg u64 ms;
+    ms = #init_msf();
+
+    out, ms = __core_hash_<INLEN>(out, in, ms); 
+    
     return out;
 }//<>
 
 export fn core_hash_in_ptr(
-    reg ptr u8[64] out,
+    reg ptr u8[XMSS_N] out,
     reg u64 in_ptr inlen
-) -> reg ptr u8[64] 
+) -> reg ptr u8[XMSS_N] 
 {
-    out = _core_hash_in_ptr(out, in_ptr, inlen);
+    #msf reg u64 ms;
+    ms = #init_msf();
+
+    out, ms = _core_hash_in_ptr(out, in_ptr, inlen, ms);
+    
     return out;
 }

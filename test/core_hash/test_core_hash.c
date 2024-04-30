@@ -49,7 +49,7 @@ void test_core_hash(void) {
         exit(-1);
     }
 
-    uint8_t out_ref[64], out_jazz[64];
+    uint8_t out_ref[p.n], out_jazz[p.n];
     uint8_t in[INLEN];
 
     for (int i = 0; i < TESTS; i++) {
@@ -60,7 +60,7 @@ void test_core_hash(void) {
             core_hash_jazz(out_jazz, in);
             core_hash(&p, out_ref, in, INLEN);
 
-            assert(memcmp(out_ref, out_jazz, 64) == 0);
+            assert(memcmp(out_ref, out_jazz, p.n) == 0);
         }
     }
 }
@@ -81,7 +81,7 @@ void test_core_hash_in_ptr(void) {
         exit(-1);
     }
 
-    uint8_t out_ref[64], out_jazz[64];
+    uint8_t out_ref[p.n], out_jazz[p.n];
     uint8_t in[MAX_INLEN];
 
     for (int i = 0; i < TESTS; i++) {
@@ -94,12 +94,16 @@ void test_core_hash_in_ptr(void) {
             core_hash_in_ptr(out_jazz, in, inlen);
             core_hash(&p, out_ref, in, inlen);
 
-            assert(memcmp(out_ref, out_jazz, 64) == 0);
+            assert(memcmp(out_ref, out_jazz, p.n) == 0);
         }
     }
 }
 
 int main(void) {
+    if (true) {
+        printf("IMPL: %s", xstr(IMPL));
+    }
+
     test_core_hash();
     test_core_hash_in_ptr();
     printf("Core Hash OK\n");

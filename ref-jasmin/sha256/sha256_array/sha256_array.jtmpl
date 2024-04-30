@@ -200,7 +200,7 @@ inline fn __sha256<INLEN>(
   #spill_to_mmx reg ptr u8[32] out, 
   #spill_to_mmx reg ptr u8[INLEN] in,
   #msf reg u64 ms
-) -> reg ptr u8[32]
+) -> reg ptr u8[32], #msf reg u64
 {
   #spill_to_mmx reg u64 bits;
   reg u64 nblocks inlen offset;
@@ -229,5 +229,5 @@ inline fn __sha256<INLEN>(
   H = Hp;
   out = __store_ref_array(out, H);
 
-  return out;
+  return out, ms;
 }//<>

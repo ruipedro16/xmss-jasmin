@@ -157,7 +157,7 @@ inline fn __sha256_in_ptr(
   #spill_to_mmx reg ptr u8[32] out, 
   #public reg u64 in inlen,
   #msf reg u64 ms
-) -> reg ptr u8[32]
+) -> reg ptr u8[32], #msf reg u64
 {
   #spill_to_mmx reg u64 bits;
   reg u64 nblocks;
@@ -185,5 +185,5 @@ inline fn __sha256_in_ptr(
   H = Hp;
   out = __store_ref_array(out, H);
 
-  return out;
+  return out, ms;
 }

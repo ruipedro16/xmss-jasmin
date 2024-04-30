@@ -3,13 +3,13 @@ SSLH:
 - [X] Hash_Address
 - [ ] Stdlib
     - [ ] Bytes
-    - [ ] Conditions
+    - [X] Conditions
     - [ ] Memcmp
     - [ ] Memset
     - [ ] Memcpy
 - [ ] Fips202
 - [X] Sha256
-- [ ] Core Hash
+- [X] Core Hash
 - [ ] Hash
 - [ ] Wots
 - [ ] XMSS Commons
