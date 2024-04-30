@@ -42,7 +42,7 @@ static int starts_with(const char *str, const char *prefix) { return strncmp(str
 static void bitflip(uint8_t *x, size_t len) {
     // Flips one bit (chosen at random)
     size_t index;
-    randombytes(&index, sizeof(size_t));
+    randombytes((uint8_t *)&index, sizeof(size_t));
     index = index % (len * 8);
 
     size_t byte_index = index / 8;

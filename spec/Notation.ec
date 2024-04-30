@@ -58,22 +58,3 @@ pred base_w_post (X : byte list, outlen : int, base_w : int list) =
   size base_w = outlen /\
   all (fun x => 0 <= x <= w - 1) base_w.
 
-(* TODO: Finish this *)
-op base_w (X : byte list, outlen : int) : int list = 
-  let out = nseq outlen 0 in
-(* mkseq (fun i => ) *)
-  out.
-
-lemma base_w_imp_fun (_X : byte list, _outlen : int) : base_w_pre _X _outlen =>
-    hoare [BaseW.base_w :
-      arg = (_X, _outlen) ==> res = base_w _X _outlen /\ base_w_post _X _outlen res].
-proof.
-move => pre_cond.
-proc.
-auto => /> *.
-while (0 <= consumed <= outlen /\ _outlen = outlen).
-- auto => /> *.
-- auto => /> *. split. smt().
-- move => h0 h1 h2 h3. (* TODO: Continue here when Im done writing the operator *)
-admit.
-qed.

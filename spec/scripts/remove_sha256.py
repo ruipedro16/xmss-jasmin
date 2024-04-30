@@ -64,7 +64,7 @@ def remove_sha256_functions(input_text: str, template_functions_dict) -> str:
         "_core_hash",
         "__core_hash_",
     ]
-    
+
     resolved_functions: list[str] = []
 
     for f in generic_functions:
@@ -92,6 +92,8 @@ def remove_sha256_functions(input_text: str, template_functions_dict) -> str:
         "__CH_ref",
         "__sha256_in_ptr",
         "__core_hash_in_ptr",
+        "_core_hash_in_ptr",
+        "__core_hash_in_ptr_",
     ]
 
     functions_to_remove: list[str] = resolved_functions + regular_functions
@@ -101,17 +103,41 @@ def remove_sha256_functions(input_text: str, template_functions_dict) -> str:
     for f in functions_to_remove:
         output_text = remove_proc(f, output_text)
 
+        print(f"Removing procedure {f}")
+
     return output_text
+
+
+def replace_calls(text: str) -> str:
+    """
+
+    Run grep -nr "core_hash" | cut -d ' ' -f 4 | uniq | grep -v '^$' to get this list
+
+    __core_hash_96
+    __core_hash_128
+    _core_hash_96
+    _core_hash_128
+    __core_hash__96
+    __core_hash_in_ptr
+    _core_hash_in_ptr
+    __core_hash_in_ptr_
+    """
 
 
 ########################################################################################################################
 
 
 def preprocess_ec(ec_in: str, template_functions_dict) -> str:
-    ec_out = ec_in.replace("module M", "module _M_")
+    ec_out = ec_in.replace("module M", "module Mp")
+
     ec_out = remove_sha256_functions(ec_out, template_functions_dict)
+
     ec_out = ec_out.replace("(* Erased call to spill *)", "")
     ec_out = ec_out.replace("(* Erased call to unspill *)", "")
+
+    ec_out = re.sub(r"\n\s*\n+", "\n\n", ec_out)  # Remove whitespace
+    ec_out = re.sub(r"else\s*{\s*}", "", ec_out)  # Remove empty else statements
+
     return ec_out
 
 

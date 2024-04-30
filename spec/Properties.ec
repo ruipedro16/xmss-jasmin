@@ -23,7 +23,7 @@ lemma word_int (i : int) :
 proof.
 move => pre.
 rewrite /of_int /to_uint.
-smt. (* FIXME: does not terminate if I use smt() instead of smt *)
+smt. (* FIXME: see what lemmas i need to use as arg to smt *)
 qed.
 
 (********************************** ADDRESS ***********************************)
@@ -109,6 +109,71 @@ proof.
 proc.
 while (0 <= i <= 8 /\ 
       (forall (k : int), 0 <= k < i => (addr.[k] = W32.zero))); auto => /> ; smt(get_setE tP initiE).
+qed.
+
+(****************************************************** NOTATION ******************************************************)
+
+(* TODO: Finish this *)
+
+op base_w (X : byte list, outlen : int) : int list = 
+  let out = nseq outlen 0 in
+(* mkseq (fun i => ) *)
+  out.
+
+lemma base_w_imp_fun (_X : byte list, _outlen : int) : base_w_pre _X _outlen =>
+    hoare [BaseW.base_w :
+      arg = (_X, _outlen) ==> res = base_w _X _outlen /\ base_w_post _X _outlen res].
+proof.
+move => pre_cond.
+proc.
+auto => /> *.
+while (0 <= consumed <= outlen /\ _outlen = outlen).
+- auto => /> *.
+- auto => /> *. split. smt().
+- move => h0 h1 h2 h3. (* TODO: Continue here when Im done writing the operator *)
+admit.
+qed.
+
+(***************************************************** PRIMITIVES *****************************************************)
+
+op chain(X : nbytes, i s : int, _seed : seed, address : adrs) : nbytes.
+
+(* Definition of the chain operator for s = 0 *)
+axiom chain0 (X : nbytes, i s : int, _seed : nbytes, address : adrs) : 
+    s = 0 => chain X i s _seed address = X.
+
+axiom chainS (X : nbytes, i s : int, _seed : nbytes, address : adrs) :
+    0 < s => chain X i s _seed address =
+      let t = chain X i (s - 1) _seed address in 
+      let address = set_hash_addr address (i + s - 1) in
+      let address = set_key_and_mask address 0 in
+      let _key = prf _seed  address in
+      let address = set_key_and_mask address 1 in
+      let bitmask = prf _seed address in
+      let t = f _key (nbytexor t bitmask) in
+          t.
+
+lemma chain_ll : islossless Chain.chain
+  by proc; while (true) (s - chain_count); by auto => /#.
+
+lemma chain_imp_fun (_X : nbytes, _i _s : int, __seed : nbytes, _address : adrs) : 
+  chain_pre _X _i _s __seed _address =>
+  hoare [ Chain.chain : 
+          arg = (_X, _i, _s, __seed, _address) ==>
+             res = chain _X _i _s __seed _address].
+proof. 
+move => pre_cond.
+proc => /=.
+while(_X = X /\ _i = i /\ _s = s /\ __seed = _seed /\ 
+      (forall (k : int), 0 <= k < 6 => _address.[k] = address.[k]) /\ 
+      t = chain _X _i chain_count _seed _address /\
+      0 <= chain_count <= s); last by auto; smt(chain0).
+auto => /> &hr *.
+do split; move => *; 1,3,4: by smt(Array8.set_eqiE Array8.set_neqiE).
+by rewrite (chainS _ _ (chain_count{hr} + 1) _ _) 1:/# /=;
+   congr; congr => /=; [ | congr];
+   apply tP => i  ib;
+   case (i <> 7); smt(Array8.set_eqiE Array8.set_neqiE).
 qed.
 
 (******************************************************************************)

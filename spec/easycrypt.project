@@ -5,5 +5,4 @@ provers = Z3@4.12.4
 provers = Alt-Ergo@2.5.2
 
 rdirs = common
-rdirs = extraction
-rdirs = proof
+idirs = extraction

@@ -2,16 +2,12 @@ require import AllCore IntDiv CoreMap List Distr.
 from Jasmin require import JModel_x86.
 import SLH64.
 
-
 require import Array2 Array3 Array4 Array8 Array11 Array32 Array64 Array67
                Array68 Array96 Array128 Array132 Array136 Array320 Array352
                Array2144.
 require import WArray2 WArray4 WArray12 WArray32 WArray44 WArray64 WArray68
                WArray96 WArray128 WArray132 WArray136 WArray256 WArray268
                WArray320 WArray352 WArray2144.
-
-
-
 
 module type Syscall_t = {
   proc randombytes_96(_:W8.t Array96.t) : W8.t Array96.t
@@ -25,33 +21,12 @@ module Syscall : Syscall_t = {
   }
 }.
 
-module _M_(SC:Syscall_t) = {
-  proc _core_hash_in_ptr (out:W8.t Array32.t, in_ptr:W64.t, inlen:W64.t) : 
-  W8.t Array32.t = {
-    
-    
-    
-    out <@ __core_hash_in_ptr (out, in_ptr, inlen);
-    return (out);
-  }
-  
-  proc __core_hash_in_ptr_ (out:W8.t Array32.t, in_ptr:W64.t, inlen:W64.t) : 
-  W8.t Array32.t = {
-    
-    
-    
-    out <- out;
-    in_ptr <- in_ptr;
-    inlen <- inlen;
-    out <@ _core_hash_in_ptr (out, in_ptr, inlen);
-    return (out);
-  }
-  
+module Mp(SC:Syscall_t) = {
   proc __ull_to_bytes_32 (out:W8.t Array32.t, in_0:W64.t) : W8.t Array32.t = {
     var aux: int;
-    
+
     var i:int;
-    
+
     aux <- (- 1);
     i <- (32 - 1);
     while (aux < i) {
@@ -61,12 +36,12 @@ module _M_(SC:Syscall_t) = {
     }
     return (out);
   }
-  
+
   proc __ull_to_bytes_2 (out:W8.t Array2.t, in_0:W64.t) : W8.t Array2.t = {
     var aux: int;
-    
+
     var i:int;
-    
+
     aux <- (- 1);
     i <- (2 - 1);
     while (aux < i) {
@@ -76,12 +51,12 @@ module _M_(SC:Syscall_t) = {
     }
     return (out);
   }
-  
+
   proc __ull_to_bytes_4 (out:W8.t Array4.t, in_0:W64.t) : W8.t Array4.t = {
     var aux: int;
-    
+
     var i:int;
-    
+
     aux <- (- 1);
     i <- (4 - 1);
     while (aux < i) {
@@ -91,9 +66,9 @@ module _M_(SC:Syscall_t) = {
     }
     return (out);
   }
-  
+
   proc __bytes_to_ull_4 (in_0:W8.t Array4.t) : W64.t = {
-    
+
     var result:W64.t;
     var i:W64.t;
     var t:W64.t;
@@ -104,10 +79,10 @@ module _M_(SC:Syscall_t) = {
     var _zf_:bool;
     var  _0:bool;
     var  _1:bool;
-    
+
     result <- (W64.of_int 0);
     i <- (W64.of_int 0);
-    
+
     while ((i \ult (W64.of_int 4))) {
       t <- (zeroextu64 in_0.[(W64.to_uint i)]);
       u <- (W64.of_int (4 - 1));
@@ -119,9 +94,9 @@ module _M_(SC:Syscall_t) = {
     }
     return (result);
   }
-  
+
   proc __bytes_to_ull_ptr (in_ptr:W64.t, inlen:W64.t) : W64.t = {
-    
+
     var result:W64.t;
     var i:W64.t;
     var t:W64.t;
@@ -132,10 +107,10 @@ module _M_(SC:Syscall_t) = {
     var _zf_:bool;
     var  _0:bool;
     var  _1:bool;
-    
+
     result <- (W64.of_int 0);
     i <- (W64.of_int 0);
-    
+
     while ((i \ult inlen)) {
       t <- (zeroextu64 (loadW8 Glob.mem (W64.to_uint (in_ptr + i))));
       u <- inlen;
@@ -148,10 +123,10 @@ module _M_(SC:Syscall_t) = {
     }
     return (result);
   }
-  
+
   proc __cond_u32_a_below_b_and_a_below_c (a:W32.t, b:W32.t, c:W32.t) : 
   bool = {
-    
+
     var c3:bool;
     var _of_:bool;
     var _cf_:bool;
@@ -164,7 +139,7 @@ module _M_(SC:Syscall_t) = {
     var  _0:bool;
     var  _1:bool;
     var  _2:bool;
-    
+
     (_of_, _cf_, _sf_,  _0, _zf_) <- CMP_32 a b;
     c1 <- (_uLT _of_ _cf_ _sf_ _zf_);
     bc1 <- SETcc c1;
@@ -175,10 +150,10 @@ module _M_(SC:Syscall_t) = {
     c3 <- (_NEQ _of_ _cf_ _sf_ _zf_);
     return (c3);
   }
-  
+
   proc __cond_u64_geq_u64_u32_eq_u32 (a:W64.t, b:W64.t, c:W32.t, d:W32.t) : 
   bool = {
-    
+
     var c3:bool;
     var _of_:bool;
     var _cf_:bool;
@@ -191,7 +166,7 @@ module _M_(SC:Syscall_t) = {
     var  _0:bool;
     var  _1:bool;
     var  _2:bool;
-    
+
     (_of_, _cf_, _sf_,  _0, _zf_) <- CMP_64 a b;
     c1 <- (_uGE _of_ _cf_ _sf_ _zf_);
     bc1 <- SETcc c1;
@@ -202,41 +177,41 @@ module _M_(SC:Syscall_t) = {
     c3 <- (_NEQ _of_ _cf_ _sf_ _zf_);
     return (c3);
   }
-  
+
   proc __memset_u8_4 (a:W8.t Array4.t, value:W8.t) : W8.t Array4.t = {
-    
+
     var i:W64.t;
-    
+
     i <- (W64.of_int 0);
-    
+
     while ((i \ult (W64.of_int 4))) {
       a.[(W64.to_uint i)] <- value;
       i <- (i + (W64.of_int 1));
     }
     return (a);
   }
-  
+
   proc __memset_u8_128 (a:W8.t Array128.t, value:W8.t) : W8.t Array128.t = {
-    
+
     var i:W64.t;
-    
+
     i <- (W64.of_int 0);
-    
+
     while ((i \ult (W64.of_int 128))) {
       a.[(W64.to_uint i)] <- value;
       i <- (i + (W64.of_int 1));
     }
     return (a);
   }
-  
+
   proc __memset_u8_ptr (a_ptr:W64.t, inlen:W64.t, value:W8.t) : unit = {
-    
+
     var _ptr:W64.t;
     var i:W64.t;
-    
+
     _ptr <- a_ptr;
     i <- (W64.of_int 0);
-    
+
     while ((i \ult inlen)) {
       Glob.mem <-
       storeW8 Glob.mem (W64.to_uint (_ptr + (W64.of_int 0))) (value);
@@ -245,59 +220,14 @@ module _M_(SC:Syscall_t) = {
     }
     return ();
   }
-  
-  proc __memcpy_u8u8_96_32 (out:W8.t Array96.t, offset:W64.t,
-                            in_0:W8.t Array32.t) : W8.t Array96.t * W64.t = {
-    
-    var i:W64.t;
-    
-    i <- (W64.of_int 0);
-    
-    while ((i \ult (W64.of_int 32))) {
-      out.[(W64.to_uint offset)] <- in_0.[(W64.to_uint i)];
-      i <- (i + (W64.of_int 1));
-      offset <- (offset + (W64.of_int 1));
-    }
-    return (out, offset);
-  }
-  
-  proc __memcpy_u8u8_32_32 (out:W8.t Array32.t, offset:W64.t,
-                            in_0:W8.t Array32.t) : W8.t Array32.t * W64.t = {
-    
-    var i:W64.t;
-    
-    i <- (W64.of_int 0);
-    
-    while ((i \ult (W64.of_int 32))) {
-      out.[(W64.to_uint offset)] <- in_0.[(W64.to_uint i)];
-      i <- (i + (W64.of_int 1));
-      offset <- (offset + (W64.of_int 1));
-    }
-    return (out, offset);
-  }
-  
-  proc __memcpy_u8u8_128_64 (out:W8.t Array128.t, offset:W64.t,
-                             in_0:W8.t Array64.t) : W8.t Array128.t * W64.t = {
-    
-    var i:W64.t;
-    
-    i <- (W64.of_int 0);
-    
-    while ((i \ult (W64.of_int 64))) {
-      out.[(W64.to_uint offset)] <- in_0.[(W64.to_uint i)];
-      i <- (i + (W64.of_int 1));
-      offset <- (offset + (W64.of_int 1));
-    }
-    return (out, offset);
-  }
-  
+
   proc __memcpy_u8u8_64_64 (out:W8.t Array64.t, offset:W64.t,
                             in_0:W8.t Array64.t) : W8.t Array64.t * W64.t = {
-    
+
     var i:W64.t;
-    
+
     i <- (W64.of_int 0);
-    
+
     while ((i \ult (W64.of_int 64))) {
       out.[(W64.to_uint offset)] <- in_0.[(W64.to_uint i)];
       i <- (i + (W64.of_int 1));
@@ -305,29 +235,29 @@ module _M_(SC:Syscall_t) = {
     }
     return (out, offset);
   }
-  
-  proc __memcpy_u8u8_128_32 (out:W8.t Array128.t, offset:W64.t,
-                             in_0:W8.t Array32.t) : W8.t Array128.t * W64.t = {
-    
+
+  proc __memcpy_u8u8_128_64 (out:W8.t Array128.t, offset:W64.t,
+                             in_0:W8.t Array64.t) : W8.t Array128.t * W64.t = {
+
     var i:W64.t;
-    
+
     i <- (W64.of_int 0);
-    
-    while ((i \ult (W64.of_int 32))) {
+
+    while ((i \ult (W64.of_int 64))) {
       out.[(W64.to_uint offset)] <- in_0.[(W64.to_uint i)];
       i <- (i + (W64.of_int 1));
       offset <- (offset + (W64.of_int 1));
     }
     return (out, offset);
   }
-  
+
   proc __memcpy_u8u8_64_32 (out:W8.t Array64.t, offset:W64.t,
                             in_0:W8.t Array32.t) : W8.t Array64.t * W64.t = {
-    
+
     var i:W64.t;
-    
+
     i <- (W64.of_int 0);
-    
+
     while ((i \ult (W64.of_int 32))) {
       out.[(W64.to_uint offset)] <- in_0.[(W64.to_uint i)];
       i <- (i + (W64.of_int 1));
@@ -335,14 +265,59 @@ module _M_(SC:Syscall_t) = {
     }
     return (out, offset);
   }
-  
+
+  proc __memcpy_u8u8_128_32 (out:W8.t Array128.t, offset:W64.t,
+                             in_0:W8.t Array32.t) : W8.t Array128.t * W64.t = {
+
+    var i:W64.t;
+
+    i <- (W64.of_int 0);
+
+    while ((i \ult (W64.of_int 32))) {
+      out.[(W64.to_uint offset)] <- in_0.[(W64.to_uint i)];
+      i <- (i + (W64.of_int 1));
+      offset <- (offset + (W64.of_int 1));
+    }
+    return (out, offset);
+  }
+
+  proc __memcpy_u8u8_96_32 (out:W8.t Array96.t, offset:W64.t,
+                            in_0:W8.t Array32.t) : W8.t Array96.t * W64.t = {
+
+    var i:W64.t;
+
+    i <- (W64.of_int 0);
+
+    while ((i \ult (W64.of_int 32))) {
+      out.[(W64.to_uint offset)] <- in_0.[(W64.to_uint i)];
+      i <- (i + (W64.of_int 1));
+      offset <- (offset + (W64.of_int 1));
+    }
+    return (out, offset);
+  }
+
+  proc __memcpy_u8u8_32_32 (out:W8.t Array32.t, offset:W64.t,
+                            in_0:W8.t Array32.t) : W8.t Array32.t * W64.t = {
+
+    var i:W64.t;
+
+    i <- (W64.of_int 0);
+
+    while ((i \ult (W64.of_int 32))) {
+      out.[(W64.to_uint offset)] <- in_0.[(W64.to_uint i)];
+      i <- (i + (W64.of_int 1));
+      offset <- (offset + (W64.of_int 1));
+    }
+    return (out, offset);
+  }
+
   proc __memcpy_u8u8_2144_32 (out:W8.t Array2144.t, offset:W64.t,
                               in_0:W8.t Array32.t) : W8.t Array2144.t * W64.t = {
-    
+
     var i:W64.t;
-    
+
     i <- (W64.of_int 0);
-    
+
     while ((i \ult (W64.of_int 32))) {
       out.[(W64.to_uint offset)] <- in_0.[(W64.to_uint i)];
       i <- (i + (W64.of_int 1));
@@ -350,108 +325,52 @@ module _M_(SC:Syscall_t) = {
     }
     return (out, offset);
   }
-  
-  proc _memcpy_u8u8_96_32 (out:W8.t Array96.t, offset:W64.t,
-                           in_0:W8.t Array32.t) : W8.t Array96.t * W64.t = {
-    
-    
-    
-    (out, offset) <@ __memcpy_u8u8_96_32 (out, offset, in_0);
-    return (out, offset);
-  }
-  
-  proc _memcpy_u8u8_32_32 (out:W8.t Array32.t, offset:W64.t,
-                           in_0:W8.t Array32.t) : W8.t Array32.t * W64.t = {
-    
-    
-    
-    (out, offset) <@ __memcpy_u8u8_32_32 (out, offset, in_0);
-    return (out, offset);
-  }
-  
-  proc _memcpy_u8u8_128_64 (out:W8.t Array128.t, offset:W64.t,
-                            in_0:W8.t Array64.t) : W8.t Array128.t * W64.t = {
-    
-    
-    
-    (out, offset) <@ __memcpy_u8u8_128_64 (out, offset, in_0);
-    return (out, offset);
-  }
-  
+
   proc _memcpy_u8u8_64_64 (out:W8.t Array64.t, offset:W64.t,
                            in_0:W8.t Array64.t) : W8.t Array64.t * W64.t = {
-    
-    
-    
+
     (out, offset) <@ __memcpy_u8u8_64_64 (out, offset, in_0);
     return (out, offset);
   }
-  
-  proc _memcpy_u8u8_128_32 (out:W8.t Array128.t, offset:W64.t,
-                            in_0:W8.t Array32.t) : W8.t Array128.t * W64.t = {
-    
-    
-    
-    (out, offset) <@ __memcpy_u8u8_128_32 (out, offset, in_0);
+
+  proc _memcpy_u8u8_128_64 (out:W8.t Array128.t, offset:W64.t,
+                            in_0:W8.t Array64.t) : W8.t Array128.t * W64.t = {
+
+    (out, offset) <@ __memcpy_u8u8_128_64 (out, offset, in_0);
     return (out, offset);
   }
-  
+
   proc _memcpy_u8u8_64_32 (out:W8.t Array64.t, offset:W64.t,
                            in_0:W8.t Array32.t) : W8.t Array64.t * W64.t = {
-    
-    
-    
+
     (out, offset) <@ __memcpy_u8u8_64_32 (out, offset, in_0);
     return (out, offset);
   }
-  
-  proc _x_memcpy_u8u8_96_32 (out:W8.t Array96.t, offset:W64.t,
-                             in_0:W8.t Array32.t) : W8.t Array96.t * W64.t = {
-    
-    
-    
-    out <- out;
-    offset <- offset;
-    in_0 <- in_0;
-    (out, offset) <@ _memcpy_u8u8_96_32 (out, offset, in_0);
-    out <- out;
-    offset <- offset;
+
+  proc _memcpy_u8u8_128_32 (out:W8.t Array128.t, offset:W64.t,
+                            in_0:W8.t Array32.t) : W8.t Array128.t * W64.t = {
+
+    (out, offset) <@ __memcpy_u8u8_128_32 (out, offset, in_0);
     return (out, offset);
   }
-  
-  proc _x_memcpy_u8u8_32_32 (out:W8.t Array32.t, offset:W64.t,
-                             in_0:W8.t Array32.t) : W8.t Array32.t * W64.t = {
-    
-    
-    
-    out <- out;
-    offset <- offset;
-    in_0 <- in_0;
-    (out, offset) <@ _memcpy_u8u8_32_32 (out, offset, in_0);
-    out <- out;
-    offset <- offset;
+
+  proc _memcpy_u8u8_96_32 (out:W8.t Array96.t, offset:W64.t,
+                           in_0:W8.t Array32.t) : W8.t Array96.t * W64.t = {
+
+    (out, offset) <@ __memcpy_u8u8_96_32 (out, offset, in_0);
     return (out, offset);
   }
-  
-  proc _x_memcpy_u8u8_128_64 (out:W8.t Array128.t, offset:W64.t,
-                              in_0:W8.t Array64.t) : W8.t Array128.t * W64.t = {
-    
-    
-    
-    out <- out;
-    offset <- offset;
-    in_0 <- in_0;
-    (out, offset) <@ _memcpy_u8u8_128_64 (out, offset, in_0);
-    out <- out;
-    offset <- offset;
+
+  proc _memcpy_u8u8_32_32 (out:W8.t Array32.t, offset:W64.t,
+                           in_0:W8.t Array32.t) : W8.t Array32.t * W64.t = {
+
+    (out, offset) <@ __memcpy_u8u8_32_32 (out, offset, in_0);
     return (out, offset);
   }
-  
+
   proc _x_memcpy_u8u8_64_64 (out:W8.t Array64.t, offset:W64.t,
                              in_0:W8.t Array64.t) : W8.t Array64.t * W64.t = {
-    
-    
-    
+
     out <- out;
     offset <- offset;
     in_0 <- in_0;
@@ -460,26 +379,22 @@ module _M_(SC:Syscall_t) = {
     offset <- offset;
     return (out, offset);
   }
-  
-  proc _x_memcpy_u8u8_128_32 (out:W8.t Array128.t, offset:W64.t,
-                              in_0:W8.t Array32.t) : W8.t Array128.t * W64.t = {
-    
-    
-    
+
+  proc _x_memcpy_u8u8_128_64 (out:W8.t Array128.t, offset:W64.t,
+                              in_0:W8.t Array64.t) : W8.t Array128.t * W64.t = {
+
     out <- out;
     offset <- offset;
     in_0 <- in_0;
-    (out, offset) <@ _memcpy_u8u8_128_32 (out, offset, in_0);
+    (out, offset) <@ _memcpy_u8u8_128_64 (out, offset, in_0);
     out <- out;
     offset <- offset;
     return (out, offset);
   }
-  
+
   proc _x_memcpy_u8u8_64_32 (out:W8.t Array64.t, offset:W64.t,
                              in_0:W8.t Array32.t) : W8.t Array64.t * W64.t = {
-    
-    
-    
+
     out <- out;
     offset <- offset;
     in_0 <- in_0;
@@ -488,14 +403,50 @@ module _M_(SC:Syscall_t) = {
     offset <- offset;
     return (out, offset);
   }
-  
+
+  proc _x_memcpy_u8u8_128_32 (out:W8.t Array128.t, offset:W64.t,
+                              in_0:W8.t Array32.t) : W8.t Array128.t * W64.t = {
+
+    out <- out;
+    offset <- offset;
+    in_0 <- in_0;
+    (out, offset) <@ _memcpy_u8u8_128_32 (out, offset, in_0);
+    out <- out;
+    offset <- offset;
+    return (out, offset);
+  }
+
+  proc _x_memcpy_u8u8_96_32 (out:W8.t Array96.t, offset:W64.t,
+                             in_0:W8.t Array32.t) : W8.t Array96.t * W64.t = {
+
+    out <- out;
+    offset <- offset;
+    in_0 <- in_0;
+    (out, offset) <@ _memcpy_u8u8_96_32 (out, offset, in_0);
+    out <- out;
+    offset <- offset;
+    return (out, offset);
+  }
+
+  proc _x_memcpy_u8u8_32_32 (out:W8.t Array32.t, offset:W64.t,
+                             in_0:W8.t Array32.t) : W8.t Array32.t * W64.t = {
+
+    out <- out;
+    offset <- offset;
+    in_0 <- in_0;
+    (out, offset) <@ _memcpy_u8u8_32_32 (out, offset, in_0);
+    out <- out;
+    offset <- offset;
+    return (out, offset);
+  }
+
   proc __memcpy_u8u8p_64 (out:W8.t Array64.t, offset:W64.t, in_0:W64.t,
                           inlen:W64.t) : W8.t Array64.t * W64.t = {
-    
+
     var i:W64.t;
-    
+
     i <- (W64.of_int 0);
-    
+
     while ((i \ult inlen)) {
       out.[(W64.to_uint offset)] <-
       (loadW8 Glob.mem (W64.to_uint (in_0 + i)));
@@ -504,14 +455,14 @@ module _M_(SC:Syscall_t) = {
     }
     return (out, offset);
   }
-  
+
   proc __memcpy_u8u8p_32 (out:W8.t Array32.t, offset:W64.t, in_0:W64.t,
                           inlen:W64.t) : W8.t Array32.t * W64.t = {
-    
+
     var i:W64.t;
-    
+
     i <- (W64.of_int 0);
-    
+
     while ((i \ult inlen)) {
       out.[(W64.to_uint offset)] <-
       (loadW8 Glob.mem (W64.to_uint (in_0 + i)));
@@ -520,30 +471,24 @@ module _M_(SC:Syscall_t) = {
     }
     return (out, offset);
   }
-  
+
   proc _memcpy_u8u8p_64 (out:W8.t Array64.t, offset:W64.t, in_0:W64.t,
                          inlen:W64.t) : W8.t Array64.t * W64.t = {
-    
-    
-    
+
     (out, offset) <@ __memcpy_u8u8p_64 (out, offset, in_0, inlen);
     return (out, offset);
   }
-  
+
   proc _memcpy_u8u8p_32 (out:W8.t Array32.t, offset:W64.t, in_0:W64.t,
                          inlen:W64.t) : W8.t Array32.t * W64.t = {
-    
-    
-    
+
     (out, offset) <@ __memcpy_u8u8p_32 (out, offset, in_0, inlen);
     return (out, offset);
   }
-  
+
   proc _x_memcpy_u8u8p_64 (out:W8.t Array64.t, offset:W64.t, in_0:W64.t,
                            inlen:W64.t) : W8.t Array64.t * W64.t = {
-    
-    
-    
+
     out <- out;
     offset <- offset;
     in_0 <- in_0;
@@ -552,12 +497,10 @@ module _M_(SC:Syscall_t) = {
     offset <- offset;
     return (out, offset);
   }
-  
+
   proc _x_memcpy_u8u8p_32 (out:W8.t Array32.t, offset:W64.t, in_0:W64.t,
                            inlen:W64.t) : W8.t Array32.t * W64.t = {
-    
-    
-    
+
     out <- out;
     offset <- offset;
     in_0 <- in_0;
@@ -566,15 +509,15 @@ module _M_(SC:Syscall_t) = {
     offset <- offset;
     return (out, offset);
   }
-  
+
   proc __memcpy_u8u8_2_64_2144 (out:W8.t Array64.t, out_offset:W64.t,
                                 in_0:W8.t Array2144.t, in_offset:W64.t,
                                 bytes:W64.t) : W8.t Array64.t * W64.t * W64.t = {
-    
+
     var i:W64.t;
-    
+
     i <- (W64.of_int 0);
-    
+
     while ((i \ult bytes)) {
       out.[(W64.to_uint out_offset)] <- in_0.[(W64.to_uint in_offset)];
       i <- (i + (W64.of_int 1));
@@ -583,15 +526,15 @@ module _M_(SC:Syscall_t) = {
     }
     return (out, out_offset, in_offset);
   }
-  
+
   proc __memcpy_u8u8_2_32_2144 (out:W8.t Array32.t, out_offset:W64.t,
                                 in_0:W8.t Array2144.t, in_offset:W64.t,
                                 bytes:W64.t) : W8.t Array32.t * W64.t * W64.t = {
-    
+
     var i:W64.t;
-    
+
     i <- (W64.of_int 0);
-    
+
     while ((i \ult bytes)) {
       out.[(W64.to_uint out_offset)] <- in_0.[(W64.to_uint in_offset)];
       i <- (i + (W64.of_int 1));
@@ -600,14 +543,14 @@ module _M_(SC:Syscall_t) = {
     }
     return (out, out_offset, in_offset);
   }
-  
+
   proc __memcpy_u8pu8p (out_ptr:W64.t, out_offset:W64.t, in_ptr:W64.t,
                         in_offset:W64.t, bytes:W64.t) : W64.t * W64.t * W64.t = {
-    
+
     var i:W64.t;
-    
+
     i <- (W64.of_int 0);
-    
+
     while ((i \ult bytes)) {
       Glob.mem <-
       storeW8 Glob.mem (W64.to_uint (out_ptr + out_offset)) ((loadW8 Glob.mem (W64.to_uint (in_ptr + in_offset))));
@@ -617,23 +560,19 @@ module _M_(SC:Syscall_t) = {
     }
     return (out_ptr, out_offset, in_offset);
   }
-  
+
   proc _memcpy_u8pu8p (out_ptr:W64.t, out_offset:W64.t, in_ptr:W64.t,
                        in_offset:W64.t, bytes:W64.t) : W64.t * W64.t * W64.t = {
-    
-    
-    
+
     (out_ptr, out_offset, in_offset) <@ __memcpy_u8pu8p (out_ptr, out_offset,
     in_ptr, in_offset, bytes);
     return (out_ptr, out_offset, in_offset);
   }
-  
+
   proc _x__memcpy_u8pu8p (out_ptr:W64.t, out_offset:W64.t, in_ptr:W64.t,
                           in_offset:W64.t, bytes:W64.t) : W64.t * W64.t *
                                                           W64.t = {
-    
-    
-    
+
     out_ptr <- out_ptr;
     out_offset <- out_offset;
     in_ptr <- in_ptr;
@@ -646,14 +585,14 @@ module _M_(SC:Syscall_t) = {
     in_offset <- in_offset;
     return (out_ptr, out_offset, in_offset);
   }
-  
+
   proc __memcpy_u8pu8_32 (out:W64.t, offset:W64.t, in_0:W8.t Array32.t) : 
   W64.t * W64.t = {
-    
+
     var i:W64.t;
-    
+
     i <- (W64.of_int 0);
-    
+
     while ((i \ult (W64.of_int 32))) {
       Glob.mem <-
       storeW8 Glob.mem (W64.to_uint (out + offset)) (in_0.[(W64.to_uint i)]);
@@ -662,14 +601,14 @@ module _M_(SC:Syscall_t) = {
     }
     return (out, offset);
   }
-  
+
   proc __memcpy_u8pu8_4 (out:W64.t, offset:W64.t, in_0:W8.t Array4.t) : 
   W64.t * W64.t = {
-    
+
     var i:W64.t;
-    
+
     i <- (W64.of_int 0);
-    
+
     while ((i \ult (W64.of_int 4))) {
       Glob.mem <-
       storeW8 Glob.mem (W64.to_uint (out + offset)) (in_0.[(W64.to_uint i)]);
@@ -678,30 +617,24 @@ module _M_(SC:Syscall_t) = {
     }
     return (out, offset);
   }
-  
+
   proc _memcpy_u8pu8_32 (out:W64.t, offset:W64.t, in_0:W8.t Array32.t) : 
   W64.t * W64.t = {
-    
-    
-    
+
     (out, offset) <@ __memcpy_u8pu8_32 (out, offset, in_0);
     return (out, offset);
   }
-  
+
   proc _memcpy_u8pu8_4 (out:W64.t, offset:W64.t, in_0:W8.t Array4.t) : 
   W64.t * W64.t = {
-    
-    
-    
+
     (out, offset) <@ __memcpy_u8pu8_4 (out, offset, in_0);
     return (out, offset);
   }
-  
+
   proc _x_memcpy_u8pu8_32 (out:W64.t, offset:W64.t, in_0:W8.t Array32.t) : 
   W64.t * W64.t = {
-    
-    
-    
+
     out <- out;
     offset <- offset;
     in_0 <- in_0;
@@ -710,12 +643,10 @@ module _M_(SC:Syscall_t) = {
     offset <- offset;
     return (out, offset);
   }
-  
+
   proc _x_memcpy_u8pu8_4 (out:W64.t, offset:W64.t, in_0:W8.t Array4.t) : 
   W64.t * W64.t = {
-    
-    
-    
+
     out <- out;
     offset <- offset;
     in_0 <- in_0;
@@ -724,12 +655,12 @@ module _M_(SC:Syscall_t) = {
     offset <- offset;
     return (out, offset);
   }
-  
+
   proc _zero_address (addr:W32.t Array8.t) : W32.t Array8.t = {
     var aux: int;
-    
+
     var i:int;
-    
+
     i <- 0;
     while (i < 8) {
       addr.[i] <- (W32.of_int 0);
@@ -737,121 +668,99 @@ module _M_(SC:Syscall_t) = {
     }
     return (addr);
   }
-  
+
   proc __zero_address (addr:W32.t Array8.t) : W32.t Array8.t = {
-    
-    
-    
+
     addr <- addr;
     addr <@ _zero_address (addr);
     addr <- addr;
     return (addr);
   }
-  
+
   proc __set_layer_addr (addr:W32.t Array8.t, layer:W32.t) : W32.t Array8.t = {
-    
-    
-    
+
     addr.[0] <- layer;
     return (addr);
   }
-  
+
   proc __set_tree_addr (addr:W32.t Array8.t, tree:W64.t) : W32.t Array8.t = {
-    
+
     var t:W64.t;
     var _of_:bool;
     var _cf_:bool;
     var _sf_:bool;
     var _zf_:bool;
     var  _0:bool;
-    
+
     t <- tree;
     (_of_, _cf_, _sf_,  _0, _zf_, t) <- SHR_64 t (W8.of_int 32);
     addr.[1] <- (truncateu32 t);
     addr.[2] <- (truncateu32 tree);
     return (addr);
   }
-  
+
   proc __set_type (addr:W32.t Array8.t, type_0:W32.t) : W32.t Array8.t = {
-    
-    
-    
+
     addr.[3] <- type_0;
     return (addr);
   }
-  
+
   proc __set_key_and_mask (addr:W32.t Array8.t, key_and_mask:W32.t) : 
   W32.t Array8.t = {
-    
-    
-    
+
     addr.[7] <- key_and_mask;
     return (addr);
   }
-  
+
   proc __copy_subtree_addr (out:W32.t Array8.t, in_0:W32.t Array8.t) : 
   W32.t Array8.t = {
-    
-    
-    
+
     out.[0] <- in_0.[0];
     out.[1] <- in_0.[1];
     out.[2] <- in_0.[2];
     return (out);
   }
-  
+
   proc __set_ots_addr (addr:W32.t Array8.t, ots:W32.t) : W32.t Array8.t = {
-    
-    
-    
+
     addr.[4] <- ots;
     return (addr);
   }
-  
+
   proc __set_chain_addr (addr:W32.t Array8.t, chain:W32.t) : W32.t Array8.t = {
-    
-    
-    
+
     addr.[5] <- chain;
     return (addr);
   }
-  
+
   proc __set_hash_addr (addr:W32.t Array8.t, hash:W32.t) : W32.t Array8.t = {
-    
-    
-    
+
     addr.[6] <- hash;
     return (addr);
   }
-  
+
   proc __set_ltree_addr (addr:W32.t Array8.t, ltree:W32.t) : W32.t Array8.t = {
-    
-    
-    
+
     addr.[4] <- ltree;
     return (addr);
   }
-  
+
   proc __set_tree_height (addr:W32.t Array8.t, tree_height:W32.t) : W32.t Array8.t = {
-    
-    
-    
+
     addr.[5] <- tree_height;
     return (addr);
   }
-  
+
   proc __set_tree_index (addr:W32.t Array8.t, tree_index:W32.t) : W32.t Array8.t = {
-    
-    
-    
+
     addr.[6] <- tree_index;
     return (addr);
   }
-  
+
   proc __addr_to_bytes (addr_as_bytes:W8.t Array32.t, addr:W32.t Array8.t) : 
   W8.t Array32.t = {
     var aux: int;
-    
+
     var i:int;
     var t:W64.t;
     var buf:W8.t Array4.t;
@@ -868,10 +777,10 @@ module _M_(SC:Syscall_t) = {
     }
     return (addr_as_bytes);
   }
-  
+
   proc __prf (out:W8.t Array32.t, in_0:W8.t Array32.t, key:W8.t Array32.t) : 
   W8.t Array32.t = {
-    
+
     var buf:W8.t Array96.t;
     var padding_buf:W8.t Array32.t;
     var buf_p:W8.t Array96.t;
@@ -893,21 +802,17 @@ module _M_(SC:Syscall_t) = {
     out <@ __core_hash_96 (out, buf_p);
     return (out);
   }
-  
+
   proc _prf (out:W8.t Array32.t, in_0:W8.t Array32.t, key:W8.t Array32.t) : 
   W8.t Array32.t = {
-    
-    
-    
+
     out <@ __prf (out, in_0, key);
     return (out);
   }
-  
+
   proc __prf_ (out:W8.t Array32.t, in_0:W8.t Array32.t, key:W8.t Array32.t) : 
   W8.t Array32.t = {
-    
-    
-    
+
     out <- out;
     in_0 <- in_0;
     key <- key;
@@ -915,10 +820,10 @@ module _M_(SC:Syscall_t) = {
     out <- out;
     return (out);
   }
-  
+
   proc __prf_keygen (out:W8.t Array32.t, in_0:W8.t Array64.t,
                      key:W8.t Array32.t) : W8.t Array32.t = {
-    
+
     var buf:W8.t Array128.t;
     var padding_buf:W8.t Array32.t;
     var offset:W64.t;
@@ -937,32 +842,28 @@ module _M_(SC:Syscall_t) = {
     out <@ __core_hash_128 (out, buf);
     return (out);
   }
-  
+
   proc _prf_keygen (out:W8.t Array32.t, in_0:W8.t Array64.t,
                     key:W8.t Array32.t) : W8.t Array32.t = {
-    
-    
-    
+
     out <@ __prf_keygen (out, in_0, key);
     return (out);
   }
-  
+
   proc __prf_keygen_ (out:W8.t Array32.t, in_0:W8.t Array64.t,
                       key:W8.t Array32.t) : W8.t Array32.t = {
-    
-    
-    
+
     out <- out;
     in_0 <- in_0;
     key <- key;
     out <@ _prf_keygen (out, in_0, key);
     return (out);
   }
-  
+
   proc __hash_message (mhash:W8.t Array32.t, r:W8.t Array32.t,
                        root:W8.t Array32.t, idx:W64.t,
                        m_with_prefix_ptr:W64.t, mlen:W64.t) : W8.t Array32.t = {
-    
+
     var buf:W8.t Array32.t;
     var offset:W64.t;
     var buf_n:W8.t Array32.t;
@@ -988,23 +889,19 @@ module _M_(SC:Syscall_t) = {
     mhash <@ __core_hash_in_ptr_ (mhash, m_with_prefix_ptr, len);
     return (mhash);
   }
-  
+
   proc _hash_message (mhash:W8.t Array32.t, r:W8.t Array32.t,
                       root:W8.t Array32.t, idx:W64.t,
                       m_with_prefix_ptr:W64.t, mlen:W64.t) : W8.t Array32.t = {
-    
-    
-    
+
     mhash <@ __hash_message (mhash, r, root, idx, m_with_prefix_ptr, mlen);
     return (mhash);
   }
-  
+
   proc __hash_message_ (mhash:W8.t Array32.t, r:W8.t Array32.t,
                         root:W8.t Array32.t, idx:W64.t,
                         m_with_prefix_ptr:W64.t, mlen:W64.t) : W8.t Array32.t = {
-    
-    
-    
+
     mhash <- mhash;
     r <- r;
     root <- root;
@@ -1015,12 +912,12 @@ module _M_(SC:Syscall_t) = {
     mhash <- mhash;
     return (mhash);
   }
-  
+
   proc __thash_h (out:W8.t Array32.t, in_0:W8.t Array64.t,
                   pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : W8.t Array32.t *
                                                                   W32.t Array8.t = {
     var aux: W8.t Array32.t;
-    
+
     var buf:W8.t Array128.t;
     var addr_as_bytes:W8.t Array32.t;
     var bitmask:W8.t Array64.t;
@@ -1035,63 +932,58 @@ module _M_(SC:Syscall_t) = {
            (fun i_0 => if 0 <= i_0 < 0 + 32 then aux.[i_0-0] else buf.[i_0]);
     addr <@ __set_key_and_mask (addr, (W32.of_int 0));
     addr_as_bytes <@ __addr_to_bytes (addr_as_bytes, addr);
-    
+
     aux <@ __prf_ ((Array32.init (fun i_0 => buf.[32 + i_0])), addr_as_bytes,
     pub_seed);
     buf <- Array128.init
            (fun i_0 => if 32 <= i_0 < 32 + 32 then aux.[i_0-32]
            else buf.[i_0]);
-    
+
     addr <@ __set_key_and_mask (addr, (W32.of_int 1));
     addr_as_bytes <@ __addr_to_bytes (addr_as_bytes, addr);
-    
-    
+
     aux <@ __prf_ ((Array32.init (fun i_0 => bitmask.[0 + i_0])),
     addr_as_bytes, pub_seed);
     bitmask <- Array64.init
                (fun i_0 => if 0 <= i_0 < 0 + 32 then aux.[i_0-0]
                else bitmask.[i_0]);
-    
+
     addr <@ __set_key_and_mask (addr, (W32.of_int 2));
-    
+
     addr_as_bytes <@ __addr_to_bytes (addr_as_bytes, addr);
-    
+
     aux <@ __prf_ ((Array32.init (fun i_0 => bitmask.[32 + i_0])),
     addr_as_bytes, pub_seed);
     bitmask <- Array64.init
                (fun i_0 => if 32 <= i_0 < 32 + 32 then aux.[i_0-32]
                else bitmask.[i_0]);
-    
+
     i <- (W64.of_int 0);
-    
+
     while ((i \ult (W64.of_int (2 * 32)))) {
       t <- in_0.[(W64.to_uint i)];
       t <- (t `^` bitmask.[(W64.to_uint i)]);
       buf.[(W64.to_uint ((W64.of_int (32 + 32)) + i))] <- t;
       i <- (i + (W64.of_int 1));
     }
-    
+
     out <@ _core_hash_128 (out, buf);
-    
+
     return (out, addr);
   }
-  
+
   proc _thash_h (out:W8.t Array32.t, in_0:W8.t Array64.t,
                  pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : W8.t Array32.t *
                                                                  W32.t Array8.t = {
-    
-    
-    
+
     (out, addr) <@ __thash_h (out, in_0, pub_seed, addr);
     return (out, addr);
   }
-  
+
   proc __thash_h_ (out:W8.t Array32.t, in_0:W8.t Array64.t,
                    pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : W8.t Array32.t *
                                                                    W32.t Array8.t = {
-    
-    
-    
+
     out <- out;
     in_0 <- in_0;
     pub_seed <- pub_seed;
@@ -1101,11 +993,11 @@ module _M_(SC:Syscall_t) = {
     addr <- addr;
     return (out, addr);
   }
-  
+
   proc __thash_f (out:W8.t Array32.t, pub_seed:W8.t Array32.t,
                   addr:W32.t Array8.t) : W8.t Array32.t * W32.t Array8.t = {
     var aux: W8.t Array32.t;
-    
+
     var buf:W8.t Array96.t;
     var addr_as_bytes:W8.t Array32.t;
     var bitmask:W8.t Array32.t;
@@ -1120,21 +1012,20 @@ module _M_(SC:Syscall_t) = {
            (fun i_0 => if 0 <= i_0 < 0 + 32 then aux.[i_0-0] else buf.[i_0]);
     addr <@ __set_key_and_mask (addr, (W32.of_int 0));
     addr_as_bytes <@ __addr_to_bytes (addr_as_bytes, addr);
-    
+
     aux <@ __prf_ ((Array32.init (fun i_0 => buf.[32 + i_0])), addr_as_bytes,
     pub_seed);
     buf <- Array96.init
            (fun i_0 => if 32 <= i_0 < 32 + 32 then aux.[i_0-32]
            else buf.[i_0]);
-    
+
     addr <@ __set_key_and_mask (addr, (W32.of_int 1));
     addr_as_bytes <@ __addr_to_bytes (addr_as_bytes, addr);
-    
-    
+
     bitmask <@ __prf_ (bitmask, addr_as_bytes, pub_seed);
-    
+
     i <- (W64.of_int 0);
-    
+
     while ((i \ult (W64.of_int 32))) {
       t <- out.[(W64.to_uint i)];
       t <- (t `^` bitmask.[(W64.to_uint i)]);
@@ -1142,24 +1033,20 @@ module _M_(SC:Syscall_t) = {
       i <- (i + (W64.of_int 1));
     }
     out <@ __core_hash__96 (out, buf);
-    
+
     return (out, addr);
   }
-  
+
   proc _thash_f (out:W8.t Array32.t, pub_seed:W8.t Array32.t,
                  addr:W32.t Array8.t) : W8.t Array32.t * W32.t Array8.t = {
-    
-    
-    
+
     (out, addr) <@ __thash_f (out, pub_seed, addr);
     return (out, addr);
   }
-  
+
   proc __thash_f_ (out:W8.t Array32.t, pub_seed:W8.t Array32.t,
                    addr:W32.t Array8.t) : W8.t Array32.t * W32.t Array8.t = {
-    
-    
-    
+
     out <- out;
     pub_seed <- pub_seed;
     addr <- addr;
@@ -1168,20 +1055,20 @@ module _M_(SC:Syscall_t) = {
     addr <- addr;
     return (out, addr);
   }
-  
+
   proc __expand_seed (outseeds:W8.t Array2144.t, inseed:W8.t Array32.t,
                       pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
   W8.t Array2144.t * W32.t Array8.t = {
     var aux_1: int;
     var aux_0: W64.t;
     var aux: W8.t Array32.t;
-    
+
     var offset:W64.t;
     var buf:W8.t Array64.t;
     var i:int;
     var  _0:W64.t;
     buf <- witness;
-    
+
     addr <@ __set_hash_addr (addr, (W32.of_int 0));
     addr <@ __set_key_and_mask (addr, (W32.of_int 0));
     offset <- (W64.of_int 0);
@@ -1194,42 +1081,37 @@ module _M_(SC:Syscall_t) = {
     i <- 0;
     while (i < 67) {
       addr <@ __set_chain_addr (addr, (W32.of_int i));
-      
+
       aux <@ __addr_to_bytes ((Array32.init (fun i_0 => buf.[32 + i_0])),
       addr);
       buf <- Array64.init
              (fun i_0 => if 32 <= i_0 < 32 + 32 then aux.[i_0-32]
              else buf.[i_0]);
-      
+
       aux <@ __prf_keygen_ ((Array32.init (fun i_0 => outseeds.[(i * 32) + i_0])),
       buf, inseed);
       outseeds <- Array2144.init
                   (fun i_0 => if (i * 32) <= i_0 < (i * 32) + 32
                   then aux.[i_0-(i * 32)] else outseeds.[i_0]);
-      
-      
+
       i <- i + 1;
     }
-    
+
     return (outseeds, addr);
   }
-  
+
   proc _expand_seed (outseeds:W8.t Array2144.t, inseed:W8.t Array32.t,
                      pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
   W8.t Array2144.t * W32.t Array8.t = {
-    
-    
-    
+
     (outseeds, addr) <@ __expand_seed (outseeds, inseed, pub_seed, addr);
     return (outseeds, addr);
   }
-  
+
   proc __expand_seed_ (outseeds:W8.t Array2144.t, inseed:W8.t Array32.t,
                        pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
   W8.t Array2144.t * W32.t Array8.t = {
-    
-    
-    
+
     outseeds <- outseeds;
     inseed <- inseed;
     pub_seed <- pub_seed;
@@ -1239,55 +1121,49 @@ module _M_(SC:Syscall_t) = {
     addr <- addr;
     return (outseeds, addr);
   }
-  
+
   proc __gen_chain (out:W8.t Array32.t, in_ptr:W64.t, start:W32.t,
                     steps:W32.t, pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
   W8.t Array32.t * W32.t Array8.t = {
-    
+
     var offset:W64.t;
     var i:W32.t;
     var t:W32.t;
     var cond:bool;
     var  _0:W64.t;
-    
+
     offset <- (W64.of_int 0);
     (out,  _0) <@ _x_memcpy_u8u8p_32 (out, offset, in_ptr, (W64.of_int 32));
-    
+
     i <- start;
     t <- start;
     t <- (t + steps);
     cond <@ __cond_u32_a_below_b_and_a_below_c (i, t, (W32.of_int 16));
     while (cond) {
-      
-      
+
       addr <@ __set_hash_addr (addr, i);
-      
+
       (out, addr) <@ __thash_f (out, pub_seed, addr);
-      
-      
+
       i <- (i + (W32.of_int 1));
       cond <@ __cond_u32_a_below_b_and_a_below_c (i, t, (W32.of_int 16));
     }
-    
+
     return (out, addr);
   }
-  
+
   proc _gen_chain (out:W8.t Array32.t, in_0:W64.t, start:W32.t, steps:W32.t,
                    pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : W8.t Array32.t *
                                                                    W32.t Array8.t = {
-    
-    
-    
+
     (out, addr) <@ __gen_chain (out, in_0, start, steps, pub_seed, addr);
     return (out, addr);
   }
-  
+
   proc __gen_chain_ (out:W8.t Array32.t, in_0:W64.t, start:W32.t,
                      steps:W32.t, pub_seed:W8.t Array32.t,
                      addr:W32.t Array8.t) : W8.t Array32.t * W32.t Array8.t = {
-    
-    
-    
+
     out <- out;
     in_0 <- in_0;
     start <- start;
@@ -1299,59 +1175,53 @@ module _M_(SC:Syscall_t) = {
     addr <- addr;
     return (out, addr);
   }
-  
+
   proc __gen_chain_inplace (out:W8.t Array32.t, in_0:W8.t Array32.t,
                             start:W32.t, steps:W32.t,
                             pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
   W8.t Array32.t * W32.t Array8.t = {
-    
+
     var offset:W64.t;
     var i:W32.t;
     var t:W32.t;
     var cond:bool;
     var  _0:W64.t;
-    
+
     offset <- (W64.of_int 0);
     (out,  _0) <@ _x_memcpy_u8u8_32_32 (out, offset, in_0);
-    
+
     i <- start;
     t <- start;
     t <- (t + steps);
     cond <@ __cond_u32_a_below_b_and_a_below_c (i, t, (W32.of_int 16));
     while (cond) {
-      
-      
+
       addr <@ __set_hash_addr (addr, i);
-      
+
       (out, addr) <@ __thash_f_ (out, pub_seed, addr);
-      
-      
+
       i <- (i + (W32.of_int 1));
       cond <@ __cond_u32_a_below_b_and_a_below_c (i, t, (W32.of_int 16));
     }
-    
+
     return (out, addr);
   }
-  
+
   proc _gen_chain_inplace (out:W8.t Array32.t, in_0:W8.t Array32.t,
                            start:W32.t, steps:W32.t, pub_seed:W8.t Array32.t,
                            addr:W32.t Array8.t) : W8.t Array32.t *
                                                   W32.t Array8.t = {
-    
-    
-    
+
     (out, addr) <@ __gen_chain_inplace (out, in_0, start, steps, pub_seed,
     addr);
     return (out, addr);
   }
-  
+
   proc __gen_chain_inplace_ (out:W8.t Array32.t, in_0:W8.t Array32.t,
                              start:W32.t, steps:W32.t,
                              pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
   W8.t Array32.t * W32.t Array8.t = {
-    
-    
-    
+
     out <- out;
     in_0 <- in_0;
     start <- start;
@@ -1364,9 +1234,9 @@ module _M_(SC:Syscall_t) = {
     addr <- addr;
     return (out, addr);
   }
-  
+
   proc __base_w_3_2 (output:W32.t Array3.t, input:W8.t Array2.t) : W32.t Array3.t = {
-    
+
     var in_0:W64.t;
     var out:W64.t;
     var bits:W64.t;
@@ -1378,20 +1248,18 @@ module _M_(SC:Syscall_t) = {
     var _sf_:bool;
     var _zf_:bool;
     var  _0:bool;
-    
+
     in_0 <- (W64.of_int 0);
     out <- (W64.of_int 0);
     bits <- (W64.of_int 0);
     consumed <- (W64.of_int 0);
-    
+
     while ((consumed \ult (W64.of_int 3))) {
       if ((bits = (W64.of_int 0))) {
         total <- input.[(W64.to_uint in_0)];
         in_0 <- (in_0 + (W64.of_int 1));
         bits <- (bits + (W64.of_int 8));
-      } else {
-        
-      }
+      } 
       bits <- (bits - (W64.of_int 4));
       total_32 <- (zeroextu32 total);
       (_of_, _cf_, _sf_,  _0, _zf_, total_32) <- SHR_32 total_32
@@ -1403,10 +1271,10 @@ module _M_(SC:Syscall_t) = {
     }
     return (output);
   }
-  
+
   proc __base_w_67_32 (output:W32.t Array67.t, input:W8.t Array32.t) : 
   W32.t Array67.t = {
-    
+
     var in_0:W64.t;
     var out:W64.t;
     var bits:W64.t;
@@ -1418,20 +1286,18 @@ module _M_(SC:Syscall_t) = {
     var _sf_:bool;
     var _zf_:bool;
     var  _0:bool;
-    
+
     in_0 <- (W64.of_int 0);
     out <- (W64.of_int 0);
     bits <- (W64.of_int 0);
     consumed <- (W64.of_int 0);
-    
+
     while ((consumed \ult (W64.of_int 67))) {
       if ((bits = (W64.of_int 0))) {
         total <- input.[(W64.to_uint in_0)];
         in_0 <- (in_0 + (W64.of_int 1));
         bits <- (bits + (W64.of_int 8));
-      } else {
-        
-      }
+      } 
       bits <- (bits - (W64.of_int 4));
       total_32 <- (zeroextu32 total);
       (_of_, _cf_, _sf_,  _0, _zf_, total_32) <- SHR_32 total_32
@@ -1443,10 +1309,10 @@ module _M_(SC:Syscall_t) = {
     }
     return (output);
   }
-  
+
   proc __wots_checksum (csum_base_w:W32.t Array3.t,
                         msg_base_w:W32.t Array67.t) : W32.t Array3.t = {
-    
+
     var csum:W64.t;
     var i:W64.t;
     var t:W64.t;
@@ -1463,7 +1329,7 @@ module _M_(SC:Syscall_t) = {
     csum_bytes_p <- witness;
     csum <- (W64.of_int 0);
     i <- (W64.of_int 0);
-    
+
     while ((i \ult (W64.of_int 64))) {
       t <- (W64.of_int (16 - 1));
       u <- (zeroextu64 msg_base_w.[(W64.to_uint i)]);
@@ -1480,10 +1346,10 @@ module _M_(SC:Syscall_t) = {
     csum_base_w <@ __base_w_3_2 (csum_base_w, csum_bytes_p);
     return (csum_base_w);
   }
-  
+
   proc __chain_lengths (lengths:W32.t Array67.t, msg:W8.t Array32.t) : 
   W32.t Array67.t = {
-    
+
     var t:W32.t Array3.t;
     t <- witness;
     lengths <@ __base_w_67_32 (lengths, msg);
@@ -1493,48 +1359,44 @@ module _M_(SC:Syscall_t) = {
                (fun i => if 64 <= i < 64 + 3 then t.[i-64] else lengths.[i]);
     return (lengths);
   }
-  
+
   proc _chain_lengths (lengths:W32.t Array67.t, msg:W8.t Array32.t) : 
   W32.t Array67.t = {
-    
-    
-    
+
     lengths <@ __chain_lengths (lengths, msg);
     return (lengths);
   }
-  
+
   proc __chain_lengths_ (lengths:W32.t Array67.t, msg:W8.t Array32.t) : 
   W32.t Array67.t = {
-    
-    
-    
+
     lengths <- lengths;
     msg <- msg;
     lengths <@ _chain_lengths (lengths, msg);
     lengths <- lengths;
     return (lengths);
   }
-  
+
   proc __wots_pkgen (pk:W8.t Array2144.t, seed:W8.t Array32.t,
                      pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
   W8.t Array2144.t * W32.t Array8.t = {
     var aux: int;
     var aux_0: W8.t Array32.t;
     var aux_1: W32.t Array8.t;
-    
+
     var i:int;
     var chain:W32.t;
     var j:int;
     var buf:W8.t Array32.t;
     buf <- witness;
-    
+
     (pk, addr) <@ __expand_seed_ (pk, seed, pub_seed, addr);
-    
+
     i <- 0;
     while (i < 67) {
       chain <- (W32.of_int i);
       addr <@ __set_chain_addr (addr, chain);
-      
+
       j <- 0;
       while (j < 32) {
         buf.[j] <- pk.[((i * 32) + j)];
@@ -1547,20 +1409,20 @@ module _M_(SC:Syscall_t) = {
             (fun i_0 => if (i * 32) <= i_0 < (i * 32) + 32
             then aux_0.[i_0-(i * 32)] else pk.[i_0]);
       addr <- aux_1;
-      
+
       i <- i + 1;
     }
-    
+
     return (pk, addr);
   }
-  
+
   proc __wots_sign (sig:W8.t Array2144.t, msg:W8.t Array32.t,
                     seed:W8.t Array32.t, pub_seed:W8.t Array32.t,
                     addr:W32.t Array8.t) : W8.t Array2144.t * W32.t Array8.t = {
     var aux: int;
     var aux_0: W8.t Array32.t;
     var aux_1: W32.t Array8.t;
-    
+
     var lengths:W32.t Array67.t;
     var i:int;
     var chain:W32.t;
@@ -1568,14 +1430,14 @@ module _M_(SC:Syscall_t) = {
     var buf:W8.t Array32.t;
     buf <- witness;
     lengths <- witness;
-    
+
     lengths <@ __chain_lengths_ (lengths, msg);
     (sig, addr) <@ __expand_seed_ (sig, seed, pub_seed, addr);
     i <- 0;
     while (i < 67) {
       chain <- (W32.of_int i);
       addr <@ __set_chain_addr (addr, chain);
-      
+
       j <- 0;
       while (j < 32) {
         buf.[j] <- sig.[((i * 32) + j)];
@@ -1592,23 +1454,19 @@ module _M_(SC:Syscall_t) = {
     }
     return (sig, addr);
   }
-  
+
   proc _wots_sign (sig:W8.t Array2144.t, msg:W8.t Array32.t,
                    seed:W8.t Array32.t, pub_seed:W8.t Array32.t,
                    addr:W32.t Array8.t) : W8.t Array2144.t * W32.t Array8.t = {
-    
-    
-    
+
     (sig, addr) <@ __wots_sign (sig, msg, seed, pub_seed, addr);
     return (sig, addr);
   }
-  
+
   proc __wots_sign_ (sig:W8.t Array2144.t, msg:W8.t Array32.t,
                      seed:W8.t Array32.t, pub_seed:W8.t Array32.t,
                      addr:W32.t Array8.t) : W8.t Array2144.t * W32.t Array8.t = {
-    
-    
-    
+
     sig <- sig;
     msg <- msg;
     seed <- seed;
@@ -1619,7 +1477,7 @@ module _M_(SC:Syscall_t) = {
     addr <- addr;
     return (sig, addr);
   }
-  
+
   proc __wots_pk_from_sig (pk:W8.t Array2144.t, sig_ptr:W64.t,
                            msg:W8.t Array32.t, pub_seed:W8.t Array32.t,
                            addr:W32.t Array8.t) : W8.t Array2144.t *
@@ -1627,7 +1485,7 @@ module _M_(SC:Syscall_t) = {
     var aux: int;
     var aux_0: W8.t Array32.t;
     var aux_1: W32.t Array8.t;
-    
+
     var lengths:W32.t Array67.t;
     var i:int;
     var chain:W32.t;
@@ -1635,13 +1493,13 @@ module _M_(SC:Syscall_t) = {
     var steps:W32.t;
     var t:W64.t;
     lengths <- witness;
-    
+
     lengths <@ __chain_lengths_ (lengths, msg);
     i <- 0;
     while (i < 67) {
       chain <- (W32.of_int i);
       addr <@ __set_chain_addr (addr, chain);
-      
+
       start <- lengths.[i];
       steps <- (W32.of_int (16 - 1));
       steps <- (steps - lengths.[i]);
@@ -1658,14 +1516,12 @@ module _M_(SC:Syscall_t) = {
     }
     return (pk, addr);
   }
-  
+
   proc __wots_pk_from_sig_ (pk:W8.t Array2144.t, sig_ptr:W64.t,
                             msg:W8.t Array32.t, pub_seed:W8.t Array32.t,
                             addr:W32.t Array8.t) : W8.t Array2144.t *
                                                    W32.t Array8.t = {
-    
-    
-    
+
     pk <- pk;
     sig_ptr <- sig_ptr;
     msg <- msg;
@@ -1676,9 +1532,9 @@ module _M_(SC:Syscall_t) = {
     addr <- addr;
     return (pk, addr);
   }
-  
+
   proc __memcmp (a:W8.t Array32.t, b:W8.t Array32.t) : W64.t = {
-    
+
     var r:W64.t;
     var are_equal:W64.t;
     var acc:W8.t;
@@ -1690,12 +1546,12 @@ module _M_(SC:Syscall_t) = {
     var zf:bool;
     var  _0:bool;
     var  _1:W8.t;
-    
+
     r <- (W64.of_int (- 1));
     are_equal <- (W64.of_int 0);
     acc <- (W8.of_int 0);
     i <- (W64.of_int 0);
-    
+
     while ((i \ult (W64.of_int 32))) {
       t <- a.[(W64.to_uint i)];
       t <- (t `^` b.[(W64.to_uint i)]);
@@ -1706,32 +1562,32 @@ module _M_(SC:Syscall_t) = {
     r <- (zf ? are_equal : r);
     return (r);
   }
-  
+
   proc _memcmp (a:W8.t Array32.t, b:W8.t Array32.t) : W64.t = {
-    
+
     var r:W64.t;
-    
+
     r <@ __memcmp (a, b);
     return (r);
   }
-  
+
   proc __memcmp_ (a:W8.t Array32.t, b:W8.t Array32.t) : W64.t = {
-    
+
     var r:W64.t;
-    
+
     a <- a;
     b <- b;
     r <@ _memcmp (a, b);
     r <- r;
     return (r);
   }
-  
+
   proc __l_tree (leaf:W8.t Array32.t, wots_pk:W8.t Array2144.t,
                  pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : W8.t Array32.t *
                                                                  W8.t Array2144.t *
                                                                  W32.t Array8.t = {
     var aux: int;
-    
+
     var l:W64.t;
     var height:W32.t;
     var parent_nodes:W64.t;
@@ -1762,21 +1618,21 @@ module _M_(SC:Syscall_t) = {
     buf1 <- witness;
     l <- (W64.of_int 67);
     height <- (W32.of_int 0);
-    
+
     addr <@ __set_tree_height (addr, height);
-    
+
     while (((W64.of_int 1) \ult l)) {
       parent_nodes <- l;
       (_of_, _cf_, _sf_,  _0, _zf_, parent_nodes) <- SHR_64 parent_nodes
       (W8.of_int 1);
-      
+
       i <- (W64.of_int 0);
-      
+
       while ((i \ult parent_nodes)) {
-        
+
         tree_index <- (truncateu32 i);
         addr <@ __set_tree_index (addr, tree_index);
-        
+
         offset_out <- (W64.of_int 0);
         offset_in <- (i * (W64.of_int 32));
         bytes <- (W64.of_int 32);
@@ -1788,20 +1644,19 @@ module _M_(SC:Syscall_t) = {
         bytes <- (W64.of_int (2 * 32));
         (buf1,  _3,  _4) <@ __memcpy_u8u8_2_64_2144 (buf1, offset_out,
         wots_pk, offset_in, bytes);
-        
+
         (buf0, addr) <@ __thash_h (buf0, buf1, pub_seed, addr);
-        
+
         offset_out <- (i * (W64.of_int 32));
         (wots_pk,  _5) <@ __memcpy_u8u8_2144_32 (wots_pk, offset_out, buf0);
-        
-        
+
         i <- (i + (W64.of_int 1));
       }
-      
+
       t <- l;
       t <- (t `&` (W64.of_int 1));
       if ((t <> (W64.of_int 0))) {
-        
+
         offset_out <- l;
         (_of_, _cf_, _sf_,  _7, _zf_, offset_out) <- SHR_64 offset_out
         (W8.of_int 1);
@@ -1815,42 +1670,38 @@ module _M_(SC:Syscall_t) = {
           wots_pk.[(W64.to_uint (offset_in + (W64.of_int j)))];
           j <- j + 1;
         }
-        
+
         (_of_, _cf_, _sf_,  _8, _zf_, l) <- SHR_64 l (W8.of_int 1);
         l <- (l + (W64.of_int 1));
       } else {
         (_of_, _cf_, _sf_,  _6, _zf_, l) <- SHR_64 l (W8.of_int 1);
       }
-      
+
       height <- (height + (W32.of_int 1));
       addr <@ __set_tree_height (addr, height);
-      
+
     }
-    
+
     offset_out <- (W64.of_int 0);
     (leaf,  _9) <@ _x_memcpy_u8u8_32_32 (leaf, offset_out,
     (Array32.init (fun i_0 => wots_pk.[0 + i_0])));
     return (leaf, wots_pk, addr);
   }
-  
+
   proc _l_tree (leaf:W8.t Array32.t, wots_pk:W8.t Array2144.t,
                 pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : W8.t Array32.t *
                                                                 W8.t Array2144.t *
                                                                 W32.t Array8.t = {
-    
-    
-    
+
     (leaf, wots_pk, addr) <@ __l_tree (leaf, wots_pk, pub_seed, addr);
     return (leaf, wots_pk, addr);
   }
-  
+
   proc __l_tree_ (leaf:W8.t Array32.t, wots_pk:W8.t Array2144.t,
                   pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : W8.t Array32.t *
                                                                   W8.t Array2144.t *
                                                                   W32.t Array8.t = {
-    
-    
-    
+
     leaf <- leaf;
     addr <- addr;
     wots_pk <- wots_pk;
@@ -1861,14 +1712,14 @@ module _M_(SC:Syscall_t) = {
     addr <- addr;
     return (leaf, wots_pk, addr);
   }
-  
+
   proc __compute_root (root:W8.t Array32.t, leaf:W8.t Array32.t,
                        leaf_idx:W32.t, _auth_path_ptr:W64.t,
                        pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
   W8.t Array32.t * W32.t Array8.t = {
     var aux: W8.t Array32.t;
     var aux_0: W32.t Array8.t;
-    
+
     var auth_path_ptr:W64.t;
     var t32:W32.t;
     var offset_out:W64.t;
@@ -1892,7 +1743,7 @@ module _M_(SC:Syscall_t) = {
     buffer <- witness;
     thash_in <- witness;
     auth_path_ptr <- _auth_path_ptr;
-    
+
     t32 <- leaf_idx;
     t32 <- (t32 `&` (W32.of_int 1));
     if ((t32 <> (W32.of_int 0))) {
@@ -1911,20 +1762,18 @@ module _M_(SC:Syscall_t) = {
       len);
     }
     auth_path_ptr <- (auth_path_ptr + (W64.of_int 32));
-    
+
     i <- (W64.of_int 0);
-    
+
     while ((i \ult (W64.of_int (10 - 1)))) {
-      
-      
+
       tree_height <- (truncateu32 i);
       addr <@ __set_tree_height (addr, tree_height);
-      
+
       (_of_, _cf_, _sf_,  _4, _zf_, leaf_idx) <- SHR_32 leaf_idx
       (W8.of_int 1);
       addr <@ __set_tree_index (addr, leaf_idx);
-      
-      
+
       t32 <- leaf_idx;
       t32 <- (t32 `&` (W32.of_int 1));
       if ((t32 <> (W32.of_int 0))) {
@@ -1964,39 +1813,35 @@ module _M_(SC:Syscall_t) = {
         (buffer,  _5) <@ _x_memcpy_u8u8p_64 (buffer, offset_out,
         auth_path_ptr, len);
       }
-      
+
       auth_path_ptr <- (auth_path_ptr + (W64.of_int 32));
-      
+
       i <- (i + (W64.of_int 1));
     }
-    
+
     addr <@ __set_tree_height (addr, (W32.of_int (10 - 1)));
     (_of_, _cf_, _sf_,  _7, _zf_, leaf_idx) <- SHR_32 leaf_idx (W8.of_int 1);
     addr <@ __set_tree_index (addr, leaf_idx);
-    
+
     (root, addr) <@ __thash_h (root, buffer, pub_seed, addr);
     return (root, addr);
   }
-  
+
   proc _compute_root (root:W8.t Array32.t, leaf:W8.t Array32.t,
                       leaf_idx:W32.t, auth_path_ptr:W64.t,
                       pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
   W8.t Array32.t * W32.t Array8.t = {
-    
-    
-    
+
     (root, addr) <@ __compute_root (root, leaf, leaf_idx, auth_path_ptr,
     pub_seed, addr);
     return (root, addr);
   }
-  
+
   proc __compute_root_ (root:W8.t Array32.t, leaf:W8.t Array32.t,
                         leaf_idx:W32.t, auth_path_ptr:W64.t,
                         pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
   W8.t Array32.t * W32.t Array8.t = {
-    
-    
-    
+
     root <- root;
     leaf <- leaf;
     leaf_idx <- leaf_idx;
@@ -2009,47 +1854,42 @@ module _M_(SC:Syscall_t) = {
     addr <- addr;
     return (root, addr);
   }
-  
+
   proc __gen_leaf_wots (leaf:W8.t Array32.t, sk_seed:W8.t Array32.t,
                         pub_seed:W8.t Array32.t, ltree_addr:W32.t Array8.t,
                         ots_addr:W32.t Array8.t) : W8.t Array32.t *
                                                    W32.t Array8.t *
                                                    W32.t Array8.t = {
-    
+
     var pk:W8.t Array2144.t;
     var  _0:W8.t Array2144.t;
      _0 <- witness;
     pk <- witness;
-    
+
     (pk, ots_addr) <@ __wots_pkgen (pk, sk_seed, pub_seed, ots_addr);
-    
-    
+
     (leaf,  _0, ltree_addr) <@ __l_tree_ (leaf, pk, pub_seed, ltree_addr);
-    
+
     return (leaf, ltree_addr, ots_addr);
   }
-  
+
   proc _gen_leaf_wots (leaf:W8.t Array32.t, sk_seed:W8.t Array32.t,
                        pub_seed:W8.t Array32.t, ltree_addr:W32.t Array8.t,
                        ots_addr:W32.t Array8.t) : W8.t Array32.t *
                                                   W32.t Array8.t *
                                                   W32.t Array8.t = {
-    
-    
-    
+
     (leaf, ltree_addr, ots_addr) <@ __gen_leaf_wots (leaf, sk_seed, pub_seed,
     ltree_addr, ots_addr);
     return (leaf, ltree_addr, ots_addr);
   }
-  
+
   proc __gen_leaf_wots_ (leaf:W8.t Array32.t, sk_seed:W8.t Array32.t,
                          pub_seed:W8.t Array32.t, ltree_addr:W32.t Array8.t,
                          ots_addr:W32.t Array8.t) : W8.t Array32.t *
                                                     W32.t Array8.t *
                                                     W32.t Array8.t = {
-    
-    
-    
+
     leaf <- leaf;
     sk_seed <- sk_seed;
     pub_seed <- pub_seed;
@@ -2062,10 +1902,10 @@ module _M_(SC:Syscall_t) = {
     ots_addr <- ots_addr;
     return (leaf, ltree_addr, ots_addr);
   }
-  
+
   proc __xmssmt_core_sign_open (m_ptr:W64.t, mlen_ptr:W64.t, sm_ptr:W64.t,
                                 smlen:W64.t, pk:W8.t Array64.t) : W64.t = {
-    
+
     var res_0:W64.t;
     var sm_offset:W64.t;
     var pub_root:W8.t Array32.t;
@@ -2111,7 +1951,7 @@ module _M_(SC:Syscall_t) = {
     pub_root <- (Array32.init (fun i_0 => pk.[0 + i_0]));
     pub_seed <- (Array32.init (fun i_0 => pk.[32 + i_0]));
     idx <- (W64.of_int 0);
-    
+
     ots_addr <@ __zero_address (ots_addr);
     ltree_addr <@ __zero_address (ltree_addr);
     node_addr <@ __zero_address (node_addr);
@@ -2123,7 +1963,7 @@ module _M_(SC:Syscall_t) = {
     Glob.mem <-
     storeW64 Glob.mem (W64.to_uint (mlen_ptr + (W64.of_int 0))) (t64);
     idx <@ __bytes_to_ull_ptr (sm_ptr, (W64.of_int 4));
-    
+
     offset_out <- (W64.of_int 2500);
     offset_in <- (W64.of_int 2500);
     bytes <- (loadW64 Glob.mem (W64.to_uint (mlen_ptr + (W64.of_int 0))));
@@ -2143,14 +1983,13 @@ module _M_(SC:Syscall_t) = {
     t64 <- (W64.of_int (4 + 32));
     sm_offset <- (sm_offset + t64);
     i <- (W32.of_int 0);
-    
+
     while ((i \ult (W32.of_int 1))) {
-      
-      
+
       idx_leaf <- (W32.of_int ((1 `<<` 10) - 1));
       idx_leaf <- (idx_leaf `&` (truncateu32 idx));
       (_of_, _cf_, _sf_,  _4, _zf_, idx) <- SHR_64 idx (W8.of_int 10);
-      
+
       ots_addr <@ __set_layer_addr (ots_addr, i);
       ltree_addr <@ __set_layer_addr (ltree_addr, i);
       node_addr <@ __set_layer_addr (node_addr, i);
@@ -2158,7 +1997,7 @@ module _M_(SC:Syscall_t) = {
       ots_addr <@ __set_tree_addr (ots_addr, idx);
       node_addr <@ __set_tree_addr (node_addr, idx);
       ots_addr <@ __set_ots_addr (ots_addr, idx_leaf);
-      
+
       t64 <- sm_ptr;
       t64 <- (t64 + sm_offset);
       root <- root;
@@ -2167,12 +2006,12 @@ module _M_(SC:Syscall_t) = {
       t64 <- sm_offset;
       t64 <- (t64 + (W64.of_int 2144));
       sm_offset <- t64;
-      
+
       ltree_addr <@ __set_ltree_addr (ltree_addr, idx_leaf);
-      
+
       (leaf, wots_pk, ltree_addr) <@ __l_tree_ (leaf, wots_pk, pub_seed,
       ltree_addr);
-      
+
       t64 <- sm_ptr;
       t64 <- (t64 + sm_offset);
       idx_leaf <- idx_leaf;
@@ -2182,21 +2021,21 @@ module _M_(SC:Syscall_t) = {
       t64 <- sm_offset;
       t64 <- (t64 + (W64.of_int (10 * 32)));
       sm_offset <- t64;
-      
+
       i <- (i + (W32.of_int 1));
     }
-    
+
     are_equal <@ __memcmp_ (root, pub_root);
     if ((are_equal <> (W64.of_int 0))) {
       res_0 <- (W64.of_int (- 1));
-      
+
       bytes <- (loadW64 Glob.mem (W64.to_uint (mlen_ptr + (W64.of_int 0))));
       __memset_u8_ptr (m_ptr, bytes, (W8.of_int 0));
       Glob.mem <-
       storeW64 Glob.mem (W64.to_uint (mlen_ptr + (W64.of_int 0))) ((W64.of_int 0));
     } else {
       res_0 <- (W64.of_int 0);
-      
+
       bytes <- (loadW64 Glob.mem (W64.to_uint (mlen_ptr + (W64.of_int 0))));
       offset_in <- sm_offset;
       ( _5,  _6,  _7) <@ _x__memcpy_u8pu8p (m_ptr, (W64.of_int 0), sm_ptr,
@@ -2204,21 +2043,21 @@ module _M_(SC:Syscall_t) = {
     }
     return (res_0);
   }
-  
+
   proc _xmssmt_core_sign_open (m_ptr:W64.t, mlen_ptr:W64.t, sm_ptr:W64.t,
                                smlen:W64.t, pk:W8.t Array64.t) : W64.t = {
-    
+
     var res_0:W64.t;
-    
+
     res_0 <@ __xmssmt_core_sign_open (m_ptr, mlen_ptr, sm_ptr, smlen, pk);
     return (res_0);
   }
-  
+
   proc __xmssmt_core_sign_open_ (m_ptr:W64.t, mlen_ptr:W64.t, sm_ptr:W64.t,
                                  smlen:W64.t, pk:W8.t Array64.t) : W64.t = {
-    
+
     var res_0:W64.t;
-    
+
     m_ptr <- m_ptr;
     mlen_ptr <- mlen_ptr;
     sm_ptr <- sm_ptr;
@@ -2228,13 +2067,13 @@ module _M_(SC:Syscall_t) = {
     res_0 <- res_0;
     return (res_0);
   }
-  
+
   proc __treehash_array (root:W8.t Array32.t, auth_path:W8.t Array320.t,
                          sk_seed:W8.t Array32.t, pub_seed:W8.t Array32.t,
                          leaf_idx:W32.t, subtree_addr:W32.t Array8.t) : 
   W8.t Array32.t * W8.t Array320.t = {
     var aux: int;
-    
+
     var offset:W64.t;
     var ots_addr:W32.t Array8.t;
     var ltree_addr:W32.t Array8.t;
@@ -2267,7 +2106,7 @@ module _M_(SC:Syscall_t) = {
     node_addr <- witness;
     ots_addr <- witness;
     offset <- (W64.of_int 0);
-    
+
     ots_addr <@ __zero_address (ots_addr);
     ltree_addr <@ __zero_address (ltree_addr);
     node_addr <@ __zero_address (node_addr);
@@ -2278,12 +2117,12 @@ module _M_(SC:Syscall_t) = {
     ltree_addr <@ __set_type (ltree_addr, (W32.of_int 1));
     node_addr <@ __set_type (node_addr, (W32.of_int 2));
     idx <- (W32.of_int 0);
-    
+
     while ((idx \ult (W32.of_int (1 `<<` 10)))) {
-      
+
       ltree_addr <@ __set_ltree_addr (ltree_addr, idx);
       ots_addr <@ __set_ots_addr (ots_addr, idx);
-      
+
       j <- 0;
       while (j < 32) {
         index <- offset;
@@ -2293,7 +2132,7 @@ module _M_(SC:Syscall_t) = {
       }
       (buf, ltree_addr, ots_addr) <@ __gen_leaf_wots_ (buf, sk_seed,
       pub_seed, ltree_addr, ots_addr);
-      
+
       j <- 0;
       while (j < 32) {
         index <- offset;
@@ -2305,12 +2144,11 @@ module _M_(SC:Syscall_t) = {
       index <- offset;
       index <- (index - (W64.of_int 1));
       heights.[(W64.to_uint index)] <- (W32.of_int 0);
-      
-      
+
       t <- leaf_idx;
       t <- (t `^` (W32.of_int 1));
       if ((t = idx)) {
-        
+
         j <- 0;
         while (j < 32) {
           index <- offset;
@@ -2319,11 +2157,9 @@ module _M_(SC:Syscall_t) = {
           auth_path.[j] <- _stack.[(W64.to_uint (index + (W64.of_int j)))];
           j <- j + 1;
         }
-        
-      } else {
-        
-      }
-      
+
+      } 
+
       a <- heights.[(W64.to_uint (offset - (W64.of_int 1)))];
       b <- heights.[(W64.to_uint (offset - (W64.of_int 2)))];
       cond <@ __cond_u64_geq_u64_u32_eq_u32 (offset, (W64.of_int 2), a, b);
@@ -2335,7 +2171,7 @@ module _M_(SC:Syscall_t) = {
         u <- idx;
         (_of_, _cf_, _sf_,  _0, _zf_, u) <- SHR_32 u (truncateu8 t);
         tree_idx <- u;
-        
+
         node_addr <@ __set_tree_height (node_addr,
         heights.[(W64.to_uint (offset - (W64.of_int 1)))]);
         node_addr <@ __set_tree_index (node_addr, tree_idx);
@@ -2348,9 +2184,9 @@ module _M_(SC:Syscall_t) = {
           buf2.[j] <- _stack.[(W64.to_uint (index + (W64.of_int j)))];
           j <- j + 1;
         }
-        
+
         (buf, node_addr) <@ __thash_h_ (buf, buf2, pub_seed, node_addr);
-        
+
         index <- offset;
         index <- (index - (W64.of_int 2));
         index <- (index * (W64.of_int 32));
@@ -2360,13 +2196,13 @@ module _M_(SC:Syscall_t) = {
           j <- j + 1;
         }
         offset <- (offset - (W64.of_int 1));
-        
+
         index <- offset;
         index <- (index - (W64.of_int 1));
         t <- heights.[(W64.to_uint index)];
         t <- (t + (W32.of_int 1));
         heights.[(W64.to_uint index)] <- t;
-        
+
         index <- offset;
         index <- (index - (W64.of_int 1));
         t <- heights.[(W64.to_uint index)];
@@ -2374,7 +2210,7 @@ module _M_(SC:Syscall_t) = {
         (_of_, _cf_, _sf_,  _1, _zf_, u) <- SHR_32 u (truncateu8 t);
         u <- (u `^` (W32.of_int 1));
         if ((u = tree_idx)) {
-          
+
           index <- offset;
           index <- (index - (W64.of_int 1));
           t64 <- (zeroextu64 heights.[(W64.to_uint index)]);
@@ -2386,18 +2222,16 @@ module _M_(SC:Syscall_t) = {
             _stack.[(W64.to_uint (index + (W64.of_int j)))];
             j <- j + 1;
           }
-          
-        } else {
-          
-        }
+
+        } 
         a <- heights.[(W64.to_uint (offset - (W64.of_int 1)))];
         b <- heights.[(W64.to_uint (offset - (W64.of_int 2)))];
         cond <@ __cond_u64_geq_u64_u32_eq_u32 (offset, (W64.of_int 2), a, b);
       }
-      
+
       idx <- (idx + (W32.of_int 1));
     }
-    
+
     j <- 0;
     while (j < 32) {
       root.[j] <- _stack.[j];
@@ -2405,26 +2239,22 @@ module _M_(SC:Syscall_t) = {
     }
     return (root, auth_path);
   }
-  
+
   proc _treehash_array (root:W8.t Array32.t, auth_path:W8.t Array320.t,
                         sk_seed:W8.t Array32.t, pub_seed:W8.t Array32.t,
                         leaf_idx:W32.t, subtree_addr:W32.t Array8.t) : 
   W8.t Array32.t * W8.t Array320.t = {
-    
-    
-    
+
     (root, auth_path) <@ __treehash_array (root, auth_path, sk_seed,
     pub_seed, leaf_idx, subtree_addr);
     return (root, auth_path);
   }
-  
+
   proc __treehash_array_ (root:W8.t Array32.t, auth_path:W8.t Array320.t,
                           sk_seed:W8.t Array32.t, pub_seed:W8.t Array32.t,
                           leaf_idx:W32.t, subtree_addr:W32.t Array8.t) : 
   W8.t Array32.t * W8.t Array320.t = {
-    
-    
-    
+
     root <- root;
     auth_path <- auth_path;
     sk_seed <- sk_seed;
@@ -2437,7 +2267,7 @@ module _M_(SC:Syscall_t) = {
     auth_path <- auth_path;
     return (root, auth_path);
   }
-  
+
   proc __xmssmt_core_seed_keypair (pk:W8.t Array64.t, sk:W8.t Array132.t,
                                    seed:W8.t Array96.t) : W8.t Array64.t *
                                                           W8.t Array132.t = {
@@ -2446,7 +2276,7 @@ module _M_(SC:Syscall_t) = {
     var aux: W8.t Array4.t;
     var aux_2: W8.t Array32.t;
     var aux_0: W8.t Array64.t;
-    
+
     var top_tree_addr:W32.t Array8.t;
     var buf:W8.t Array32.t;
     var auth_path:W8.t Array320.t;
@@ -2485,12 +2315,12 @@ module _M_(SC:Syscall_t) = {
           (fun i_0 => if 32 <= i_0 < 32 + 32 then aux_2.[i_0-32]
           else pk.[i_0]);
      _2 <- aux_1;
-    
+
     (buf,  _3) <@ __treehash_array_ (buf, auth_path,
     (Array32.init (fun i_0 => sk.[4 + i_0])),
     (Array32.init (fun i_0 => pk.[32 + i_0])), (W32.of_int 0),
     top_tree_addr);
-    
+
     i <- 0;
     while (i < 32) {
       pk.[i] <- buf.[i];
@@ -2503,10 +2333,10 @@ module _M_(SC:Syscall_t) = {
     }
     return (pk, sk);
   }
-  
+
   proc __xmssmt_core_keypair (pk:W8.t Array64.t, sk:W8.t Array132.t) : 
   W8.t Array64.t * W8.t Array132.t = {
-    
+
     var seed:W8.t Array96.t;
     var seed_p:W8.t Array96.t;
     seed <- witness;
@@ -2516,21 +2346,17 @@ module _M_(SC:Syscall_t) = {
     (pk, sk) <@ __xmssmt_core_seed_keypair (pk, sk, seed);
     return (pk, sk);
   }
-  
+
   proc _xmssmt_core_keypair (pk:W8.t Array64.t, sk:W8.t Array132.t) : 
   W8.t Array64.t * W8.t Array132.t = {
-    
-    
-    
+
     (pk, sk) <@ __xmssmt_core_keypair (pk, sk);
     return (pk, sk);
   }
-  
+
   proc __xmssmt_core_keypair_ (pk:W8.t Array64.t, sk:W8.t Array132.t) : 
   W8.t Array64.t * W8.t Array132.t = {
-    
-    
-    
+
     pk <- pk;
     sk <- sk;
     (pk, sk) <@ _xmssmt_core_keypair (pk, sk);
@@ -2538,14 +2364,14 @@ module _M_(SC:Syscall_t) = {
     sk <- sk;
     return (pk, sk);
   }
-  
+
   proc __xmssmt_core_sign (sk:W8.t Array132.t, sm_ptr:W64.t, smlen_ptr:W64.t,
                            m_ptr:W64.t, mlen:W64.t) : W8.t Array132.t * W64.t = {
     var aux_1: int;
     var aux: W8.t Array4.t;
     var aux_2: W8.t Array32.t;
     var aux_0: W8.t Array128.t;
-    
+
     var res_0:W64.t;
     var ots_addr:W32.t Array8.t;
     var t64:W64.t;
@@ -2584,7 +2410,7 @@ module _M_(SC:Syscall_t) = {
     sig <- witness;
     sk_prf <- witness;
     sk_seed <- witness;
-    
+
     ots_addr <@ __zero_address (ots_addr);
     ots_addr <@ __set_type (ots_addr, (W32.of_int 0));
     ( _0,  _1,  _2) <@ _x__memcpy_u8pu8p (sm_ptr, (W64.of_int 2500), m_ptr,
@@ -2594,9 +2420,9 @@ module _M_(SC:Syscall_t) = {
     Glob.mem <-
     storeW64 Glob.mem (W64.to_uint (smlen_ptr + (W64.of_int 0))) (t64);
     idx <@ __bytes_to_ull_4 ((Array4.init (fun i_0 => sk.[0 + i_0])));
-    
+
     if (((W64.of_int ((1 `<<` 10) - 1)) \ule idx)) {
-      
+
       aux <@ __memset_u8_4 ((Array4.init (fun i_0 => sk.[0 + i_0])),
       (W8.of_int 255));
       sk <- Array132.init
@@ -2606,35 +2432,29 @@ module _M_(SC:Syscall_t) = {
       sk <- Array132.init
             (fun i_0 => if 4 <= i_0 < 4 + 128 then aux_0.[i_0-4]
             else sk.[i_0]);
-      
+
       if (((W64.of_int ((1 `<<` 10) - 1)) \ult idx)) {
         exit_0 <- (W8.of_int 1);
-      } else {
-        
-      }
+      } 
       if (((idx = (W64.of_int ((1 `<<` 10) - 1))) /\ (10 = 64))) {
         exit_0 <- (W8.of_int 1);
-      } else {
-        
-      }
-    } else {
-      
-    }
+      } 
+    } 
     if ((exit_0 <> (W8.of_int 1))) {
       (sm_ptr,  _3) <@ _x_memcpy_u8pu8_4 (sm_ptr, (W64.of_int 0),
       (Array4.init (fun i_0 => sk.[0 + i_0])));
-      
+
       t64 <- idx;
       t64 <- (t64 + (W64.of_int 1));
       aux <@ __ull_to_bytes_4 ((Array4.init (fun i_0 => sk.[0 + i_0])), t64);
       sk <- Array132.init
             (fun i_0 => if 0 <= i_0 < 0 + 4 then aux.[i_0-0] else sk.[i_0]);
-      
+
       idx_bytes <@ __ull_to_bytes_32 (idx_bytes, idx);
       sk_prf <- (Array32.init (fun i_0 => sk.[(4 + 32) + i_0]));
       buf <@ __prf_ (buf, idx_bytes, sk_prf);
       (sm_ptr,  _4) <@ _x_memcpy_u8pu8_32 (sm_ptr, (W64.of_int 4), buf);
-      
+
       pub_root <- (Array32.init (fun i_0 => sk.[(4 + (2 * 32)) + i_0]));
       j <- 0;
       while (j < 32) {
@@ -2651,27 +2471,26 @@ module _M_(SC:Syscall_t) = {
               (fun i_0 => if 0 <= i_0 < 0 + 32 then aux_2.[i_0-0]
               else root.[i_0]);
       sm_ptr <- (sm_ptr + (W64.of_int (4 + 32)));
-      
+
       ots_addr <@ __set_type (ots_addr, (W32.of_int 0));
       i <- (W32.of_int 0);
-      
+
       while ((i \ult (W32.of_int 1))) {
-        
-        
+
         idx_leaf <- (W32.of_int ((1 `<<` 10) - 1));
         idx_leaf <- (idx_leaf `&` (truncateu32 idx));
         (_of_, _cf_, _sf_,  _5, _zf_, idx) <- SHR_64 idx (W8.of_int 10);
-        
+
         ots_addr <@ __set_layer_addr (ots_addr, i);
         ots_addr <@ __set_tree_addr (ots_addr, idx);
         ots_addr <@ __set_ots_addr (ots_addr, idx_leaf);
-        
+
         sk_seed <- (Array32.init (fun i_0 => sk.[4 + i_0]));
         pub_seed <- (Array32.init (fun i_0 => sk.[(4 + (3 * 32)) + i_0]));
         root <- root;
         (sig, ots_addr) <@ __wots_sign_ (sig, root, sk_seed, pub_seed,
         ots_addr);
-        
+
         aux_1 <- (67 * 32);
         j <- 0;
         while (j < aux_1) {
@@ -2680,8 +2499,7 @@ module _M_(SC:Syscall_t) = {
           j <- j + 1;
         }
         sm_ptr <- (sm_ptr + (W64.of_int 2144));
-        
-        
+
         sk_seed <- (Array32.init (fun i_0 => sk.[4 + i_0]));
         pub_seed <- (Array32.init (fun i_0 => sk.[(4 + (3 * 32)) + i_0]));
         aux_1 <- (10 * 32);
@@ -2693,7 +2511,7 @@ module _M_(SC:Syscall_t) = {
         }
         (root, auth_path) <@ __treehash_array_ (root, auth_path, sk_seed,
         pub_seed, idx_leaf, ots_addr);
-        
+
         aux_1 <- (10 * 32);
         j <- 0;
         while (j < aux_1) {
@@ -2701,15 +2519,12 @@ module _M_(SC:Syscall_t) = {
           storeW8 Glob.mem (W64.to_uint (sm_ptr + (W64.of_int j))) (auth_path.[j]);
           j <- j + 1;
         }
-        
+
         sm_ptr <- (sm_ptr + (W64.of_int (10 * 32)));
-        
-        
+
         i <- (i + (W32.of_int 1));
       }
-    } else {
-      
-    }
+    } 
     if ((exit_0 = (W8.of_int 1))) {
       res_0 <- (W64.of_int (- 2));
     } else {
@@ -2717,14 +2532,14 @@ module _M_(SC:Syscall_t) = {
     }
     return (sk, res_0);
   }
-  
+
   proc __xmss_keypair (pk:W8.t Array68.t, sk:W8.t Array136.t) : W8.t Array68.t *
                                                                 W8.t Array136.t = {
     var aux: W8.t Array64.t;
     var aux_0: W8.t Array132.t;
-    
+
     var oid:W32.t;
-    
+
     oid <- (W32.of_int 1);
     oid <- BSWAP_32 oid;
     pk <-
@@ -2742,14 +2557,14 @@ module _M_(SC:Syscall_t) = {
           (fun i => if 4 <= i < 4 + 132 then aux_0.[i-4] else sk.[i]);
     return (pk, sk);
   }
-  
+
   proc __xmss_sign (sk:W8.t Array136.t, sm_ptr:W64.t, smlen_ptr:W64.t,
                     m_ptr:W64.t, mlen:W64.t) : W8.t Array136.t * W64.t = {
     var aux_0: W64.t;
     var aux: W8.t Array132.t;
-    
+
     var res_0:W64.t;
-    
+
     (aux,
     aux_0) <@ __xmssmt_core_sign ((Array132.init (fun i => sk.[4 + i])),
     sm_ptr, smlen_ptr, m_ptr, mlen);
@@ -2758,47 +2573,47 @@ module _M_(SC:Syscall_t) = {
     res_0 <- aux_0;
     return (sk, res_0);
   }
-  
+
   proc __xmss_sign_open (pk:W8.t Array68.t, m_ptr:W64.t, mlen_ptr:W64.t,
                          sm_ptr:W64.t, smlen:W64.t) : W64.t = {
-    
+
     var res_0:W64.t;
-    
+
     res_0 <@ __xmssmt_core_sign_open_ (m_ptr, mlen_ptr, sm_ptr, smlen,
     (Array64.init (fun i => pk.[4 + i])));
     return (res_0);
   }
-  
+
   proc xmss_keypair_jazz (pk:W8.t Array68.t, sk:W8.t Array136.t) : W8.t Array68.t *
                                                                    W8.t Array136.t *
                                                                    W64.t = {
-    
+
     var res_0:W64.t;
     var _of_:bool;
     var _cf_:bool;
     var _sf_:bool;
     var _zf_:bool;
     var  _0:bool;
-    
+
     (pk, sk) <@ __xmss_keypair (pk, sk);
     (_of_, _cf_, _sf_,  _0, _zf_, res_0) <- set0_64 ;
     return (pk, sk, res_0);
   }
-  
+
   proc xmss_sign_jazz (sk:W8.t Array136.t, sm_ptr:W64.t, smlen_ptr:W64.t,
                        m_ptr:W64.t, mlen:W64.t) : W8.t Array136.t * W64.t = {
-    
+
     var res_0:W64.t;
-    
+
     (sk, res_0) <@ __xmss_sign (sk, sm_ptr, smlen_ptr, m_ptr, mlen);
     return (sk, res_0);
   }
-  
+
   proc xmss_sign_open_jazz (m_ptr:W64.t, mlen_ptr:W64.t, sm_ptr:W64.t,
                             smlen:W64.t, pk:W8.t Array68.t) : W64.t = {
-    
+
     var res_0:W64.t;
-    
+
     res_0 <@ __xmss_sign_open (pk, m_ptr, mlen_ptr, sm_ptr, smlen);
     return (res_0);
   }

@@ -27,7 +27,7 @@ clone import Subtype as LEN1 with
    proof *.
 
 
-type wots_message = nbytes. (* TODO: CONFIRMAR *)
+type wots_message = nbytes.
 type wots_message_base_w = len1_bytes.
 type wots_pk = len_n_bytes.
 type wots_sk = len_n_bytes.
@@ -59,7 +59,7 @@ module WOTS = {
     while (i < len) {
       address <- set_chain_addr address i;
       sk_i <- nth witness sk i;
-      pk_i <- chain sk_i 0 (w - 1) _seed address;
+      pk_i <@ Chain.chain (sk_i, 0, (w - 1), _seed, address);
       pk <- put pk i pk_i;
       i <- i + 1;
     }
@@ -114,7 +114,7 @@ module WOTS = {
       address <- set_chain_addr address i;
       sk_i <- nth witness sk i;
       msg_i <- W8.to_uint (nth witness m i);
-      sig_i <- chain sk_i 0 msg_i _seed address;
+      sig_i <@ Chain.chain (sk_i, 0, msg_i, _seed, address);
       sig <- put sig i sig_i;
       i <- i + 1;
     }
@@ -160,7 +160,7 @@ module WOTS = {
       address <- set_chain_addr address i;
       sig_i <- nth witness sig i;
       msg_i <- W8.to_uint (nth witness m i);
-      pk_i <- chain sig_i msg_i (w - 1 - msg_i) _seed address;
+      pk_i <@ Chain.chain (sig_i, msg_i, (w - 1 - msg_i), _seed, address);
       tmp_pk <- put tmp_pk i pk_i; 
       i <- i + 1;
     }
