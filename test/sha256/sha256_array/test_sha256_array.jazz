@@ -2,6 +2,8 @@ from XMSS require "sha256/sha256_array/sha256_array.jtmpl"
 
 export fn sha256_array<INLEN>(reg ptr u8[32] out, reg ptr u8[INLEN] in) -> reg ptr u8[32]
 {
-  out = __sha256<INLEN>(out, in); 
+  #msf reg u64 ms;
+  ms = #init_msf();
+  out = __sha256<INLEN>(out, in, ms); 
   return out;
 }//<>
