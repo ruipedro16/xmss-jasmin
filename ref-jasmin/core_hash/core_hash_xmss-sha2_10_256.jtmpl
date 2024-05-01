@@ -41,7 +41,6 @@ inline fn __core_hash_in_ptr(
     #msf reg u64 ms
 ) -> reg ptr u8[XMSS_N], #msf reg u64
 {
-    reg ptr u8[64] buf;
     out, ms = __sha256_in_ptr(out, in_ptr, inlen, ms);
     return out, ms;
 }//<>

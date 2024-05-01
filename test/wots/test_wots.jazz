@@ -1,33 +1,49 @@
 from XMSS require "wots/wots.jtmpl"
 
+/*
 export fn expand_seed_jazz(
     reg ptr u8[XMSS_WOTS_LEN * XMSS_N] outseeds,
     reg ptr u32[8] addr,
     reg ptr u8[XMSS_N] inseed,
     reg ptr u8[XMSS_N] pub_seed
 ) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]  {
-    outseeds, addr = __expand_seed_(outseeds, inseed, pub_seed, addr);
+    #msf reg u64 ms;
+
+    ms = #init_msf();
+
+    outseeds, addr, ms = __expand_seed(outseeds, inseed, pub_seed, addr, ms);
+
     return outseeds, addr;
 }
 
+*/
 export fn wots_checksum_jazz(
     reg ptr u32[XMSS_WOTS_LEN2] csum_base_w,
     reg ptr u32[XMSS_WOTS_LEN] msg_base_w
 ) -> reg ptr u32[XMSS_WOTS_LEN2] 
 {
-    csum_base_w = __wots_checksum_(csum_base_w, msg_base_w);
+    #msf reg u64 ms;
+
+    ms = #init_msf();
+
+    csum_base_w, ms = __wots_checksum_(csum_base_w, msg_base_w, ms);
     return csum_base_w;
 }
 
 export fn gen_chain_jazz(
     reg ptr u8[XMSS_N] out,
     reg ptr u32[8] addr,
-    reg u64 in_ptr,
-    reg u32 start steps, 
+    #transient reg u64 in_ptr,
+    #transient reg u32 start steps, 
     reg ptr u8[XMSS_N] pub_seed
 ) -> reg ptr u8[XMSS_N], reg ptr u32[8]
 {
-    out, addr = __gen_chain(out, in_ptr, start, steps, pub_seed, addr);
+    #msf reg u64 ms;
+
+    ms = #init_msf();
+
+    out, addr, ms = __gen_chain(out, in_ptr, start, steps, pub_seed, addr, ms);
+
     return out, addr;
 } 
 
@@ -39,10 +55,16 @@ export fn gen_chain_inplace_jazz(
     reg ptr u8[XMSS_N] pub_seed
 ) -> reg ptr u8[XMSS_N], reg ptr u32[8]
 {
-    out, addr = __gen_chain_inplace_(out, in, start, steps, pub_seed, addr);
+    #msf reg u64 ms;
+
+    ms = #init_msf();
+
+    out, addr, ms = __gen_chain_inplace(out, in, start, steps, pub_seed, addr, ms);
+    
     return out, addr;
 }
 
+/*
 export fn wots_pkgen_jazz(
     reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk,
     reg ptr u32[8] addr,
@@ -77,3 +99,4 @@ export fn wots_pk_from_sig_jazz(
     pk, addr = __wots_pk_from_sig_(pk, sig_ptr, msg, pub_seed, addr);
     return pk, addr;
 }
+*/

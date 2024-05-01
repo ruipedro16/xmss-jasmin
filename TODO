@@ -6,12 +6,15 @@ SSLH:
     - [X] Conditions
     - [ ] Memcmp
     - [ ] Memset
-    - [ ] Memcpy
+    - [WIP] Memcpy
 - [>] Fips202
 - [X] Sha256
 - [X] Core Hash
-- [WIP] Hash
-- [ ] Wots
+- [X] Hash
+- [WIP] Wots
 - [ ] XMSS Commons
 - [ ] XMSS Core
 - [ ] XMSS
+
+
+- Blocks0ref => Remove stack ptr u32[8] Hp; using #SPill
