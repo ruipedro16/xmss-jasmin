@@ -5,7 +5,10 @@ export fn addr_to_bytes_jazz(
     reg ptr u32[8] addr
 ) -> reg ptr u8[32] 
 {
+    _ = #init_msf();
+
     addr_as_bytes = __addr_to_bytes(addr_as_bytes, addr);
+    
     return addr_as_bytes;
 }
 
@@ -15,7 +18,12 @@ export fn prf_jazz(
     reg ptr u8[XMSS_N] key
 ) -> reg ptr u8[XMSS_N]
 {
-    out = __prf_(out, in, key);
+    #msf reg u64 ms;
+
+    ms = #init_msf();
+
+    out, ms = __prf_(out, in, key, ms);
+    
     return out;
 }
 
@@ -25,7 +33,12 @@ export fn prf_keygen_jazz(
     reg ptr u8[XMSS_N] key
 ) -> reg ptr u8[XMSS_N]
 {
-    out = __prf_keygen_(out, in, key);
+    #msf reg u64 ms;
+
+    ms = #init_msf();
+
+    out, ms = __prf_keygen_(out, in, key, ms);
+
     return out;
 }
 
@@ -37,7 +50,12 @@ export fn hash_message_jazz(
     reg u64 m_ptr mlen
 ) -> reg ptr u8[XMSS_N]
 {
-    mhash = __hash_message(mhash, R, root, idx, m_ptr, mlen);
+    #msf reg u64 ms;
+
+    ms = #init_msf();
+
+    mhash, ms = __hash_message(mhash, R, root, idx, m_ptr, mlen, ms);
+
     return mhash;
 }
 
@@ -48,9 +66,15 @@ export fn thash_h_jazz(
     reg ptr u8[XMSS_N] pub_seed
 ) -> reg ptr u8[XMSS_N], reg ptr u32[8] 
 {
-    out, addr = __thash_h_(out, in, pub_seed, addr);
+    #msf reg u64 ms;
+
+    ms = #init_msf();
+
+    out, addr, ms = __thash_h_(out, in, pub_seed, addr, ms);
+
     return out, addr;
 }
+
 
 export fn thash_f_jazz(
     reg ptr u8[XMSS_N] out,
@@ -58,6 +82,11 @@ export fn thash_f_jazz(
     reg ptr u8[XMSS_N] pub_seed
 ) -> reg ptr u8[XMSS_N], reg ptr u32[8] 
 {
-    out, addr = __thash_f_(out, pub_seed, addr);
+    #msf reg u64 ms;
+
+    ms = #init_msf();
+
+    out, addr, ms = __thash_f_(out, pub_seed, addr, ms);
+
     return out, addr;
 }

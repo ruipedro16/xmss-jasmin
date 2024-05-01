@@ -7,10 +7,10 @@ SSLH:
     - [ ] Memcmp
     - [ ] Memset
     - [ ] Memcpy
-- [ ] Fips202
+- [>] Fips202
 - [X] Sha256
 - [X] Core Hash
-- [ ] Hash
+- [WIP] Hash
 - [ ] Wots
 - [ ] XMSS Commons
 - [ ] XMSS Core

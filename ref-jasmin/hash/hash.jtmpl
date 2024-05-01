@@ -24,14 +24,15 @@ inline fn __addr_to_bytes(
 inline fn __prf(
     reg ptr u8[XMSS_N] out,
     reg ptr u8[32] in,
-    reg ptr u8[XMSS_N] key
-) -> reg ptr u8[XMSS_N]
+    reg ptr u8[XMSS_N] key,
+    #msf reg u64 ms
+) -> reg ptr u8[XMSS_N], #msf reg u64
 {
     reg u64 offset;
     stack u8[XMSS_PADDING_LEN + XMSS_N + 32] buf;
     reg ptr u8[XMSS_PADDING_LEN + XMSS_N + 32] buf_p;
     reg ptr u8[XMSS_PADDING_LEN] padding_buf;
-    
+
     // ull_to_bytes(buf, params->padding_len, XMSS_HASH_PADDING_PRF);
     padding_buf = buf[0:XMSS_PADDING_LEN];
     padding_buf = __ull_to_bytes<XMSS_PADDING_LEN>(padding_buf, XMSS_HASH_PADDING_PRF);
@@ -40,38 +41,40 @@ inline fn __prf(
     // memcpy(buf + params->padding_len, key, params->n);
     buf_p = buf;
     offset = XMSS_PADDING_LEN;
-    buf_p, _ = _x_memcpy_u8u8<XMSS_PADDING_LEN + XMSS_N + 32, XMSS_N>(buf_p, offset, key);
+    buf_p, _, ms = _x_memcpy_u8u8<XMSS_PADDING_LEN + XMSS_N + 32, XMSS_N>(buf_p, offset, key, ms);
 
     // memcpy(buf + params->padding_len + params->n, in, 32);
     offset = XMSS_PADDING_LEN + XMSS_N;
-    buf_p, _ = _x_memcpy_u8u8<XMSS_PADDING_LEN + XMSS_N + 32, 32>(buf_p, offset, in);
+    buf_p, _, ms = _x_memcpy_u8u8<XMSS_PADDING_LEN + XMSS_N + 32, 32>(buf_p, offset, in, ms);
 
     // out = __core_hash_ <OUTLEN, XMSS_PADDING_LEN + XMSS_N + 32>(out, buf_p);
-    out = __core_hash<XMSS_PADDING_LEN + XMSS_N + 32>(out, buf_p);
+    out, ms = __core_hash<XMSS_PADDING_LEN + XMSS_N + 32>(out, buf_p, ms);
 
-    return out;
+    return out, ms;
 }//<>
 
 fn _prf(
     reg ptr u8[XMSS_N] out,
     reg ptr u8[32] in,
-    reg ptr u8[XMSS_N] key
-) -> reg ptr u8[XMSS_N]
+    reg ptr u8[XMSS_N] key,
+    #msf reg u64 ms
+) -> reg ptr u8[XMSS_N], #msf reg u64
 {
-    out = __prf(out, in, key);
-    return out;
+    out, ms = __prf(out, in, key, ms);
+    return out, ms;
 }//<>
 
 inline fn __prf_(
     reg ptr u8[XMSS_N] out,
     reg ptr u8[32] in,
-    reg ptr u8[XMSS_N] key
-) -> reg ptr u8[XMSS_N]
+    reg ptr u8[XMSS_N] key,
+    #msf reg u64 ms
+) -> reg ptr u8[XMSS_N], #msf reg u64
 {
     out = out; in = in; key = key;
-    out = _prf(out, in, key);
+    out, ms = _prf(out, in, key, ms);
     out = out;
-    return out;
+    return out, ms;
 }//<>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -79,8 +82,9 @@ inline fn __prf_(
 inline fn __prf_keygen(
     reg ptr u8[XMSS_N] out,
     reg ptr u8[XMSS_N + 32] in,
-    reg ptr u8[XMSS_N] key
-) -> reg ptr u8[XMSS_N]
+    reg ptr u8[XMSS_N] key,
+    #msf reg u64 ms
+) -> reg ptr u8[XMSS_N], #msf reg u64
 {
     stack u8[XMSS_PADDING_LEN + 2*XMSS_N + 32] buf;
     reg ptr u8[XMSS_PADDING_LEN] padding_buf;
@@ -94,39 +98,41 @@ inline fn __prf_keygen(
 
     // memcpy(buf + params->padding_len, key, params->n);
     offset = XMSS_PADDING_LEN;
-    buf, _ = _x_memcpy_u8u8<XMSS_PADDING_LEN + 2*XMSS_N + 32, XMSS_N>(buf, offset, key);
+    buf, _, ms = _x_memcpy_u8u8<XMSS_PADDING_LEN + 2*XMSS_N + 32, XMSS_N>(buf, offset, key, ms);
 
     // memcpy(buf + params->padding_len + params->n, in, params->n + 32);
     offset = XMSS_PADDING_LEN + XMSS_N;
-    buf, _ = _x_memcpy_u8u8<XMSS_PADDING_LEN + 2*XMSS_N + 32, XMSS_N + 32>(buf, offset, in);
+    buf, _, ms = _x_memcpy_u8u8<XMSS_PADDING_LEN + 2*XMSS_N + 32, XMSS_N + 32>(buf, offset, in, ms);
 
     // core_hash(params, out, buf, params->padding_len + 2*params->n + 32);
-    out = __core_hash<XMSS_PADDING_LEN + 2*XMSS_N + 32>(out, buf); // FIXME: Calling the local function causes register allocation to fail
+    out, ms = __core_hash<XMSS_PADDING_LEN + 2*XMSS_N + 32>(out, buf, ms); // FIXME: Calling the local function causes register allocation to fail
 
-    return out; 
+    return out, ms; 
 }
 
 fn _prf_keygen(
     reg ptr u8[XMSS_N] out,
     reg ptr u8[XMSS_N + 32] in,
-    reg ptr u8[XMSS_N] key
-) -> reg ptr u8[XMSS_N]
+    reg ptr u8[XMSS_N] key,
+    #msf reg u64 ms
+) -> reg ptr u8[XMSS_N], #msf reg u64
 {
-    out = __prf_keygen(out, in, key);
-    return out;
+    out, ms = __prf_keygen(out, in, key, ms);
+    return out, ms;
 }
 
 inline fn __prf_keygen_(
     reg ptr u8[XMSS_N] out,
     reg ptr u8[XMSS_N + 32] in,
-    reg ptr u8[XMSS_N] key
-) -> reg ptr u8[XMSS_N]
+    reg ptr u8[XMSS_N] key,
+    #msf reg u64 ms
+) -> reg ptr u8[XMSS_N], #msf reg u64
 {
     out = out; in = in; key = key;
 
-    out = _prf_keygen(out, in, key);
+    out, ms = _prf_keygen(out, in, key, ms);
 
-    return out;
+    return out, ms;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -136,8 +142,9 @@ inline fn __hash_message(
     reg ptr u8[XMSS_N] R,
     reg ptr u8[XMSS_N] root,
     reg u64 idx,
-    reg u64 m_with_prefix_ptr mlen
-) -> reg ptr u8[XMSS_N]
+    reg u64 m_with_prefix_ptr mlen,
+    #msf reg u64 ms
+) -> reg ptr u8[XMSS_N], #msf reg u64
 {
     reg u64 offset len;
     stack u8[XMSS_PADDING_LEN] buf;
@@ -147,26 +154,27 @@ inline fn __hash_message(
     buf = __ull_to_bytes<XMSS_PADDING_LEN>(buf, XMSS_HASH_PADDING_HASH);
 
     offset = 0;
-    m_with_prefix_ptr, offset = _x_memcpy_u8pu8<XMSS_PADDING_LEN>(m_with_prefix_ptr, offset, buf);
+    m_with_prefix_ptr, offset, ms = _x_memcpy_u8pu8<XMSS_PADDING_LEN>(m_with_prefix_ptr, offset, buf, ms);
 
     // memcpy(m_with_prefix + params->padding_len, R, params->n);
     offset = XMSS_PADDING_LEN;
-    m_with_prefix_ptr, offset = _x_memcpy_u8pu8<XMSS_N>(m_with_prefix_ptr, offset, R);
+    m_with_prefix_ptr, offset, ms = _x_memcpy_u8pu8<XMSS_N>(m_with_prefix_ptr, offset, R, ms);
     
     // memcpy(m_with_prefix + params->padding_len + params->n, root, params->n);
     offset = XMSS_PADDING_LEN + XMSS_N;
-    m_with_prefix_ptr, offset = _x_memcpy_u8pu8<XMSS_N>(m_with_prefix_ptr, offset, root);
+    m_with_prefix_ptr, offset, ms = _x_memcpy_u8pu8<XMSS_N>(m_with_prefix_ptr, offset, root, ms);
 
     // ull_to_bytes(m_with_prefix + params->padding_len + 2*params->n, params->n, idx);
     buf_n = __ull_to_bytes<XMSS_N>(buf_n, idx);
     offset = XMSS_PADDING_LEN + 2*XMSS_N;
-    m_with_prefix_ptr, offset = _x_memcpy_u8pu8<XMSS_N>(m_with_prefix_ptr, offset, buf_n);
+    m_with_prefix_ptr, offset, ms = _x_memcpy_u8pu8<XMSS_N>(m_with_prefix_ptr, offset, buf_n, ms);
 
     // core_hash(params, out, m_with_prefix, mlen + params->padding_len + 3*params->n);
     len = mlen;
     len += XMSS_PADDING_LEN + 3*XMSS_N;
-    mhash = __core_hash_in_ptr_(mhash, m_with_prefix_ptr, len);
-    return mhash;
+    mhash, ms = __core_hash_in_ptr_(mhash, m_with_prefix_ptr, len, ms);
+  
+    return mhash, ms;
 }
 
 fn _hash_message(
@@ -174,11 +182,12 @@ fn _hash_message(
     reg ptr u8[XMSS_N] R,
     reg ptr u8[XMSS_N] root,
     reg u64 idx,
-    reg u64 m_with_prefix_ptr mlen
-) -> reg ptr u8[XMSS_N]
+    reg u64 m_with_prefix_ptr mlen,
+    #msf reg u64 ms
+) -> reg ptr u8[XMSS_N], #msf reg u64
 {
-    mhash = __hash_message(mhash, R, root, idx, m_with_prefix_ptr, mlen);
-    return mhash;
+    mhash, ms = __hash_message(mhash, R, root, idx, m_with_prefix_ptr, mlen, ms);
+    return mhash, ms;
 }
 
 inline fn __hash_message_(
@@ -186,8 +195,9 @@ inline fn __hash_message_(
     reg ptr u8[XMSS_N] R,
     reg ptr u8[XMSS_N] root,
     reg u64 idx,
-    reg u64 m_with_prefix_ptr mlen
-) -> reg ptr u8[XMSS_N]
+    reg u64 m_with_prefix_ptr mlen,
+    #msf reg u64 ms
+) -> reg ptr u8[XMSS_N], #msf reg u64
 {   
     mhash = mhash;
     R = R;
@@ -196,11 +206,11 @@ inline fn __hash_message_(
     m_with_prefix_ptr = m_with_prefix_ptr;
     mlen = mlen;
 
-    mhash = _hash_message(mhash, R, root, idx, m_with_prefix_ptr, mlen);
+    mhash, ms = _hash_message(mhash, R, root, idx, m_with_prefix_ptr, mlen, ms);
 
     mhash = mhash;
 
-    return mhash;
+    return mhash, ms;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -208,11 +218,12 @@ inline fn __hash_message_(
 // NOTE: `in` and `out` are not necessarily disjoint in the reference implementation (e.g. in compute root)
 //        in that case, we copy the value of in to a buffer and write to out
 inline fn __thash_h(
-    reg ptr u8[XMSS_N] out,
-    reg ptr u8[2 * XMSS_N] in,
-    reg ptr u8[XMSS_N] pub_seed,
-    reg ptr u32[8] addr
-) -> reg ptr u8[XMSS_N], reg ptr u32[8] 
+    #spill_to_mmx reg ptr u8[XMSS_N] out,
+    #spill_to_mmx reg ptr u8[2 * XMSS_N] in,
+    #spill_to_mmx reg ptr u8[XMSS_N] pub_seed,
+    #spill_to_mmx reg ptr u32[8] addr,
+    #msf reg u64 ms
+) -> reg ptr u8[XMSS_N], reg ptr u32[8], #msf reg u64
 {
     stack u8[XMSS_PADDING_LEN + 3*XMSS_N] buf;
     stack u8[2*XMSS_N] bitmask;
@@ -220,6 +231,8 @@ inline fn __thash_h(
 
     reg u8 t ;
     reg u64 i;
+
+    reg bool cond;
 
     // ull_to_bytes(buf, params->padding_len, XMSS_HASH_PADDING_H);
     buf[0:XMSS_PADDING_LEN] = __ull_to_bytes<XMSS_PADDING_LEN>(buf[0:XMSS_PADDING_LEN], XMSS_HASH_PADDING_H);
@@ -233,7 +246,7 @@ inline fn __thash_h(
     () = #spill(in, out, addr, pub_seed);
     
     // prf(params, buf + params->padding_len, addr_as_bytes, pub_seed);
-    buf[XMSS_PADDING_LEN : XMSS_N] = __prf_(buf[XMSS_PADDING_LEN : XMSS_N], addr_as_bytes, pub_seed);
+    buf[XMSS_PADDING_LEN : XMSS_N], ms = __prf_(buf[XMSS_PADDING_LEN : XMSS_N], addr_as_bytes, pub_seed, ms);
 
     () = #unspill(addr);
 
@@ -247,7 +260,7 @@ inline fn __thash_h(
 
     // prf(params, bitmask, addr_as_bytes, pub_seed);
     () = #unspill(pub_seed);
-    bitmask[0 : XMSS_N] = __prf_(bitmask[0 : XMSS_N], addr_as_bytes, pub_seed);
+    bitmask[0 : XMSS_N], ms = __prf_(bitmask[0 : XMSS_N], addr_as_bytes, pub_seed, ms);
 
     // set_key_and_mask(addr, 2);
     () = #unspill(addr);
@@ -259,66 +272,74 @@ inline fn __thash_h(
 
     // prf(params, bitmask + params->n, addr_as_bytes, pub_seed);
     () = #unspill(pub_seed);
-    bitmask[XMSS_N : XMSS_N] = __prf_(bitmask[XMSS_N : XMSS_N], addr_as_bytes, pub_seed);
+    bitmask[XMSS_N : XMSS_N], ms = __prf_(bitmask[XMSS_N : XMSS_N], addr_as_bytes, pub_seed, ms);
 
     () = #unspill(in);
     i = 0;
-    while (i < 2 * XMSS_N) {
+    while { cond = i < 2 * XMSS_N; } (cond) {
+        ms = #update_msf(cond, ms);
+
         // buf[params->padding_len + params->n + i] = in[i] ^ bitmask[i];
         t = in[i];
         t ^= bitmask[i];
         buf[XMSS_PADDING_LEN + XMSS_N + i] = t;
+
         i += 1;
     }
 
+    ms = #update_msf(!cond, ms);
+
     // core_hash(params, out, buf, params->padding_len + 3 * params->n);
     () = #unspill(out);
-    out = _core_hash<XMSS_PADDING_LEN + 3*XMSS_N>(out, buf);
+    out, ms = __core_hash_<XMSS_PADDING_LEN + 3*XMSS_N>(out, buf, ms);
 
     () = #unspill(addr);
 
-    return out, addr;
+    return out, addr, ms;
 }
 
 fn _thash_h(
     reg ptr u8[XMSS_N] out,
     reg ptr u8[2 * XMSS_N] in,
     reg ptr u8[XMSS_N] pub_seed,
-    reg ptr u32[8] addr
-) -> reg ptr u8[XMSS_N], reg ptr u32[8] 
+    reg ptr u32[8] addr,
+    #msf reg u64 ms
+) -> reg ptr u8[XMSS_N], reg ptr u32[8], #msf reg u64
 {
-    out, addr = __thash_h(out, in, pub_seed, addr);
-    return out, addr;
+    out, addr, ms = __thash_h(out, in, pub_seed, addr, ms);
+    return out, addr, ms;
 }
 
 inline fn __thash_h_(
     reg ptr u8[XMSS_N] out,
     reg ptr u8[2 * XMSS_N] in,
     reg ptr u8[XMSS_N] pub_seed,
-    reg ptr u32[8] addr
-) -> reg ptr u8[XMSS_N], reg ptr u32[8] 
+    reg ptr u32[8] addr,
+    #msf reg u64 ms
+) -> reg ptr u8[XMSS_N], reg ptr u32[8], #msf reg u64
 {
     out = out;
     in = in;
     pub_seed = pub_seed;
     addr = addr;
 
-    out, addr = _thash_h(out, in, pub_seed, addr);
+    out, addr, ms = _thash_h(out, in, pub_seed, addr, ms);
 
     out = out;
     addr = addr;
 
-    return out, addr;
+    return out, addr, ms;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // NOTE: The `in` argument is not used in this function
 inline fn __thash_f(
-    reg ptr u8[XMSS_N] out,
-    reg ptr u8[XMSS_N] pub_seed,
-    reg ptr u32[8] addr
-) -> reg ptr u8[XMSS_N], reg ptr u32[8] 
+    #spill_to_mmx reg ptr u8[XMSS_N] out,
+    #spill_to_mmx reg ptr u8[XMSS_N] pub_seed,
+    #spill_to_mmx reg ptr u32[8] addr,
+    #msf reg u64 ms
+) -> reg ptr u8[XMSS_N], reg ptr u32[8], #msf reg u64
 {
     stack u8[XMSS_PADDING_LEN + 2*XMSS_N] buf;
     stack u8[XMSS_N] bitmask;
@@ -326,6 +347,8 @@ inline fn __thash_f(
 
     reg u8 t;
     reg u64 i;
+
+    reg bool cond;
 
     // ull_to_bytes(buf, params->padding_len, XMSS_HASH_PADDING_F);
     buf[0:XMSS_PADDING_LEN] = __ull_to_bytes<XMSS_PADDING_LEN>(buf[0:XMSS_PADDING_LEN], XMSS_HASH_PADDING_F);
@@ -339,7 +362,7 @@ inline fn __thash_f(
     () = #spill(out, addr, pub_seed);
 
     // prf(params, buf + params->padding_len, addr_as_bytes, pub_seed);
-    buf[XMSS_PADDING_LEN : XMSS_N] = __prf_(buf[XMSS_PADDING_LEN : XMSS_N], addr_as_bytes, pub_seed);
+    buf[XMSS_PADDING_LEN : XMSS_N], ms = __prf_(buf[XMSS_PADDING_LEN : XMSS_N], addr_as_bytes, pub_seed, ms);
 
     // set_key_and_mask(addr, 1);
     () = #unspill(addr);
@@ -351,50 +374,57 @@ inline fn __thash_f(
    
     // prf(params, bitmask, addr_as_bytes, pub_seed);
     () = #unspill(pub_seed);
-    bitmask = __prf_(bitmask, addr_as_bytes, pub_seed);
+    bitmask, ms = __prf_(bitmask, addr_as_bytes, pub_seed, ms);
 
     () = #unspill(out);
     i = 0;
-    while (i < XMSS_N) {
+    while { cond = i < XMSS_N; } (cond) {
+        ms = #update_msf(cond, ms);
+
         // buf[params->padding_len + params->n + i] = in[i] ^ bitmask[i];
         t = out[i];
         t ^= bitmask[i];
         buf[XMSS_PADDING_LEN + XMSS_N + i] = t;
+        
         i += 1;
     }
 
+    ms = #update_msf(!cond, ms);
+
     //core_hash(params, out, buf, params->padding_len + 2 * params->n);
-    out = __core_hash_<XMSS_PADDING_LEN + 2*XMSS_N>(out, buf);
+    out, ms = __core_hash_<XMSS_PADDING_LEN + 2*XMSS_N>(out, buf, ms);
 
     () = #unspill(addr);
 
-    return out, addr;
+    return out, addr, ms;
 }
 
 fn _thash_f(
     reg ptr u8[XMSS_N] out,
     reg ptr u8[XMSS_N] pub_seed,
-    reg ptr u32[8] addr
-) -> reg ptr u8[XMSS_N], reg ptr u32[8] 
+    reg ptr u32[8] addr,
+    #msf reg u64 ms
+) -> reg ptr u8[XMSS_N], reg ptr u32[8], #msf reg u64
 {
-    out, addr = __thash_f(out, pub_seed, addr);
-    return out, addr;
+    out, addr, ms = __thash_f(out, pub_seed, addr, ms);
+    return out, addr, ms;
 }
 
 inline fn __thash_f_(
     reg ptr u8[XMSS_N] out,
     reg ptr u8[XMSS_N] pub_seed,
-    reg ptr u32[8] addr
-) -> reg ptr u8[XMSS_N], reg ptr u32[8] 
+    reg ptr u32[8] addr,
+    #msf reg u64 ms
+) -> reg ptr u8[XMSS_N], reg ptr u32[8], #msf reg u64
 {
     out = out;
     pub_seed = pub_seed;
     addr = addr;
 
-    out, addr = _thash_f(out, pub_seed, addr);
+    out, addr, ms = _thash_f(out, pub_seed, addr, ms);
 
     out = out;
     addr = addr;
 
-    return out, addr;
+    return out, addr, ms;
 }

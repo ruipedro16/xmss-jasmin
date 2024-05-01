@@ -1,32 +1,41 @@
-from Stdlib require "bytes/bytes.jtmpl" // TODO: Move to Stdlib/bytes
+from Stdlib require "bytes/bytes.jtmpl" 
 from Stdlib require "memcpy/memcpy.jtmpl"
 
 /////////////////////////////////////////////////////////////////////// BYTES
 
-export fn bytes_to_ull_jazz<INLEN>(reg u64 in_ptr) -> reg u64 {
-    stack u8[INLEN] in;
-    reg ptr u8[INLEN] in_p;
-
+export fn bytes_to_ull_jazz<INLEN>(reg ptr u8[INLEN] in) -> reg u64 {
     reg u64 res;
 
-    inline int i;
+    _ = #init_msf();
 
-    for i=0 to INLEN { in[i] = (u8) [in_ptr + i]; }
+    res = __bytes_to_ull<INLEN>(in);
 
-    in_p = in;
-    res = __bytes_to_ull<INLEN>(in_p);
-    
     return res;
 }//<>
 
-export fn bytes_to_ull_ptr_jazz(reg u64 in_ptr inlen) -> reg u64 {
+export fn bytes_to_ull_ptr_jazz(#transient reg u64 in_ptr inlen) -> reg u64 {
     reg u64 res;
+
+    _ = #init_msf();
+
     res = __bytes_to_ull_ptr(in_ptr, inlen);
+
     return res;
 }
 
 /////////////////////////////////////////////////////////////////////// MEMCPY
 
 export fn memcpy_u8pu8p_jazz(reg u64 out_ptr offset_out in_ptr offset_in len) {
+    _ = #init_msf();
+
     _, _, _ = _x__memcpy_u8pu8p(out_ptr, offset_out, in_ptr, offset_in, len);
 }
+
+export fn memcpy_u8u8_jazz<INLEN>(reg ptr u8[INLEN] out in) -> reg ptr u8[INLEN] {
+    #msf reg u64 ms;
+    ms = #init_msf();
+
+    out, _, ms = __memcpy_u8u8<INLEN, INLEN>(out, 0, in, ms);
+
+    return out;
+}//<>
