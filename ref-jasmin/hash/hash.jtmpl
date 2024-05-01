@@ -218,7 +218,7 @@ inline fn __hash_message_(
 // NOTE: `in` and `out` are not necessarily disjoint in the reference implementation (e.g. in compute root)
 //        in that case, we copy the value of in to a buffer and write to out
 inline fn __thash_h(
-    #spill_to_mmx reg ptr u8[XMSS_N] out,
+    reg ptr u8[XMSS_N] out,
     #spill_to_mmx reg ptr u8[2 * XMSS_N] in,
     #spill_to_mmx reg ptr u8[XMSS_N] pub_seed,
     #spill_to_mmx reg ptr u32[8] addr,
@@ -291,6 +291,7 @@ inline fn __thash_h(
 
     // core_hash(params, out, buf, params->padding_len + 3 * params->n);
     () = #unspill(out);
+    out = #protect_ptr(out, ms); // NOTE: not enough registers to spill to MMX
     out, ms = __core_hash_<XMSS_PADDING_LEN + 3*XMSS_N>(out, buf, ms);
 
     () = #unspill(addr);

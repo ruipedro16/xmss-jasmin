@@ -75,7 +75,6 @@ export fn thash_h_jazz(
     return out, addr;
 }
 
-
 export fn thash_f_jazz(
     reg ptr u8[XMSS_N] out,
     reg ptr u32[8] addr,
