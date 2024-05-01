@@ -1,6 +1,5 @@
 from XMSS require "wots/wots.jtmpl"
 
-/*
 export fn expand_seed_jazz(
     reg ptr u8[XMSS_WOTS_LEN * XMSS_N] outseeds,
     reg ptr u32[8] addr,
@@ -16,7 +15,6 @@ export fn expand_seed_jazz(
     return outseeds, addr;
 }
 
-*/
 export fn wots_checksum_jazz(
     reg ptr u32[XMSS_WOTS_LEN2] csum_base_w,
     reg ptr u32[XMSS_WOTS_LEN] msg_base_w
@@ -27,6 +25,7 @@ export fn wots_checksum_jazz(
     ms = #init_msf();
 
     csum_base_w, ms = __wots_checksum_(csum_base_w, msg_base_w, ms);
+
     return csum_base_w;
 }
 
@@ -64,7 +63,6 @@ export fn gen_chain_inplace_jazz(
     return out, addr;
 }
 
-/*
 export fn wots_pkgen_jazz(
     reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk,
     reg ptr u32[8] addr,
@@ -72,9 +70,14 @@ export fn wots_pkgen_jazz(
     reg ptr u8[XMSS_N] pub_seed
 ) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8] 
 {
-    pk, addr = __wots_pkgen_(pk, seed, pub_seed, addr);
+    #msf reg u64 ms;
+
+    ms = #init_msf();
+
+    pk, addr, ms = __wots_pkgen(pk, seed, pub_seed, addr, ms);
+
     return pk, addr;
-} 
+}
 
 export fn wots_sign_jazz(
     reg ptr u8[XMSS_WOTS_LEN * XMSS_N] sig,
@@ -84,7 +87,12 @@ export fn wots_sign_jazz(
     reg ptr u8[XMSS_N] pub_seed
 ) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]
 {
-    sig, addr = __wots_sign_(sig, msg, seed, pub_seed, addr);
+    #msf reg u64 ms;
+
+    ms = #init_msf();
+
+    sig, addr, ms = __wots_sign(sig, msg, seed, pub_seed, addr, ms);
+
     return sig, addr;
 }  
 
@@ -96,7 +104,11 @@ export fn wots_pk_from_sig_jazz(
     reg ptr u8[XMSS_N] pub_seed
 ) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8] 
 {
-    pk, addr = __wots_pk_from_sig_(pk, sig_ptr, msg, pub_seed, addr);
+    #msf reg u64 ms;
+
+    ms = #init_msf();
+
+    pk, addr, ms = __wots_pk_from_sig_(pk, sig_ptr, msg, pub_seed, addr, ms);
+
     return pk, addr;
 }
-*/

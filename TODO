@@ -11,7 +11,7 @@ SSLH:
 - [X] Sha256
 - [X] Core Hash
 - [X] Hash
-- [WIP] Wots
+- [WIP] Wots (FIX REGALLOC: expand seed, pkgen, sign )
 - [ ] XMSS Commons
 - [ ] XMSS Core
 - [ ] XMSS
