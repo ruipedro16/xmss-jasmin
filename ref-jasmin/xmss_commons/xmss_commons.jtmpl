@@ -8,9 +8,10 @@ from Stdlib require "memset/memset.jtmpl"
 inline fn __l_tree(
     reg ptr u8[XMSS_N] leaf,
     reg ptr u8[XMSS_WOTS_SIG_BYTES] wots_pk,
-    reg ptr u8[XMSS_N] pub_seed,
-    reg ptr u32[8] addr
-) -> reg ptr u8[XMSS_N], reg ptr u8[XMSS_WOTS_SIG_BYTES], reg ptr u32[8]
+    #spill_to_mmx reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr,
+    #msf reg u64 ms
+) -> reg ptr u8[XMSS_N], reg ptr u8[XMSS_WOTS_SIG_BYTES], reg ptr u32[8], #msf reg u64 
 {
     stack u8[XMSS_N] buf0;
     stack u8[2 * XMSS_N] buf1;
@@ -21,6 +22,8 @@ inline fn __l_tree(
     reg u64 i in_index out_index;
 
     inline int j;
+
+    reg bool cond;
 
     // unsigned int l = params->wots_len;
     l = XMSS_WOTS_LEN;
@@ -33,7 +36,9 @@ inline fn __l_tree(
     // set_tree_height(addr, height);
     addr = __set_tree_height(addr, height);
 
-    while (l > 1) {
+    while { cond = l > 1; } (cond) {
+        ms = #update_msf(cond, ms);
+
         // parent_nodes = l >> 1;
         parent_nodes = l;
         ?{}, parent_nodes = #SHR(parent_nodes, 1);
@@ -41,7 +46,9 @@ inline fn __l_tree(
         () = #spill(l);
 
         i = 0;
-        while (i < parent_nodes) {
+        while { cond = i < parent_nodes; } (cond) {
+            ms = #update_msf(cond, ms);
+
             () = #spill(i, parent_nodes);
 
             // set_tree_index(addr, i);
@@ -51,55 +58,60 @@ inline fn __l_tree(
             // thash_h(params, wots_pk + i*params->n, wots_pk + (i*2)*params->n, pub_seed, addr);
 
             // First we need to copy wots_pk + i*params->n and wots_pk + (i*2)*params->n to the respective buffers
-            () = #unspill(wots_pk);
+            () = #unspill(wots_pk); wots_pk = #protect_ptr(wots_pk, ms);
             offset_out = 0;
             offset_in = i * XMSS_N;
             bytes = XMSS_N;
-            buf0, _, _ = __memcpy_u8u8_2<XMSS_N, XMSS_WOTS_SIG_BYTES>(buf0, offset_out, wots_pk, offset_in, bytes);
+            buf0, _, _, ms = 
+                __memcpy_u8u8_2<XMSS_N, XMSS_WOTS_SIG_BYTES>(buf0, offset_out, wots_pk, offset_in, bytes, ms);
 
             offset_out = 0;
             offset_in = (i * 2); offset_in *= XMSS_N;
             bytes = 2 * XMSS_N;
-            buf1, _, _ = __memcpy_u8u8_2<2 * XMSS_N, XMSS_WOTS_SIG_BYTES>(buf1, offset_out, wots_pk, offset_in, bytes);
+            buf1, _, _, ms = 
+                __memcpy_u8u8_2<2 * XMSS_N, XMSS_WOTS_SIG_BYTES>(buf1, offset_out, wots_pk, offset_in, bytes, ms);
 
             () = #unspill(pub_seed);
-            buf0, addr = __thash_h(buf0, buf1, pub_seed, addr);
+            buf0, addr, ms = __thash_h(buf0, buf1, pub_seed, addr, ms);
 
             // Copy the result back to wots_pk: same as memcpy(wots_pk + i*XMSS_N, buf0, XMSS_N)
-            () = #unspill(i, wots_pk);
+            () = #unspill(i, wots_pk); i = #protect(i, ms); wots_pk = #protect_ptr(wots_pk, ms);
             offset_out = i * XMSS_N;
-            wots_pk, _ = __memcpy_u8u8<XMSS_WOTS_SIG_BYTES, XMSS_N>(wots_pk, offset_out, buf0);
-            () = #spill(wots_pk);
+            wots_pk, _, ms = 
+                __memcpy_u8u8<XMSS_WOTS_SIG_BYTES, XMSS_N>(wots_pk, offset_out, buf0, ms);
+            () = #spill(wots_pk); wots_pk = #protect_ptr(wots_pk, ms);
 
             () = #unspill(parent_nodes);
             i += 1;
         }
 
+        ms = #update_msf(!cond, ms);
+
         // if (l & 1)
         () = #unspill(l);
-        t = l;
-        t &= 1;
-        if (t != 0) {
+        // t = l;
+        // t &= 1;
+        // if (t != 0) {
             // memcpy(wots_pk + (l >> 1)*params->n, wots_pk + (l - 1)*params->n, params->n);
             // offset out = (l >> 1) * XMSS_N
             // offset_in = (l - 1) * XMSS_N
-            () = #unspill(wots_pk);
-            offset_out = l; ?{}, offset_out = #SHR(offset_out, 1); offset_out *= XMSS_N;
-            offset_in = l; offset_in -= 1; offset_in *= XMSS_N;
-            for j = 0 to XMSS_N { wots_pk[offset_out + j] = wots_pk[offset_in + j]; }
-            () = #spill(wots_pk);
+            // () = #unspill(wots_pk);
+            // offset_out = l; ?{}, offset_out = #SHR(offset_out, 1); offset_out *= XMSS_N;
+            // offset_in = l; offset_in -= 1; offset_in *= XMSS_N;
+            // for j = 0 to XMSS_N { wots_pk[offset_out + j] = wots_pk[offset_in + j]; }
+            // () = #spill(wots_pk);
 
             // l = (l >> 1) + 1;
-            ?{}, l = #SHR(l, 1);
-            l += 1;
-        } else {
+            // ?{}, l = #SHR(l, 1);
+            // l += 1;
+        // } else {
             // l = l >> 1;
-            ?{}, l = #SHR(l, 1);
-        }
+            // ?{}, l = #SHR(l, 1);
+        // }
 
         // height++;
         // set_tree_height(addr, height);
-        () = #unspill(height);
+        () = #unspill(height); height = #protect_32(height, ms);
         
         height += 1;
         addr = __set_tree_height(addr, height);
@@ -107,14 +119,17 @@ inline fn __l_tree(
         () = #spill(height);
     }
 
+    ms = #update_msf(!cond, ms);
+
     // memcpy(leaf, wots_pk, params->n);
     () = #unspill(leaf, wots_pk);
     offset_out = 0;
-    leaf, _ =  _x_memcpy_u8u8<XMSS_N, XMSS_N>(leaf, offset_out, wots_pk[0: XMSS_N]);
+    leaf, _, ms =  _x_memcpy_u8u8<XMSS_N, XMSS_N>(leaf, offset_out, wots_pk[0: XMSS_N], ms);
 
-    return leaf, wots_pk, addr;
+    return leaf, wots_pk, addr, ms;
 }
 
+/*
 fn _l_tree(
     reg ptr u8[XMSS_N] leaf,
     reg ptr u8[XMSS_WOTS_SIG_BYTES] wots_pk,
@@ -610,3 +625,4 @@ inline fn __xmss_core_sign_open_(
 
     return res;
 }
+*/

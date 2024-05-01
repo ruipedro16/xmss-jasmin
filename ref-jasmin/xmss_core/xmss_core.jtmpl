@@ -37,153 +37,150 @@ inline fn __treehash_array(
     stack u8[2 * XMSS_N] buf2;
 
     // unsigned int offset = 0;
-    offset = 0;
+    // offset = 0;
 
     () = #spill(root, auth_path, offset, sk_seed, pub_seed, leaf_idx);
-
     // uint32_t ots_addr[8] = {0};
+
     // uint32_t ltree_addr[8] = {0};
     // uint32_t node_addr[8] = {0};
-    ots_addr = __zero_address(ots_addr);
-    ltree_addr = __zero_address(ltree_addr);
-    node_addr = __zero_address(node_addr);
+    // ots_addr = __zero_address(ots_addr);
+    // ltree_addr = __zero_address(ltree_addr);
+    // node_addr = __zero_address(node_addr);
 
     // copy_subtree_addr(ots_addr, subtree_addr);
     // copy_subtree_addr(ltree_addr, subtree_addr);
     // copy_subtree_addr(node_addr, subtree_addr);
-    ots_addr = __copy_subtree_addr(ots_addr, subtree_addr);
-    ltree_addr = __copy_subtree_addr(ltree_addr, subtree_addr);
-    node_addr = __copy_subtree_addr(node_addr, subtree_addr);
+    // ots_addr = __copy_subtree_addr(ots_addr, subtree_addr);
+    // ltree_addr = __copy_subtree_addr(ltree_addr, subtree_addr);
+    // node_addr = __copy_subtree_addr(node_addr, subtree_addr);
 
     // set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
     // set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
     // set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
-    ots_addr = __set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
-    ltree_addr = __set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
-    node_addr = __set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
+    // ots_addr = __set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
+    // ltree_addr = __set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
+    // node_addr = __set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
 
-    idx = 0;
-    while (idx < (1 << XMSS_TREE_HEIGHT)) {
+    // idx = 0;
+    // while (idx < (1 << XMSS_TREE_HEIGHT)) {
         () = #spill(idx);
 
         // set_ltree_addr(ltree_addr, idx);
         // set_ots_addr(ots_addr, idx);
-        ltree_addr = __set_ltree_addr(ltree_addr, idx);
-        ots_addr = __set_ots_addr(ots_addr, idx);
+        // ltree_addr = __set_ltree_addr(ltree_addr, idx);
+        // ots_addr = __set_ots_addr(ots_addr, idx);
 
 
         // gen_buf_wots(params, stack + offset*params->n, sk_seed, pub_seed, ltree_addr, ots_addr);
         
             // We need to load the buf first 
             () = #unspill(offset, sk_seed, pub_seed);
-            for j=0 to XMSS_N { index = offset; index *= XMSS_N; buf[j] = _stack[index + j]; }
+            // for j=0 to XMSS_N { index = offset; index *= XMSS_N; buf[j] = _stack[index + j]; }
 
-        buf, ltree_addr, ots_addr = __gen_leaf_wots_(buf, sk_seed, pub_seed, ltree_addr, ots_addr);
+        // buf, ltree_addr, ots_addr = __gen_leaf_wots_(buf, sk_seed, pub_seed, ltree_addr, ots_addr);
         
             // Write the result back
             () = #unspill(offset);
-            for j=0 to XMSS_N { index = offset; index *= XMSS_N; _stack[index + j] = buf[j]; }
-
-        // TODO: 
-        // FIXME: Pode se poupar uma adicao (offset - 1) ao trocar a ordem destas operacoes
+            // for j=0 to XMSS_N { index = offset; index *= XMSS_N; _stack[index + j] = buf[j]; }
         
         // offset++;
-        offset += 1;
+        // offset += 1;
         
         // heights[offset - 1] = 0;
-        index = offset; index -= 1;
-        heights[index] = 0; 
+        // index = offset; index -= 1;
+        // heights[index] = 0; 
 
         () = #spill(offset);
 
         // if ((leaf_idx ^ 0x1) == idx) { memcpy(auth_path, stack + (offset - 1)*params->n, params->n); }
         () = #unspill(leaf_idx, idx);
-        t = leaf_idx; t ^= 0x1;
-        if (t == idx) {
+        // t = leaf_idx; t ^= 0x1;
+        //if (t == idx) {
             () = #unspill(auth_path);
-            for j=0 to XMSS_N { index = offset; index -= 1; index *= XMSS_N; auth_path[j] = _stack[index + j]; }
+        //    for j=0 to XMSS_N { index = offset; index -= 1; index *= XMSS_N; auth_path[j] = _stack[index + j]; }
             () = #spill(auth_path);
-        }
+        //}
 
 
         /////////////////////////////// INNER LOOP /////////////////////////////
-        () = #unspill(offset);
-        while { 
-            a = heights[offset - 1];
-            b = heights[offset - 2];
-            cond = __cond_u64_geq_u64_u32_eq_u32(offset, 2, a, b);
-        } (cond) {
+        // () = #unspill(offset);
+        // while { 
+        //     a = heights[offset - 1];
+        //     b = heights[offset - 2];
+        //     cond = __cond_u64_geq_u64_u32_eq_u32(offset, 2, a, b);
+        // } (cond) {
             // tree_idx = (idx >> (heights[offset - 1] + 1));
-            index = offset; index -= 1;
-            t = heights[index]; 
-            t += 1; // At this point, t = heights[offset - 1] + 1
+            // index = offset; index -= 1;
+            // t = heights[index]; 
+            // t += 1; // At this point, t = heights[offset - 1] + 1
 
-            u = idx;
-            ?{}, u = #SHR_32(u, t);
-            tree_idx = u;
+            // u = idx;
+            // ?{}, u = #SHR_32(u, t);
+            // tree_idx = u;
             () = #spill(tree_idx);
 
             // set_tree_height(node_addr, heights[offset - 1]);
-            node_addr = __set_tree_height(node_addr, heights[offset - 1]);
+            // node_addr = __set_tree_height(node_addr, heights[offset - 1]);
 
             // set_tree_index(node_addr, tree_idx);
-            node_addr = __set_tree_index(node_addr, tree_idx);
+            // node_addr = __set_tree_index(node_addr, tree_idx);
 
             // thash_h(params, stack + (offset-2)*params->n, stack + (offset-2)*params->n, pub_seed, node_addr);
             // 1) Load input to buf2
-            index = offset; index -= 2; index *= XMSS_N;
-            for j=0 to 2*XMSS_N { buf2[j] = _stack[index + j]; }
+            // index = offset; index -= 2; index *= XMSS_N;
+            // for j=0 to 2*XMSS_N { buf2[j] = _stack[index + j]; }
             
             () = #unspill(pub_seed);
-            buf, node_addr = __thash_h_(buf, buf2, pub_seed, node_addr);
+            // buf, node_addr = __thash_h_(buf, buf2, pub_seed, node_addr);
 
             // 2) Write the result back to stack
             () = #unspill(offset);
-            index = offset; index -= 2; index *= XMSS_N;
-            for j=0 to XMSS_N { _stack[index + j] = buf[j]; }
+            // index = offset; index -= 2; index *= XMSS_N;
+            // for j=0 to XMSS_N { _stack[index + j] = buf[j]; }
 
             // offset--;
-            offset -= 1;
+            // offset -= 1;
             () = #spill(offset);
             
             // heights[offset - 1]++;
-            index = offset;
-            index -= 1;
-            t = heights[index];
-            t += 1;
-            heights[index] = t;
+            // index = offset;
+            // index -= 1;
+            // t = heights[index];
+            // t += 1;
+            // heights[index] = t;
 
             // if (((leaf_idx >> heights[offset - 1]) ^ 0x1) == tree_idx)
             () = #unspill(leaf_idx, tree_idx);
-            index = offset;
-            index -= 1;
-            t = heights[index]; // t = heights[offset - 1]
-            u = leaf_idx;
-            ?{}, u = #SHR_32(u, t); // u = (leaf_idx >> heights[offset - 1])
-            u ^= 0x1; // u = ((leaf_idx >> heights[offset - 1]) ^ 0x1)
-            if (u == tree_idx) {
+            // index = offset;
+            // index -= 1;
+            // t = heights[index]; // t = heights[offset - 1]
+            // u = leaf_idx;
+            // ?{}, u = #SHR_32(u, t); // u = (leaf_idx >> heights[offset - 1])
+            // u ^= 0x1; // u = ((leaf_idx >> heights[offset - 1]) ^ 0x1)
+            // if (u == tree_idx) {
                 // memcpy(auth_path + heights[offset - 1]*params->n, stack + (offset - 1)*params->n, params->n);
                 () = #unspill(auth_path);
-                index = offset; index -= 1;
-                t64 = (64u) heights[index];
-                t64 *= XMSS_N; // t = heights[offset - 1]*params->n
-                index *= XMSS_N; // index = (offset - 1)*params->n
-                for j=0 to XMSS_N { auth_path[t64 + j] = _stack[index + j]; }
+                // index = offset; index -= 1;
+                // t64 = (64u) heights[index];
+                // t64 *= XMSS_N; // t = heights[offset - 1]*params->n
+                // index *= XMSS_N; // index = (offset - 1)*params->n
+                // for j=0 to XMSS_N { auth_path[t64 + j] = _stack[index + j]; }
                 () = #spill(auth_path);
-            }
-        }
+            // }
+        //}
 
 
         /////////////////////////////// INNER LOOP /////////////////////////////
 
         () = #unspill(idx);
-        idx += 1;
-    }
+        // idx += 1;
+    // }
 
     () = #unspill(root, auth_path);
 
     // memcpy(root, stack, params->n);
-    for j=0 to XMSS_N { root[j] = _stack[j]; }
+    // for j=0 to XMSS_N { root[j] = _stack[j]; }
 
     return root, auth_path;
 }
@@ -226,7 +223,7 @@ inline fn __treehash_array_(
 }
 
 /////////////////////////////////// KEY PAIR SEED //////////////////////////////
-
+/*
 inline fn __xmssmt_core_seed_keypair(
     reg ptr u8[XMSS_PK_BYTES] pk, 
     reg ptr u8[XMSS_SK_BYTES] sk,
@@ -384,9 +381,6 @@ inline fn __xmssmt_core_sign(
         // memcpy(sm, sk, params->index_bytes);
         sm_ptr, _ = _x_memcpy_u8pu8<XMSS_INDEX_BYTES>(sm_ptr, 0, sk[0 : XMSS_INDEX_BYTES]);
 
-        /*************************************************************************
-         * THIS IS WHERE PRODUCTION IMPLEMENTATIONS WOULD UPDATE THE SECRET KEY. *
-         *************************************************************************/
         // ull_to_bytes(sk, params->index_bytes, idx + 1);
         () = #unspill(sk);
         t64 = idx; t64 += 1;
@@ -479,3 +473,4 @@ inline fn __xmssmt_core_sign(
 
     return sk, res;
 }
+*/

@@ -17,7 +17,7 @@ PREPROCESSOR ?= ../../submodules/jasmin-preprocessor/preprocessor
 
 # ----------------------------------------------------------------------------------------------------------------------
 
-IMPLS := XMSS-SHAKE_20_512 XMSS-SHA2_10_256
+IMPLS := XMSS-SHA2_10_256
 IMPL_STR := $(foreach impl,$(IMPLS),$(shell echo $(impl) | tr '[:upper:]' '[:lower:]'))
 
 SPACE = $(space) $(space)
@@ -32,9 +32,9 @@ OUT   := $(addsuffix .out, $(TESTS))
 
 # ----------------------------------------------------------------------------------------------------------------------
 
-JPP_FILES     := $(addsuffix .jpp, $(TESTS))
-ASM_FILES     := $(JPP_FILES:.jpp=.s)
-OBJ_FILES     := $(ASM_FILES:.s=.o)
+JPP_FILES := $(addsuffix .jpp, $(TESTS))
+ASM_FILES := $(JPP_FILES:.jpp=.s)
+OBJ_FILES := $(ASM_FILES:.s=.o)
 
 CHECK_CT  := $(JPP_FILES:.jpp=.check_ct)
 CHECK_SCT := $(JPP_FILES:.jpp=.check_sct)

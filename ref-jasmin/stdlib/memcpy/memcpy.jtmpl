@@ -121,20 +121,26 @@ inline fn __memcpy_u8u8_2<OUTLEN,INLEN>(
     reg u64 out_offset,
     reg ptr u8[INLEN] in,
     reg u64 in_offset,
-    reg u64 bytes
-) -> reg ptr u8[OUTLEN], reg u64, reg u64
+    reg u64 bytes,
+    #msf reg u64 ms
+) -> reg ptr u8[OUTLEN], reg u64, reg u64, #msf reg u64
 {
     reg u64 i;
+    reg bool cond;
 
     i = 0;
-    while( i < bytes) {
+    while { cond = i < bytes; } (cond) {
+        ms = #update_msf(cond, ms);
+
         out[out_offset] = in[in_offset];
         i += 1;
         in_offset += 1;
         out_offset += 1;
     }
 
-    return out, out_offset, in_offset;
+    ms = #update_msf(!cond, ms);
+
+    return out, out_offset, in_offset, ms;
 }//<>
 
 #[returnaddress="stack"]
