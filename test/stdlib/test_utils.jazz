@@ -1,20 +1,13 @@
 from Stdlib require "bytes/bytes.jtmpl" // TODO: Move to Stdlib/bytes
 from Stdlib require "memcpy/memcpy.jtmpl"
+from Stdlib require "memset/memset.jtmpl"
 
 /////////////////////////////////////////////////////////////////////// BYTES
 
-export fn bytes_to_ull_jazz<INLEN>(reg u64 in_ptr) -> reg u64 {
-    stack u8[INLEN] in;
-    reg ptr u8[INLEN] in_p;
-
+export fn bytes_to_ull_jazz<INLEN>(reg ptr u8[INLEN] in) -> reg u64 {
     reg u64 res;
 
-    inline int i;
-
-    for i=0 to INLEN { in[i] = (u8) [in_ptr + i]; }
-
-    in_p = in;
-    res = __bytes_to_ull<INLEN>(in_p);
+    res = __bytes_to_ull<INLEN>(in);
     
     return res;
 }//<>
@@ -30,3 +23,10 @@ export fn bytes_to_ull_ptr_jazz(reg u64 in_ptr inlen) -> reg u64 {
 export fn memcpy_u8pu8p_jazz(reg u64 out_ptr offset_out in_ptr offset_in len) {
     _, _, _ = _x__memcpy_u8pu8p(out_ptr, offset_out, in_ptr, offset_in, len);
 }
+
+/////////////////////////////////////////////////////////////////////// MEMSET
+
+export fn memset_zero_u8_jazz<INLEN>(reg ptr u8[INLEN] in) -> reg ptr u8[INLEN] {
+    in = __memset_zero_u8<INLEN>(in);
+    return in;
+}//<>

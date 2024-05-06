@@ -1,3 +1,15 @@
+inline fn __memset_zero_u8<INLEN>(reg ptr u8[INLEN] a) -> reg ptr u8[INLEN] {
+    reg u64 i;
+
+    i = 0;
+    while (i < INLEN) {
+        a[i] = 0;
+        i += 1;
+    }
+
+    return a;
+}//<>
+
 inline fn __memset_u8<INLEN>(reg ptr u8[INLEN] a, reg u8 value) -> reg ptr u8[INLEN] {
     reg u64 i;
 

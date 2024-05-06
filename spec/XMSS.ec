@@ -6,16 +6,9 @@ from Jasmin require import JModel.
 require import Notation Parameters Address Primitives Wots.
 
 import NBytes.
+import Array8.
 
-op h : { int | 0 < h } as h.
-
-(* Used to convert a W32.t. to a byte list *)
-clone import Subtype as Four_1Bytes with 
-   type T = byte list,
-   op P = fun l => size l = 2 * n
-   rename "T" as "four_bytes"
-   proof inhabited by (exists (nseq (2*n) W8.zero);smt(size_nseq ge0_n))
-   proof *.
+(**********************************************************************************************************************)
 
 clone import Subtype as Two_NBytes with 
    type T = byte list,
@@ -24,24 +17,6 @@ clone import Subtype as Two_NBytes with
    proof inhabited by (exists (nseq (2*n) W8.zero);smt(size_nseq ge0_n))
    proof *.
 
-
-(* for the PK *)
-clone import Subtype as Two_NBytes_Plus4 with 
-   type T = byte list,
-   op P = fun l => size l = 2 * n
-   rename "T" as "two_n_bytes_plus_4"
-   proof inhabited by admit. (* inhabited by (exists (nseq (2*n + 4) W8.zero);smt(size_nseq ge0_n))
-   proof *. => THIS DOESNT WORK*)
-
-
-(* For the SK *)
-clone import Subtype as Two_H_NBytes with 
-   type T = skey list,
-   op P = fun l => size l = 2^h
-   rename "T" as "two_h_nbytes"
-   proof inhabited by admit. (* FIXME: *)
-
-
 clone import Subtype as Three_NBytes with 
    type T = byte list,
    op P = fun l => size l = 3 * n
@@ -49,46 +24,103 @@ clone import Subtype as Three_NBytes with
    proof inhabited by (exists (nseq (3*n) W8.zero);smt(size_nseq ge0_n))
    proof *.
 
+clone import Subtype as SIG_OTS with 
+   type T = nbytes list,
+   op P = fun l => size l = len
+   rename "T" as "sig_ots"
+   proof inhabited by admit.
 
+(**********************************************************************************************************************)
 
-op oid : W32.t.
-op oid_to_bytes : W32.t -> four_bytes.
-op to_bytes : 'a -> byte list.
+op remove_last (x : 'a list) : 'a list = 
+with x = [] => []
+with x = h::t => if t = [] then [] else remove_last t.
 
-op zero_address : adrs.
+abbrev push (x : 'a list) (a : 'a) : 'a list = rcons x a. 
+abbrev pop (x : 'a list) : 'a list * 'a = 
+    let last_elem : 'a = last witness x in
+    let new_list = remove_last x in
+    (new_list, last_elem).
 
-(*
-+---------------------------------+
-|          algorithm OID          |     4 bytes
-+---------------------------------+
-|                                 |
-|            root node            |     n bytes
-|                                 |
-+---------------------------------+
-|                                 |
-|              SEED               |     n bytes
-|                                 |
-+---------------------------------+
-*)
+(**********************************************************************************************************************)
 
-type pk_t = two_n_bytes_plus_4. 
-type sk_t = two_h_nbytes.
-type keypair = pk_t * sk_t.
-
-type sig_t = byte list.
-type msg_t = byte list.
-
-op bytes_to_sk : byte list -> sk_t.
-
-(* i.e. number of leaves *)
+op h : { int | 0 < h } as h.
 op max_signatures : int = 2^h.
 
-(* XMSS is existentially unforgeable under adaptively chosen message attacks in the
-   standard model, provided H is second preimage resistant *)
 op H : nbytes -> two_n_bytes -> nbytes.
 op H_msg : tree_n_bytes -> byte list -> nbytes.
 
-op get_seed : skey -> seed.
+op oid : W32.t.
+op zero_address : adrs = Array8.init (fun _ => W32.zero).
+
+(* Format sk: [OID || (ceil(h/8) bit) idx || SK_SEED || SK_PRF || PUB_SEED || root] *)
+type sk_t = W32.t * W32.t * nbytes * nbytes * nbytes * nbytes.
+
+(*
+(* Format pk: [OID || root || PUB_SEED] *)
+            +---------------------------------+
+            |          algorithm OID          |
+            +---------------------------------+
+            |                                 |
+            |            root node            |     n bytes
+            |                                 |
+            +---------------------------------+
+            |                                 |
+            |              SEED               |     n bytes
+            |                                 |
+            +---------------------------------+
+
+                              XMSS Public Key
+*)
+type pk_t = W32.t * nbytes * nbytes.
+
+type keypair = pk_t * sk_t.
+
+
+(*
+             +---------------------------------+
+             |                                 |
+             |          index idx_sig          |    4 bytes
+             |                                 |
+             +---------------------------------+
+             |                                 |
+             |          randomness r           |    n bytes
+             |                                 |
+             +---------------------------------+
+             |                                 |
+             |     WOTS+ signature sig_ots     |    len * n bytes
+             |                                 |
+             +---------------------------------+
+             |                                 |
+             |             auth[0]             |    n bytes
+             |                                 |
+             +---------------------------------+
+             |                                 |
+             ~              ....               ~
+             |                                 |
+             +---------------------------------+
+             |                                 |
+             |           auth[h - 1]           |    n bytes
+             |                                 |
+             +---------------------------------+
+
+                        XMSS Signature
+*)
+type sig_t = W32.t * nbytes * sig_ots * nbytes list.
+
+type msg_t = byte list.
+
+(**********************************************************************************************************************)
+
+type authentication_path = nbytes list.
+op build_authpath : authentication_path.
+
+(**********************************************************************************************************************)
+
+op get_sk_seed (sk : sk_t) : nbytes = sk.`3.
+op get_seed (sk : sk_t) : nbytes = sk.`5. (* This is the pub seed *)
+
+(**********************************************************************************************************************)
 
 op rand_hash (_left _right : nbytes, _seed : seed, address : adrs) : nbytes = 
   let address : adrs = set_key_and_mask address 0 in
@@ -100,17 +132,12 @@ op rand_hash (_left _right : nbytes, _seed : seed, address : adrs) : nbytes =
   let hash_in : nbytes = (nbytexor _left bitmask_0) ++ (nbytexor _right bitmask_1) in
   H key hash_in.
 
-(* Imperative Definition of XMSS *)
-module type SignatureScheme = {
-    proc kg() : keypair
-    proc sign(sk : sk_t, m : msg_t) : sig_t * sk_t
-    proc verify(pk : pk_t, m : msg_t, s : sig_t) : bool
-}.
+(**********************************************************************************************************************)
 
 abbrev (>) (a b : int) = b < a. 
 
 module LTree = {
-  proc ltree (pk : pkey, address : adrs, _seed : seed) : nbytes = {
+  proc ltree (pk : wots_pk, address : adrs, _seed : seed) : nbytes = {
     var _len : int <- len;
     var pk_i : nbytes;
     var tmp : nbytes;
@@ -144,40 +171,34 @@ module LTree = {
   }
 }.
 
-op remove_last (x : 'a list) : 'a list = 
-with x = [] => []
-with x = h::t => if t = [] then [] else remove_last t.
+(**********************************************************************************************************************)
 
-abbrev push (x : 'a list) (a : 'a) : 'a list = rcons x a. 
-abbrev pop (x : 'a list) : 'a list * 'a = 
-    let last_elem : 'a = last witness x in
-    let new_list = remove_last x in
-    (new_list, last_elem).
+(* It is REQUIRED that s % 2^t = 0, i.e., that the leaf at index s is a leftmost leaf of a sub-tree of height t. *)
+pred leftmost_leaf (s t : int)  = s %% 2^t = 0.
 
-op same_height : nbytes -> int -> bool. (* TODO: *)
+pred treehash_p (s t : int) = s %% (1 `<<` t) <> 0.
 
-op set_sk_prf : sk_t -> nbytes -> sk_t. (* TODO: *)
-op set_seed : sk_t -> seed -> sk_t.     (* TODO: *)
-op set_wots_sk : sk_t -> skey list -> sk_t.  (* TODO: *)
+op same_height : nbytes -> int -> bool.
 
 module Treehash = {
-  proc treehash(sk : skey, s t : int, address : adrs) : nbytes = {
+  proc treehash(sk : sk_t, s t : int, address : adrs) : nbytes = {
     var stack : nbytes list;
     var node : nbytes;
     var top_node : nbytes;
     var _seed : seed;
-    var pk : pkey;
+    var pk : wots_pk;
     var i : int <- 0;
     var tree_index, tree_height: int;
 
     pk <- witness; (* To suppress warning *)
-    stack <- witness; (* FIXME: NOT INITIALIZED *)
+    stack <- witness;
 
     while (i < 2^t) {
       _seed  <- get_seed sk;
       address <- set_type address 0;
       address <- set_ots_addr address (s + 1);
-      pk <- genPKWots pk sk _seed address; (* FIXME: s+1?? *)
+      (*123*)
+      (* pk <- genPKWots pk sk _seed address; *)
       address <- set_type address 1;
       address <- set_tree_addr address (s + 1);
       node <@ LTree.ltree(pk, address, _seed); 
@@ -203,58 +224,80 @@ module Treehash = {
     return node;
   }
 }.
- 
 
+(**********************************************************************************************************************)
 
-(* It is REQUIRED that s % 2^t = 0, i.e., that the leaf at index s is a leftmost leaf of a sub-tree of height t. *)
-pred leftmost_leaf (s t : int)  = s %% 2^t = 0.
+module AuthPath = {
+  proc buildAuth(sk : sk_t, index : int, address : adrs) : authentication_path = {
+    var authpath : authentication_path <- witness;
+    var j : int <- 0;
+    
+    while (j < h) {
+      j <- j+1;
+    }
 
-pred treehash_p (s t : int) = s %% (1 `<<` t) <> 0.
+    return authpath;
+  }
+}.
+
+op treeSig (m : nbytes, sk : sk_t, index : W32.t, address : adrs) =
+  let authpath : authentication_path = witness (* AuthPath.buildAuth(sk, W32.to_uint index, address) *) in
+  let address : adrs = set_type address 0 in
+  let address : adrs = set_ots_addr address (W32.to_uint index) in
+  let sig_ots = witness in
+  let sig = sig_ots ++ authpath in
+  sig.
+
+(**********************************************************************************************************************)
+
+module type SignatureScheme = {
+    proc kg() : keypair
+    proc sign(sk : sk_t, m : msg_t) : sig_t * sk_t
+    proc verify(pk : pk_t, m : msg_t, s : sig_t) : bool
+}.
+
+(*123*)
+op nbytes_radndom : nbytes.
 
 module XMSS : SignatureScheme = {
   proc kg() : keypair = {
-    var idx : int;
+    var idx : W32.t;
     var i : int <- 0;
     var pk : pk_t;
     var sk : sk_t;
-    var wots_sk : skey list;
-    var wots_sk_i : skey;
+    var wots_skey : wots_sk list;
+    var wots_sk_i : wots_sk;
     var sk_prf : nbytes;
     var _seed : seed;
-    var oid_as_bytes : four_bytes;
     var root : nbytes;
     var address : adrs;
 
     while (i < 2^h) {
       wots_sk_i <@ WOTS.genSK();
-      wots_sk <- put wots_sk i wots_sk_i;
+      wots_skey <- put wots_skey i wots_sk_i;
       i <- i + 1;
     }
 
-    sk_prf <- sample_n_bytes sk_prf;
-    sk <- set_sk_prf sk sk_prf;
-
-    _seed <- sample_n_bytes _seed;
-    sk <- set_seed sk _seed;
-
-    sk <- set_wots_sk sk wots_sk;
-
+    sk_prf <- nbytes_radndom;
+    _seed <- nbytes_radndom;
     address <- zero_address;
-    (* root <@ Treehash.treehash(sk, 0, h, address); *) (* FIXME: Wrong type of SK *)
-    root <- witness;
+    root <@ Treehash.treehash(sk, 0, h, address);
 
-    oid_as_bytes <- oid_to_bytes oid;
-
-    sk <- bytes_to_sk ( (to_bytes oid) ++ (to_bytes wots_sk) ++ (to_bytes sk_prf) ++ (to_bytes root) ++ _seed );
-
-    pk <- oid_as_bytes ++ root ++ _seed;
-
+    (* Check if this is ok *)
+    sk <- (oid, idx, _seed, sk_prf, _seed, root);
+    pk <- (oid, root, _seed);
 
     return (pk, sk);
   }
 
   proc sign(sk : sk_t, m : msg_t) : sig_t * sk_t = {
     var sig : sig_t <- witness;
+    
+    var idx_sig : W32.t;
+
+    var address : adrs <- zero_address;
+
+    idx_sig <- sk.`2;
 
     return (sig, sk);
   }
@@ -265,5 +308,3 @@ module XMSS : SignatureScheme = {
     return is_valid;
   }
 }.
-
-(* Functional Definition of XMSS *)

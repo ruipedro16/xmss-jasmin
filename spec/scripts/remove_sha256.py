@@ -74,6 +74,7 @@ def remove_sha256_functions(input_text: str, template_functions_dict) -> str:
             print(f"could not find {f} in template_functions_dict")
 
     regular_functions: list[str] = [
+        # SHA256 FUNCTIONS
         "__initH_ref",
         "__load_H_ref",
         "__store_H_ref",
@@ -91,9 +92,14 @@ def remove_sha256_functions(input_text: str, template_functions_dict) -> str:
         "__ROTR_ref",
         "__CH_ref",
         "__sha256_in_ptr",
+        # CORE HASH FUNCTIONS
         "__core_hash_in_ptr",
         "_core_hash_in_ptr",
         "__core_hash_in_ptr_",
+        # PRF FUNCTIONS
+        "__prf_",
+        "_prf",
+        "__prf"
     ]
 
     functions_to_remove: list[str] = resolved_functions + regular_functions
@@ -108,20 +114,94 @@ def remove_sha256_functions(input_text: str, template_functions_dict) -> str:
     return output_text
 
 
+def add_operators(text: str) -> str:
+    string_to_add = """
+require import XMSS_IMPL.
+
+op Hash_96 : W8.t Array32.t -> W8.t Array96.t -> W8.t Array32.t.
+op Hash_128 : W8.t Array32.t -> W8.t Array128.t -> W8.t Array32.t.
+op Hash_ptr : W8.t Array32.t -> W64.t -> W64.t -> W8.t Array32.t.
+
+op PRF : W8.t Array32.t -> W8.t Array32.t -> W8.t Array32.t -> W8.t Array32.t.
+"""
+    t = text.rfind("module")
+    return text[:t] + string_to_add + "\n" + text[t:]
+
+
 def replace_calls(text: str) -> str:
     """
+    Run 
+        grep -nr "core_hash" | cut -d ' ' -f 4 | uniq | grep -v '^$' 
+    to get this list
 
-    Run grep -nr "core_hash" | cut -d ' ' -f 4 | uniq | grep -v '^$' to get this list
-
-    __core_hash_96
-    __core_hash_128
-    _core_hash_96
-    _core_hash_128
-    __core_hash__96
-    __core_hash_in_ptr
-    _core_hash_in_ptr
-    __core_hash_in_ptr_
     """
+
+    functions: list[str] = [
+        "__core_hash_96",
+        "_core_hash_96",
+        "__core_hash__96",
+        "__core_hash_128",
+        "_core_hash_128",
+        "__core_hash_in_ptr_",
+        "__core_hash_in_ptr",
+        "_core_hash_in_ptr",
+    ]
+
+    for f in functions:
+        pattern = rf"<@ ({f}) \(([^)]+), ([^)]+)\);"
+        replacement = r"<- \1 \2 \3;"
+        text = re.sub(pattern, replacement, text)
+
+    text = text.replace("__core_hash_96", "Hash_96")
+    text = text.replace("_core_hash_96", "Hash_96")
+    text = text.replace("__core_hash__96", "Hash_96")
+
+    text = text.replace("__core_hash_128", "Hash_128")
+    text = text.replace("_core_hash_128", "Hash_128")
+    text = text.replace("__core_hash__128", "Hash_128")
+
+    text = text.replace("__core_hash_in_ptr_", "Hash_ptr")
+    text = text.replace("__core_hash_in_ptr", "Hash_ptr")
+    text = text.replace("_core_hash_in_ptr", "Hash_ptr")
+
+    text = text.replace(
+        "mhash <- Hash_ptr mhash, m_with_prefix_ptr len;", "mhash <- Hash_ptr mhash m_with_prefix_ptr len;"
+    )
+
+    text = text.replace(
+"""
+    aux <@ __prf_ ((Array32.init (fun i_0 => buf.[32 + i_0])), addr_as_bytes,
+    pub_seed);
+""",
+"""
+    aux <- PRF (Array32.init (fun i_0 => buf.[32 + i_0])) addr_as_bytes pub_seed;
+"""
+)
+    
+    text = text.replace(
+"""
+    aux <@ __prf_ ((Array32.init (fun i_0 => bitmask.[0 + i_0])),
+    addr_as_bytes, pub_seed);
+""",
+"""
+    aux <- PRF (Array32.init (fun i_0 => bitmask.[0 + i_0])) addr_as_bytes pub_seed;
+"""
+    )
+
+    text = text.replace(
+"""
+    aux <@ __prf_ ((Array32.init (fun i_0 => bitmask.[32 + i_0])),
+    addr_as_bytes, pub_seed);
+""",
+"""
+    aux <- PRF (Array32.init (fun i_0 => bitmask.[32 + i_0])) addr_as_bytes pub_seed;
+"""
+    )
+
+    text = text.replace("bitmask <@ __prf_ (bitmask, addr_as_bytes, pub_seed);", "bitmask <- PRF bitmask addr_as_bytes pub_seed;")
+    text = text.replace("buf <@ __prf_ (buf, idx_bytes, sk_prf);", "buf <- PRF buf idx_bytes sk_prf;")
+
+    return text
 
 
 ########################################################################################################################
@@ -130,7 +210,27 @@ def replace_calls(text: str) -> str:
 def preprocess_ec(ec_in: str, template_functions_dict) -> str:
     ec_out = ec_in.replace("module M", "module Mp")
 
+        # Remove module related to randombytes
+    ec_out = ec_out.replace(
+"""
+module type Syscall_t = {
+  proc randombytes_96(_:W8.t Array96.t) : W8.t Array96.t
+}.
+
+module Syscall : Syscall_t = {
+  proc randombytes_96(a:W8.t Array96.t) : W8.t Array96.t = {
+    a <$ dmap WArray96.darray
+         (fun a => Array96.init (fun i => WArray96.get8 a i));
+    return a;
+  }
+}.
+""",
+        ""
+    )
+
     ec_out = remove_sha256_functions(ec_out, template_functions_dict)
+    ec_out = add_operators(ec_out)
+    ec_out = replace_calls(ec_out)
 
     ec_out = ec_out.replace("(* Erased call to spill *)", "")
     ec_out = ec_out.replace("(* Erased call to unspill *)", "")

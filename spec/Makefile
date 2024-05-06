@@ -13,7 +13,7 @@ TEST_SRC   := ../test
 JPP          := ../submodules/jasmin-preprocessor/jpp
 PREPROCESSOR := ../submodules/jasmin-preprocessor/preprocessor
 
-all: clean distclean extract typecheck
+all: clean distclean extract typecheck_extraction typecheck
 default: extract typecheck
 
 extract: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
@@ -50,6 +50,11 @@ typecheck: extract
 	# $(EASYCRYPT) $(EC_INCLUDE) XMSS.ec
 	# $(EASYCRYPT) $(EC_INCLUDE) Properties.ec
 	# $(EASYCRYPT) $(EC_INCLUDE) Correctness.ec
+
+.PHONY: typecheck_extraction
+typecheck_extraction: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
+	$(EASYCRYPT) $(EC_INCLUDE) extraction/XMSS_IMPL.ec
+	$(EASYCRYPT) $(EC_INCLUDE) extraction/XMSS_IMPL_PP.ec
 
 # --------------------------------------------------------------------------------------------------
 

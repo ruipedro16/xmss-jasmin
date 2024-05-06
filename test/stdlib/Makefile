@@ -57,7 +57,8 @@ $(JPP_FILES):
 bin/test_utils_%.jpp: | bin/
 	cp test_utils.jazz $@
 	$(JPP) $(JINCLUDE) -in $@ -out $@
-	$(PREPROCESSOR) --input_file $@ --output_file $@ --task "fn:bytes_to_ull_jazz p:INLEN:$*"
+	$(PREPROCESSOR) --input_file $@ --output_file $@ --task "fn:bytes_to_ull_jazz p:INLEN:$*" \
+	"fn:memset_zero_u8_jazz p:INLEN:$*"
 
 bin/test_conditions.jpp: bin/
 	cp test_conditions.jazz $@

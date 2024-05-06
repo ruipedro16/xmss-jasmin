@@ -27,6 +27,10 @@
 
 #define bytes_to_ull_jazz NAMESPACE1(bytes_to_ull_jazz, INLEN)
 extern uint64_t bytes_to_ull_jazz(const uint8_t *);
+
+#define memset_zero_u8_jazz NAMESPACE1(memset_zero_u8_jazz, INLEN)
+extern void memset_zero_u8_jazz(uint8_t *);
+
 extern uint64_t bytes_to_ull_ptr_jazz(const uint8_t *, size_t);
 
 // memcpy
@@ -134,10 +138,43 @@ void test_memcpy_u8pu8p(void) {
 #undef _TESTS
 }
 
+void test_memset_zero_u8(void) {
+    bool debug = true;
+
+    uint8_t in[INLEN] = {0};
+    uint8_t zero[INLEN] = {0};
+
+    for (int i = 0; i < TESTS; i++) {
+        if (debug) {
+            printf("[memset_zero_u8] Test %d/%d (INLEN=%d)\n", i, TESTS, INLEN);
+        }
+
+        // assert that in is not all zeros
+        while (memcmp(in, zero, INLEN) == 0) {
+            randombytes(in, INLEN);
+        }
+
+        assert(memcmp(in, zero, INLEN) != 0);
+
+        if (debug && false) {
+            print_str_u8("in", in, INLEN);
+        }
+
+        memset_zero_u8_jazz(in);
+
+        if (debug && false) {
+            print_str_u8("in", in, INLEN);
+        }
+
+        assert(memcmp(in, zero, INLEN) == 0);
+    }
+}
+
 int main(void) {
     test_bytes_to_ull();
     test_bytes_to_ull_ptr();
     test_memcpy_u8pu8p();
+    test_memset_zero_u8();
     printf("Utils [INLEN=%d]: OK\n", INLEN);
     return 0;
 }
