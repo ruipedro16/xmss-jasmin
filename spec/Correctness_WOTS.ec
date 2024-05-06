@@ -115,3 +115,23 @@ while (
     - smt. (* FIXME: How to use assumption H when I call smt? smt() fails but smt(H) doesnt work *)
     - admit. (* FIXME: *)
 qed.
+
+(*********************************************************************************************)
+
+(* This lemma states that the the generic version of base_w (which is/will be proved above that is equivalent to the one extracted from the Jasmin impl) is correct with respect to the specification *)
+lemma base_w_impl_spec (input : byte list, outlen : int) :
+    let t : W32.t list = nseq outlen W32.zero in
+    size t = outlen => 
+    equiv[BaseW.base_w ~ BaseWGeneric.__base_w :
+      arg{1} = (input, outlen) /\
+      arg{2} = (t, input) ==> 
+    map W32.of_int res{1} = res{2}].
+proof.
+move => *.
+proc.
+auto => /> *.
+while(
+  input{1} = input{2} /\ total{1} = total{2}
+).
+admit. (* TODO: *)
+qed.
