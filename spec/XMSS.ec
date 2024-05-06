@@ -10,10 +10,10 @@ import Array8.
 
 (**********************************************************************************************************************)
 
-clone import Subtype as Two_NBytes with 
+clone import Subtype as Bitmask with 
    type T = byte list,
    op P = fun l => size l = 2 * n
-   rename "T" as "two_n_bytes"
+   rename "T" as "bitmask"
    proof inhabited by (exists (nseq (2*n) W8.zero);smt(size_nseq ge0_n))
    proof *.
 
@@ -47,7 +47,7 @@ abbrev pop (x : 'a list) : 'a list * 'a =
 op h : { int | 0 < h } as h.
 op max_signatures : int = 2^h.
 
-op H : nbytes -> two_n_bytes -> nbytes.
+op H : nbytes -> bitmask -> nbytes.
 op H_msg : tree_n_bytes -> byte list -> nbytes.
 
 op oid : W32.t.

@@ -57,4 +57,3 @@ pred base_w_pre (X : byte list, outlen : int) =
 pred base_w_post (X : byte list, outlen : int, base_w : int list) =
   size base_w = outlen /\
   all (fun x => 0 <= x <= w - 1) base_w.
-

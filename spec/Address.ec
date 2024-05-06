@@ -99,19 +99,19 @@ pred set_type_pre (_type : int) = 0 <= _type <= 2.
 op set_type (address : adrs, _type : int) : adrs = 
     address.[3 <- W32.of_int _type].
 
-(* TODO: Add Precondition *)
+pred set_ots_addr_pre (ots_addr : int) = 0 <= ots_addr.
 op set_ots_addr (address : adrs, ots_addr : int) : adrs = 
     address.[4 <- W32.of_int ots_addr].
 
-(* TODO: Add Precondition *)
+pred set_chain_addr_pre (chain_addr : int) = 0 <= chain_addr.
 op set_chain_addr (address : adrs, chain_addr : int) : adrs = 
     address.[5 <- W32.of_int chain_addr].
 
-(* TODO: Add Precondition *)
+op set_hash_addr_pre (hash_addr : int) = 0 <= hash_addr.
 op set_hash_addr (address : adrs, hash_addr : int) : adrs = 
     address.[6 <- W32.of_int hash_addr].
 
-(* TODO: Add Precondition *)
+pred set_ltree_addr_pre (ltree_addr : int) = 0 <= ltree_addr.
 op set_ltree_addr (address : adrs, ltree_addr : int) : adrs = 
     address.[4 <- W32.of_int ltree_addr].
 
@@ -121,7 +121,7 @@ op set_tree_height (address : adrs, tree_height : int) : adrs =
 op get_tree_height (address : adrs) : int =
   W32.to_uint (address.[5]).
 
-(* TODO: Add Precondition *)
+op set_tree_index_pre (tree_index : int) = 0 <= tree_index.
 op set_tree_index (address : adrs, tree_index : int) : adrs = 
     address.[6 <- W32.of_int tree_index].
 

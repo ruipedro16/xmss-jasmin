@@ -7,17 +7,16 @@ require (*  *) Subtype.
 from Jasmin require import JModel.
 
 require import Notation Address Primitives Wots.
+require import XMSS_IMPL.
 
 require import Array8.
 
-require import XMSS_IMPL.
 
 import DList.
 import NBytes.
 
 (**********************************************************************************************************************)
 
-(* TODO: Generalize to any word size *)
 lemma word_int (i : int) :
     0 <= i < W32.modulus => W32.to_uint (W32.of_int i) = i.
 proof.
@@ -28,47 +27,52 @@ qed.
 
 (********************************** ADDRESS ***********************************)
 
-lemma set_layer_addr_op_impl (addr : adrs, layer: int): 
+lemma set_layer_addr_op_impl (addr : adrs, layer : int): 
     set_layer_addr_pre layer => 
-        hoare[M.__set_layer_addr : 
+        hoare[M(Syscall).__set_layer_addr : 
             arg = (addr, W32.of_int layer) ==> res = set_layer_addr addr layer].
 proof. move => pre_cond. proc. auto. qed.
 
 lemma set_tree_addr_op_impl (address : adrs, tree_address : int):
     set_tree_addr_pre tree_address => 
-        hoare[M.__set_tree_addr : 
+        hoare[M(Syscall).__set_tree_addr : 
             arg = (address, W64.of_int tree_address) ==> res = set_tree_addr address tree_address].
 proof. move => pre_cond. proc. auto. qed.
 
 lemma set_type_op_impl (address : adrs, _type : int):
     set_type_pre _type =>
-        hoare[M.__set_type :
+        hoare[M(Syscall).__set_type :
             arg = (address, W32.of_int _type) ==> res = set_type address _type].
 proof. move => pre_cond. proc. auto. qed.
 
 lemma set_ots_addr_op_impl (address : adrs, ots_addr : int):
-    hoare[M.__set_ots_addr :
-        arg = (address, W32.of_int ots_addr) ==> res = set_ots_addr address ots_addr].
-proof. proc. auto. qed.
+    set_ots_addr_pre ots_addr => 
+        hoare[M(Syscall).__set_ots_addr :
+            arg = (address, W32.of_int ots_addr) ==> res = set_ots_addr address ots_addr].
+proof. move => pre_cond. proc. auto. qed.
 
 lemma set_chain_addr_op_impl (address : adrs, chain_addr : int):
-    hoare[M.__set_chain_addr :
-        arg = (address, W32.of_int chain_addr) ==> res = set_chain_addr address chain_addr].
-proof. proc. auto. qed.
+    set_chain_addr_pre chain_addr => 
+        hoare[M(Syscall).__set_chain_addr :
+            arg = (address, W32.of_int chain_addr) ==> res = set_chain_addr address chain_addr].
+proof. move => pre_cond. proc. auto. qed.
 
 lemma set_hash_addr_op_impl (address : adrs, hash_addr : int):
-    hoare[M.__set_hash_addr :
-        arg = (address, W32.of_int hash_addr) ==> res = set_hash_addr address hash_addr].
-proof. proc. auto. qed.
+    set_hash_addr_pre hash_addr =>
+        hoare[M(Syscall).__set_hash_addr :
+            arg = (address, W32.of_int hash_addr) ==> res = set_hash_addr address hash_addr].
+proof. move => pre_cond. proc. auto. qed.
 
 lemma set_ltree_addr_op_impl (address : adrs, ltree_addr : int):
-    hoare[M.__set_ltree_addr :
-        arg = (address, W32.of_int ltree_addr) ==> res = set_ltree_addr address ltree_addr].
-proof. proc. auto. qed.
+    set_ltree_addr_pre ltree_addr =>
+        hoare[M(Syscall).__set_ltree_addr :
+            arg = (address, W32.of_int ltree_addr) ==> 
+                res = set_ltree_addr address ltree_addr].
+proof. move => pre_cond. proc. auto. qed.
 
 lemma set_tree_height_op_impl (address : adrs, tree_height : int):
     tree_height_pre tree_height =>
-        hoare[M.__set_tree_height :
+        hoare[M(Syscall).__set_tree_height :
             arg = (address, W32.of_int tree_height) ==> res = set_tree_height address tree_height].
 proof. move => pre_cond. proc. auto. qed.
 
@@ -83,9 +87,10 @@ smt().
 qed.
 
 lemma set_tree_index_op_impl (address : adrs, tree_index) : 
-    hoare[M.__set_tree_index :
-        arg = (address, W32.of_int tree_index) ==> res = set_tree_index address tree_index].
-proof. proc. auto. qed.
+    set_tree_index_pre tree_index => 
+        hoare[M(Syscall).__set_tree_index :
+            arg = (address, W32.of_int tree_index) ==> res = set_tree_index address tree_index].
+proof. move => pre_cond. proc. auto. qed.
 
 lemma get_set_tree_index (address : adrs, tree_index : int) :
   0 <= tree_index < W32.modulus => (* i.e. tree_index fits in a u32 *)
@@ -98,40 +103,17 @@ apply word_int.
 qed.
 
 lemma set_key_and_mask_op_impl (address : adrs, key_and_mask : int):
-    hoare[M.__set_key_and_mask :
+    hoare[M(Syscall).__set_key_and_mask :
         arg = (address, W32.of_int key_and_mask) ==> res = set_key_and_mask address key_and_mask].
 proof. proc. auto. qed.
 
 op zero_addr : adrs = Array8.init (fun _ => W32.zero). 
 lemma zero_addr_op_impl (address : adrs) :
-    hoare[M._zero_address : true ==> res = zero_addr].
+    hoare[M(Syscall)._zero_address : true ==> res = zero_addr].
 proof.
 proc.
 while (0 <= i <= 8 /\ 
       (forall (k : int), 0 <= k < i => (addr.[k] = W32.zero))); auto => /> ; smt(get_setE tP initiE).
-qed.
-
-(****************************************************** NOTATION ******************************************************)
-
-(* TODO: Finish this *)
-
-op base_w (X : byte list, outlen : int) : int list = 
-  let out = nseq outlen 0 in
-(* mkseq (fun i => ) *)
-  out.
-
-lemma base_w_imp_fun (_X : byte list, _outlen : int) : base_w_pre _X _outlen =>
-    hoare [BaseW.base_w :
-      arg = (_X, _outlen) ==> res = base_w _X _outlen /\ base_w_post _X _outlen res].
-proof.
-move => pre_cond.
-proc.
-auto => /> *.
-while (0 <= consumed <= outlen /\ _outlen = outlen).
-- auto => /> *.
-- auto => /> *. split. smt().
-- move => h0 h1 h2 h3. (* TODO: Continue here when Im done writing the operator *)
-admit.
 qed.
 
 (***************************************************** PRIMITIVES *****************************************************)
@@ -147,10 +129,10 @@ axiom chainS (X : nbytes, i s : int, _seed : nbytes, address : adrs) :
       let t = chain X i (s - 1) _seed address in 
       let address = set_hash_addr address (i + s - 1) in
       let address = set_key_and_mask address 0 in
-      let _key = prf _seed  address in
+      let _key = PRF _seed  address in
       let address = set_key_and_mask address 1 in
-      let bitmask = prf _seed address in
-      let t = f _key (nbytexor t bitmask) in
+      let bitmask = PRF _seed address in
+      let t = F _key (nbytexor t bitmask) in
           t.
 
 lemma chain_ll : islossless Chain.chain
@@ -192,3 +174,26 @@ op from_int_list (x : int list) : byte list = map W8.of_int x.
 op sample_n_bytes : nbytes distr = DList.dlist W8.dword n.
 
 op genSKWots : wots_sk distr = DList.dlist sample_n_bytes len.
+
+(******************************* CONDITIONS ************************************)
+
+abbrev (<) a b = b > a.
+
+(* cond = a < b && a < c *)
+op cond_u32_a_below_b_and_a_below_c (_a _b _c : W32.t) : bool = 
+  let a : int = W32.to_uint _a in
+  let b : int = W32.to_uint _b in
+  let c : int = W32.to_uint _c in
+  a < b /\ a < c.
+
+lemma cond_u32_a_below_b_and_a_below_c_impl_fun (a b c : W32.t) :
+    hoare[M(Syscall).__cond_u32_a_below_b_and_a_below_c :
+      arg = (a, b, c) ==> res = cond_u32_a_below_b_and_a_below_c a b c].
+proof.
+proc.
+move => *.
+auto => /> *.
+admit. (* FIXME: *)
+qed.
+
+(******************************************************************************)

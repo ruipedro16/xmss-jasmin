@@ -36,7 +36,7 @@ extraction/XMSS_IMPL.ec: | extraction/ common/
 extraction/XMSS_IMPL_PP.ec: extraction/XMSS_IMPL.ec | extraction/
 	$(MAKE) -C $(TEST_SRC)/xmss/ clean bin/test_xmss_xmss-sha2_10_256.jpp
 	cp $(TEST_SRC)/xmss/bin/test_xmss_xmss-sha2_10_256.jpp extraction/tmp.jpp
-	$(PREPROCESSOR) -in extraction/tmp.jpp --print_tasks | ./scripts/remove_sha256.py -d -in $< -out $@
+	$(PREPROCESSOR) -in extraction/tmp.jpp --print_tasks | ./scripts/remove_sha256.py -in $< -out $@
 	$(RM) extraction/tmp.jpp
 
 # --------------------------------------------------------------------------------------------------
@@ -48,8 +48,8 @@ typecheck: extract
 	$(EASYCRYPT) $(EC_INCLUDE) Primitives.ec
 	$(EASYCRYPT) $(EC_INCLUDE) Wots.ec
 	# $(EASYCRYPT) $(EC_INCLUDE) XMSS.ec
-	# $(EASYCRYPT) $(EC_INCLUDE) Properties.ec
-	# $(EASYCRYPT) $(EC_INCLUDE) Correctness.ec
+	$(EASYCRYPT) $(EC_INCLUDE) Properties.ec
+	$(EASYCRYPT) $(EC_INCLUDE) Correctness.ec
 
 .PHONY: typecheck_extraction
 typecheck_extraction: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec

@@ -13,7 +13,6 @@ op len1 : int = ceil (8%r * n%r / log2 w%r).
 op len2 : int = floor (log2 (len1 * (w - 1))%r / log2 w%r) + 1.
 op len : int = len1 + len2.
 
-(* replaced lemma with axiom *)
 axiom ge0_len : 0 <= len.
 
 clone import Subtype as NBytes with 
@@ -26,8 +25,16 @@ clone import Subtype as NBytes with
 type key = nbytes.
 type seed = nbytes.
 
-op prf : seed -> adrs -> key.
-op f : key -> nbytes -> nbytes.
+(* The WOTS+ algorithm uses a keyed cryptographic hash function F.  F
+   accepts and returns byte strings of length n using keys of length n.
+*)
+op F : key -> nbytes -> nbytes.
+
+(* WOTS+ uses a pseudorandom function PRF.  PRF takes as input an n-byte
+   key and a 32-byte index and generates pseudorandom outputs of length
+   n.
+*)
+op PRF : seed -> adrs -> key.
 
 op nbytexor(a b : nbytes) : nbytes = 
     map (fun (ab : byte * byte) => ab.`1 `^` ab.`2) (zip a b).
@@ -43,11 +50,11 @@ module Chain = {
     while (chain_count < s) {
      address <- set_hash_addr address (i + chain_count);
      address <- set_key_and_mask address 0;
-     _key <- prf _seed address;
+     _key <- PRF _seed address;
      address <- set_key_and_mask address 1;
-     bitmask <- prf _seed address;
+     bitmask <- PRF _seed address;
 
-     t <- f _key (nbytexor t bitmask);
+     t <- F _key (nbytexor t bitmask);
      chain_count <- chain_count + 1;
     }
     

@@ -11,6 +11,8 @@ import DList.
 import NBytes.
 
 (* sk = u8[XMSS_WOTS_LEN * XMSS_N] = u8[XMSS_WOTS_LEN][XMSS_N] *)
+(* LEN elements, each with N-byte strings *)
+(* XMSS_N is determined by the cryptographic hash functions we use *)
 clone import Subtype as LEN_N with 
    type T = nbytes list,
    op P = fun l => size l = len
@@ -19,6 +21,7 @@ clone import Subtype as LEN_N with
    proof *.
 
 axiom ge0_len1 : 0 <= len1.
+
 clone import Subtype as LEN1 with 
    type T = byte list,
    op P = fun l => size l = len1
@@ -35,6 +38,7 @@ type wots_keypair = wots_pk * wots_sk.
 type wots_signature = len_n_bytes.
 
 op from_int_list (x : int list) : byte list = map W8.of_int x.
+op W32_of_W8 (x : W8.t) : W32.t = W32.of_int (W8.to_uint x).
 
 module WOTS = {
   proc genSK() : wots_sk = {
@@ -43,7 +47,7 @@ module WOTS = {
     var i : int <- 0;
 
     while (i < len) {
-      sk_i <$ DList.dlist W8.dword n;
+      sk_i <$ DList.dlist W8.dword n; (* Initialize sk[i] with a uniformly random n-byte string *)
       sk <- put sk i sk_i;
       i <- i + 1;
     }
@@ -77,19 +81,36 @@ module WOTS = {
     return (pk, sk);
   }
 
+(*
+             +---------------------------------+
+             |                                 |
+             |           sig_ots[0]            |    n bytes
+             |                                 |
+             +---------------------------------+
+             |                                 |
+             ~              ....               ~
+             |                                 |
+             +---------------------------------+
+             |                                 |
+             |          sig_ots[len - 1]       |    n bytes
+             |                                 |
+             +---------------------------------+
+
+                              WOTS+ Signature
+*)
+
   proc sign(m : wots_message, sk : wots_sk, _seed : seed, address : adrs) : wots_signature = {
-    var csum : W8.t <- W8.zero;
+    var csum : W32.t <- W32.zero;
     var m_i : W8.t;
-    var sig : wots_signature;
+    var sig : wots_signature <- witness;
     var sig_i : nbytes;
     var sk_i : nbytes;
     var msg_i : int;
     var _m : int list;
     var i : int <- 0;
-    var len_2_bytes : W8.t;
-
-    sig <- witness; (* To remove warning [warning] [Wots.ec:164] these procedures may use uninitialized local variables: - Top.WOTS.sign -> [sig] *)
-
+    var len_2_bytes : int;
+    var csum_bytes : byte list;
+    var csum_base_w : int list;
 
     (* Convert message to base w *)
     _m <@ BaseW.base_w(m, len1);
@@ -98,16 +119,18 @@ module WOTS = {
     (* Compute checksum *)
     while (i < len1) {
       m_i <- nth witness m i;
-      csum <- csum + W8.of_int(w - 1) - m_i;
+      csum <- csum + W32.of_int(w - 1) - (W32_of_W8 m_i);
       i <- i + 1;
     }
 
     (* Convert checksum to base w *)
     csum <- csum `<<` W8.of_int (8 - ((ceil (len2%r * log2(w%r))) %% 8));
-    len_2_bytes <- W8.of_int (ceil ((ceil (len2%r * log2(w%r)))%r / 8%r));
+    len_2_bytes <- (ceil ((ceil (len2%r * log2(w%r)))%r / 8%r));
 
-    (* FIXME: TODO: *)
     (* msg = msg || base_w(toByte(csum, len_2_bytes), w, len_2); *)
+    csum_bytes <- toByte csum len;
+    csum_base_w <@ BaseW.base_w(csum_bytes, len_2_bytes);
+    m <- m ++ (from_int_list csum_base_w);
 
     i <- 0;
     while (i < len) {
@@ -122,20 +145,21 @@ module WOTS = {
     return sig;
   }
 
+
+  (* Note: XMSS uses WOTS_pkFromSig to compute a public key value and
+     delays the comparison to a later point. *)
   proc pkFromSig(m : wots_message, sig : wots_signature, _seed : seed, address : adrs) : wots_pk = {
-    var tmp_pk : wots_pk;
-    var csum : W8.t <- W8.zero;
+    var tmp_pk : wots_pk <- witness;
+    var csum : W32.t <- W32.zero;
     var pk_i : nbytes;
     var m_i : W8.t;
     var _m : int list;
     var i : int <- 0;
-    var len_2_bytes : W8.t;
+    var len_2_bytes : int;
     var sig_i : nbytes;
     var msg_i : int;
-
-    (* To remove this warning: [warning] [Wots.ec:166] these procedures may use uninitialized local variables:
-     - Top.WOTS.pkFromSig -> [tmp_pk] *)
-    tmp_pk <- witness;
+    var csum_bytes : byte list;
+    var csum_base_w : int list;
 
     (* Convert message to base w *)
     _m <@ BaseW.base_w(m, len1);
@@ -144,16 +168,18 @@ module WOTS = {
     (* Compute checksum *)
     while (i < len1) {
       m_i <- nth witness m i;
-      csum <- csum + W8.of_int(w - 1) - m_i;
+      csum <- csum + W32.of_int(w - 1) - (W32_of_W8 m_i);
       i <- i + 1;
     }
 
     (* Convert checksum to base w *)
     csum <- csum `<<` W8.of_int (8 - ((ceil (len2%r * log2(w%r))) %% 8));
-    len_2_bytes <- W8.of_int (ceil ((ceil (len2%r * log2(w%r)))%r / 8%r));
+    len_2_bytes <- (ceil ((ceil (len2%r * log2(w%r)))%r / 8%r));
 
-    (* FIXME: TODO: *)
     (* msg = msg || base_w(toByte(csum, len_2_bytes), w, len_2); *)
+    csum_bytes <- toByte csum len;
+    csum_base_w <@ BaseW.base_w(csum_bytes, len_2_bytes);
+    m <- m ++ (from_int_list csum_base_w);
 
     i <- 0;
     while (i < len) {
@@ -174,3 +200,14 @@ module WOTS = {
     return pk = tmp_pk;
   }
 }.
+
+(* RFC - p 17
+Note that the checksum may reach a maximum integer value of len_1 * (w - 1) * 2^8 
+and therefore depends on the parameters n and w.
+
+
+For the parameter sets specified in the RFC, a  32-bit unsigned integer is sufficient 
+to hold the checksum
+ *)
+pred wots_checksum_pred (checksum : W32.t) =
+  W32.to_uint checksum <= len1 * (w - 1) * 2^8.

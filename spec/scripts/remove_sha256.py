@@ -43,7 +43,7 @@ def remove_proc(proc: str, input_text: str) -> str:
     return output_text
 
 
-def remove_sha256_functions(input_text: str, template_functions_dict) -> str:
+def remove_sha256_functions(input_text: str, template_functions_dict, debug: bool) -> str:
     """
     Removes functions related to SHA256 from an EasyCrypt module
 
@@ -109,7 +109,8 @@ def remove_sha256_functions(input_text: str, template_functions_dict) -> str:
     for f in functions_to_remove:
         output_text = remove_proc(f, output_text)
 
-        print(f"Removing procedure {f}")
+        if debug:
+            print(f"Removing procedure {f}")
 
     return output_text
 
@@ -207,7 +208,7 @@ def replace_calls(text: str) -> str:
 ########################################################################################################################
 
 
-def preprocess_ec(ec_in: str, template_functions_dict) -> str:
+def preprocess_ec(ec_in: str, template_functions_dict, debug: bool) -> str:
     ec_out = ec_in.replace("module M", "module Mp")
 
         # Remove module related to randombytes
@@ -228,7 +229,7 @@ module Syscall : Syscall_t = {
         ""
     )
 
-    ec_out = remove_sha256_functions(ec_out, template_functions_dict)
+    ec_out = remove_sha256_functions(ec_out, template_functions_dict, debug)
     ec_out = add_operators(ec_out)
     ec_out = replace_calls(ec_out)
 
@@ -306,7 +307,7 @@ def main():
     with open(args.input_file, "r", encoding="utf-8") as f:
         ec_in: str = f.read()
 
-    ec_out = preprocess_ec(ec_in, template_functions_dict)
+    ec_out = preprocess_ec(ec_in, template_functions_dict, args.debug)
 
     if out_f := args.output_file:
         with open(out_f, "w", encoding="utf-8") as f:

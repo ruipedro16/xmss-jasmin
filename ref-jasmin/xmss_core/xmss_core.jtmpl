@@ -384,9 +384,6 @@ inline fn __xmssmt_core_sign(
         // memcpy(sm, sk, params->index_bytes);
         sm_ptr, _ = _x_memcpy_u8pu8<XMSS_INDEX_BYTES>(sm_ptr, 0, sk[0 : XMSS_INDEX_BYTES]);
 
-        /*************************************************************************
-         * THIS IS WHERE PRODUCTION IMPLEMENTATIONS WOULD UPDATE THE SECRET KEY. *
-         *************************************************************************/
         // ull_to_bytes(sk, params->index_bytes, idx + 1);
         () = #unspill(sk);
         t64 = idx; t64 += 1;
