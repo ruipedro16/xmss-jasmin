@@ -1,5 +1,7 @@
 # -*- Makefile -*-
 
+# Install jq with sudo apt-get install jq
+
 EASYCRYPT  ?= easycrypt
 EC_INCLUDE ?= -I common -I extraction
 
@@ -12,6 +14,9 @@ TEST_SRC   := ../test
 
 JPP          := ../submodules/jasmin-preprocessor/jpp
 PREPROCESSOR := ../submodules/jasmin-preprocessor/preprocessor
+
+JQ_EXISTS := $(shell which jq)
+
 
 all: clean distclean extract typecheck_extraction typecheck
 default: extract typecheck
@@ -38,6 +43,19 @@ extraction/XMSS_IMPL_PP.ec: extraction/XMSS_IMPL.ec | extraction/
 	cp $(TEST_SRC)/xmss/bin/test_xmss_xmss-sha2_10_256.jpp extraction/tmp.jpp
 	$(PREPROCESSOR) -in extraction/tmp.jpp --print_tasks | ./scripts/remove_sha256.py -in $< -out $@
 	$(RM) extraction/tmp.jpp
+
+ifdef JQ_EXISTS
+.PHONY: extraction_info
+extraction_info: extraction/XMSS_IMPL.ec | extraction/
+	$(MAKE) -C $(TEST_SRC)/xmss/ clean bin/test_xmss_xmss-sha2_10_256.jpp
+	cp $(TEST_SRC)/xmss/bin/test_xmss_xmss-sha2_10_256.jpp extraction/tmp.jpp
+	$(PREPROCESSOR) -in extraction/tmp.jpp --print_tasks | jq
+	@$(RM) extraction/tmp.jpp
+else
+.PHONY: extraction_info
+extraction_info:
+	@echo "extraction_info: jq is not installed." && exit 1
+endif
 
 # --------------------------------------------------------------------------------------------------
 

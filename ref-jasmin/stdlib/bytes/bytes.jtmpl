@@ -28,12 +28,12 @@ inline fn __ull_to_bytes<OUTLEN>(
   return out;
 }//<>
 
-inline fn __bytes_to_ull<INLEN>(reg ptr u8[INLEN] in) -> reg u64 {
+inline fn __bytes_to_ull(reg ptr u8[XMSS_INDEX_BYTES] in) -> reg u64 {
   reg u64 result i t u;
 
   result = 0;
   i = 0;
-  while (i < INLEN) {
+  while (i < XMSS_INDEX_BYTES) {
     // retval |= ((unsigned long long)in[i]) << (8*(inlen - 1 - i));
     // 
     // t : ((unsigned long long)in[i])
@@ -41,7 +41,7 @@ inline fn __bytes_to_ull<INLEN>(reg ptr u8[INLEN] in) -> reg u64 {
 
     t = (64u) in[i];
 
-    u = INLEN - 1;
+    u = XMSS_INDEX_BYTES - 1;
     u -= i;
     ?{}, u = #SHL(u, 3); // same as u *= 8
 
@@ -53,7 +53,7 @@ inline fn __bytes_to_ull<INLEN>(reg ptr u8[INLEN] in) -> reg u64 {
   }
 
   return result;
-}//<>
+}
 
 inline fn __bytes_to_ull_ptr(reg u64 in_ptr inlen) -> reg u64 {
   reg u64 result i t u;

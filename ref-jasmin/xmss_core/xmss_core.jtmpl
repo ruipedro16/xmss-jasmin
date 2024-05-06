@@ -359,7 +359,7 @@ inline fn __xmssmt_core_sign(
     (u64) [smlen_ptr] = t64;
 
     // idx = (unsigned long)bytes_to_ull(sk, params->index_bytes);
-    idx = __bytes_to_ull<XMSS_INDEX_BYTES>(sk[0 : XMSS_INDEX_BYTES]);
+    idx = __bytes_to_ull(sk[0 : XMSS_INDEX_BYTES]);
     () = #spill(idx);
 
     // if (idx >= ((1ULL << params->full_height) - 1)) 
