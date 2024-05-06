@@ -177,8 +177,6 @@ op genSKWots : wots_sk distr = DList.dlist sample_n_bytes len.
 
 (******************************* CONDITIONS ************************************)
 
-abbrev (<) a b = b > a.
-
 (* cond = a < b && a < c *)
 op cond_u32_a_below_b_and_a_below_c (_a _b _c : W32.t) : bool = 
   let a : int = W32.to_uint _a in

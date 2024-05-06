@@ -50,6 +50,7 @@ typecheck: extract
 	# $(EASYCRYPT) $(EC_INCLUDE) XMSS.ec
 	$(EASYCRYPT) $(EC_INCLUDE) Properties.ec
 	$(EASYCRYPT) $(EC_INCLUDE) Correctness.ec
+	$(EASYCRYPT) $(EC_INCLUDE) Correctness_WOTS.ec
 
 .PHONY: typecheck_extraction
 typecheck_extraction: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
