@@ -6,6 +6,8 @@ from Jasmin require import JModel.
 
 type byte = W8.t.
 
+abbrev (>) (a b : int) = b < a. 
+
 (* prefix of big endian byte representation of a 32-bit word *)
 op toByte(x : W32.t, k : int) : byte list =  
      take k (rev (to_list (W4u8.unpack8 x))).

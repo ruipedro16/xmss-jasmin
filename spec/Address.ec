@@ -15,6 +15,8 @@ type byte = W8.t.
 
 type adrs = W32.t Array8.t.
 
+op zero_address : adrs = Array8.init (fun _ => W32.zero).
+
 type addr_type = [ ADDR_TYPE_OTS | ADDR_TYPE_LTREE | ADDR_TYPE_HASHTREE ].
 
 op addr_type_to_int (_type : addr_type) : int = 
