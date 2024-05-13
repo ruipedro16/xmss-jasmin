@@ -1,13 +1,16 @@
-from Stdlib require "bytes/bytes.jtmpl" // TODO: Move to Stdlib/bytes
+from XMSS require "params.jinc"
+
+from Stdlib require "bytes/bytes.jtmpl"
 from Stdlib require "memcpy/memcpy.jtmpl"
 from Stdlib require "memset/memset.jtmpl"
 
+
 /////////////////////////////////////////////////////////////////////// BYTES
 
-export fn bytes_to_ull_jazz<INLEN>(reg ptr u8[INLEN] in) -> reg u64 {
+export fn bytes_to_ull_jazz(reg ptr u8[XMSS_INDEX_BYTES] in) -> reg u64 {
     reg u64 res;
 
-    res = __bytes_to_ull<INLEN>(in);
+    res = __bytes_to_ull(in);
     
     return res;
 }//<>
@@ -19,6 +22,20 @@ export fn bytes_to_ull_ptr_jazz(reg u64 in_ptr inlen) -> reg u64 {
 }
 
 /////////////////////////////////////////////////////////////////////// MEMCPY
+
+// Precondition: INLEN <= OUTLEN - offset 
+//               INLEN + offset <= OUTLEN
+//               OUTLEN >= INLEN + offset
+//               offset <= OUTLEN - INLEN
+export fn memcpy_u8u8_jazz<OUTLEN,INLEN>(
+    reg ptr u8[OUTLEN] out,
+    reg u64 offset,
+    reg ptr u8[INLEN] in
+) -> reg ptr u8[OUTLEN]
+{
+    out, _ = _x_memcpy_u8u8<OUTLEN,INLEN>(out, offset, in);
+    return out;
+}//<>
 
 export fn memcpy_u8pu8p_jazz(reg u64 out_ptr offset_out in_ptr offset_in len) {
     _, _, _ = _x__memcpy_u8pu8p(out_ptr, offset_out, in_ptr, offset_in, len);

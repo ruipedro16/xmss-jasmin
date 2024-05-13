@@ -1,15 +1,15 @@
 #!/bin/bash
 
 dirs=(
-    "stdlib"
+    # "stdlib"
     "fips202/shake256_ptr" 
     "fips202/shake256_array"
     "fips202/shake256_in_ptr"
     "hash_address" 
-    "hash_core"
-    "hash"
+    # "hash_core"
+    # "hash"
     "wots"
-    "xmss_commons"
+    # "xmss_commons"
     # "xmss_core"
     # "xmss"
 )

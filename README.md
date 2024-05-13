@@ -7,7 +7,8 @@ git clone --recurse-submodules git@github.com:ruipedro16/xmss-jasmin.git
 ### Tests 
 
 ```
-cd test/xmss && make run
+cd test/xmss && make run # Only tests XMSS
+cd test/ && ./run_all_tests.sh
 ```
 
 ### Benchmarks
@@ -16,7 +17,13 @@ cd test/xmss && make run
 cd bench && make run
 ```
 
-### Build with Docker
+### Proofs
+
+```
+cd spec && make all
+```
+
+### Docker
 
 ```
 docker build -t xmss-jasmin .

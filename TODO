@@ -1,2 +1,6 @@
-- [X] ref-jasmin/sha256_ptr is not used
-- 
+- [ ] Benchmark Sha2
+    - [ ] spill to stack
+    - [ ] spill to mmx register
+
+- [ ] memcpy with MOV64
+- [ ] finish spec

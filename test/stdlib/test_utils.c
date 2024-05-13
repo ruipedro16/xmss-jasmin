@@ -24,8 +24,6 @@
 #endif
 
 // bytes
-
-#define bytes_to_ull_jazz NAMESPACE1(bytes_to_ull_jazz, INLEN)
 extern uint64_t bytes_to_ull_jazz(const uint8_t *);
 
 #define memset_zero_u8_jazz NAMESPACE1(memset_zero_u8_jazz, INLEN)
@@ -34,6 +32,9 @@ extern void memset_zero_u8_jazz(uint8_t *);
 extern uint64_t bytes_to_ull_ptr_jazz(const uint8_t *, size_t);
 
 // memcpy
+#define memcpy_u8u8_jazz NAMESPACE2(memcpy_u8u8_jazz, INLEN, INLEN)  // TODO: FIXME: replace with outlen
+extern void memcpy_u8u8_jazz(uint8_t *, size_t, const uint8_t *);
+
 extern void memcpy_u8pu8p_jazz(uint8_t *, size_t, const uint8_t *, size_t, size_t);
 
 void test_bytes_to_ull(void) {
@@ -61,6 +62,7 @@ void test_bytes_to_ull(void) {
 }
 
 void test_bytes_to_ull_ptr(void) {
+    // TODO: Remove unnecessary template parameter
     bool debug = true;
 
     uint8_t in[INLEN];
@@ -82,6 +84,41 @@ void test_bytes_to_ull_ptr(void) {
 
         assert(out_ref == out_jazz);
     }
+}
+
+void test_memcpy_u8u8(void) {
+#define _TESTS 100
+
+    bool debug = true;
+
+    uint8_t out[INLEN] = {0};
+    uint8_t in[INLEN] = {0};
+    size_t offset=0;
+
+    for (int i = 0; i < _TESTS; i++) {
+        // for (size_t offset = 0; offset <= OUTLEN - INLEN; offset++) {
+            if (debug) {
+                printf("[memcpy_u8u8] (INLEN=%s, OUTLEN=%s, offset=%d): Test %d/%d\n", xstr(INLEN), xstr(INLEN), 0,
+                       i + 1, _TESTS);
+            }
+
+            randombytes(in, INLEN);
+            memset(out, 0, INLEN);
+
+            memcpy_u8u8_jazz(out, 0, in);
+
+            if (memcmp(out, in, INLEN) != 0) {
+                print_str_u8("in", in, INLEN);
+                print_str_u8("out", out, INLEN);
+            }
+
+            assert(memcmp(out + offset, in, INLEN) == 0);
+        }
+    // }
+
+    // TODO: Test with offset != 0
+
+#undef _TESTS
 }
 
 void test_memcpy_u8pu8p(void) {
@@ -171,8 +208,9 @@ void test_memset_zero_u8(void) {
 }
 
 int main(void) {
-    test_bytes_to_ull();
+    // test_bytes_to_ull();
     test_bytes_to_ull_ptr();
+    test_memcpy_u8u8();
     test_memcpy_u8pu8p();
     test_memset_zero_u8();
     printf("Utils [INLEN=%d]: OK\n", INLEN);

@@ -106,7 +106,7 @@ void test_xmss_keypair(void) {
 
     for (int i = 0; i < TESTS; i++) {
         if (debug) {
-            printf("[xmss keypair] Test %d/%d\n", i + 1, 100);
+            printf("[xmss keypair] Test %d/%d\n", i + 1, TESTS);
         }
 
         res_jasmin = xmss_keypair_jazz(pk_jasmin, sk_jasmin);
@@ -150,7 +150,7 @@ void test_xmssmt_keypair(void) {
 
     for (int i = 0; i < TESTS; i++) {
         if (debug) {
-            printf("[xmss keypair] Test %d/%d\n", i + 1, 100);
+            printf("[xmss keypair] Test %d/%d\n", i + 1, TESTS);
         }
 
         res_jasmin = xmss_keypair_jazz(pk_jasmin, sk_jasmin);
