@@ -2,7 +2,7 @@
 
 # --------------------------------------------------------------------------------------------------
 
-# FIXME: Fix bench_sha2_array
+# FIXME:TODO: Fix bench_sha2_array & delete bench_sha2_array.sh script
 
 # --------------------------------------------------------------------------------------------------
 
@@ -25,8 +25,10 @@ bench_sha2: results/bench_sha2_ptr.json results/bench_sha2_array.json
 bench_wots: results/results_wots.json
 bench_xmss: results/results_xmss.json
 
-SHA2_CSV_FILES := $(addprefix csv/bench_sha2_array_,$(addsuffix .csv,$(shell seq 1 10)))
-bench_sha2_array: $(SHA2_CSV_FILES)
+# SHA2_CSV_FILES := $(addprefix csv/bench_sha2_array_,$(addsuffix .csv,$(shell seq 1 10)))
+# bench_sha2_array: # $(SHA2_CSV_FILES)
+bench_sha2_array:
+	./bench_sha2_array.sh 1 1024
 
 # --------------------------------------------------------------------------------------------------
 
@@ -50,9 +52,9 @@ bin/sha2_ptr.s: bin/
 	$(MAKE) -C ../test/sha256/sha256_in_ptr/ asm_files
 	cp ../test/sha256/sha256_in_ptr/bin/test_sha256_in_ptr.s $@
 
-bin/sha2_array_%.s: bin/
-	$(MAKE) -C ../test/sha256/sha256_array/ bin/test_sha256_$*.s
-	cp ../test/sha256/sha256_array/bin/test_sha256_$*.s $@
+# bin/sha2_array_%.s: bin/
+# 	$(MAKE) -C ../test/sha256/sha256_array/ bin/test_sha256_$*.s
+# 	cp ../test/sha256/sha256_array/bin/test_sha256_$*.s $@
 
 # --------------------------------------------------------------------------------------------------
 
@@ -69,8 +71,8 @@ bin/bench_xmss: bin/xmss.s
 bin/bench_sha2_ptr: bin/sha2_ptr.s
 	$(CC) $(CFLAGS) -o $@ -I./common $(BENCH_FLAGS) bench_sha2_ptr.c $< $(LDLIBS)
 
-bin/bench_sha2_array_%: bin/sha2_array_%.s
-	$(CC) $(CFLAGS) -o $@ -I./common $(BENCH_FLAGS) -DINLEN=$* bench_sha2_array.c $< $(LDLIBS)
+#bin/bench_sha2_array_%: bin/sha2_array_%.s
+#	$(CC) $(CFLAGS) -o $@ -I./common $(BENCH_FLAGS) -DINLEN=$* bench_sha2_array.c $< $(LDLIBS)
 
 # --------------------------------------------------------------------------------------------------
 
@@ -83,8 +85,8 @@ csv/bench_xmss.csv: bin/bench_xmss | csv/
 csv/bench_sha2_ptr.csv: bin/bench_sha2_ptr | csv/
 	./$<
 
-csv/bench_sha2_array_%.csv: bin/bench_sha2_array_% | csv/
-	./$<
+# csv/bench_sha2_array_%.csv: bin/bench_sha2_array_% | csv/
+# 	./$<
 
 # --------------------------------------------------------------------------------------------------
 
