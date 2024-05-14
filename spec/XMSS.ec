@@ -18,16 +18,34 @@ clone import Subtype as Bitmask with
 clone import Subtype as Three_NBytes with 
    type T = byte list,
    op P = fun l => size l = 3 * n
-   rename "T" as "tree_n_bytes"
+   rename "T" as "three_n_bytes"
    proof inhabited by (exists (nseq (3*n) W8.zero);smt(size_nseq ge0_n))
    proof *.
 
+op h : { int | 0 < h } as h.
+op oid : W32.t.
+
+clone import Subtype as OTSKeys with 
+   type T = wots_sk list,
+   op P = fun l => size l = 2^h
+   rename "T" as "wots_ots_keys"
+   proof inhabited by admit (* FIXME: *)
+   proof *.
+
+clone import Subtype as AuthPath with
+  type T = nbytes list,
+  op P = fun l => size l = len
+  rename "T" as "auth_path"
+  proof inhabited by admit (* FIXME: *)
+  proof *.
+
 (*********************************************************************************************)
 
-op h : { int | 0 < h } as h.
-op max_signatures : int = 2^h.
+(* op max_signatures : int = 2^h. *)
 
 (*
+Section 4.1.2. of the RFC
+
 Besides the cryptographic hash function F and the pseudorandom
 function PRF required by WOTS+, XMSS uses two more functions:
 
@@ -36,20 +54,41 @@ function PRF required by WOTS+, XMSS uses two more functions:
 
 -  A cryptographic hash function H_msg.  H_msg accepts 3n-byte keys
       and byte strings of arbitrary length and returns an n-byte string.
+
+
+See also Section 5.1. 
  *)
 op H : nbytes -> bitmask -> nbytes.
-op H_msg : tree_n_bytes -> byte list -> nbytes.
+op H_msg : three_n_bytes -> byte list -> nbytes.
+
+op _prf_ : nbytes -> byte list -> nbytes.
 
 type oid =  W32.t.
 
 (* Format sk: [OID || (ceil(h/8) bit) idx || SK_SEED || SK_PRF || PUB_SEED || root] *)
-type sk_t = oid * W32.t * nbytes * nbytes * nbytes * nbytes.
+(* type sk_t = oid * W32.t * nbytes * nbytes * nbytes * nbytes. *)
+(* FIXME: TODO: Spec != Impl *)
+type sk_t = W32.t * wots_sk list * nbytes * nbytes * nbytes.
 
 (* Format pk: [OID || root || PUB_SEED] *)
 type pk_t = oid * nbytes * nbytes.
 
-type keypair = pk_t * sk_t.
+type keypair = sk_t * pk_t.
 
+type msg_t = byte list.
+
+type sig_t = W32.t * nbytes * wots_signature * auth_path. (* Section 4.1.8. XMSS Signature *)
+
+op getWOTS_sk (sk : sk_t, i : int) : wots_sk =
+  let ots_keys : wots_sk list = sk.`2 in
+  nth witness ots_keys i.
+
+op getSK_PRF (sk : sk_t) : nbytes = sk.`3.
+op getRoot (sk : sk_t) : nbytes = sk.`4.
+op getRootPK (pk : pk_t) : nbytes = pk.`2.
+
+op getIdx (sk : sk_t) : W32.t = sk.`1.
+op setIdx (sk : sk_t, idx : W32.t) : sk_t = (idx, sk.`2, sk.`3, sk.`4, sk.`5).
 (*
 
             +---------------------------------+
@@ -65,6 +104,34 @@ type keypair = pk_t * sk_t.
             +---------------------------------+
 
                               XMSS Public Key
+
+             +---------------------------------+
+             |                                 |
+             |          index idx_sig          |    4 bytes
+             |                                 |
+             +---------------------------------+
+             |                                 |
+             |          randomness r           |    n bytes
+             |                                 |
+             +---------------------------------+
+             |                                 |
+             |     WOTS+ signature sig_ots     |    len * n bytes
+             |                                 |
+             +---------------------------------+
+             |                                 |
+             |             auth[0]             |    n bytes
+             |                                 |
+             +---------------------------------+
+             |                                 |
+             ~              ....               ~
+             |                                 |
+             +---------------------------------+
+             |                                 |
+             |           auth[h - 1]           |    n bytes
+             |                                 |
+             +---------------------------------+
+
+                              XMSS Signature
 *)
 
 (**********************************************************************************************)
@@ -138,6 +205,49 @@ pred treehash_p (s t : int) = s %% (1 `<<` t) <> 0.
 
 op same_height : nbytes -> int -> bool. (* TODO: *)
 
+module TreeHash = {
+  proc treehash(sk : sk_t, s t : int, addr : adrs) : nbytes = {
+    var root : nbytes;
+    return root;
+  }
+}.
+
+(**************************************************************************************************)
+
+module TreeSig = {
+  proc buildAuthPath(sk : sk_t, idx : W32.t, address : adrs) : auth_path = {
+    var authentication_path : auth_path;
+    
+    var j : int <- 0;
+    var k : int;
+    var t : nbytes <- witness;
+
+    while (j < h) {
+      k <- floor((W32.to_uint idx)%r / (2^j)%r);
+      t <@ TreeHash.treehash(sk, k * (2^j), j, address);
+      authentication_path <- put authentication_path j t;
+      j <- j+1;
+    }
+
+    return authentication_path;
+  }
+
+  proc treesig(M : nbytes, sk : sk_t, idx : W32.t, address : adrs) : wots_signature * auth_path  = {
+    var auth : auth_path;
+    var sig_ots : wots_signature;
+    var ots_sk : wots_sk;
+    var seed : nbytes;
+    
+    auth <@ buildAuthPath (sk, idx, address);
+    address <- set_type address 0;
+    address <- set_ots_addr address (W32.to_uint idx);
+    ots_sk <- getWOTS_sk sk (W32.to_uint idx);
+    seed <- sk.`5;
+    sig_ots <@ WOTS.sign(M, ots_sk, seed, address);
+    
+    return (sig_ots, auth);
+  }
+}.
 
 (**************************************************************************************************)
 
@@ -145,4 +255,139 @@ module type SignatureScheme = {
     proc kg() : keypair
     proc sign(sk : sk_t, m : msg_t) : sig_t * sk_t
     proc verify(pk : pk_t, m : msg_t, s : sig_t) : bool
+}.
+
+module XMSS : SignatureScheme = {
+  proc kg() : keypair = {
+    var sk : sk_t <- witness;
+    var pk : pk_t <- witness;
+
+    var idx : W32.t <- W32.zero;
+    var i : int <- 0;
+    
+    var ots_keys : wots_ots_keys <- witness;
+    var ots_sk : wots_sk <- witness;
+
+    var address : adrs;
+
+    var sk_prf : nbytes;
+    var root : nbytes;
+    var seed : nbytes;
+
+    while (i < 2^h) {
+      ots_sk <@ WOTS.genSK();
+      ots_keys <- put ots_keys i ots_sk;
+      i <- i+1;
+    }
+    
+    sk_prf <$ DList.dlist W8.dword n;
+    seed <$ DList.dlist W8.dword n;
+
+    address <- zero_address;
+    root <@ TreeHash.treehash(sk, 0, h, address);
+
+    sk <- (idx, ots_keys, sk_prf, root, seed);
+    pk <- (oid, root, seed);
+    return (sk, pk);
+  }
+
+  proc sign(sk : sk_t, m : msg_t) : sig_t * sk_t = {
+    var idx : W32.t;
+    var idx_new : W32.t;
+    var address : adrs;
+    var _R : nbytes;
+    var _M' : nbytes;
+    var ots_sig : wots_signature;
+    var auth : auth_path;
+    var sig : sig_t;
+    var idx_bytes : byte list;
+    var idx_nbytes : nbytes;
+    var root : nbytes;
+    var t : three_n_bytes;
+    
+    idx <- getIdx sk;
+    idx_new <- idx + W32.one;
+    sk <- setIdx sk idx_new;
+    address <- zero_address;
+    
+    idx_bytes <- toByte idx 32;
+    _R <- _prf_ (getSK_PRF sk) idx_bytes;
+
+    idx_nbytes <- toByte idx n;
+    root <- getRoot sk;
+    t <- _R ++ root ++ idx_nbytes;
+    _M' <- H_msg t m;
+
+    sig <- (idx, _R, ots_sig, auth);
+  
+    return (sig, sk);
+  }
+
+  proc rootFromSig(idx_sig : W32.t, sig_ots : wots_signature, auth : auth_path, M : nbytes, 
+                   _seed : seed, address : adrs) : nbytes = {
+    var pk_ots : wots_pk;
+    var k : int <- 0;
+    var nodes0, nodes1 : nbytes;
+    var index : int;
+    var auth_k : nbytes;
+    
+    address <- set_type address 0;
+    address <- set_ots_addr address (W32.to_uint idx_sig);
+
+    pk_ots <@ WOTS.pkFromSig(M, sig_ots, _seed, address);
+
+    address <- set_type address 1;
+    address <- set_ltree_addr address (W32.to_uint idx_sig);
+
+    nodes0 <@ LTree.ltree(pk_ots, address, _seed);
+
+    address <- set_type address 2;
+    address <- set_tree_index address (W32.to_uint idx_sig);
+
+    while (k < h) {
+      address <- set_tree_height address k;
+
+      if (floor( (W32.to_uint idx_sig)%r / ((2^k) %% 2)%r) = 0) {
+        index <- get_tree_index address;
+        address <- set_tree_index address (index %/ 2);
+
+        auth_k <- nth witness auth k;
+        nodes1 <- rand_hash nodes0 auth_k _seed address;
+      } else {
+        index <- get_tree_index address;
+        address <- set_tree_index address ((index - 1) %/ 2);
+
+        auth_k <- nth witness auth k;
+        nodes1 <- rand_hash auth_k nodes0 _seed address;
+      }
+
+      nodes0 <- nodes1;
+      k <- k+1;
+    }
+
+    return nodes0;
+  }
+
+  proc verify(pk : pk_t, m : msg_t, s : sig_t) : bool = {
+    var is_valid : bool;
+    var idx_sig : W32.t <- s.`1;
+    var idx_bytes : nbytes <- toByte idx_sig n;
+    var node, root, _R, _M': nbytes;    
+    var auth : auth_path;
+    var sig_ots : wots_signature;
+    var _seed : seed;
+    var address : adrs <- zero_address;
+    var t : three_n_bytes;
+
+    root <- getRootPK pk;
+    _R <- s.`2;
+    t <- _R ++ root ++ idx_bytes;
+    _M' <- H_msg t m;
+    
+    node <@ rootFromSig(idx_sig, sig_ots, auth, _M', _seed, address);
+
+    is_valid <- (node = root);
+
+    return is_valid;
+  }  
 }.

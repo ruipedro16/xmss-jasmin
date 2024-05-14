@@ -31,6 +31,7 @@ fi
 : "${CFLAGS:= -Wall -O3 -Wextra -Wpedantic}"
 : "${LDLIBS:=-lcrypto}"
 
+rm -rf csv/bench_sha2_array.csv
 mkdir -p bin/ csv/
 
 make -C ../test/sha256/sha256_array/ clean
