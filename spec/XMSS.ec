@@ -89,6 +89,9 @@ op getRootPK (pk : pk_t) : nbytes = pk.`2.
 
 op getIdx (sk : sk_t) : W32.t = sk.`1.
 op setIdx (sk : sk_t, idx : W32.t) : sk_t = (idx, sk.`2, sk.`3, sk.`4, sk.`5).
+
+op get_seed (sk : sk_t) : nbytes = sk.`5.
+
 (*
 
             +---------------------------------+
@@ -203,12 +206,50 @@ pred leftmost_leaf (s t : int)  = s %% 2^t = 0.
 
 pred treehash_p (s t : int) = s %% (1 `<<` t) <> 0.
 
-op same_height : nbytes -> int -> bool. (* TODO: *)
+op same_height : bool. (* TODO: FIXME: *)
 
 module TreeHash = {
-  proc treehash(sk : sk_t, s t : int, addr : adrs) : nbytes = {
-    var root : nbytes;
-    return root;
+  proc treehash(sk : sk_t, s t : int, address : adrs) : nbytes = {
+    var stack : nbytes list;
+    var node : nbytes;
+    var ots_sk : wots_sk;
+    var top_node : nbytes;
+    var _seed : seed;
+    var pk : wots_pk;
+    var i : int <- 0;
+    var tree_index, tree_height: int;
+
+    while (i < 2^t) {
+      _seed  <- get_seed sk;
+      address <- set_type address 0;
+      address <- set_ots_addr address (s + 1);
+      
+      ots_sk <- getWOTS_sk sk (s+1);
+      pk <@ WOTS.genPK (ots_sk, _seed, address);
+      address <- set_type address 1;
+      address <- set_tree_addr address (s + 1);
+      node <@ LTree.ltree(pk, address, _seed); 
+      address <- set_type address 2;
+      address <- set_tree_height address 0;
+      address <- set_tree_index address (i + 1);
+      
+      top_node <- last witness stack;
+      while (same_height) { (* TODO: Fix this condition *)
+        tree_index <- get_tree_index address;
+        address <- set_tree_index address (ceil((tree_index - 1)%r / 2%r));
+        (stack, top_node) <- pop stack;
+        node <- rand_hash top_node node _seed address;
+        
+        tree_height <- get_tree_height address;
+        address <- set_tree_height address (tree_height + 1);
+      }
+      stack <- push stack node;
+
+    }
+
+    (stack, node) <- pop stack;
+
+    return node;
   }
 }.
 
