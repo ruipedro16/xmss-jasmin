@@ -9,6 +9,28 @@ require import XMSS_IMPL.
 
 require import Array32 Array64 Array96 Array128.
 
+abbrev (=/=) (a b : W64.t) = ! (a = b).
+abbrev (<)   (a b : W64.t) = a \ult b. 
+abbrev (<=)  (a b : W64.t) = a \ule b.
+abbrev (>)   (a b : W64.t) = b \ule a.
+abbrev (>=)  (a b : W64.t) = a > b \/ a = b. (* TODO: *)
+
+lemma add_1_W64 (x : W64.t) :
+    x > W64.zero => x + W64.one > W64.zero by smt(@W64).
+
+(* true if all of the elements of the array and the list are equal *)
+(* TODO: How to use abstract Array instead of Array32 *)
+pred list_array_eq (x : W8.t Array32.t, y : W8.t list) =
+  size y = 32 /\ forall (k : int), 0 <= k < 32 => x.[k] = y.[k].  
+
+lemma array32_list_put (x : W8.t Array32.t, y : W8.t list, t : W8.t, i : int) :
+    list_array_eq x y => list_array_eq x.[i <- t] (put y i t).
+proof.
+rewrite /list_array_eq.
+move => H.
+split ; [smt(@List) | progress ; smt(@List @Array32)].
+qed.
+ 
 (*********************************************************************************************)
 (************************************* MEMCPY ************************************************)
 (*********************************************************************************************)
@@ -26,7 +48,7 @@ require import Array32 Array64 Array96 Array128.
  *)
 
 module Memcpy = {
-  (* This assumes that offset + outlen <= INLEN *)
+  (* This assumes that offset + inlen <= OUTLEN *)
   (* I.e. writing INLEN elements starting at index offset does not write past the end of the array *)
   proc _x_memcpy_u8u8(out : W8.t list, 
                       outlen : int, 
@@ -46,15 +68,40 @@ module Memcpy = {
 }.
 
 lemma memcmpy_32 (out : W8.t Array32.t, offset : W64.t, in_0 : W8.t Array32.t) :
+    (* inlen = 32 /\ outlen = 32 *)
     let _out : W8.t list = mkseq (fun i => out.[i]) 32 in
     let _in : W8.t list = mkseq (fun i => in_0.[i]) 32 in
-    size _out = 32 /\ size _in = 32 => 
-    equiv [M(Syscall)._x_memcpy_u8u8_32_32 ~ Memcpy._x_memcpy_u8u8 :
-      arg{1} = (out, offset, in_0) /\
-      arg{2} = (_out, 32, offset, _in, 32) ==> 
-    mkseq (fun i => res{1}.`1.[i]) 32 = res{2}.`1].
+    size _out = 32 /\ size _in = 32 /\ offset = W64.zero  => 
+    equiv [M(Syscall).__memcpy_u8u8_32_32 ~ Memcpy._x_memcpy_u8u8 :
+      arg{1} = (out, W64.zero, in_0) /\
+      arg{2} = (_out, 32, W64.zero, _in, 32) ==> 
+    forall (i : int), 0 <= i < 32 => res{1}.`1.[i] = res{2}.`1.[i]].
 proof.
-admit. (* FIXME: TODO: *)
+move => H1 H2 H3.
+proc.
+auto => /> *.
+smt().
+while (
+  W64.zero <= i{1} <= W64.of_int 32 /\
+  W64.zero <= i{2} <= W64.of_int 32 /\
+  ={i, offset} /\
+    list_array_eq in_0{1} H2 /\
+  forall (k : int), 0 <= k < W64.to_uint offset{1} => out{1}.[(W64.to_uint offset{1}) + k] = out{2}.[W64.to_uint(offset{1}) + k]
+).
+auto => />.
+progress.
+smt(add_1_W64).
+smt.
+smt(add_1_W64).
+smt. 
+admit. (*???*)
+admit. (*???*)
+progress.
+auto => /> *. 
+progress.
+smt().
+smt(@List @Array32).
+admit. (* No assumptions related to out *)
 qed.
 
 lemma memcmpy_64 (out : W8.t Array64.t, offset : W64.t, in_0 : W8.t Array64.t) :
@@ -122,3 +169,12 @@ qed.
 (*********************************************************************************************)
 (************************************* MEMSET ************************************************)
 (*********************************************************************************************)
+
+op memset (outlen : int, value : W8.t) = nseq outlen value.
+
+
+(*
+__memset_zero_u8_4
+__memset_u8_128
+*)
+
