@@ -7,6 +7,8 @@ from Jasmin require import JModel.
 
 require import XMSS_IMPL.
 
+require import Array. (* abstract ie before cloning *)
+
 require import Array32 Array64 Array96 Array128.
 
 abbrev (=/=) (a b : W64.t) = ! (a = b).
@@ -20,8 +22,13 @@ lemma add_1_W64 (x : W64.t) :
 
 (* true if all of the elements of the array and the list are equal *)
 (* TODO: How to use abstract Array instead of Array32 *)
+(* if I write this to work over any array, the following lemma doesnt work 
+pred list_array_eq (x : W8.t array, y : W8.t list) =
+  size x = size y /\ forall (k : int), 0 <= k < size x => x.[k] = y.[k].  
+*)
+
 pred list_array_eq (x : W8.t Array32.t, y : W8.t list) =
-  size y = 32 /\ forall (k : int), 0 <= k < 32 => x.[k] = y.[k].  
+  size y = 32 /\ forall (k : int), 0 <= k < 32 => x.[k] = y.[k].
 
 lemma array32_list_put (x : W8.t Array32.t, y : W8.t list, t : W8.t, i : int) :
     list_array_eq x y => list_array_eq x.[i <- t] (put y i t).
@@ -75,33 +82,29 @@ lemma memcmpy_32 (out : W8.t Array32.t, offset : W64.t, in_0 : W8.t Array32.t) :
     equiv [M(Syscall).__memcpy_u8u8_32_32 ~ Memcpy._x_memcpy_u8u8 :
       arg{1} = (out, W64.zero, in_0) /\
       arg{2} = (_out, 32, W64.zero, _in, 32) ==> 
-    forall (i : int), 0 <= i < 32 => res{1}.`1.[i] = res{2}.`1.[i]].
+    forall (i : int), 0 <= i < 32 => out{1}.[i] = out{2}.[i]].
 proof.
 move => H1 H2 H3.
 proc.
 auto => /> *.
-smt().
 while (
+  outlen{2} = 32 /\
   W64.zero <= i{1} <= W64.of_int 32 /\
-  W64.zero <= i{2} <= W64.of_int 32 /\
+  W64.zero <= offset{1} <= W64.of_int 32 /\
   ={i, offset} /\
     list_array_eq in_0{1} H2 /\
-  forall (k : int), 0 <= k < W64.to_uint offset{1} => out{1}.[(W64.to_uint offset{1}) + k] = out{2}.[W64.to_uint(offset{1}) + k]
+  forall (k : int), 0 <= k < W64.to_uint i{1} => out{1}.[k] = out{2}.[k]
 ).
 auto => />.
 progress.
 smt(add_1_W64).
 smt.
-smt(add_1_W64).
-smt. 
-admit. (*???*)
-admit. (*???*)
-progress.
 auto => /> *. 
 progress.
 smt().
-smt(@List @Array32).
-admit. (* No assumptions related to out *)
+smt.
+smt.
+smt.
 qed.
 
 lemma memcmpy_64 (out : W8.t Array64.t, offset : W64.t, in_0 : W8.t Array64.t) :
