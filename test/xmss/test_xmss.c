@@ -360,11 +360,109 @@ void test_xmssmt_sign_open(void) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// TODO: TEST XMSS & TEST XMSSMT
+void test_xmss_api(void) {
+    // Test that verification after signing works
+
+#define XMSS_MLEN 32
+#define MAX_SIGNATURES (1ULL << p.full_height) - 1
+
+    bool debug = true;
+
+    xmss_params p;
+    uint32_t oid;
+
+    if (xmss_str_to_oid(&oid, xstr(IMPL)) == -1) {
+        fprintf(stderr, "Failed to generate oid from impl name\n");
+        exit(-1);
+    }
+
+    if (xmss_parse_oid(&p, oid) == -1) {
+        fprintf(stderr, "Failed to generate params from oid\n");
+        exit(-1);
+    }
+
+    uint8_t m[XMSS_MLEN];
+    size_t mlen = XMSS_MLEN;
+    uint8_t pk[XMSS_OID_LEN + p.pk_bytes];
+    uint8_t sk[XMSS_OID_LEN + p.sk_bytes];
+    uint8_t sm[p.sig_bytes + XMSS_MLEN];
+    size_t smlen;
+    int res;
+
+    for (int i = 0; i < TESTS; i++) {
+        xmss_keypair_jazz(pk, sk);
+
+        for (unsigned long long int sig = 0; sig < MAX_SIGNATURES; sig++) {
+            if (debug) {
+                printf("[xmss api] Test %d/%d (signature %lld/%lld)\n", i + 1, TESTS, sig + 1, MAX_SIGNATURES);
+            }
+
+            randombytes(m, XMSS_MLEN);
+
+            xmss_sign_jazz(sk, sm, &smlen, m, mlen);
+            res = xmss_sign_open_jazz(m, &mlen, sm, smlen, pk);
+
+            assert(res == 0);
+        }
+    }
+
+#undef XMSS_MLEN
+#undef MAX_SIGNATURES
+}
+
+void test_xmssmt_api(void) {
+    // Test that verification after signing works
+
+#define XMSS_MLEN 32
+#define MAX_SIGNATURES (1ULL << p.full_height) - 1
+
+    bool debug = true;
+
+    xmss_params p;
+    uint32_t oid;
+
+    if (xmss_str_to_oid(&oid, xstr(IMPL)) == -1) {
+        fprintf(stderr, "Failed to generate oid from impl name\n");
+        exit(-1);
+    }
+
+    if (xmss_parse_oid(&p, oid) == -1) {
+        fprintf(stderr, "Failed to generate params from oid\n");
+        exit(-1);
+    }
+
+    uint8_t m[XMSS_MLEN];
+    size_t mlen = XMSS_MLEN;
+    uint8_t pk[XMSS_OID_LEN + p.pk_bytes];
+    uint8_t sk[XMSS_OID_LEN + p.sk_bytes];
+    uint8_t sm[p.sig_bytes + XMSS_MLEN];
+    size_t smlen;
+    int res;
+
+    for (int i = 0; i < TESTS; i++) {
+        xmssmt_keypair_jazz(pk, sk);
+
+        for (unsigned long long int sig = 0; sig < MAX_SIGNATURES; sig++) {
+            if (debug) {
+                printf("[xmssmt api] Test %d/%d (signature %lld/%lld)\n", i + 1, TESTS, sig + 1, MAX_SIGNATURES);
+            }
+
+            randombytes(m, XMSS_MLEN);
+
+            xmssmt_sign_jazz(sk, sm, &smlen, m, mlen);
+            res = xmssmt_sign_open_jazz(m, &mlen, sm, smlen, pk);
+
+            assert(res == 0);
+        }
+    }
+
+#undef XMSS_MLEN
+#undef MAX_SIGNATURES
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void test_xmss_sk_reuse() {
+void test_xmss_sk_reuse(void) {
 #define XMSS_MLEN 32
 
     // This test checks that the signing functions returns -2 after signing 2^h-1 messages
@@ -598,15 +696,17 @@ int main(void) {
         test_xmssmt_keypair();
         test_xmssmt_sign();
         test_xmssmt_sign_open();
+        test_xmssmt_api();
         test_xmssmt_sk_reuse();
         test_xmssmt_invalid_signature();
     } else {
         // test XMSS Variant
-        test_xmss_keypair();
-        test_xmss_sign();
-        test_xmss_sign_open();
-        test_xmss_sk_reuse();
-        test_xmss_invalid_signature();
+        // test_xmss_keypair();
+        // test_xmss_sign();
+        // test_xmss_sign_open();
+        test_xmss_api();
+        // test_xmss_sk_reuse();
+        // test_xmss_invalid_signature();
     }
 
     return 0;

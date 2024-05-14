@@ -206,7 +206,7 @@ pred leftmost_leaf (s t : int)  = s %% 2^t = 0.
 
 pred treehash_p (s t : int) = s %% (1 `<<` t) <> 0.
 
-op same_height : bool. (* TODO: FIXME: *)
+pred same_height. (* TODO: FIXME: ? Works with clone?????? *)
 
 module TreeHash = {
   proc treehash(sk : sk_t, s t : int, address : adrs) : nbytes = {
