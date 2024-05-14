@@ -19,7 +19,7 @@ require import XMSS_IMPL.
 
 require import Array2 Array3 Array32 Array67.
 
-abbrev (<=) (a b : W64.t) = a \ult b.
+abbrev (<=) (a b : W64.t) = a \ule b.
 
 (* Adding one to a non negative number yields a non negative number *)
 lemma add_zero (x : W64.t) : 
