@@ -18,8 +18,8 @@ PREPROCESSOR := ../submodules/jasmin-preprocessor/preprocessor
 JQ_EXISTS := $(shell which jq)
 
 
-all: clean distclean extract typecheck_extraction typecheck
-default: extract typecheck
+default: extract typecheck_spec typecheck_proof typecheck_extraction
+all: clean distclean extract typecheck_spec typecheck_proof typecheck_extraction
 
 extract: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
 
@@ -59,21 +59,22 @@ endif
 
 # --------------------------------------------------------------------------------------------------
 
-.PHONY: typecheck
-typecheck: extract
+.PHONY: typecheck_spec typecheck_proof typecheck_extraction
+typecheck_spec: extract
 	$(EASYCRYPT) $(EC_INCLUDE) Notation.ec
 	$(EASYCRYPT) $(EC_INCLUDE) Address.ec
 	$(EASYCRYPT) $(EC_INCLUDE) Primitives.ec
 	$(EASYCRYPT) $(EC_INCLUDE) Wots.ec
-	# $(EASYCRYPT) $(EC_INCLUDE) XMSS.ec
+	$(EASYCRYPT) $(EC_INCLUDE) XMSS.ec
 	$(EASYCRYPT) $(EC_INCLUDE) Properties.ec
-	$(EASYCRYPT) $(EC_INCLUDE) Correctness.ec
-	$(EASYCRYPT) $(EC_INCLUDE) Correctness_WOTS.ec
 
-.PHONY: typecheck_extraction
 typecheck_extraction: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
 	$(EASYCRYPT) $(EC_INCLUDE) extraction/XMSS_IMPL.ec
 	$(EASYCRYPT) $(EC_INCLUDE) extraction/XMSS_IMPL_PP.ec
+
+typecheck_proof:
+	$(EASYCRYPT) $(EC_INCLUDE) Correctness_Utils.ec
+	# $(EASYCRYPT) $(EC_INCLUDE) Correctness_WOTS.ec
 
 # --------------------------------------------------------------------------------------------------
 

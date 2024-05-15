@@ -80,25 +80,25 @@ lemma base_w_generic_1 (input : W8.t Array2.t) :
        arg{2}.`2 = _input ==>
     forall (i : int), 0 <= i < 3 => res{1}.[i] = nth witness res{2} i].
 proof.
-move => *.
-proc.
-auto => /> *.
-smt().
-while(
-  W64.zero <= consumed{1} <= W64.of_int 3 /\
-  consumed{1} = consumed{2} /\
-  outlen{2} = W64.of_int 3 /\
-  inlen{2} = W64.of_int 2
-).
-auto => /> *.
-split.
-smt(add_zero).
-move => H. admit. (* FIXME: consumed{2} + 1 <= 3 : Cant prove this (?) *)
-sp. auto => />.
-move => *.
-rewrite negb_and.
-left.
-(* input{&1} != input : Cant prove this *)
+(* move => *. *)
+(* proc. *)
+(* auto => /> *. *)
+(* smt(). *)
+(* while( *)
+(*   W64.zero <= consumed{1} <= W64.of_int 3 /\ *)
+(*   consumed{1} = consumed{2} /\ *)
+(*   outlen{2} = W64.of_int 3 /\ *)
+(*   inlen{2} = W64.of_int 2 *)
+(* ). *)
+(* auto => /> *. *)
+(* split. *)
+(* smt(add_zero). *)
+(* move => H. admit. (* FIXME: consumed{2} + 1 <= 3 : Cant prove this (?) *) *)
+(* sp. auto => />. *)
+(* move => *. *)
+(* rewrite negb_and. *)
+(* left. *)
+(* (* input{&1} != input : Cant prove this *) *)
 admit.
 qed.
 

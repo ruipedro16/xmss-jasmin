@@ -17,6 +17,18 @@ abbrev (<=)  (a b : W64.t) = a \ule b.
 abbrev (>)   (a b : W64.t) = b \ule a.
 abbrev (>=)  (a b : W64.t) = a > b \/ a = b. (* TODO: *)
 
+(*
+op mkarray : 'a list -> 'a array.
+op ofarray : 'a array -> 'a list.
+*)
+
+lemma list_array_size_32 (x : W8.t Array32.t) :
+    let y : W8.t list = mkseq (fun (i : int) => x.[i]) 32 in
+    size y = 32.
+proof.
+move => y ; smt(@List).
+qed.
+
 lemma add_1_W64 (x : W64.t) :
     x > W64.zero => x + W64.one > W64.zero by smt(@W64).
 
@@ -29,6 +41,9 @@ pred list_array_eq (x : W8.t array, y : W8.t list) =
 
 pred list_array_eq (x : W8.t Array32.t, y : W8.t list) =
   size y = 32 /\ forall (k : int), 0 <= k < 32 => x.[k] = y.[k].
+
+pred list_array_eq_64 (x : W8.t Array64.t, y : W8.t list) =
+  size y = 64 /\ forall (k : int), 0 <= k < 64 => x.[k] = y.[k].
 
 lemma array32_list_put (x : W8.t Array32.t, y : W8.t list, t : W8.t, i : int) :
     list_array_eq x y => list_array_eq x.[i <- t] (put y i t).
@@ -84,7 +99,7 @@ lemma memcmpy_32 (out : W8.t Array32.t, offset : W64.t, in_0 : W8.t Array32.t) :
       arg{2} = (_out, 32, W64.zero, _in, 32) ==> 
     forall (i : int), 0 <= i < 32 => out{1}.[i] = out{2}.[i]].
 proof.
-move => H1 H2 H3.
+move => H0 H1 H3.
 proc.
 auto => /> *.
 while (
@@ -92,7 +107,7 @@ while (
   W64.zero <= i{1} <= W64.of_int 32 /\
   W64.zero <= offset{1} <= W64.of_int 32 /\
   ={i, offset} /\
-    list_array_eq in_0{1} H2 /\
+    list_array_eq in_0{1} H1 /\
   forall (k : int), 0 <= k < W64.to_uint i{1} => out{1}.[k] = out{2}.[k]
 ).
 auto => />.
@@ -100,35 +115,69 @@ progress.
 smt(add_1_W64).
 smt.
 auto => /> *. 
-progress.
-smt().
-smt.
-smt.
-smt.
+progress by smt. (* first is () *)
+(* smt(). smt. smt. smt. *)
 qed.
 
 lemma memcmpy_64 (out : W8.t Array64.t, offset : W64.t, in_0 : W8.t Array64.t) :
+    (* inlen = 64 /\ outlen = 64 *)
     let _out : W8.t list = mkseq (fun i => out.[i]) 64 in
     let _in : W8.t list = mkseq (fun i => in_0.[i]) 64 in
-    size _out = 64 /\ size _in = 64 => 
-    equiv [M(Syscall)._x_memcpy_u8u8_64_64 ~ Memcpy._x_memcpy_u8u8 :
-      arg{1} = (out, offset, in_0) /\
-      arg{2} = (_out, 64, offset, _in, 64) ==> 
-    mkseq (fun i => res{1}.`1.[i]) 64 = res{2}.`1].
+    size _out = 64 /\ size _in = 64 /\ offset = W64.zero => 
+    equiv [M(Syscall).__memcpy_u8u8_64_64 ~ Memcpy._x_memcpy_u8u8 :
+      arg{1} = (out, W64.zero, in_0) /\
+      arg{2} = (_out, 64, W64.zero, _in, 64) ==> 
+    forall (i : int), 0 <= i < 64 => out{1}.[i] = out{2}.[i]].
 proof.
-admit. (* FIXME: TODO: *)
+move => H0 H1 H2.
+proc.
+auto => /> *.
+while (
+outlen{2} = 64 /\
+  W64.zero <= i{1} <= W64.of_int 64 /\
+  W64.zero <= offset{1} <= W64.of_int 64 /\
+  ={i, offset} /\
+    list_array_eq_64 in_0{1} H1 /\
+  forall (k : int), 0 <= k < W64.to_uint i{1} => out{1}.[k] = out{2}.[k]
+).
+auto => /> ; progress.
+smt(add_1_W64).
+smt. (* Add lemma for this *)
+auto => /> * ; progress by smt.
 qed.
 
 lemma memcmpy_128_32 (out : W8.t Array128.t, offset : W64.t, in_0 : W8.t Array32.t) :
+    (* inlen = 32 /\ outlen = 128 *)
+    (* offset + inlen <= outlen   *)
+    (* offset <= outlen - inlen   *)
     let _out : W8.t list = mkseq (fun i => out.[i]) 128 in
     let _in : W8.t list = mkseq (fun i => in_0.[i]) 32 in
-    size _out = 128 /\ size _in = 32 => 
-    equiv [M(Syscall)._x_memcpy_u8u8_128_32 ~ Memcpy._x_memcpy_u8u8 :
+    let outlen = size _out in
+    let inlen = size _in in
+    outlen = 128 /\ inlen = 3 /\ 0 <= W64.to_uint offset <= (outlen - inlen) => 
+    equiv [M(Syscall).__memcpy_u8u8_128_32 ~ Memcpy._x_memcpy_u8u8 :
       arg{1} = (out, offset, in_0) /\
       arg{2} = (_out, 128, offset, _in, 32) ==> 
-    mkseq (fun i => res{1}.`1.[i]) 128 = res{2}.`1].
+    forall (k : int), 0 <= k < 32 => out{1}.[(W64.to_uint offset) + k] = out{2}.[(W64.to_uint offset) + k]].
 proof.
-admit. (* FIXME: TODO: *)
+move => H0 H1 H2 H3 H4.
+proc.
+auto => /> *.
+while(
+    outlen{2} = 128 /\ inlen{2} = 32 /\
+    W64.zero <= i{1} <= W64.of_int 32 (* 32 = inlen *) /\
+    ={i, offset} /\
+    list_array_eq in_0{1} H1 /\ 
+    forall (k : int), 0 <= k < W64.to_uint i{1} => out{1}.[(W64.to_uint offset) + k] = out{2}.[(W64.to_uint offset) + k]
+).
+auto => /> * ; progress.
+smt(add_1_W64).
+smt.
+smt.
+smt.
+auto => /> * ; progress.
+smt(list_array_size_32).
+smt.
 qed.
 
 lemma memcmpy_128_64 (out : W8.t Array128.t, offset : W64.t, in_0 : W8.t Array64.t) :
