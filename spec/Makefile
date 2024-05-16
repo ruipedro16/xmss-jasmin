@@ -74,7 +74,7 @@ typecheck_extraction: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
 
 typecheck_proof:
 	$(EASYCRYPT) $(EC_INCLUDE) Correctness_Utils.ec
-	# $(EASYCRYPT) $(EC_INCLUDE) Correctness_WOTS.ec
+	$(EASYCRYPT) $(EC_INCLUDE) Correctness_WOTS.ec
 
 # --------------------------------------------------------------------------------------------------
 

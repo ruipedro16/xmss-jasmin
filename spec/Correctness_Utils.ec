@@ -13,12 +13,6 @@ require import Array. (* abstract ie before cloning *)
 
 require import Array32 Array64 Array96 Array128.
 
-abbrev (=/=) (a b : W64.t) = ! (a = b).
-abbrev (<)   (a b : W64.t) = a \ult b. 
-abbrev (<=)  (a b : W64.t) = a \ule b.
-abbrev (>)   (a b : W64.t) = b \ule a.
-abbrev (>=)  (a b : W64.t) = a > b \/ a = b. (* TODO: *)
-
 (*
 op mkarray : 'a list -> 'a array.
 op ofarray : 'a array -> 'a list.
@@ -62,6 +56,8 @@ lemma list_array_size_64 (x : W8.t Array64.t) :
 proof.
 move => y ; smt(@List).
 qed.
+
+lemma size_ge0_W64 (x : 'a list) : W64.to_uint(W64.zero) <= size x by smt(size_ge0).
 
 (*********************************************************************************************)
 (************************************* MEMCPY ************************************************)
