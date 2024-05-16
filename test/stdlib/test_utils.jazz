@@ -42,8 +42,3 @@ export fn memcpy_u8pu8p_jazz(reg u64 out_ptr offset_out in_ptr offset_in len) {
 }
 
 /////////////////////////////////////////////////////////////////////// MEMSET
-
-export fn memset_zero_u8_jazz<INLEN>(reg ptr u8[INLEN] in) -> reg ptr u8[INLEN] {
-    in = __memset_zero_u8<INLEN>(in);
-    return in;
-}//<>

@@ -243,7 +243,7 @@ inline fn __xmssmt_core_seed_keypair(
     top_tree_addr =  __set_layer_addr(top_tree_addr, XMSS_D - 1);
     
     // memset(sk, 0, params->index_bytes);
-    sk[0 : XMSS_INDEX_BYTES] = __memset_zero_u8<XMSS_INDEX_BYTES>(sk[0 : XMSS_INDEX_BYTES]);
+    sk[0 : XMSS_INDEX_BYTES] = __memset_zero_u8(sk[0 : XMSS_INDEX_BYTES]);
     
     // memcpy(sk, seed, 2 * params->n);
     sk[XMSS_INDEX_BYTES : 2 * XMSS_N], _ = _x_memcpy_u8u8<2*XMSS_N, 2*XMSS_N>(sk[XMSS_INDEX_BYTES : 2 * XMSS_N], 0, seed[0 : 2 * XMSS_N]);
