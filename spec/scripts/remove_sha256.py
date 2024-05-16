@@ -43,7 +43,7 @@ def remove_proc(proc: str, input_text: str) -> str:
     return output_text
 
 
-def remove_sha256_functions(input_text: str, template_functions_dict, debug: bool) -> str:
+def remove_functions(input_text: str, template_functions_dict, debug: bool) -> str:
     """
     Removes functions related to SHA256 from an EasyCrypt module
 
@@ -57,12 +57,15 @@ def remove_sha256_functions(input_text: str, template_functions_dict, debug: boo
     global_k_pattern = r"abbrev sHA256_K[\s\S]+\]\."
 
     generic_functions: list[str] = [
+        # Hash functions: These are replaced by operators
         "__lastblocks_ref",
         "__sha256",
         "_blocks_0_ref",
         "__core_hash",
         "_core_hash",
         "__core_hash_",
+        # Generic Functions: These are replaced by a single functions that takes lists instead of arrays as arguments
+        "__base_w"
     ]
 
     resolved_functions: list[str] = []
@@ -99,7 +102,7 @@ def remove_sha256_functions(input_text: str, template_functions_dict, debug: boo
         # PRF FUNCTIONS
         "__prf_",
         "_prf",
-        "__prf"
+        "__prf",
     ]
 
     functions_to_remove: list[str] = resolved_functions + regular_functions
@@ -117,7 +120,7 @@ def remove_sha256_functions(input_text: str, template_functions_dict, debug: boo
 
 def add_operators(text: str) -> str:
     string_to_add = """
-require import XMSS_IMPL.
+require import XMSS_IMPL Generic.
 
 op Hash_96 : W8.t Array32.t -> W8.t Array96.t -> W8.t Array32.t.
 op Hash_128 : W8.t Array32.t -> W8.t Array128.t -> W8.t Array32.t.
@@ -202,6 +205,164 @@ def replace_calls(text: str) -> str:
     text = text.replace("bitmask <@ __prf_ (bitmask, addr_as_bytes, pub_seed);", "bitmask <- PRF bitmask addr_as_bytes pub_seed;")
     text = text.replace("buf <@ __prf_ (buf, idx_bytes, sk_prf);", "buf <- PRF buf idx_bytes sk_prf;")
 
+
+    # Replace functions that take arrays as arguments with functions that take lists
+
+    #1) Base W
+
+    text = text.replace (
+"""
+  proc __wots_checksum (csum_base_w:W32.t Array3.t,
+                        msg_base_w:W32.t Array67.t) : W32.t Array3.t = {
+""",
+"""  
+  proc __wots_checksum (csum_base_w:W32.t Array3.t,
+                        msg_base_w:W32.t Array67.t) : W32.t Array3.t = {
+                        
+    var t_list : W32.t list;
+"""
+    )
+    text = text.replace("csum_base_w <@ __base_w_3_2 (csum_base_w, csum_bytes_p);",
+    """
+    t_list <@ BaseWGeneric.__base_w(list_of_array3 csum_base_w, list_of_array2 csum_bytes_p);
+    csum_base_w <- array3_of_list t_list;
+    """)
+    # FIXME: Array3.ofarray and Array2.ofarray doesnt work
+
+    text = text.replace(
+"""
+  proc __chain_lengths (lengths:W32.t Array67.t, msg:W8.t Array32.t) : 
+  W32.t Array67.t = {
+""",
+"""
+  proc __chain_lengths (lengths:W32.t Array67.t, msg:W8.t Array32.t) : 
+  W32.t Array67.t = {
+    var t_list : W32.t list;
+"""
+    )
+
+    text = text.replace("lengths <@ __base_w_67_32 (lengths, msg);",
+    """
+    t_list <@ BaseWGeneric.__base_w(list_of_array67 lengths, list_of_array32 msg);
+    lengths <- array67_of_list t_list;
+    """)
+
+    # 2) _x_memcpy_u8u8
+    # 2.1 _x_memcpy_u8u8_128_32
+    text = text.replace(
+"""
+  proc __prf_keygen (out:W8.t Array32.t, in_0:W8.t Array64.t,
+                     key:W8.t Array32.t) : W8.t Array32.t = {
+""",
+"""
+  proc __prf_keygen (out:W8.t Array32.t, in_0:W8.t Array64.t,
+                     key:W8.t Array32.t) : W8.t Array32.t = {
+    var buf_list : W8.t list;
+    var in_0_list : W8.t list;
+"""
+    )
+
+    text = text.replace(
+"""
+    (buf,  _0) <@ _x_memcpy_u8u8_128_32 (buf, offset, key);
+""",
+"""
+    (buf_list, _0) <@ Memcpy._x_memcpy_u8u8 (list_of_array128 buf, 128, offset, list_of_array32 key, 32);
+    buf <- array128_of_list buf_list;
+"""
+    )
+
+    # 2.2 _x_memcpy_u8u8_128_64
+    text = text.replace(
+"""
+    (buf,  _1) <@ _x_memcpy_u8u8_128_64 (buf, offset, in_0);
+""",
+"""
+    (buf_list, _1) <@ Memcpy._x_memcpy_u8u8 (list_of_array128 buf, 128, offset, list_of_array64 in_0, 64);
+    buf <- array128_of_list buf_list;
+"""
+    )
+
+    # 2.3 _x_memcpy_u8u8_32_32
+    text = text.replace(
+"""
+  proc __gen_chain_inplace (out:W8.t Array32.t, in_0:W8.t Array32.t,
+                            start:W32.t, steps:W32.t,
+                            pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
+  W8.t Array32.t * W32.t Array8.t = {
+""",
+"""
+  proc __gen_chain_inplace (out:W8.t Array32.t, in_0:W8.t Array32.t,
+                            start:W32.t, steps:W32.t,
+                            pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
+  W8.t Array32.t * W32.t Array8.t = {
+    var out_list : W8.t list;
+"""
+    )
+
+    text = text.replace(
+"""
+    (out,  _0) <@ _x_memcpy_u8u8_32_32 (out, offset, in_0);
+""",
+"""
+    (out_list,  _0) <@ Memcpy._x_memcpy_u8u8 (list_of_array32 out, 32, offset, list_of_array32 in_0, 32);
+    out <- array32_of_list out_list;
+"""
+    )
+
+    text = text.replace(
+"""
+  proc __expand_seed (outseeds:W8.t Array2144.t, inseed:W8.t Array32.t,
+                      pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
+  W8.t Array2144.t * W32.t Array8.t = {
+""",
+"""
+  proc __expand_seed (outseeds:W8.t Array2144.t, inseed:W8.t Array32.t,
+                      pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
+  W8.t Array2144.t * W32.t Array8.t = {
+    var aux_list : W8.t list;
+"""
+    )
+
+    text = text.replace(
+"""
+    (aux,
+    aux_0) <@ _x_memcpy_u8u8_32_32 ((Array32.init (fun i_0 => buf.[0 + i_0])),
+    offset, pub_seed);
+""",
+"""
+    (aux_list, aux_0) <@ Memcpy._x_memcpy_u8u8(list_of_array32 (Array32.init (fun i_0 => buf.[0 + i_0])), 32, offset, list_of_array32 pub_seed, 32);
+    aux <- array32_of_list aux_list;
+"""
+    )
+
+    text = text.replace(
+"""
+  proc __l_tree (leaf:W8.t Array32.t, wots_pk:W8.t Array2144.t,
+                 pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : W8.t Array32.t *
+                                                                 W8.t Array2144.t *
+                                                                 W32.t Array8.t = {
+""",
+"""
+  proc __l_tree (leaf:W8.t Array32.t, wots_pk:W8.t Array2144.t,
+                 pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : W8.t Array32.t *
+                                                                 W8.t Array2144.t *
+                                                                 W32.t Array8.t = {
+    var leaf_list : W8.t list;
+""" 
+    )
+
+    text = text.replace(
+"""
+    (leaf,  _9) <@ _x_memcpy_u8u8_32_32 (leaf, offset_out,
+    (Array32.init (fun i_0 => wots_pk.[0 + i_0])));
+""",
+"""
+    (leaf_list, _9) <@ Memcpy._x_memcpy_u8u8(list_of_array32 leaf, 32, offset_out, list_of_array32 (Array32.init (fun i_0 => wots_pk.[0 + i_0])), 32);
+    leaf <- array32_of_list leaf_list;
+"""
+    )
+
     return text
 
 
@@ -229,7 +390,7 @@ module Syscall : Syscall_t = {
         ""
     )
 
-    ec_out = remove_sha256_functions(ec_out, template_functions_dict, debug)
+    ec_out = remove_functions(ec_out, template_functions_dict, debug)
     ec_out = add_operators(ec_out)
     ec_out = replace_calls(ec_out)
 

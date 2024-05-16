@@ -7,6 +7,8 @@ from Jasmin require import JModel.
 
 require import XMSS_IMPL.
 
+require import Generic.
+
 require import Array. (* abstract ie before cloning *)
 
 require import Array32 Array64 Array96 Array128.
@@ -29,6 +31,7 @@ proof.
 move => y ; smt(@List).
 qed.
 
+(* Adding 1 to a positive number yields a positive number *)
 lemma add_1_W64 (x : W64.t) :
     x > W64.zero => x + W64.one > W64.zero by smt(@W64).
 
@@ -52,7 +55,14 @@ rewrite /list_array_eq.
 move => H.
 split ; [smt(@List) | progress ; smt(@List @Array32)].
 qed.
- 
+
+lemma list_array_size_64 (x : W8.t Array64.t) :
+    let y : W8.t list = mkseq (fun (i : int) => x.[i]) 64 in
+    size y = 64.
+proof.
+move => y ; smt(@List).
+qed.
+
 (*********************************************************************************************)
 (************************************* MEMCPY ************************************************)
 (*********************************************************************************************)
@@ -68,26 +78,6 @@ qed.
     _x_memcpy_u8u8_64_64
 
  *)
-
-module Memcpy = {
-  (* This assumes that offset + inlen <= OUTLEN *)
-  (* I.e. writing INLEN elements starting at index offset does not write past the end of the array *)
-  proc _x_memcpy_u8u8(out : W8.t list, 
-                      outlen : int, 
-                      offset : W64.t,
-                      in_0 : W8.t list, 
-                      inlen : int) : W8.t list * W64.t = {
-    var i : W64.t <- W64.zero;
-
-    while ((i \ult (W64.of_int inlen))) {
-      out <- put out (W64.to_uint offset) in_0.[(W64.to_uint i)];
-      i <- (i + (W64.of_int 1));
-      offset <- (offset + (W64.of_int 1));
-    }
-
-    return (out, offset);
-  }
-}.
 
 lemma memcmpy_32 (out : W8.t Array32.t, offset : W64.t, in_0 : W8.t Array32.t) :
     (* inlen = 32 /\ outlen = 32 *)
@@ -176,13 +166,6 @@ smt.
 auto => /> * ; progress.
 smt(list_array_size_32).
 smt.
-qed.
-
-lemma list_array_size_64 (x : W8.t Array64.t) :
-    let y : W8.t list = mkseq (fun (i : int) => x.[i]) 64 in
-    size y = 64.
-proof.
-move => y ; smt(@List).
 qed.
 
 lemma memcmpy_128_64 (out : W8.t Array128.t, offset : W64.t, in_0 : W8.t Array64.t) :
