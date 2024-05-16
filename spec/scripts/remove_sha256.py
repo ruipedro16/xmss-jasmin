@@ -64,8 +64,16 @@ def remove_functions(input_text: str, template_functions_dict, debug: bool) -> s
         "__core_hash",
         "_core_hash",
         "__core_hash_",
-        # Generic Functions: These are replaced by a single functions that takes lists instead of arrays as arguments
-        "__base_w"
+        # Generic Functions: These are replaced by a single functions that take lists instead of arrays as arguments
+        "__base_w",
+        "__memcpy_u8u8",
+        "_memcpy_u8u8",
+        "_x_memcpy_u8u8",
+        "__memset_u8",
+        "__memcpy_u8u8p",
+        "_memcpy_u8u8p",
+        "_x_memcpy_u8u8p",
+        "__memcpy_u8u8_2"
     ]
 
     resolved_functions: list[str] = []
@@ -349,6 +357,8 @@ def replace_calls(text: str) -> str:
                                                                  W8.t Array2144.t *
                                                                  W32.t Array8.t = {
     var leaf_list : W8.t list;
+    var buf_0_list : W8.t list;
+    var buf_1_list : W8.t list;
 """ 
     )
 
@@ -360,6 +370,283 @@ def replace_calls(text: str) -> str:
 """
     (leaf_list, _9) <@ Memcpy._x_memcpy_u8u8(list_of_array32 leaf, 32, offset_out, list_of_array32 (Array32.init (fun i_0 => wots_pk.[0 + i_0])), 32);
     leaf <- array32_of_list leaf_list;
+"""
+    )
+
+    text = text.replace(
+"""
+  proc __xmssmt_core_seed_keypair (pk:W8.t Array64.t, sk:W8.t Array132.t,
+                                   seed:W8.t Array96.t) : W8.t Array64.t *
+                                                          W8.t Array132.t = {
+""",
+"""
+  proc __xmssmt_core_seed_keypair (pk:W8.t Array64.t, sk:W8.t Array132.t,
+                                   seed:W8.t Array96.t) : W8.t Array64.t *
+                                                          W8.t Array132.t = {
+    var aux_2_list : W8.t list;
+    var aux_0_list : W8.t list;
+"""
+    )
+
+    text = text.replace(
+"""
+    (aux_2,
+    aux_1) <@ _x_memcpy_u8u8_32_32 ((Array32.init (fun i_0 => sk.[(4 + (3 * 32)) + i_0])),
+    (W64.of_int 0), (Array32.init (fun i_0 => seed.[(2 * 32) + i_0])));
+""",
+"""
+    (aux_2_list,
+    aux_1) <@ Memcpy._x_memcpy_u8u8(list_of_array32 (Array32.init (fun i_0 => sk.[(4 + (3 * 32)) + i_0])), 32,
+    (W64.of_int 0), list_of_array32 (Array32.init (fun i_0 => seed.[(2 * 32) + i_0])), 32);
+    aux_2 <- array32_of_list aux_2_list;
+"""
+    )
+
+    text = text.replace(
+"""
+    (aux_2,
+    aux_1) <@ _x_memcpy_u8u8_32_32 ((Array32.init (fun i_0 => pk.[32 + i_0])),
+    (W64.of_int 0), (Array32.init (fun i_0 => sk.[(4 + (3 * 32)) + i_0])));
+""",
+"""
+    (aux_2_list,
+    aux_1) <@ Memcpy._x_memcpy_u8u8(list_of_array32 (Array32.init (fun i_0 => pk.[32 + i_0])), 32,
+    (W64.of_int 0), list_of_array32 (Array32.init (fun i_0 => sk.[(4 + (3 * 32)) + i_0])), 32);
+    aux_2 <- array32_of_list aux_2_list;
+"""
+    )
+
+    # 2.4 _x_memcpy_u8u8_64_64
+    text = text.replace(
+"""
+    (aux_0,
+    aux_1) <@ _x_memcpy_u8u8_64_64 ((Array64.init (fun i_0 => sk.[4 + i_0])),
+    (W64.of_int 0), (Array64.init (fun i_0 => seed.[0 + i_0])));
+""",
+"""
+    (aux_0_list,
+    aux_1) <@ Memcpy._x_memcpy_u8u8(list_of_array64 (Array64.init (fun i_0 => sk.[4 + i_0])), 64,
+    (W64.of_int 0), list_of_array64 (Array64.init (fun i_0 => seed.[0 + i_0])), 64);
+    aux_0 <- array64_of_list aux_0_list;
+"""
+    )
+
+    # 2.5 _x_memcpy_u8u8_64_32
+    text = text.replace(
+"""
+  proc __compute_root (root:W8.t Array32.t, leaf:W8.t Array32.t,
+                       leaf_idx:W32.t, _auth_path_ptr:W64.t,
+                       pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
+  W8.t Array32.t * W32.t Array8.t = {
+""",
+"""
+  proc __compute_root (root:W8.t Array32.t, leaf:W8.t Array32.t,
+                       leaf_idx:W32.t, _auth_path_ptr:W64.t,
+                       pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
+  W8.t Array32.t * W32.t Array8.t = {
+    var buffer_list : W8.t list;
+"""
+    )
+
+    text = text.replace(
+"""
+      (buffer,  _2) <@ _x_memcpy_u8u8_64_32 (buffer, offset_out, leaf);
+""",
+"""
+      (buffer_list, _2) <@ Memcpy._x_memcpy_u8u8(list_of_array64 buffer, 64, offset_out, list_of_array32 leaf, 32);
+      buffer <- array64_of_list buffer_list;
+"""
+    )
+
+    text = text.replace(
+"""
+      (buffer,  _0) <@ _x_memcpy_u8u8_64_32 (buffer, offset_out, leaf);
+""",
+"""
+    (buffer_list,  _0) <@ Memcpy._x_memcpy_u8u8(list_of_array64 buffer, 64, offset_out, list_of_array32 leaf, 32);
+    buffer <- array64_of_list buffer_list;
+"""
+    )
+
+    # 2.6 __memcpy_u8u8_2144_32
+    text = text.replace(
+"""
+  proc __l_tree (leaf:W8.t Array32.t, wots_pk:W8.t Array2144.t,
+                 pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : W8.t Array32.t *
+                                                                 W8.t Array2144.t *
+                                                                 W32.t Array8.t = {
+""",
+"""
+  proc __l_tree (leaf:W8.t Array32.t, wots_pk:W8.t Array2144.t,
+                 pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : W8.t Array32.t *
+                                                                 W8.t Array2144.t *
+                                                                 W32.t Array8.t = {
+    var wots_pk_list : W8.t list;
+"""
+    )
+
+    text = text.replace(
+"""
+        (wots_pk,  _5) <@ __memcpy_u8u8_2144_32 (wots_pk, offset_out, buf0);
+""",
+"""
+        (wots_pk_list, _5) <@ Memcpy._x_memcpy_u8u8(list_of_array2144 wots_pk, 2144, offset_out, list_of_array32 buf0, 32);
+        wots_pk <- array2144_of_list wots_pk_list;
+"""
+    )
+
+    # 3. __memset_u8
+    text = text.replace(
+"""
+  proc __xmssmt_core_sign (sk:W8.t Array132.t, sm_ptr:W64.t, smlen_ptr:W64.t,
+                           m_ptr:W64.t, mlen:W64.t) : W8.t Array132.t * W64.t = {
+""",
+"""
+  proc __xmssmt_core_sign (sk:W8.t Array132.t, sm_ptr:W64.t, smlen_ptr:W64.t,
+                           m_ptr:W64.t, mlen:W64.t) : W8.t Array132.t * W64.t = {
+    var aux_list : W8.t list;
+    var aux_0_list : W8.t list;
+"""
+    )
+
+    text = text.replace(
+"""
+      aux <@ __memset_u8_4 ((Array4.init (fun i_0 => sk.[0 + i_0])),
+      (W8.of_int 255));
+""",
+"""
+      aux_list <@ Memset.memset_u8(list_of_array4 (Array4.init (fun i_0 => sk.[0 + i_0])), (W8.of_int 255));
+      aux <- array4_of_list aux_list;
+"""
+    )
+
+    text = text.replace(
+"""
+      aux_0 <@ __memset_u8_128 ((Array128.init (fun i_0 => sk.[4 + i_0])),
+      (W8.of_int 0));
+""",
+"""
+      aux_0_list <@ Memset.memset_u8(list_of_array128 (Array128.init (fun i_0 => sk.[4 + i_0])), (W8.of_int 0));
+      aux_0 <- array128_of_list aux_0_list;
+"""
+    )
+
+    # 4. _x_memcpy_u8u8p
+    # 4.1 _x_memcpy_u8u8p_64
+
+    # NOTE: buffer_list is already declared at this point (for both cases)
+    text = text.replace(
+"""
+      (buffer,  _3) <@ _x_memcpy_u8u8p_64 (buffer, offset_out, auth_path_ptr,
+      len);
+""",
+"""
+      (buffer_list, _3) <@ Memcpy._x_memcpy_u8u8p(list_of_array64 buffer, offset_out, auth_path_ptr, len);
+      buffer <- array64_of_list buffer_list;
+"""
+    )
+
+    text = text.replace(
+"""
+      (buffer,  _1) <@ _x_memcpy_u8u8p_64 (buffer, offset_out, auth_path_ptr,
+      len);
+""",
+"""
+      (buffer_list, _1) <@ Memcpy._x_memcpy_u8u8p(list_of_array64 buffer, offset_out, auth_path_ptr, len);
+      buffer <- array64_of_list buffer_list;
+"""
+    )
+
+    text = text.replace(
+"""
+        (buffer,  _6) <@ _x_memcpy_u8u8p_64 (buffer, offset_out,
+        auth_path_ptr, len);
+""",
+"""
+        (buffer_list, _6) <@ Memcpy._x_memcpy_u8u8p(list_of_array64 buffer, offset_out, auth_path_ptr, len);
+        buffer <- array64_of_list buffer_list;
+"""
+    )
+
+    text = text.replace(
+"""
+        (buffer,  _5) <@ _x_memcpy_u8u8p_64 (buffer, offset_out,
+        auth_path_ptr, len);
+""",
+"""
+        (buffer_list, _5) <@ Memcpy._x_memcpy_u8u8p(list_of_array64 buffer, offset_out, auth_path_ptr, len);
+        buffer <- array64_of_list buffer_list;
+"""
+    )
+
+    # 4.2 _x_memcpy_u8u8p_32
+    text = text.replace(
+"""
+  proc __gen_chain (out:W8.t Array32.t, in_ptr:W64.t, start:W32.t,
+                    steps:W32.t, pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
+  W8.t Array32.t * W32.t Array8.t = {
+""",
+"""
+  proc __gen_chain (out:W8.t Array32.t, in_ptr:W64.t, start:W32.t,
+                    steps:W32.t, pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
+  W8.t Array32.t * W32.t Array8.t = {
+    var out_list : W8.t list;
+"""
+    )
+
+    text = text.replace(
+"""
+    (out,  _0) <@ _x_memcpy_u8u8p_32 (out, offset, in_ptr, (W64.of_int 32));
+""",
+"""
+    (out_list, _0) <@ Memcpy._x_memcpy_u8u8p(list_of_array32 out, offset, in_ptr, (W64.of_int 32));
+    out <- array32_of_list out_list;
+"""
+    )
+
+    text = text.replace(
+"""
+  proc __xmssmt_core_sign_open (m_ptr:W64.t, mlen_ptr:W64.t, sm_ptr:W64.t,
+                                smlen:W64.t, pk:W8.t Array64.t) : W64.t = {
+""",
+"""
+  proc __xmssmt_core_sign_open (m_ptr:W64.t, mlen_ptr:W64.t, sm_ptr:W64.t,
+                                smlen:W64.t, pk:W8.t Array64.t) : W64.t = {
+    var buf_list : W8.t list;
+"""
+    )
+
+    text = text.replace(
+"""
+    (buf,  _3) <@ _x_memcpy_u8u8p_32 (buf, offset_out, t64, bytes);
+""",
+"""
+    (buf_list, _3) <@ Memcpy._x_memcpy_u8u8p(list_of_array32 buf, offset_out, t64, bytes);
+    buf <- array32_of_list buf_list;
+"""
+    )
+
+    # 5. __memcpy_u8u8_2
+    # NOTE: buf_0_list and buf_1_list are already declared at this point
+    text = text.replace(
+"""
+        (buf0,  _1,  _2) <@ __memcpy_u8u8_2_32_2144 (buf0, offset_out,
+        wots_pk, offset_in, bytes);
+""",
+"""
+        (buf_0_list,  _1,  _2) <@ Memcpy.__memcpy_u8u8_2(list_of_array32 buf0, offset_out, list_of_array2144 wots_pk, offset_in, bytes);
+        buf0 <- array32_of_list buf_0_list;
+"""
+    )
+
+    text = text.replace(
+"""
+        (buf1,  _3,  _4) <@ __memcpy_u8u8_2_64_2144 (buf1, offset_out,
+        wots_pk, offset_in, bytes);
+""",
+"""
+        (buf_1_list,  _3,  _4) <@ Memcpy.__memcpy_u8u8_2(list_of_array64 buf1, offset_out, list_of_array2144 wots_pk, offset_in, bytes);
+        buf1 <- array64_of_list buf_1_list;
 """
     )
 
