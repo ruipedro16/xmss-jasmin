@@ -105,59 +105,24 @@ inline fn _x_memcpy_u8u8p<OUTLEN>(
 
 inline fn __memcpy_u8u8_2<OUTLEN,INLEN>(
     reg ptr u8[OUTLEN] out,
-    reg u64 out_offset,
+    // reg u64 out_offset, => Always 0
     reg ptr u8[INLEN] in,
     reg u64 in_offset,
     reg u64 bytes
-) -> reg ptr u8[OUTLEN], reg u64, reg u64
+) -> reg ptr u8[OUTLEN], reg u64
 {
     reg u64 i;
 
     i = 0;
-    while( i < bytes) {
-        out[out_offset] = in[in_offset];
+    while (i < bytes) {
+        // out[out_offset] = in[in_offset];
+        out[i] = in[in_offset];
         i += 1;
         in_offset += 1;
-        out_offset += 1;
+        // out_offset += 1;
     }
 
-    return out, out_offset, in_offset;
-}//<>
-
-#[returnaddress="stack"]
-fn _memcpy_u8u8_2<OUTLEN,INLEN>(
-    reg ptr u8[OUTLEN] out,
-    reg u64 out_offset,
-    reg ptr u8[INLEN] in,
-    reg u64 in_offset,
-    reg u64 bytes
-) -> reg ptr u8[OUTLEN], reg u64, reg u64
-{
-    out, out_offset, in_offset = __memcpy_u8u8_2<OUTLEN,INLEN>(out, out_offset, in, in_offset, bytes);
-    return out, out_offset, in_offset;
-}//<>
-
-inline fn _x_memcpy_u8u8_2<OUTLEN,INLEN>(
-    reg ptr u8[OUTLEN] out,
-    reg u64 out_offset,
-    reg ptr u8[INLEN] in,
-    reg u64 in_offset,
-    reg u64 bytes
-) -> reg ptr u8[OUTLEN], reg u64, reg u64
-{
-    out = out;
-    out_offset = out_offset;
-    in = in;
-    in_offset = in_offset;
-    bytes = bytes;
-
-    out, out_offset, in_offset = _memcpy_u8u8_2<OUTLEN,INLEN>(out, out_offset, in, in_offset, bytes);
-
-    out = out;
-    out_offset = out_offset;
-    in_offset = in_offset;
-
-    return out, out_offset, in_offset;
+    return out, /* out_offset, */ in_offset;
 }//<>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

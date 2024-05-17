@@ -232,8 +232,8 @@ def replace_calls(text: str) -> str:
     )
     text = text.replace("csum_base_w <@ __base_w_3_2 (csum_base_w, csum_bytes_p);",
     """
-    t_list <@ BaseWGeneric.__base_w(list_of_array3 csum_base_w, list_of_array2 csum_bytes_p);
-    csum_base_w <- array3_of_list t_list;
+    t_list <@ BaseWGeneric.__base_w(to_list csum_base_w, to_list csum_bytes_p);
+    csum_base_w <- Array3.of_list witness t_list;
     """)
     # FIXME: Array3.ofarray and Array2.ofarray doesnt work
 
@@ -251,8 +251,8 @@ def replace_calls(text: str) -> str:
 
     text = text.replace("lengths <@ __base_w_67_32 (lengths, msg);",
     """
-    t_list <@ BaseWGeneric.__base_w(list_of_array67 lengths, list_of_array32 msg);
-    lengths <- array67_of_list t_list;
+    t_list <@ BaseWGeneric.__base_w(to_list lengths, to_list msg);
+    lengths <- Array67.of_list witness t_list;
     """)
 
     # 2) _x_memcpy_u8u8
@@ -275,8 +275,8 @@ def replace_calls(text: str) -> str:
     (buf,  _0) <@ _x_memcpy_u8u8_128_32 (buf, offset, key);
 """,
 """
-    (buf_list, _0) <@ Memcpy._x_memcpy_u8u8 (list_of_array128 buf, 128, offset, list_of_array32 key, 32);
-    buf <- array128_of_list buf_list;
+    (buf_list, _0) <@ Memcpy._x_memcpy_u8u8 (to_list buf, 128, offset, to_list key, 32);
+    buf <- Array128.of_list witness buf_list;
 """
     )
 
@@ -286,8 +286,8 @@ def replace_calls(text: str) -> str:
     (buf,  _1) <@ _x_memcpy_u8u8_128_64 (buf, offset, in_0);
 """,
 """
-    (buf_list, _1) <@ Memcpy._x_memcpy_u8u8 (list_of_array128 buf, 128, offset, list_of_array64 in_0, 64);
-    buf <- array128_of_list buf_list;
+    (buf_list, _1) <@ Memcpy._x_memcpy_u8u8 (to_list buf, 128, offset, to_list in_0, 64);
+    buf <- Array128.of_list witness buf_list;
 """
     )
 
@@ -313,8 +313,8 @@ def replace_calls(text: str) -> str:
     (out,  _0) <@ _x_memcpy_u8u8_32_32 (out, offset, in_0);
 """,
 """
-    (out_list,  _0) <@ Memcpy._x_memcpy_u8u8 (list_of_array32 out, 32, offset, list_of_array32 in_0, 32);
-    out <- array32_of_list out_list;
+    (out_list,  _0) <@ Memcpy._x_memcpy_u8u8 (to_list out, 32, offset, to_list in_0, 32);
+    out <- Array32.of_list witness out_list;
 """
     )
 
@@ -339,8 +339,8 @@ def replace_calls(text: str) -> str:
     offset, pub_seed);
 """,
 """
-    (aux_list, aux_0) <@ Memcpy._x_memcpy_u8u8(list_of_array32 (Array32.init (fun i_0 => buf.[0 + i_0])), 32, offset, list_of_array32 pub_seed, 32);
-    aux <- array32_of_list aux_list;
+    (aux_list, aux_0) <@ Memcpy._x_memcpy_u8u8(to_list (Array32.init (fun i_0 => buf.[0 + i_0])), 32, offset, to_list pub_seed, 32);
+    aux <- Array32.of_list witness aux_list;
 """
     )
 
@@ -368,8 +368,8 @@ def replace_calls(text: str) -> str:
     (Array32.init (fun i_0 => wots_pk.[0 + i_0])));
 """,
 """
-    (leaf_list, _9) <@ Memcpy._x_memcpy_u8u8(list_of_array32 leaf, 32, offset_out, list_of_array32 (Array32.init (fun i_0 => wots_pk.[0 + i_0])), 32);
-    leaf <- array32_of_list leaf_list;
+    (leaf_list, _9) <@ Memcpy._x_memcpy_u8u8(to_list leaf, 32, offset_out, to_list (Array32.init (fun i_0 => wots_pk.[0 + i_0])), 32);
+    leaf <- Array32.of_list witness leaf_list;
 """
     )
 
@@ -396,9 +396,9 @@ def replace_calls(text: str) -> str:
 """,
 """
     (aux_2_list,
-    aux_1) <@ Memcpy._x_memcpy_u8u8(list_of_array32 (Array32.init (fun i_0 => sk.[(4 + (3 * 32)) + i_0])), 32,
-    (W64.of_int 0), list_of_array32 (Array32.init (fun i_0 => seed.[(2 * 32) + i_0])), 32);
-    aux_2 <- array32_of_list aux_2_list;
+    aux_1) <@ Memcpy._x_memcpy_u8u8(to_list (Array32.init (fun i_0 => sk.[(4 + (3 * 32)) + i_0])), 32,
+    (W64.of_int 0), to_list (Array32.init (fun i_0 => seed.[(2 * 32) + i_0])), 32);
+    aux_2 <- Array32.of_list witness aux_2_list;
 """
     )
 
@@ -410,9 +410,9 @@ def replace_calls(text: str) -> str:
 """,
 """
     (aux_2_list,
-    aux_1) <@ Memcpy._x_memcpy_u8u8(list_of_array32 (Array32.init (fun i_0 => pk.[32 + i_0])), 32,
-    (W64.of_int 0), list_of_array32 (Array32.init (fun i_0 => sk.[(4 + (3 * 32)) + i_0])), 32);
-    aux_2 <- array32_of_list aux_2_list;
+    aux_1) <@ Memcpy._x_memcpy_u8u8(to_list (Array32.init (fun i_0 => pk.[32 + i_0])), 32,
+    (W64.of_int 0), to_list (Array32.init (fun i_0 => sk.[(4 + (3 * 32)) + i_0])), 32);
+    aux_2 <- Array32.of_list witness aux_2_list;
 """
     )
 
@@ -425,9 +425,9 @@ def replace_calls(text: str) -> str:
 """,
 """
     (aux_0_list,
-    aux_1) <@ Memcpy._x_memcpy_u8u8(list_of_array64 (Array64.init (fun i_0 => sk.[4 + i_0])), 64,
-    (W64.of_int 0), list_of_array64 (Array64.init (fun i_0 => seed.[0 + i_0])), 64);
-    aux_0 <- array64_of_list aux_0_list;
+    aux_1) <@ Memcpy._x_memcpy_u8u8(to_list (Array64.init (fun i_0 => sk.[4 + i_0])), 64,
+    (W64.of_int 0), to_list (Array64.init (fun i_0 => seed.[0 + i_0])), 64);
+    aux_0 <- Array64.of_list witness aux_0_list;
 """
     )
 
@@ -453,8 +453,8 @@ def replace_calls(text: str) -> str:
       (buffer,  _2) <@ _x_memcpy_u8u8_64_32 (buffer, offset_out, leaf);
 """,
 """
-      (buffer_list, _2) <@ Memcpy._x_memcpy_u8u8(list_of_array64 buffer, 64, offset_out, list_of_array32 leaf, 32);
-      buffer <- array64_of_list buffer_list;
+      (buffer_list, _2) <@ Memcpy._x_memcpy_u8u8(to_list buffer, 64, offset_out, to_list leaf, 32);
+      buffer <- Array64.of_list witness buffer_list;
 """
     )
 
@@ -463,8 +463,8 @@ def replace_calls(text: str) -> str:
       (buffer,  _0) <@ _x_memcpy_u8u8_64_32 (buffer, offset_out, leaf);
 """,
 """
-    (buffer_list,  _0) <@ Memcpy._x_memcpy_u8u8(list_of_array64 buffer, 64, offset_out, list_of_array32 leaf, 32);
-    buffer <- array64_of_list buffer_list;
+    (buffer_list,  _0) <@ Memcpy._x_memcpy_u8u8(to_list buffer, 64, offset_out, to_list leaf, 32);
+    buffer <- Array64.of_list witness buffer_list;
 """
     )
 
@@ -490,8 +490,8 @@ def replace_calls(text: str) -> str:
         (wots_pk,  _5) <@ __memcpy_u8u8_2144_32 (wots_pk, offset_out, buf0);
 """,
 """
-        (wots_pk_list, _5) <@ Memcpy._x_memcpy_u8u8(list_of_array2144 wots_pk, 2144, offset_out, list_of_array32 buf0, 32);
-        wots_pk <- array2144_of_list wots_pk_list;
+        (wots_pk_list, _5) <@ Memcpy._x_memcpy_u8u8(to_list wots_pk, 2144, offset_out, to_list buf0, 32);
+        wots_pk <- Array2144.of_list witness wots_pk_list;
 """
     )
 
@@ -515,8 +515,8 @@ def replace_calls(text: str) -> str:
       (W8.of_int 255));
 """,
 """
-      aux_list <@ Memset.memset_u8(list_of_array4 (Array4.init (fun i_0 => sk.[0 + i_0])), (W8.of_int 255));
-      aux <- array4_of_list aux_list;
+      aux_list <@ Memset.memset_u8(to_list (Array4.init (fun i_0 => sk.[0 + i_0])), (W8.of_int 255));
+      aux <- Array4.of_list witness aux_list;
 """
     )
 
@@ -526,8 +526,8 @@ def replace_calls(text: str) -> str:
       (W8.of_int 0));
 """,
 """
-      aux_0_list <@ Memset.memset_u8(list_of_array128 (Array128.init (fun i_0 => sk.[4 + i_0])), (W8.of_int 0));
-      aux_0 <- array128_of_list aux_0_list;
+      aux_0_list <@ Memset.memset_u8(to_list (Array128.init (fun i_0 => sk.[4 + i_0])), (W8.of_int 0));
+      aux_0 <- Array128.of_list witness aux_0_list;
 """
     )
 
@@ -541,8 +541,8 @@ def replace_calls(text: str) -> str:
       len);
 """,
 """
-      (buffer_list, _3) <@ Memcpy._x_memcpy_u8u8p(list_of_array64 buffer, offset_out, auth_path_ptr, len);
-      buffer <- array64_of_list buffer_list;
+      (buffer_list, _3) <@ Memcpy._x_memcpy_u8u8p(to_list buffer, offset_out, auth_path_ptr, len);
+      buffer <- Array64.of_list witness buffer_list;
 """
     )
 
@@ -552,8 +552,8 @@ def replace_calls(text: str) -> str:
       len);
 """,
 """
-      (buffer_list, _1) <@ Memcpy._x_memcpy_u8u8p(list_of_array64 buffer, offset_out, auth_path_ptr, len);
-      buffer <- array64_of_list buffer_list;
+      (buffer_list, _1) <@ Memcpy._x_memcpy_u8u8p(to_list buffer, offset_out, auth_path_ptr, len);
+      buffer <- Array64.of_list witness buffer_list;
 """
     )
 
@@ -563,8 +563,8 @@ def replace_calls(text: str) -> str:
         auth_path_ptr, len);
 """,
 """
-        (buffer_list, _6) <@ Memcpy._x_memcpy_u8u8p(list_of_array64 buffer, offset_out, auth_path_ptr, len);
-        buffer <- array64_of_list buffer_list;
+        (buffer_list, _6) <@ Memcpy._x_memcpy_u8u8p(to_list buffer, offset_out, auth_path_ptr, len);
+        buffer <- Array64.of_list witness buffer_list;
 """
     )
 
@@ -574,8 +574,8 @@ def replace_calls(text: str) -> str:
         auth_path_ptr, len);
 """,
 """
-        (buffer_list, _5) <@ Memcpy._x_memcpy_u8u8p(list_of_array64 buffer, offset_out, auth_path_ptr, len);
-        buffer <- array64_of_list buffer_list;
+        (buffer_list, _5) <@ Memcpy._x_memcpy_u8u8p(to_list buffer, offset_out, auth_path_ptr, len);
+        buffer <- Array64.of_list witness buffer_list;
 """
     )
 
@@ -599,8 +599,8 @@ def replace_calls(text: str) -> str:
     (out,  _0) <@ _x_memcpy_u8u8p_32 (out, offset, in_ptr, (W64.of_int 32));
 """,
 """
-    (out_list, _0) <@ Memcpy._x_memcpy_u8u8p(list_of_array32 out, offset, in_ptr, (W64.of_int 32));
-    out <- array32_of_list out_list;
+    (out_list, _0) <@ Memcpy._x_memcpy_u8u8p(to_list out, offset, in_ptr, (W64.of_int 32));
+    out <- Array32.of_list witness out_list;
 """
     )
 
@@ -621,8 +621,8 @@ def replace_calls(text: str) -> str:
     (buf,  _3) <@ _x_memcpy_u8u8p_32 (buf, offset_out, t64, bytes);
 """,
 """
-    (buf_list, _3) <@ Memcpy._x_memcpy_u8u8p(list_of_array32 buf, offset_out, t64, bytes);
-    buf <- array32_of_list buf_list;
+    (buf_list, _3) <@ Memcpy._x_memcpy_u8u8p(to_list buf, offset_out, t64, bytes);
+    buf <- Array32.of_list witness buf_list;
 """
     )
 
@@ -634,8 +634,8 @@ def replace_calls(text: str) -> str:
         wots_pk, offset_in, bytes);
 """,
 """
-        (buf_0_list,  _1,  _2) <@ Memcpy.__memcpy_u8u8_2(list_of_array32 buf0, offset_out, list_of_array2144 wots_pk, offset_in, bytes);
-        buf0 <- array32_of_list buf_0_list;
+        (buf_0_list,  _1,  _2) <@ Memcpy.__memcpy_u8u8_2(to_list buf0, offset_out, to_list wots_pk, offset_in, bytes);
+        buf0 <- Array32.of_list witness buf_0_list;
 """
     )
 
@@ -645,8 +645,8 @@ def replace_calls(text: str) -> str:
         wots_pk, offset_in, bytes);
 """,
 """
-        (buf_1_list,  _3,  _4) <@ Memcpy.__memcpy_u8u8_2(list_of_array64 buf1, offset_out, list_of_array2144 wots_pk, offset_in, bytes);
-        buf1 <- array64_of_list buf_1_list;
+        (buf_1_list,  _3,  _4) <@ Memcpy.__memcpy_u8u8_2(to_list buf1, offset_out, to_list wots_pk, offset_in, bytes);
+        buf1 <- Array64.of_list witness buf_1_list;
 """
     )
 

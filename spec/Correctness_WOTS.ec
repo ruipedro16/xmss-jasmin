@@ -171,6 +171,18 @@ qed.
 
 (***************************************************************************************)
 
+
+lemma wots_checksum(csum_base_w : W32.t Array3.t, msg_base_w : W32.t Array67.t) :
+    hoare[M(Syscall).__wots_checksum :
+      arg = (csum_base_w, msg_base_w) ==> true].
+proof.
+proc.
+admit.
+qed.
+
+(***************************************************************************************)
+
+
 (* This lemma states that the the generic version of base_w (which is/will be proved above that is equivalent to the one extracted from the Jasmin impl) is correct with respect to the specification *)
 lemma base_w_impl_spec (input : byte list, outlen : int) :
     let t : W32.t list = nseq outlen W32.zero in
