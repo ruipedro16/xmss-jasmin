@@ -253,6 +253,7 @@ inline fn __base_w<OUTLEN, INLEN>(
     in = 0;
     out  = 0;
     bits = 0;
+    total = 0;
 
     // for (consumed = 0; consumed < out_len; consumed++) 
     consumed = 0;
