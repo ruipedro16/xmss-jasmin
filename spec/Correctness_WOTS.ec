@@ -1,66 +1,15 @@
 pragma Goals : printall.
 
 require import AllCore List RealExp IntDiv.
-require Subtype. 
-
 from Jasmin require import JModel.
-
 require import Notation Parameters Address Primitives Wots.
-
-import NBytes.
-
 require import XMSS_IMPL.
-
 require import Generic.
-
 require import Array2 Array3 Array8 Array32 Array67.
 
 axiom array3_list_put ['a] (x : 'a Array3.t) (v : 'a) (i : int) : put (to_list x) i v = to_list (x.[i <- v]).
 
 axiom array67_list_put ['a] (x : 'a Array67.t) (v : 'a) (i : int) : put (to_list x) i v = to_list (x.[i <- v]).
-    
-
-module BaseWGeneric = {
-  proc __base_w (output : W32.t list, outlen : W64.t, input : W8.t list) : W32.t list = {
-
-    var in_0:W64.t;
-    var out:W64.t;
-    var bits:W64.t;
-    var consumed:W64.t;
-    var total:W8.t;
-    var total_32:W32.t;
-    var _of_:bool;
-    var _cf_:bool;
-    var _sf_:bool;
-    var _zf_:bool;
-    var  _0:bool;
-
-    in_0 <- W64.zero;
-    out <- W64.zero;
-    bits <- W64.zero;
-    consumed <-W64.zero;
-    total <- W8.zero;
-
-    while ((consumed \ult outlen)) {
-      if (bits = W64.zero) {
-        (* total <- input.[(W64.to_uint in_0)]; *)
-        total <- nth witness input (W64.to_uint in_0);
-        in_0 <- (in_0 + (W64.of_int 1));
-        bits <- (bits + (W64.of_int 8));
-      }
-      
-      bits <- (bits - (W64.of_int 4));
-      total_32 <- (zeroextu32 total);
-      (_of_, _cf_, _sf_,  _0, _zf_, total_32) <- SHR_32 total_32 (truncateu8 bits);
-      total_32 <- (total_32 `&` (W32.of_int (16 - 1)));
-      output <- put output (W64.to_uint out) total_32; (* output.[(W64.to_uint out)] <- total_32; *)
-      out <- (out + (W64.of_int 1));
-      consumed <- (consumed + (W64.of_int 1));
-    }
-
-    return (output);
-  }
-}.
 
 lemma list_array_mkseq (a : W8.t Array2.t) : 
     let b = mkseq (fun (i : int) => a.[i]) 2 in

@@ -9,7 +9,7 @@ require import XMSS_IMPL.
 
 require import Generic.
 
-require import Array32 Array64 Array96 Array128 Array2144.
+require import Array4 Array32 Array64 Array96 Array128 Array2144.
 
 lemma list_array_size_32 (x : W8.t Array32.t) :
     let y : W8.t list = mkseq (fun (i : int) => x.[i]) 32 in
@@ -18,8 +18,10 @@ proof.
 move => y ; smt(@List).
 qed.
 
+axiom array4_list_put  ['a] (x : 'a Array4.t)  (v : 'a) (i : int) : put (to_list x) i v = to_list (x.[i <- v]).
 axiom array32_list_put_ ['a] (x : 'a Array32.t) (v : 'a) (i : int) : put (to_list x) i v = to_list (x.[i <- v]).
 axiom array64_list_put_ ['a] (x : 'a Array64.t) (v : 'a) (i : int) : put (to_list x) i v = to_list (x.[i <- v]).
+axiom array128_list_put ['a] (x : 'a Array128.t) (v : 'a) (i : int) : put (to_list x) i v = to_list (x.[i <- v]).
 
 (* Adding 1 to a positive number yields a positive number *)
 lemma add_1_W64 (x : W64.t) :
@@ -298,4 +300,117 @@ do split.
 smt.
 smt.
 smt.
+qed.
+
+(*********************************************************************************************)
+(************************************** MEMSET ***********************************************)
+(*********************************************************************************************)
+
+
+(*
+  __memset_u8_4   is always called with value = W8.of_int 255 (0xFF)
+  __memset_u8_128 is always called with value = W8.of_int 0
+*)
+
+lemma memset_u8_1 (_a : W8.t Array4.t):
+    equiv[M(Syscall).__memset_u8_4 ~ Memset.memset_u8 :
+      arg{1} = (_a, W8.of_int 255) /\ arg{2} = (to_list _a, W64.of_int 4, W8.of_int 255) ==>
+        res{2} = to_list res{1}].
+proof.
+proc.
+auto => />.
+while (
+  to_uint inlen{2} = 4 /\
+  ={i, value} /\
+  0 <= to_uint i{2} <= to_uint inlen{2} /\
+  a{2} = to_list a{1}  
+) ; last by auto.
+auto => />.
+move => *.
+do split.
+smt(@W64).
+smt(@W64).
+smt. (* TODO: replace with smt(array_4_list_put). when it is a lemma and not an axiom*)
+smt(@W64).
+smt(@W64).
+qed.
+
+lemma memset_u8_2 (_a : W8.t Array128.t):
+    equiv[M(Syscall).__memset_u8_128 ~ Memset.memset_u8 :
+      arg{1} = (_a, W8.zero) /\ arg{2} = (to_list _a, W64.of_int 128, W8.zero) ==>
+        res{2} = to_list res{1}].
+proof.
+proc.
+auto => />.
+while (
+  to_uint inlen{2} = 128 /\
+  ={i, value} /\
+  0 <= to_uint i{2} <= to_uint inlen{2} /\
+  a{2} = to_list a{1}  
+) ; last by auto.
+auto => />.
+move => *.
+do split.
+smt(@W64).
+smt(@W64).
+smt. (* TODO: replace with smt(array_128_list_put). when it is a lemma and not an axiom*)
+smt(@W64).
+smt(@W64).
+qed.
+
+(*********************************************************************************************)
+(************************************ MEMCPY PTR *********************************************)
+(*********************************************************************************************)
+
+(*
+    _x_memcpy_u8u8p_32
+    _x_memcpy_u8u8p_64
+*)
+
+lemma memcpy_p_1 (_out : W8.t Array32.t, _offset : W64.t, _in : W64.t, _inlen : W64.t) :
+    equiv[M(Syscall).__memcpy_u8u8p_32 ~ Memcpy._x_memcpy_u8u8p :
+      arg{1} = (_out, _offset, _in, _inlen) /\ 
+      arg{2} = (to_list _out, _offset, _in, _inlen) /\
+      ={Glob.mem} ==> 
+         res{2}.`1 = to_list res{1}.`1 /\ res{1}.`2 = res{2}.`2].
+proof.
+proc.
+while(
+  ={i, offset, inlen, Glob.mem} /\
+  0 <= to_uint i{1} <= to_uint inlen{1} /\
+  out{2} = to_list out{1} /\
+  in_0{1} = in_0{2} /\
+  0 <= to_uint inlen{2} 
+).
+auto => /> *.
+do split.
+smt(@W64).
+smt(@W64).
+smt.
+auto => /> *.
+by smt(@W64).
+qed.
+
+lemma memcpy_p_2 (_out : W8.t Array64.t, _offset : W64.t, _in : W64.t, _inlen : W64.t) :
+    equiv[M(Syscall).__memcpy_u8u8p_64 ~ Memcpy._x_memcpy_u8u8p :
+      arg{1} = (_out, _offset, _in, _inlen) /\ 
+      arg{2} = (to_list _out, _offset, _in, _inlen) /\
+      ={Glob.mem} ==> 
+         res{2}.`1 = to_list res{1}.`1 /\ res{1}.`2 = res{2}.`2].
+proof.
+proc.
+while(
+  ={i, offset, inlen, Glob.mem} /\
+  0 <= to_uint i{1} <= to_uint inlen{1} /\
+  out{2} = to_list out{1} /\
+  in_0{1} = in_0{2} /\
+  0 <= to_uint inlen{2} 
+).
+auto => /> *.
+do split.
+smt(@W64).
+smt(@W64).
+smt.
+auto => /> *.
+by smt(@W64).
 qed.

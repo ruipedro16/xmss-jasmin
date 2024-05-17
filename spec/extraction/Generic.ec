@@ -2,8 +2,6 @@ require import AllCore List RealExp IntDiv.
 
 from Jasmin require import JModel.
 
-require import Array2 Array3 Array4 Array32 Array64 Array67 Array128 Array2144.
-
 module Memcpy = {
   (* This assumes that offset + inlen <= OUTLEN *)
   (* I.e. writing INLEN elements starting at index offset does not write past the end of the array *)
@@ -57,7 +55,7 @@ module Memcpy = {
 }.
 
 module BaseWGeneric = {
-  proc __base_w (output : W32.t list, input : W8.t list) : W32.t list = {
+  proc __base_w (output : W32.t list, outlen : W64.t, input : W8.t list) : W32.t list = {
 
     var in_0:W64.t;
     var out:W64.t;
@@ -71,17 +69,16 @@ module BaseWGeneric = {
     var _zf_:bool;
     var  _0:bool;
 
-    var inlen : W64.t <- W64.of_int (size input);
-    var outlen : W64.t <- W64.of_int (size output);
-
     in_0 <- W64.zero;
     out <- W64.zero;
     bits <- W64.zero;
     consumed <-W64.zero;
+    total <- W8.zero;
 
     while ((consumed \ult outlen)) {
       if (bits = W64.zero) {
-        total <- input.[(W64.to_uint in_0)];
+        (* total <- input.[(W64.to_uint in_0)]; *)
+        total <- nth witness input (W64.to_uint in_0);
         in_0 <- (in_0 + (W64.of_int 1));
         bits <- (bits + (W64.of_int 8));
       }
@@ -100,13 +97,12 @@ module BaseWGeneric = {
 }.
 
 module Memset = {
-  proc memset_u8 (a:W8.t list, value:W8.t) : W8.t list = {
-    
+  proc memset_u8 (a:W8.t list, inlen : W64.t, value:W8.t) : W8.t list = {
+
     var i:W64.t;
-    var inlen : int <- size a;
     i <- (W64.of_int 0);
     
-    while ((i \ult (W64.of_int inlen))) {
+    while ((i \ult inlen)) {
       a<- put a (W64.to_uint i) value; (* a.[(W64.to_uint i)] <- value; *)
       i <- (i + (W64.of_int 1));
     }
