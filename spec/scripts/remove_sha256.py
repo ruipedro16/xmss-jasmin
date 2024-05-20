@@ -111,6 +111,9 @@ def remove_functions(input_text: str, template_functions_dict, debug: bool) -> s
         "__prf_",
         "_prf",
         "__prf",
+        "__prf_keygen_",
+        "__prf_keygen",
+        "_prf_keygen"
     ]
 
     functions_to_remove: list[str] = resolved_functions + regular_functions
@@ -135,6 +138,8 @@ op Hash_128 : W8.t Array32.t -> W8.t Array128.t -> W8.t Array32.t.
 op Hash_ptr : W8.t Array32.t -> W64.t -> W64.t -> W8.t Array32.t.
 
 op PRF : W8.t Array32.t -> W8.t Array32.t -> W8.t Array32.t -> W8.t Array32.t.
+
+op prf_keygen : W8.t list -> W8.t list -> W8.t list.
 """
     t = text.rfind("module")
     return text[:t] + string_to_add + "\n" + text[t:]
@@ -232,7 +237,7 @@ def replace_calls(text: str) -> str:
     )
     text = text.replace("csum_base_w <@ __base_w_3_2 (csum_base_w, csum_bytes_p);",
     """
-    t_list <@ BaseWGeneric.__base_w(to_list csum_base_w, to_list csum_bytes_p);
+    t_list <@ BaseWGeneric.__base_w(to_list csum_base_w, W64.of_int 3, to_list csum_bytes_p);
     csum_base_w <- Array3.of_list witness t_list;
     """)
     # FIXME: Array3.ofarray and Array2.ofarray doesnt work
@@ -251,7 +256,7 @@ def replace_calls(text: str) -> str:
 
     text = text.replace("lengths <@ __base_w_67_32 (lengths, msg);",
     """
-    t_list <@ BaseWGeneric.__base_w(to_list lengths, to_list msg);
+    t_list <@ BaseWGeneric.__base_w(to_list lengths, W64.of_int 67, to_list msg);
     lengths <- Array67.of_list witness t_list;
     """)
 
@@ -364,11 +369,11 @@ def replace_calls(text: str) -> str:
 
     text = text.replace(
 """
-    (leaf,  _9) <@ _x_memcpy_u8u8_32_32 (leaf, offset_out,
+    (leaf,  _7) <@ _x_memcpy_u8u8_32_32 (leaf, offset_out,
     (Array32.init (fun i_0 => wots_pk.[0 + i_0])));
 """,
 """
-    (leaf_list, _9) <@ Memcpy._x_memcpy_u8u8(to_list leaf, 32, offset_out, to_list (Array32.init (fun i_0 => wots_pk.[0 + i_0])), 32);
+    (leaf_list, _7) <@ Memcpy._x_memcpy_u8u8(to_list leaf, 32, offset_out, to_list (Array32.init (fun i_0 => wots_pk.[0 + i_0])), 32);
     leaf <- Array32.of_list witness leaf_list;
 """
     )
@@ -487,10 +492,10 @@ def replace_calls(text: str) -> str:
 
     text = text.replace(
 """
-        (wots_pk,  _5) <@ __memcpy_u8u8_2144_32 (wots_pk, offset_out, buf0);
+        (wots_pk,  _3) <@ __memcpy_u8u8_2144_32 (wots_pk, offset_out, buf0);
 """,
 """
-        (wots_pk_list, _5) <@ Memcpy._x_memcpy_u8u8(to_list wots_pk, 2144, offset_out, to_list buf0, 32);
+        (wots_pk_list, _3) <@ Memcpy._x_memcpy_u8u8(to_list wots_pk, 2144, offset_out, to_list buf0, 32);
         wots_pk <- Array2144.of_list witness wots_pk_list;
 """
     )
@@ -515,7 +520,7 @@ def replace_calls(text: str) -> str:
       (W8.of_int 255));
 """,
 """
-      aux_list <@ Memset.memset_u8(to_list (Array4.init (fun i_0 => sk.[0 + i_0])), (W8.of_int 255));
+      aux_list <@ Memset.memset_u8(to_list (Array4.init (fun i_0 => sk.[0 + i_0])), W64.of_int 4, (W8.of_int 255));
       aux <- Array4.of_list witness aux_list;
 """
     )
@@ -526,7 +531,7 @@ def replace_calls(text: str) -> str:
       (W8.of_int 0));
 """,
 """
-      aux_0_list <@ Memset.memset_u8(to_list (Array128.init (fun i_0 => sk.[4 + i_0])), (W8.of_int 0));
+      aux_0_list <@ Memset.memset_u8(to_list (Array128.init (fun i_0 => sk.[4 + i_0])), W64.of_int 128, (W8.of_int 0));
       aux_0 <- Array128.of_list witness aux_0_list;
 """
     )
@@ -630,23 +635,35 @@ def replace_calls(text: str) -> str:
     # NOTE: buf_0_list and buf_1_list are already declared at this point
     text = text.replace(
 """
-        (buf0,  _1,  _2) <@ __memcpy_u8u8_2_32_2144 (buf0, offset_out,
-        wots_pk, offset_in, bytes);
+        (buf0,  _1) <@ __memcpy_u8u8_2_32_2144 (buf0, wots_pk, offset_in,
+        bytes);
 """,
 """
-        (buf_0_list,  _1,  _2) <@ Memcpy.__memcpy_u8u8_2(to_list buf0, offset_out, to_list wots_pk, offset_in, bytes);
+        (buf_0_list,  _1) <@ Memcpy.__memcpy_u8u8_2(to_list buf0, to_list wots_pk, offset_in, bytes);
         buf0 <- Array32.of_list witness buf_0_list;
 """
     )
 
     text = text.replace(
 """
-        (buf1,  _3,  _4) <@ __memcpy_u8u8_2_64_2144 (buf1, offset_out,
-        wots_pk, offset_in, bytes);
+        (buf1,  _2) <@ __memcpy_u8u8_2_64_2144 (buf1, wots_pk, offset_in,
+        bytes);
 """,
 """
-        (buf_1_list,  _3,  _4) <@ Memcpy.__memcpy_u8u8_2(to_list buf1, offset_out, to_list wots_pk, offset_in, bytes);
+        (buf_1_list,  _2) <@ Memcpy.__memcpy_u8u8_2(to_list buf1, to_list wots_pk, offset_in, bytes);
         buf1 <- Array64.of_list witness buf_1_list;
+"""
+    )
+
+    # PRF_KEYGEN
+    text = text.replace(
+"""
+      aux <@ __prf_keygen_ ((Array32.init (fun i_0 => outseeds.[(i * 32) + i_0])),
+      buf, inseed);
+""",
+"""
+      aux_list <- prf_keygen (to_list buf) (to_list inseed);
+      aux <- Array32.of_list witness aux_list;
 """
     )
 

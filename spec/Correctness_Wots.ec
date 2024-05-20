@@ -3,18 +3,23 @@ pragma Goals : printall.
 require import AllCore List RealExp IntDiv.
 from Jasmin require import JModel.
 require import Notation Parameters Address Primitives Wots.
-require import XMSS_IMPL.
+require import XMSS_IMPL XMSS_IMPL_PP.
 require import Generic.
-require import Array2 Array3 Array8 Array32 Array67.
+require import Array2 Array3 Array8 Array32 Array67 Array2144.
 
 axiom array3_list_put ['a] (x : 'a Array3.t) (v : 'a) (i : int) : put (to_list x) i v = to_list (x.[i <- v]).
-
 axiom array67_list_put ['a] (x : 'a Array67.t) (v : 'a) (i : int) : put (to_list x) i v = to_list (x.[i <- v]).
 
-lemma list_array_mkseq (a : W8.t Array2.t) : 
-    let b = mkseq (fun (i : int) => a.[i]) 2 in
-    forall (i : int), 0 <= i < 2 => a.[i] = b.[i] by smt(@List @Array2).
-
+lemma zero (x : int) :
+    W64.of_int x = W64.zero => x = 0.
+proof.
+case (x = 0).
+move => ?.
+smt(@W64).
+move => ?.
+rewrite implybF.
+admit.
+qed.
 
 lemma base_w_generic_1 (_output : W32.t Array3.t, _input : W8.t Array2.t) :
     equiv[M(Syscall).__base_w_3_2 ~ BaseWGeneric.__base_w :
@@ -120,32 +125,86 @@ qed.
 
 (***************************************************************************************)
 
+(* Pseudorandom key generation *)
+(* During key generation, a uniformly random n-byte string S is
+sampled from a secure source of randomness. This string S is stored
+as private key. The private key elements are computed as sk[i] =
+PRF(S, toByte(i, 32)) whenever needed.
+*)
+
+
+lemma correctness_wots_gen_pk(pk : W8.t Array2144.t, 
+                              seed:W8.t Array32.t,
+                              pub_seed:W8.t Array32.t, 
+                              addr:W32.t Array8.t) :
+    equiv[WOTS.genPK ~ Mp(Syscall).__wots_pkgen : 
+        arg{2} = (pk, seed, pub_seed, addr) ==> true ].
+proof.
+admit.
+qed.
+
+lemma base_w_correctness(_out : W32.t list, _outlen : W64.t, _input : W8.t list) :
+    0 < to_uint _outlen =>
+    w = 16 => (* FIXME: How do I this correctly: This is implementation-specific *)
+    equiv[BaseWGeneric.__base_w ~ BaseW.base_w :
+      arg{1} = (_out, _outlen, _input) /\ 
+      arg{2} = (_input, to_uint _outlen) ==> 
+        res{1} = map (fun (x : int) => W32.of_int x) res{2}
+    ]. 
+proof.
+move => ? ?.
+proc.
+auto => /> *.
+while(
+    outlen{1} = W64.of_int outlen{2} /\
+    input{1} = X{2} /\
+    in_0{1} = W64.of_int _in{2} /\
+    out{1} = W64.of_int out{2} /\
+    consumed{1} = W64.of_int consumed{2} /\
+    bits{1} = W64.of_int bits{2} /\
+    ={total} /\
+    0 <= consumed{2} <= outlen{2} /\
+    0 <= out{2} <= outlen{2} /\
+    0 <= _in{2} <= consumed{2} /\
+    out{2} = consumed{2}
+).
+(* 1st subgoal of while *)
+if.
+(* 1st subgoal of if *)
+auto => /> *.
+smt(zero).
+(* 2nd subgoal of if *)
+auto => /> *.
+do split.
+admit.
+admit.
+admit.
+congr.
+smt.
+smt.
+smt.
+smt.
+(* 3rd subgoal of if *)
+auto => /> *.
+do split.
+admit.
+admit.
+admit.
+admit.
+(* 2nd subgoal of while *)
+auto => /> *.
+do split.
+smt(@W64).
+smt(@W64).
+smt(@W64).
+qed.
+
 
 lemma wots_checksum(csum_base_w : W32.t Array3.t, msg_base_w : W32.t Array67.t) :
-    hoare[M(Syscall).__wots_checksum :
+    hoare[Mp(Syscall).__wots_checksum :
       arg = (csum_base_w, msg_base_w) ==> true].
 proof.
 proc.
 admit.
 qed.
 
-(***************************************************************************************)
-
-
-(* This lemma states that the the generic version of base_w (which is/will be proved above that is equivalent to the one extracted from the Jasmin impl) is correct with respect to the specification *)
-lemma base_w_impl_spec (input : byte list, outlen : int) :
-    let t : W32.t list = nseq outlen W32.zero in
-    size t = outlen => 
-    equiv[BaseW.base_w ~ BaseWGeneric.__base_w :
-      arg{1} = (input, outlen) /\
-      arg{2} = (t, input) ==> 
-    map W32.of_int res{1} = res{2}].
-proof.
-move => *.
-proc.
-auto => /> *.
-while(
-  input{1} = input{2} /\ total{1} = total{2}
-).
-admit. (* TODO: *)
-qed.

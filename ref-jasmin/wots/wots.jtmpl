@@ -435,7 +435,7 @@ inline fn __wots_pkgen(
     reg u32 chain;
     inline int i j;
 
-    () = #spill(pub_seed); // TODO: SEE if I can merge the two spills (ppub_seed needs to be live after expand seed)
+    () = #spill(pub_seed);
 
     // expand_seed(params, pk, seed, pub_seed, addr);
     pk, addr = __expand_seed_(pk, seed, pub_seed, addr);

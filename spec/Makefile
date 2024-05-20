@@ -17,15 +17,12 @@ PREPROCESSOR := ../submodules/jasmin-preprocessor/preprocessor
 
 JQ_EXISTS := $(shell which jq)
 
-
 default: extract typecheck_spec typecheck_proof typecheck_extraction
 all: clean distclean extract typecheck_spec typecheck_proof typecheck_extraction
 
 extract: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
 
 # --------------------------------------------------------------------------------------------------
-
-# NOTE: __copy_subtree_addr missing
 
 extraction/XMSS_IMPL.ec: | extraction/ common/
 	$(MAKE) -C $(TEST_SRC)/xmss/ clean bin/test_xmss_xmss-sha2_10_256.jazz
@@ -73,10 +70,10 @@ typecheck_extraction: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
 	$(EASYCRYPT) $(EC_INCLUDE) extraction/XMSS_IMPL_PP.ec
 
 typecheck_proof:
-	# $(EASYCRYPT) $(EC_INCLUDE) Correctness_Utils.ec
 	$(EASYCRYPT) $(EC_INCLUDE) Correctness_Conditions.ec
 	$(EASYCRYPT) $(EC_INCLUDE) Correctness_Generic.ec
-	$(EASYCRYPT) $(EC_INCLUDE) Correctness_WOTS.ec
+	$(EASYCRYPT) $(EC_INCLUDE) Correctness_Wots.ec
+	$(EASYCRYPT) $(EC_INCLUDE) Correctness_XMSS.ec
 
 # --------------------------------------------------------------------------------------------------
 

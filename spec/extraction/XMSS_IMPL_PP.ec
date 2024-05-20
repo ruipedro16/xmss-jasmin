@@ -17,6 +17,8 @@ op Hash_ptr : W8.t Array32.t -> W64.t -> W64.t -> W8.t Array32.t.
 
 op PRF : W8.t Array32.t -> W8.t Array32.t -> W8.t Array32.t -> W8.t Array32.t.
 
+op prf_keygen : W8.t list -> W8.t list -> W8.t list.
+
 module Mp(SC:Syscall_t) = {
   proc __u32_to_bytes (out:W8.t Array4.t, in_0:W32.t) : W8.t Array4.t = {
 
@@ -445,49 +447,6 @@ module Mp(SC:Syscall_t) = {
     return (addr_as_bytes);
   }
 
-  proc __prf_keygen (out:W8.t Array32.t, in_0:W8.t Array64.t,
-                     key:W8.t Array32.t) : W8.t Array32.t = {
-    var buf_list : W8.t list;
-    var in_0_list : W8.t list;
-
-    var buf:W8.t Array128.t;
-    var padding_buf:W8.t Array32.t;
-    var offset:W64.t;
-    var  _0:W64.t;
-    var  _1:W64.t;
-    buf <- witness;
-    padding_buf <- witness;
-    padding_buf <- (Array32.init (fun i => buf.[0 + i]));
-    padding_buf <@ __ull_to_bytes_32 (padding_buf, (W64.of_int 4));
-    buf <- Array128.init
-           (fun i => if 0 <= i < 0 + 32 then padding_buf.[i-0] else buf.[i]);
-    offset <- (W64.of_int 32);
-    (buf_list, _0) <@ Memcpy._x_memcpy_u8u8 (to_list buf, 128, offset, to_list key, 32);
-    buf <- Array128.of_list witness buf_list;
-    offset <- (W64.of_int (32 + 32));
-    (buf_list, _1) <@ Memcpy._x_memcpy_u8u8 (to_list buf, 128, offset, to_list in_0, 64);
-    buf <- Array128.of_list witness buf_list;
-    out <- Hash_128 out buf;
-    return (out);
-  }
-
-  proc _prf_keygen (out:W8.t Array32.t, in_0:W8.t Array64.t,
-                    key:W8.t Array32.t) : W8.t Array32.t = {
-
-    out <@ __prf_keygen (out, in_0, key);
-    return (out);
-  }
-
-  proc __prf_keygen_ (out:W8.t Array32.t, in_0:W8.t Array64.t,
-                      key:W8.t Array32.t) : W8.t Array32.t = {
-
-    out <- out;
-    in_0 <- in_0;
-    key <- key;
-    out <@ _prf_keygen (out, in_0, key);
-    return (out);
-  }
-
   proc __hash_message (mhash:W8.t Array32.t, r:W8.t Array32.t,
                        root:W8.t Array32.t, idx:W64.t,
                        m_with_prefix_ptr:W64.t, mlen:W64.t) : W8.t Array32.t = {
@@ -712,8 +671,8 @@ module Mp(SC:Syscall_t) = {
              (fun i_0 => if 32 <= i_0 < 32 + 32 then aux.[i_0-32]
              else buf.[i_0]);
 
-      aux <@ __prf_keygen_ ((Array32.init (fun i_0 => outseeds.[(i * 32) + i_0])),
-      buf, inseed);
+      aux_list <- prf_keygen (to_list buf) (to_list inseed);
+      aux <- Array32.of_list witness aux_list;
       outseeds <- Array2144.init
                   (fun i_0 => if (i * 32) <= i_0 < (i * 32) + 32
                   then aux.[i_0-(i * 32)] else outseeds.[i_0]);
@@ -899,7 +858,7 @@ module Mp(SC:Syscall_t) = {
     csum_bytes_p <- csum_bytes;
     csum_bytes_p <@ __ull_to_bytes_2 (csum_bytes_p, csum);
 
-    t_list <@ BaseWGeneric.__base_w(to_list csum_base_w, to_list csum_bytes_p);
+    t_list <@ BaseWGeneric.__base_w(to_list csum_base_w, W64.of_int 3, to_list csum_bytes_p);
     csum_base_w <- Array3.of_list witness t_list;
 
     return (csum_base_w);
@@ -912,7 +871,7 @@ module Mp(SC:Syscall_t) = {
     var t:W32.t Array3.t;
     t <- witness;
 
-    t_list <@ BaseWGeneric.__base_w(to_list lengths, to_list msg);
+    t_list <@ BaseWGeneric.__base_w(to_list lengths, W64.of_int 67, to_list msg);
     lengths <- Array67.of_list witness t_list;
 
     t <- (Array3.init (fun i => lengths.[64 + i]));
@@ -1199,18 +1158,19 @@ module Mp(SC:Syscall_t) = {
 
         offset_in <- (i * (W64.of_int 32));
         bytes <- (W64.of_int 32);
-        (buf0,  _1) <@ __memcpy_u8u8_2_32_2144 (buf0, wots_pk, offset_in,
-        bytes);
+        (buf_0_list,  _1) <@ Memcpy.__memcpy_u8u8_2(to_list buf0, to_list wots_pk, offset_in, bytes);
+        buf0 <- Array32.of_list witness buf_0_list;
         offset_in <- (i * (W64.of_int 2));
         offset_in <- (offset_in * (W64.of_int 32));
         bytes <- (W64.of_int (2 * 32));
-        (buf1,  _2) <@ __memcpy_u8u8_2_64_2144 (buf1, wots_pk, offset_in,
-        bytes);
+        (buf_1_list,  _2) <@ Memcpy.__memcpy_u8u8_2(to_list buf1, to_list wots_pk, offset_in, bytes);
+        buf1 <- Array64.of_list witness buf_1_list;
 
         (buf0, addr) <@ __thash_h (buf0, buf1, pub_seed, addr);
 
         offset_out <- (i * (W64.of_int 32));
-        (wots_pk,  _3) <@ __memcpy_u8u8_2144_32 (wots_pk, offset_out, buf0);
+        (wots_pk_list, _3) <@ Memcpy._x_memcpy_u8u8(to_list wots_pk, 2144, offset_out, to_list buf0, 32);
+        wots_pk <- Array2144.of_list witness wots_pk_list;
 
         i <- (i + (W64.of_int 1));
       }
@@ -1245,8 +1205,8 @@ module Mp(SC:Syscall_t) = {
     }
 
     offset_out <- (W64.of_int 0);
-    (leaf,  _7) <@ _x_memcpy_u8u8_32_32 (leaf, offset_out,
-    (Array32.init (fun i_0 => wots_pk.[0 + i_0])));
+    (leaf_list, _7) <@ Memcpy._x_memcpy_u8u8(to_list leaf, 32, offset_out, to_list (Array32.init (fun i_0 => wots_pk.[0 + i_0])), 32);
+    leaf <- Array32.of_list witness leaf_list;
     return (leaf, wots_pk, addr);
   }
 
@@ -1996,11 +1956,11 @@ module Mp(SC:Syscall_t) = {
 
     if (((W64.of_int ((1 `<<` 10) - 1)) \ule idx)) {
 
-      aux_list <@ Memset.memset_u8(to_list (Array4.init (fun i_0 => sk.[0 + i_0])), (W8.of_int 255));
+      aux_list <@ Memset.memset_u8(to_list (Array4.init (fun i_0 => sk.[0 + i_0])), W64.of_int 4, (W8.of_int 255));
       aux <- Array4.of_list witness aux_list;
       sk <- Array132.init
             (fun i_0 => if 0 <= i_0 < 0 + 4 then aux.[i_0-0] else sk.[i_0]);
-      aux_0_list <@ Memset.memset_u8(to_list (Array128.init (fun i_0 => sk.[4 + i_0])), (W8.of_int 0));
+      aux_0_list <@ Memset.memset_u8(to_list (Array128.init (fun i_0 => sk.[4 + i_0])), W64.of_int 128, (W8.of_int 0));
       aux_0 <- Array128.of_list witness aux_0_list;
       sk <- Array132.init
             (fun i_0 => if 4 <= i_0 < 4 + 128 then aux_0.[i_0-4]

@@ -40,6 +40,8 @@ type wots_signature = len_n_bytes.
 op from_int_list (x : int list) : byte list = map W8.of_int x.
 op W32_of_W8 (x : W8.t) : W32.t = W32.of_int (W8.to_uint x).
 
+op prf_keygen : nbytes -> nbytes -> nbytes.
+
 module WOTS = {
   proc genSK() : wots_sk = {
     var sk : wots_sk <- nseq len (nseq n W8.zero);
@@ -48,6 +50,36 @@ module WOTS = {
 
     while (i < len) {
       sk_i <$ DList.dlist W8.dword n; (* Initialize sk[i] with a uniformly random n-byte string *)
+      sk <- put sk i sk_i;
+      i <- i + 1;
+    }
+
+    return sk;
+  }
+  
+  (* 
+  Pseudorandom Key Generation [Section 3.1.7. of the RFC]
+
+  During key generation, a uniformly random n-byte string S is
+  sampled from a secure source of randomness. This string S is stored
+  as private key. The private key elements are computed as sk[i] =
+  PRF(S, toByte(i, 32)) whenever needed. Please note that this seed S
+  MUST be different from the seed SEED used to randomize the hash
+  function calls. Also, this seed S MUST be kept secret. The seed S
+  MUST NOT be a low entropy, human-memorable value since private key
+  elements are derived from S deterministically and their
+  confidentiality is security-critical.
+  *)
+  proc pseudorandom_genSK(s : nbytes) = {
+    var sk : wots_sk <- nseq len (nseq n W8.zero);
+    var sk_i : nbytes;
+    var key : nbytes;
+    var i : int;
+    
+    i <- 0;
+    while (i < n) {
+      key <- toByte (W32.of_int i) 32;
+      sk_i <- prf_keygen s key;
       sk <- put sk i sk_i;
       i <- i + 1;
     }
@@ -210,4 +242,9 @@ For the parameter sets specified in the RFC, a  32-bit unsigned integer is suffi
 to hold the checksum
  *)
 pred wots_checksum_pred (checksum : W32.t) =
-  W32.to_uint checksum <= len1 * (w - 1) * 2^8.
+  W32.to_uint checksum <= len1 * (w -2^8).
+
+(* ??? *)
+axiom wots_pseudorandom_keygen (s : nbytes) : 
+    equiv[WOTS.genSK ~ WOTS.pseudorandom_genSK : true ==> true].
+
