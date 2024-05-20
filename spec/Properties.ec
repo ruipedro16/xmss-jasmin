@@ -187,9 +187,29 @@ qed.
 
 (******************************************************************************)
 
+module Checksum = {
+  (* part of WOTS *)
+  proc checksum (m : nbytes) : W32.t = {
+    var i : int <- 0;
+    var m_i : W8.t <- witness;
+    var checksum : W32.t <- W32.zero;
+
+    while (i < len1) {
+      m_i <- nth witness m i;
+      checksum <- checksum + W32.of_int(w - 1) - (W32_of_W8 m_i);
+      i <- i + 1;
+    }
+
+    checksum <- checksum `<<` W8.of_int (8 - ((ceil (len2%r * log2(w%r))) %% 8));
+
+    return checksum;
+  }
+}.
+
+(******************************************************************************)
+
+
 op from_int_list (x : int list) : byte list = map W8.of_int x.
 
 (******************************************************************************)
 
-(* op sample_n_bytes : nbytes distr = DList.dlist W8.dword n. *)
-(* op genSKWots : wots_sk distr = DList.dlist sample_n_bytes len. *)

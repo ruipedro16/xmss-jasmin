@@ -4,7 +4,7 @@ require import AllCore List RealExp IntDiv.
 from Jasmin require import JModel.
 require import Notation Parameters Address Primitives Wots.
 require import XMSS_IMPL XMSS_IMPL_PP.
-require import Generic.
+require import Generic Properties.
 require import Array2 Array3 Array8 Array32 Array67 Array2144.
 
 axiom array3_list_put ['a] (x : 'a Array3.t) (v : 'a) (i : int) : put (to_list x) i v = to_list (x.[i <- v]).
@@ -200,11 +200,41 @@ smt(@W64).
 qed.
 
 
+lemma wots_checksum_lossless (csum_base_w : W32.t Array3.t, msg_base_w : W32.t Array67.t) :
+    islossless Mp(Syscall).__wots_checksum.
+proof.
+proc.
+islossless.
+(* 1st subgoal *)
+while (true) ((to_uint outlen) - (to_uint consumed)).
+auto => /> *.
+smt.
+skip.
+smt.
+(* 2nd subgoal *)
+while (true) (i - aux).
+auto => /> *.
+smt.
+skip.
+smt.
+(* 3rd subgoal *)
+while (true) (64 - (to_uint i)).
+auto => /> *.
+smt.
+skip.
+smt.
+qed.
+
 lemma wots_checksum(csum_base_w : W32.t Array3.t, msg_base_w : W32.t Array67.t) :
+    len1 = 64 =>
+    len2 = 3 =>
+    len = 67 =>
+    w = 16 =>
     hoare[Mp(Syscall).__wots_checksum :
       arg = (csum_base_w, msg_base_w) ==> true].
 proof.
+move => ? ? ? ?.
 proc.
-admit.
+auto => /> *.
 qed.
 
