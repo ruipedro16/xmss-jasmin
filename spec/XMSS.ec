@@ -69,7 +69,6 @@ type oid =  W32.t.
 
 (* Format sk: [OID || (ceil(h/8) bit) idx || SK_SEED || SK_PRF || PUB_SEED || root] *)
 (* type sk_t = oid * W32.t * nbytes * nbytes * nbytes * nbytes. *)
-(* FIXME: TODO: Spec != Impl *)
 type xmss_sk = W32.t * wots_sk list * nbytes * nbytes * nbytes.
 
 (* Format pk: [OID || root || PUB_SEED] *)
@@ -490,4 +489,7 @@ module XMSS_MT = {
     pk <- (oid, root, _seed);
     return (sk, pk);
   }
+
+  
+
 }.

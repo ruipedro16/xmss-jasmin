@@ -1,8 +1,6 @@
 pragma Goals : printall.
 
 require import AllCore List RealExp IntDiv.
-require Subtype. 
-
 from Jasmin require import JModel.
 
 require import XMSS_IMPL.
@@ -54,18 +52,6 @@ lemma size_ge0_W64 ['a] (x : 'a list) : W64.to_uint(W64.zero) <= size x by smt.
 (*********************************************************************************************)
 (************************************* MEMCPY ************************************************)
 (*********************************************************************************************)
-
-(* We can see all implementations of this functions by running 
-  $ grep -nr "proc _x_memcpy_u8u8_" XMSS_IMPL.ec
-      which returns
-    _x_memcpy_u8u8_32_32
-    _x_memcpy_u8u8_128_32
-    _x_memcpy_u8u8_128_64
-    _x_memcpy_u8u8_96_32
-    _x_memcpy_u8u8_64_32
-    _x_memcpy_u8u8_64_64
-
- *)
 
 lemma memcpy_32 (out : W8.t Array32.t, offset : W64.t, in_0 : W8.t Array32.t) :
     (* inlen = 32 /\ outlen = 32 *)
@@ -187,7 +173,7 @@ smt(list_array_size_64).
 smt.
 qed.
 
-lemma memcmpy_96_32 (out : W8.t Array96.t, offset : W64.t, in_0 : W8.t Array32.t) :
+lemma memcpy_96_32 (out : W8.t Array96.t, offset : W64.t, in_0 : W8.t Array32.t) :
     (* outlen = 96 /\ inlen = 32 *)
     let _out : W8.t list = mkseq (fun i => out.[i]) 96 in
     let _in : W8.t list = mkseq (fun i => in_0.[i]) 32 in
@@ -217,7 +203,7 @@ smt(list_array_size_32).
 smt.
 qed.
 
-lemma memcmpy_64_32 (out : W8.t Array64.t, offset : W64.t, in_0 : W8.t Array32.t) :
+lemma memcpy_64_32 (out : W8.t Array64.t, offset : W64.t, in_0 : W8.t Array32.t) :
     (* outlen = 64 /\ inlen = 32 *)
     let _out : W8.t list = mkseq (fun i => out.[i]) 64 in
     let _in : W8.t list = mkseq (fun i => in_0.[i]) 32 in
@@ -306,7 +292,6 @@ qed.
 (************************************** MEMSET ***********************************************)
 (*********************************************************************************************)
 
-
 (*
   __memset_u8_4   is always called with value = W8.of_int 255 (0xFF)
   __memset_u8_128 is always called with value = W8.of_int 0
@@ -361,11 +346,6 @@ qed.
 (*********************************************************************************************)
 (************************************ MEMCPY PTR *********************************************)
 (*********************************************************************************************)
-
-(*
-    _x_memcpy_u8u8p_32
-    _x_memcpy_u8u8p_64
-*)
 
 lemma memcpy_p_1 (_out : W8.t Array32.t, _offset : W64.t, _in : W64.t, _inlen : W64.t) :
     equiv[M(Syscall).__memcpy_u8u8p_32 ~ Memcpy._x_memcpy_u8u8p :

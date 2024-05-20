@@ -240,7 +240,6 @@ def replace_calls(text: str) -> str:
     t_list <@ BaseWGeneric.__base_w(to_list csum_base_w, W64.of_int 3, to_list csum_bytes_p);
     csum_base_w <- Array3.of_list witness t_list;
     """)
-    # FIXME: Array3.ofarray and Array2.ofarray doesnt work
 
     text = text.replace(
 """
