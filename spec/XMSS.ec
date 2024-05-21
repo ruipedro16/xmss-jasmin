@@ -80,17 +80,12 @@ type msg_t = byte list.
 
 type sig_t = W32.t * nbytes * wots_signature * auth_path. (* Section 4.1.8. XMSS Signature *)
 
-op getWOTS_sk (sk : xmss_sk, i : int) : wots_sk =
-  let ots_keys : wots_sk list = sk.`2 in
-  nth witness ots_keys i.
-
+op getWOTS_sk (sk : xmss_sk, i : int) : wots_sk = nth witness (sk.`2) i.
 op getSK_PRF (sk : xmss_sk) : nbytes = sk.`3.
 op getRoot (sk : xmss_sk) : nbytes = sk.`4.
 op getRootPK (pk : xmss_pk) : nbytes = pk.`2.
-
 op getIdx (sk : xmss_sk) : W32.t = sk.`1.
 op setIdx (sk : xmss_sk, idx : W32.t) : xmss_sk = (idx, sk.`2, sk.`3, sk.`4, sk.`5).
-
 op get_seed (sk : xmss_sk) : nbytes = sk.`5.
 
 (*
@@ -192,7 +187,6 @@ module LTree = {
 (* Stack operations *)
 abbrev push (x : 'a list) (a : 'a) : 'a list = rcons x a. 
 
-(* TODO: Replace with belast ? *)
 op remove_last (x : 'a list) : 'a list = 
 with x = [] => []
 with x = h::t => if t = [] then [] else remove_last t.
@@ -207,9 +201,11 @@ pred leftmost_leaf (s t : int)  = s %% 2^t = 0.
 
 pred treehash_p (s t : int) = s %% (1 `<<` t) <> 0.
 
-op same_height (stack : nbytes list) : bool. (* TODO: FIXME *)
 
+(* NOTE: This is slightly different than the RFC *)
+(* We need information about the height of the nodes for the loop condition *)
 module TreeHash = {
+  (* Computes the root *)
   proc treehash(sk : xmss_sk, s t : int, address : adrs) : nbytes = {
     var stack : nbytes list;
     var node : nbytes;
@@ -219,8 +215,17 @@ module TreeHash = {
     var pk : wots_pk;
     var i : int <- 0;
     var tree_index, tree_height: int;
+    var heights : int list;
+    var tmp : int;
+    var offset : int <- 0;
 
     while (i < 2^t) {
+
+      (* ----------- not in the RFC ----------- *)
+      offset <- offset + 1;
+      heights <- put heights (offset - 1) 0; 
+      (* -------------------------------------- *)
+
       _seed  <- get_seed sk;
       address <- set_type address 0;
       address <- set_ots_addr address (s + 1);
@@ -229,20 +234,33 @@ module TreeHash = {
       pk <@ WOTS.genPK (ots_sk, _seed, address);
       address <- set_type address 1;
       address <- set_tree_addr address (s + 1);
+
       node <@ LTree.ltree(pk, address, _seed); 
+
       address <- set_type address 2;
       address <- set_tree_height address 0;
       address <- set_tree_index address (i + 1);
       
       top_node <- last witness stack;
-      while (same_height stack) { (* TODO: Fix this condition *)
+
+      (* While the top-most nodes are of equal height *)
+      (* offset >= 2 <=> 2 <= offset *)
+      
+      while (2 <= offset /\ ((nth witness heights (offset - 1)) = (nth witness heights (offset - 2)))) { (* TODO: Fix this condition *)
         tree_index <- get_tree_index address;
         address <- set_tree_index address (ceil((tree_index - 1)%r / 2%r));
         (stack, top_node) <- pop stack;
+
         node <- rand_hash top_node node _seed address;
         
+        (* ----------- not in the RFC ----------- *)
+        offset <- offset - 1;
+        tmp <- nth witness heights (offset - 1);
+        heights <- put heights (offset - 1) (t + 1);
+        (* -------------------------------------- *)
+
         tree_height <- get_tree_height address;
-        address <- set_tree_height address (tree_height + 1);
+        address <- set_tree_height address (tree_height + 1); (* Move to the next tree *)
       }
       stack <- push stack node;
 
@@ -411,7 +429,7 @@ module XMSS = {
     var node, root, _R, _M': nbytes;    
     var auth : auth_path;
     var sig_ots : wots_signature;
-    var _seed : seed;
+    var _seed : seed <- pk.`3;
     var address : adrs <- zero_address;
     var t : three_n_bytes;
 
@@ -428,18 +446,57 @@ module XMSS = {
   }  
 }.
 
-(********************************************************************************)
+(* (wots_sk list) list => We have a wots_sk_list for each XMSS tree *)
+type xmss_mt_sk = W32.t * (xmss_sk list) list * nbytes * nbytes * nbytes.
+type xmss_mt_pk = oid * nbytes * nbytes.
+type xmss_mt_keypair = xmss_mt_sk * xmss_mt_pk.
+type reduced_sig = wots_signature * auth_path.
+type sig_mt = W32.t * nbytes * reduced_sig list.
 
-(* TODO_REVIEW THIS *)
+op getXMSS_sk (sk : xmss_mt_sk) (tree layer : int) : xmss_sk.
+(*
+  let tree_keys : wots_sk list = nth witness sk.`2 tree in
+  nth witness tree_keys layer.
+*)
 
-type xmss_mt_sk.
-type xmss_mt_pk.
+op setXMSS_SK (sk : xmss_mt_sk) (sk : xmss_sk) (tree layer : int) : xmss_mt_sk.
+(*   let tree_keys : wots_sk list = nth witness sk.`2 tree in
+   let new_tree_keys : wots_sk list = put tree_keys layer w_sk in
+   let t : (wots_sk list) list = put sk.`2 tree new_tree_keys in
+   (sk.`1, t, sk.`3, sk.`4, sk.`5).
+*)
 
-op setXMSS_SK (sk : xmss_mt_sk) (wots_sk : wots_sk) (tree layer : int) : xmss_mt_sk. 
+op getIdx_mt (sk : xmss_mt_sk) : W32.t = sk.`1.
+op setIdx_mt (sk : xmss_mt_sk, idx : W32.t) : xmss_mt_sk = (idx, sk.`2, sk.`3, sk.`4, sk.`5).
+op getSK_PRF_mt (sk : xmss_mt_sk) : nbytes = sk.`3.
+op getRoot_mt (sk : xmss_mt_sk) : nbytes = sk.`4.
+op get_seed_mt (sk : xmss_mt_sk) : nbytes = sk.`5.
+op setSigIdx (idx : W32.t) (sig : sig_mt) : sig_mt = (idx, sig.`2, sig.`3).
 
+(* gets the n most significant bits *)
+op msb (x : byte list) (n : int) : byte list = take n x. 
+
+(* n is at most 32 *)
+op msb_w32 (x : W32.t) (n : int) : bool list = take n (w2bits x).
+
+(* Returns the n most significant bits of x as a W32.t *)
+op msb_w32_int (x : W32.t) (n : int) : W32.t = 
+  let bits : bool list = take n (w2bits x) in
+  (W32.bits2w bits).
+
+op lsb_w32_int (x : W32.t) (n : int) : W32.t =
+   let bits : bool list =  w2bits x in
+   let lsbits : bool list =  drop ((size bits) - n) bits in
+   W32.bits2w lsbits.
+
+op append_sig (sig : sig_mt) (sig_tmp : reduced_sig) : sig_mt =
+    let new_sigs: reduced_sig list = sig.`3  ++  [sig_tmp] in
+    (sig.`1, sig.`2, new_sigs).
+
+op getXMSSSignature(sig : sig_mt) (i : int) : reduced_sig = nth witness sig.`3 i.
 
 module XMSS_MT = {
-  proc kg() = {
+  proc kg() : xmss_mt_keypair = {
     var idx_MT : W32.t <- W32.zero;
     var sk_prf : nbytes;
     var root : nbytes;
@@ -452,7 +509,8 @@ module XMSS_MT = {
     var ots_keys : wots_ots_keys <- witness;
     
     var sk : xmss_sk <- witness;
-    var pk : xmss_pk <- witness;
+    var sk_mt : xmss_mt_sk <- witness;
+    var pk : xmss_mt_pk <- witness;
 
     sk_prf <$ DList.dlist W8.dword n;
     _seed <$ DList.dlist W8.dword n;
@@ -472,6 +530,7 @@ module XMSS_MT = {
             ots_keys <- put ots_keys i ots_sk;
             i <- i + 1;
         }
+
         (* setXMSS_SK(SK_MT, wots_sk, tree, layer); *)
         
         tree <- tree + 1;
@@ -481,15 +540,161 @@ module XMSS_MT = {
     }
 
     (* SK = getXMSS_SK(SK_MT, 0, d - 1); *)
+    (* sk <- getXMSS_SK sk_mt 0 (d - 1); *)
 
     address <- zero_address;
     root <@ TreeHash.treehash(sk, 0, h %/ d, address);
 
     sk <- (idx_MT, ots_keys, sk_prf, root, _seed);
     pk <- (oid, root, _seed);
-    return (sk, pk);
+    return (sk_mt, pk);
   }
 
-  
+  proc sign(sk : xmss_mt_sk, m : msg_t) : sig_mt * xmss_mt_sk = {
+    var sk_xmss : xmss_sk;
+    var idx : W32.t <-getIdx_mt sk;
+    var idx_new : W32.t;
+    var address : adrs <- zero_address;
+    var sig : sig_mt;
+    var _R : nbytes;
+    var _M' : nbytes;
+    var root : nbytes;
+    var t : three_n_bytes;
+    var idx_bytes : byte list;
+    var idx_nbytes : nbytes;
+    var idx_tree : W32.t;
+    var idx_leaf : W32.t;
+    var sk_prf : nbytes <- getSK_PRF_mt sk;
+    var seed : nbytes <- get_seed_mt sk;
+    var sig_tmp : wots_signature;
+    var auth : auth_path;
+    var j : int;
 
+    
+    (* Update SK_MT *)
+    idx_new <- idx + W32.one;
+    sk <- setIdx_mt sk idx_new;
+
+    idx_bytes <- toByte idx 32;
+    _R <- _prf_ sk_prf idx_bytes;
+
+    idx_nbytes <- toByte idx n;
+    root <- getRoot_mt sk;
+    t <- _R ++ root ++ idx_nbytes;
+    _M' <- H_msg t m;
+
+(*    sig <- setSigIdx idx sig; *)
+
+    idx_tree <- msb_w32_int idx (h - (h %/ d));
+    idx_leaf <- msb_w32_int idx (h %/ d);
+    
+    (* FIXME: remove witness from here *)
+    sk_xmss <- (idx_leaf, witness, sk_prf, toByte W32.zero n, seed);
+
+    address <- set_layer_addr address 0;
+    address <- set_tree_addr address (W32.to_uint idx_tree);
+
+    (sig_tmp, auth) <@ TreeSig.treesig(_M', sk_xmss, idx_leaf, address);
+
+    sig <- (idx, _R, [(sig_tmp, auth)]);
+
+    j <- 1;
+    while (j < d) {
+      root <@ TreeHash.treehash(sk_xmss, 0, h %/ d, address);
+      idx_leaf <- lsb_w32_int idx_tree (h %/ d);
+      idx_tree <- msb_w32_int idx_tree (h - (j * (h %/ d)));
+      
+      (* TODO: FIX WITNESS HERE *)
+      sk_xmss <- (idx_leaf, witness, sk_prf, toByte W32.zero n, seed);
+
+      address <- set_layer_addr address j;
+      address <- set_tree_addr address (W32.to_uint idx_tree);
+
+      (sig_tmp, auth) <@ TreeSig.treesig(root, sk_xmss, idx_leaf, address);
+      
+      sig <- append_sig sig (sig_tmp, auth);
+      
+      
+      j <- j+1;
+    }
+
+    return (sig, sk);
+  }
+  (*
+           +---------------------------------+
+           |                                 |
+           |          index idx_sig          |   ceil(h / 8) bytes
+           |                                 |
+           +---------------------------------+
+           |                                 |
+           |          randomness r           |   n bytes
+           |                                 |
+           +---------------------------------+
+           |                                 |
+           |  (reduced) XMSS signature Sig   |   (h / d + len) * n bytes
+           |        (bottom layer 0)         |
+           |                                 |
+           +---------------------------------+
+           |                                 |
+           |  (reduced) XMSS signature Sig   |   (h / d + len) * n bytes
+           |            (layer 1)            |
+           |                                 |
+           +---------------------------------+
+           |                                 |
+           ~              ....               ~
+           |                                 |
+           +---------------------------------+
+           |                                 |
+           |  (reduced) XMSS signature Sig   |   (h / d + len) * n bytes
+           |          (layer d - 1)          |
+           |                                 |
+           +---------------------------------+
+
+                             XMSS^MT Signature
+*)
+
+  proc verify(pk : xmss_mt_pk, m : msg_t, s : sig_mt) : bool = {
+    var is_valid : bool;
+    var idx : W32.t <- s.`1;
+    var idx_bytes : nbytes <- toByte idx n;
+    var seed : nbytes <- pk.`3;
+    var address : adrs <- zero_address;
+    var idx_leaf : W32.t <- lsb_w32_int idx (h %/ d);
+    var idx_tree : W32.t <- msb_w32_int idx (h - (h %/ d));
+    var _sig : reduced_sig;
+    var node, root, _R, _M': nbytes;
+    var t : three_n_bytes;
+    var j : int;
+
+    _sig <- getXMSSSignature s 0;
+
+    _R <- s.`2;
+    root <- pk.`2;
+    t <- _R ++ root ++ idx_bytes;
+    _M' <- H_msg t m;
+
+    address <- set_layer_addr address 0;
+    address <- set_tree_addr address (W32.to_uint idx_tree);
+    
+    node <@ XMSS.rootFromSig(idx_leaf, _sig.`1, _sig.`2, _M', seed, address);
+
+    j <- 1;
+    while (j < d) {
+      idx_leaf <- lsb_w32_int idx_tree (h %/ d);
+      idx_tree <- msb_w32_int idx_tree (h - (h %/ d));
+
+      _sig <- getXMSSSignature s j;
+      
+      address <- set_layer_addr address j;
+      address <- set_tree_addr address (W32.to_uint idx_tree);
+
+      node <@ XMSS.rootFromSig(idx_leaf, _sig.`1, _sig.`2, _M', seed, address);
+
+      j <- j + 1;
+    }
+
+    is_valid <- (node = root);
+
+    return is_valid;
+  }
 }.

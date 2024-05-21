@@ -84,9 +84,6 @@ inline fn __treehash_array(
             () = #unspill(offset);
             for j=0 to XMSS_N { index = offset; index *= XMSS_N; _stack[index + j] = buf[j]; }
 
-        // TODO: 
-        // FIXME: Pode se poupar uma adicao (offset - 1) ao trocar a ordem destas operacoes
-        
         // offset++;
         offset += 1;
         
@@ -96,6 +93,7 @@ inline fn __treehash_array(
 
         () = #spill(offset);
 
+        // If the current index is the sibling of the target leaf index (leaf_idx), the node is copied to the auth_path:
         // if ((leaf_idx ^ 0x1) == idx) { memcpy(auth_path, stack + (offset - 1)*params->n, params->n); }
         () = #unspill(leaf_idx, idx);
         t = leaf_idx; t ^= 0x1;
@@ -107,6 +105,8 @@ inline fn __treehash_array(
 
 
         /////////////////////////////// INNER LOOP /////////////////////////////
+        // if the top two nodes on the stack have the same height, indicating that they can be combined to form a parent node
+        // This is done usin thash_h (= randhash from the RFC)
         () = #unspill(offset);
         while { 
             a = heights[offset - 1];

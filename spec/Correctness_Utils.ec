@@ -4,7 +4,9 @@ require import AllCore List.
 from Jasmin require import JModel.
 require import XMSS_IMPL XMSS_IMPL_PP. 
 
-require import Array32.
+require import XMSS.
+
+require import Array8 Array32 Array64.
 
 lemma memcmp_true (x y : W8.t Array32.t) :
     x = y => 
@@ -37,6 +39,19 @@ while (
   (* Invariant about acc *)
   (* acc = foldr (`|`) . zipWith (^) a1 b1 *)
 ).
+admit.
+admit.
+qed.
+
+(* ---------------------------------------------------------------------------------------------------------- *)
+
+lemma thash_rand_hash (_out : W8.t Array32.t, _in : W8.t Array64.t, _seed : W8.t Array32.t, _addr : W32.t Array8.t) :
+    hoare[Mp(Syscall).__thash_h : 
+      arg = (_out, _in, _seed, _addr) ==> 
+          res.`1 = Array32.of_list witness (rand_hash (to_list _out) (to_list _in) (to_list _seed) _addr)].
+proof.
+proc.
+auto => /> *.
 admit.
 admit.
 qed.

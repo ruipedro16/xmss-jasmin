@@ -6,7 +6,7 @@ require (*  *) Subtype.
 
 from Jasmin require import JModel.
 
-require import Notation Address Primitives Wots.
+require import Notation Address Primitives Wots XMSS.
 require import XMSS_IMPL.
 
 require import Array8.
@@ -213,3 +213,4 @@ op from_int_list (x : int list) : byte list = map W8.of_int x.
 
 (******************************************************************************)
 
+(* ------------------------------- ISLOSSLESS ------------------------------- *)

@@ -3,7 +3,7 @@ pragma Goals : printall.
 require import AllCore List RealExp IntDiv.
 from Jasmin require import JModel.
 require import Notation Parameters Address Primitives Wots.
-require import XMSS_IMPL XMSS_IMPL_PP.
+require import XMSS_IMPL XMSS_IMPL_PP Parameters.
 require import Generic Properties.
 require import Array2 Array3 Array8 Array32 Array67 Array2144.
 
@@ -200,8 +200,7 @@ smt(@W64).
 qed.
 
 
-lemma wots_checksum_lossless (csum_base_w : W32.t Array3.t, msg_base_w : W32.t Array67.t) :
-    islossless Mp(Syscall).__wots_checksum.
+lemma wots_checksum_lossless : islossless Mp(Syscall).__wots_checksum.
 proof.
 proc.
 islossless.
@@ -225,11 +224,12 @@ skip.
 smt.
 qed.
 
+(* FIX THIS LEMMA *)
 lemma wots_checksum(csum_base_w : W32.t Array3.t, msg_base_w : W32.t Array67.t) :
-    len1 = 64 =>
-    len2 = 3 =>
-    len = 67 =>
-    w = 16 =>
+    len1 = XMSS_WOTS_LEN1 =>
+    len2 = XMSS_WOTS_LEN2 =>
+    len = XMSS_WOTS_LEN =>
+    w = XMSS_WOTS_W =>
     hoare[Mp(Syscall).__wots_checksum :
       arg = (csum_base_w, msg_base_w) ==> true].
 proof.
