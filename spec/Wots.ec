@@ -103,11 +103,11 @@ module WOTS = {
     return pk;
   }
 
-  proc kg(_seed : seed, address : adrs) : wots_keypair = {
+  proc kg(sk_seed : nbytes, _seed : seed, address : adrs) : wots_keypair = {
     var pk : wots_pk;
     var sk : wots_sk;
 
-    sk <@ genSK();
+    sk <@ pseudorandom_genSK(sk_seed);
     pk <@ genPK(sk, _seed, address);
 
     return (pk, sk);
