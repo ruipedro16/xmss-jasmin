@@ -246,7 +246,7 @@ module TreeHash = {
       (* While the top-most nodes are of equal height *)
       (* offset >= 2 <=> 2 <= offset *)
       
-      while (2 <= offset /\ ((nth witness heights (offset - 1)) = (nth witness heights (offset - 2)))) { (* TODO: Fix this condition *)
+      while (2 <= offset /\ ((nth witness heights (offset - 1)) = (nth witness heights (offset - 2)))) {
         tree_index <- get_tree_index address;
         address <- set_tree_index address (ceil((tree_index - 1)%r / 2%r));
         (stack, top_node) <- pop stack;
@@ -446,25 +446,34 @@ module XMSS = {
   }  
 }.
 
+(* -------------------------------- MT VARIANT ----------------------------*)
+
+(*
+Section 4.2 of the RFC
+
+XMSS^MT uses a tree of several layers of XMSS trees, a so-called hypertree. The
+trees on top and intermediate layers are used to sign the root nodes of the trees on the respective layer below. Trees on the lowest layer are used to sign the actual messages. All XMSS trees have equal height.
+ *)
+
 (* (wots_sk list) list => We have a wots_sk_list for each XMSS tree *)
-type xmss_mt_sk = W32.t * (xmss_sk list) list * nbytes * nbytes * nbytes.
+type reduced_sk = wots_sk list.
+type xmss_mt_sk = W32.t * (reduced_sk list) list * nbytes * nbytes * nbytes.
 type xmss_mt_pk = oid * nbytes * nbytes.
 type xmss_mt_keypair = xmss_mt_sk * xmss_mt_pk.
 type reduced_sig = wots_signature * auth_path.
 type sig_mt = W32.t * nbytes * reduced_sig list.
 
-op getXMSS_sk (sk : xmss_mt_sk) (tree layer : int) : xmss_sk.
-(*
-  let tree_keys : wots_sk list = nth witness sk.`2 tree in
+op getXMSS_sk (sk : xmss_mt_sk) (tree layer : int) : reduced_sk =
+  let tree_keys : reduced_sk list = nth witness sk.`2 tree in
   nth witness tree_keys layer.
-*)
 
-op setXMSS_SK (sk : xmss_mt_sk) (sk : xmss_sk) (tree layer : int) : xmss_mt_sk.
-(*   let tree_keys : wots_sk list = nth witness sk.`2 tree in
-   let new_tree_keys : wots_sk list = put tree_keys layer w_sk in
-   let t : (wots_sk list) list = put sk.`2 tree new_tree_keys in
+op setXMSS_SK (sk : xmss_mt_sk) (w_sk : reduced_sk) (tree layer : int) : xmss_mt_sk =
+   let tree_keys : reduced_sk list = nth witness sk.`2 tree in
+   let new_tree_keys : reduced_sk list = put tree_keys layer w_sk in
+   let t : reduced_sk list list = put sk.`2 tree new_tree_keys in
    (sk.`1, t, sk.`3, sk.`4, sk.`5).
-*)
+
+op xmss_sk_of_reduced_sk (r : reduced_sk) (idx : W32.t) (sk_prf : nbytes) (root : nbytes) (seed : nbytes) : xmss_sk = (idx, r, sk_prf, root, seed).
 
 op getIdx_mt (sk : xmss_mt_sk) : W32.t = sk.`1.
 op setIdx_mt (sk : xmss_mt_sk, idx : W32.t) : xmss_mt_sk = (idx, sk.`2, sk.`3, sk.`4, sk.`5).
@@ -509,6 +518,7 @@ module XMSS_MT = {
     var ots_keys : wots_ots_keys <- witness;
     
     var sk : xmss_sk <- witness;
+    var reduced_k : reduced_sk <- witness;
     var sk_mt : xmss_mt_sk <- witness;
     var pk : xmss_mt_pk <- witness;
 
@@ -530,8 +540,9 @@ module XMSS_MT = {
             ots_keys <- put ots_keys i ots_sk;
             i <- i + 1;
         }
-
+        
         (* setXMSS_SK(SK_MT, wots_sk, tree, layer); *)
+        sk_mt <- setXMSS_SK sk_mt ots_keys tree layer;
         
         tree <- tree + 1;
       }
@@ -540,7 +551,9 @@ module XMSS_MT = {
     }
 
     (* SK = getXMSS_SK(SK_MT, 0, d - 1); *)
-    (* sk <- getXMSS_SK sk_mt 0 (d - 1); *)
+    (* The root field is not used so we can pass witness *)
+    reduced_k <- getXMSS_sk sk_mt 0 (d - 1);
+    sk <- xmss_sk_of_reduced_sk reduced_k idx_MT sk_prf witness _seed;
 
     address <- zero_address;
     root <@ TreeHash.treehash(sk, 0, h %/ d, address);
@@ -568,6 +581,7 @@ module XMSS_MT = {
     var seed : nbytes <- get_seed_mt sk;
     var sig_tmp : wots_signature;
     var auth : auth_path;
+    var reduced_k : reduced_sk <- witness;
     var j : int;
 
     
@@ -583,13 +597,11 @@ module XMSS_MT = {
     t <- _R ++ root ++ idx_nbytes;
     _M' <- H_msg t m;
 
-(*    sig <- setSigIdx idx sig; *)
-
     idx_tree <- msb_w32_int idx (h - (h %/ d));
     idx_leaf <- msb_w32_int idx (h %/ d);
     
-    (* FIXME: remove witness from here *)
-    sk_xmss <- (idx_leaf, witness, sk_prf, toByte W32.zero n, seed);
+    reduced_k <- getXMSS_sk sk (W32.to_uint idx_tree) 0;
+    sk_xmss <- (idx_leaf, reduced_k, sk_prf, toByte W32.zero n, seed);
 
     address <- set_layer_addr address 0;
     address <- set_tree_addr address (W32.to_uint idx_tree);
@@ -604,8 +616,8 @@ module XMSS_MT = {
       idx_leaf <- lsb_w32_int idx_tree (h %/ d);
       idx_tree <- msb_w32_int idx_tree (h - (j * (h %/ d)));
       
-      (* TODO: FIX WITNESS HERE *)
-      sk_xmss <- (idx_leaf, witness, sk_prf, toByte W32.zero n, seed);
+      reduced_k <- getXMSS_sk sk (W32.to_uint idx_tree) j;
+      sk_xmss <- (idx_leaf, reduced_k, sk_prf, toByte W32.zero n, seed);
 
       address <- set_layer_addr address j;
       address <- set_tree_addr address (W32.to_uint idx_tree);
