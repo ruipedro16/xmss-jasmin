@@ -31,7 +31,7 @@ clone import Subtype as LEN1 with
 
 
 type wots_message = nbytes.
-type wots_message_base_w = len1_bytes.
+type wots_message_base_w = len1_bytes. (* should be W32 instead of W8 *)
 type wots_pk = len_n_bytes.
 type wots_sk = len_n_bytes.
 type wots_keypair = wots_pk * wots_sk.

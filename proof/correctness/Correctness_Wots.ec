@@ -123,6 +123,40 @@ smt. (* smt(@W64) fails *)
 smt(array67_list_put).
 qed.
 
+
+
+(**************************************************************************************)
+
+lemma wots_gen_chain_ll: islossless Mp(Syscall).__gen_chain_inplace.
+proof.
+proc => /=.
+islossless; last by while (true) (inlen - (to_uint i)) ; 1,2: by auto => /> * ; smt.
+while (true) (W32.to_uint ((start + steps) - i)); 1,2: by admit. (* TODO: Remove this admit *)
+qed.
+
+lemma wots_checksum_ll : islossless Mp(Syscall).__csum.
+proof. proc. while (true) (64 - (to_uint i)); by auto => /> * ; smt. qed.
+
+lemma wots_checksum_correctness (msg : W32.t Array67.t) :
+    len1 = XMSS_WOTS_LEN1 => 
+    w = XMSS_WOTS_W =>
+    equiv [Mp(Syscall).__csum ~ Checksum.checksum :
+      arg{1} = msg /\ arg{2} = to_list msg ==> to_uint res{1} = to_uint res{2}].
+proof.
+rewrite /XMSS_WOTS_LEN_1 /XMSS_WOTS_W ; move => ? ?.
+proc => /=.
+while (
+  i{2} = to_uint i{1} /\
+  m{2} = to_list msg_base_w{1} /\
+  0 <= i{2} <= len1
+).
+auto => /> *.
+do split; 1,2,3,4,5: by smt.
+auto => /> *.
+split; 1: by smt().
+auto => /> *. smt.
+qed.
+
 (***************************************************************************************)
 
 (* Pseudorandom key generation *)

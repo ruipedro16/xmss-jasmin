@@ -669,6 +669,11 @@ def replace_calls(text: str) -> str:
     return text
 
 
+def replace_hash (text: str) -> str:
+    # text = text.replace("out <- Hash_96 out buf;", "woooooooo")
+    # TODO: 
+    return text
+
 ########################################################################################################################
 
 
@@ -696,6 +701,7 @@ module Syscall : Syscall_t = {
     ec_out = remove_functions(ec_out, template_functions_dict, debug)
     ec_out = add_operators(ec_out)
     ec_out = replace_calls(ec_out)
+    ec_out = replace_hash(ec_out)
 
     ec_out = ec_out.replace("(* Erased call to spill *)", "")
     ec_out = ec_out.replace("(* Erased call to unspill *)", "")

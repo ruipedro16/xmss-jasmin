@@ -22,12 +22,10 @@ clone import Subtype as Three_NBytes with
    proof inhabited by (exists (nseq (3*n) W8.zero);smt(size_nseq ge0_n))
    proof *.
 
-op h : { int | 0 < h } as g0_h. (* total height of the XMSS tree *)
-op d : { int | 0 < d } as g0_d. (* layers of the XMSS trees of height h / d *)
+op d : { int | 0 < d } as g0_d. (* d layers of trees, each having height h/d  *)
+op h : { int | 0 < h /\ h %% d = 0} as h_vals. (* hyper-tree of total height h, where h is a multiple of d *)
 
 (* NOTE: XMSS is the same as XMSS_MT with d = 1 *)
-
-op oid : W32.t.
 
 clone import Subtype as OTSKeys with 
    type T = wots_sk list,
@@ -66,6 +64,7 @@ op H_msg : three_n_bytes -> byte list -> nbytes.
 op _prf_ : nbytes -> byte list -> nbytes.
 
 type oid =  W32.t.
+op _oid : oid.
 
 (* Format sk: [OID || (ceil(h/8) bit) idx || SK_SEED || SK_PRF || PUB_SEED || root] *)
 (* type sk_t = oid * W32.t * nbytes * nbytes * nbytes * nbytes. *)
@@ -341,7 +340,7 @@ module XMSS = {
     root <@ TreeHash.treehash(sk, 0, h, address);
 
     sk <- (idx, ots_keys, sk_prf, root, seed);
-    pk <- (oid, root, seed);
+    pk <- (_oid, root, seed);
     return (sk, pk);
   }
 
@@ -559,7 +558,7 @@ module XMSS_MT = {
     root <@ TreeHash.treehash(sk, 0, h %/ d, address);
 
     sk <- (idx_MT, ots_keys, sk_prf, root, _seed);
-    pk <- (oid, root, _seed);
+    pk <- (_oid, root, _seed);
     return (sk_mt, pk);
   }
 
@@ -710,3 +709,7 @@ module XMSS_MT = {
     return is_valid;
   }
 }.
+
+(*******************************************************************************)
+(*                   If d = 1, XMSS^MT = XMSS                                  *)
+(*******************************************************************************)
