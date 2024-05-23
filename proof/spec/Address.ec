@@ -10,22 +10,9 @@ require import Notation Parameters.
 (**********************************************************************************************************************)
 
 type byte = W8.t.
-
 type adrs = W32.t Array8.t.
 
 op zero_address : adrs = Array8.init (fun _ => W32.zero).
-
-type addr_type = [ ADDR_TYPE_OTS | ADDR_TYPE_LTREE | ADDR_TYPE_HASHTREE ].
-
-op addr_type_to_int (_type : addr_type) : int = 
-    with _type = ADDR_TYPE_OTS      => 0
-    with _type = ADDR_TYPE_LTREE    => 1    
-    with _type = ADDR_TYPE_HASHTREE => 2.
-
-op int_to_addr_type : int -> addr_type.
-axiom int_to_addr_type_0 (_type : int) : _type = 0 => int_to_addr_type _type = ADDR_TYPE_OTS.
-axiom int_to_addr_type_1 (_type : int) : _type = 1 => int_to_addr_type _type = ADDR_TYPE_LTREE.
-axiom int_to_addr_type_2 (_type : int) : _type = 2 => int_to_addr_type _type = ADDR_TYPE_HASHTREE.
 
 (* 4th-6th positions differ depending on the type of the address *)
 
