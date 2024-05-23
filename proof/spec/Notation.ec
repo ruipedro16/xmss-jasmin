@@ -40,15 +40,15 @@ module BaseW = {
         _in <- _in + 1;
         bits <- bits + 8;
       }
+
+      bits <- bits - floor(log2 w%r);
+
+      base_w <- put base_w out (W8.to_uint ((total `>>` W8.of_int bits) `&` W8.of_int (w - 1)));
+
+      out <- out + 1;
+      consumed <- consumed + 1;
     }
-
-    bits <- bits - floor(log2 w%r);
-
-    base_w <- put base_w out (W8.to_uint ((total `>>` W8.of_int bits) `&` W8.of_int (w - 1)));
-
-    out <- out + 1;
-    consumed <- consumed + 1;
-
+    
     return base_w;
   }
 }.
