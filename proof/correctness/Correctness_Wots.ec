@@ -22,7 +22,6 @@ qed.
 lemma zero (x : int) :
     W64.of_int x = W64.zero <=> x = 0.
 proof. split ; last by []. apply zero_L. qed.
-    
 
 (******************************************* BASE W ******************************************************)
 
@@ -131,7 +130,8 @@ qed.
 (* We need to prove that (nth witness X{`&2} _in{`&2} `>>`  (of_int (bits{`&2} + 8 - floor (log2 w%r)))%W8) `&`  (of_int (w - 1))%W8))
 ((SHR_32 (zeroextu32 (nth witness X{`&2} (to_uint ((of_int _in{`&2}))%W64))) (truncateu8 ((of_int (bits{`&2} + 4)))%W64)).`6 `&` (of_int 15)%W32)) *)
 lemma base_w_correctness (x_out : W32.t list, len_out : int, in_list : byte list) :
-    0 <= len_out /\ 
+    0 < len_out /\ 
+    (* len_out is either len2 or len *)
     w = XMSS_WOTS_W /\
     floor (log2 w%r) = XMSS_WOTS_LOG_W => (* log2 w is a precomputed parameter *)
       equiv[BaseWGeneric.__base_w ~ BaseW.base_w :
@@ -153,7 +153,8 @@ while (
   in_0{1} = W64.of_int _in{2} /\
   0 <= consumed{2} <= outlen{2} /\
   0 <= _in{2} <= consumed{2} /\
-  forall (k : int), (0 <= k <= consumed{2}) => to_uint (nth witness output{1} k) = nth witness base_w{2} k
+  forall (k : int), (0 <= k < consumed{2}) => to_uint (nth witness output{1} k) = nth witness base_w{2} k
+(*  to_uint total_32{1} = to_uint total{1} *)
 ).
 (* ------------------------- first subgoal of while starts here ------------------------- *)
 if.
@@ -161,35 +162,50 @@ if.
 auto => /> *.
 smt(zero).
 (* 2nd goal of if *)
-auto => /> *.
-do split.
+auto => /> &1 &2 *.
+do split; 3,4,5,6,8: by smt().
 rewrite logw //=. (* 1st subgoal of split *)
 smt. (* 2nd subgoal of split *)
-smt(). (* 3rd *)
-smt(). (* 4th *)
-smt(). (*5th *)
-smt(). (*6th*)
-- move => *. rewrite logw w_val /=. admit. 
-smt(). (* 8th *)
-smt.
+move => *. rewrite logw w_val /=.  admit. 
+smt. (* 9th *)
 (* 3rd subgoal of if *)
 auto => /> *.
-do split.
+do split ; 2,3,4,6: by smt().
 (* 1 *) rewrite logw //=.
-(* 2 *) smt().
-(* 3 *) smt().
-(* 4 *) smt().
-(* 5 *) move => *. rewrite logw w_val /=. admit.
-(* 6 *) smt().
+(* 5 *) admit. (*`move => *. rewrite logw w_val /=. split. admit. admit. smt. *)
 (* 7 *) smt.
 (* ------------------------- second subgoal of while starts here ------------------------- *)
 auto => /> *.
-do split.
-admit. (* FIXME: spec != impl ? *) 
-       (* The spec initializes out with nseq outlen W8.zero but the impl doesnt *)
-smt().
-smt.
+do split; 1,2: by smt().
+(* 3 *) smt.
+(* 4 *) smt.
+qed.
+
+
+lemma base_w_ll : islossless BaseWGeneric.__base_w.
+proof.
+proc.
+islossless.
+while (true) ((to_uint outlen) - (to_uint consumed)) ; last by auto => /> /#.
 auto => /> *.
+smt.
+qed.
+
+(*********************************** EXPAND SEED ************************************************)
+
+lemma expand_seed_ll : islossless Mp(Syscall).__expand_seed_.
+proof.
+proc ; inline => //=.
+islossless.
+while (true) (67 - i) => //= ; last by skip => /#. 
+auto => /> *.
+islossless ; first by smt().
+while (true) (8 - i1) ; last by skip ; auto => /> /#.
+auto => /> /#.
+while (true) (inlen - (to_uint i0)) => //=.
+auto => /> *.
+smt.
+skip ; auto => /> *. 
 smt.
 qed.
 
@@ -197,10 +213,11 @@ qed.
 
 lemma wots_gen_chain_ll: islossless Mp(Syscall).__gen_chain_inplace.
 proof.
-proc => /=.
-islossless; last by while (true) (inlen - (to_uint i)) ; 1,2: by auto => /> * ; smt.
-while (true) (W32.to_uint ((start + steps) - i)); 1,2: by admit. (* TODO: Remove this admit *)
+proc ; inline => /=.
+islossless => //=.
+admit.
 qed.
+
 
 (***************************************************************************************)
 

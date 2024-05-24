@@ -165,10 +165,6 @@ inline fn __gen_chain_inplace(
 {
     reg bool cond;
     reg u32 i t;
-    // reg u64 offset;
-
-    // offset = 0;
-    // out, _ = _x_memcpy_u8u8<XMSS_N, XMSS_N>(out, offset, in);
 
     () = #spill(out, pub_seed, addr);
 

@@ -32,7 +32,7 @@ module BaseW = {
     var consumed : int <- 0;
     var base_w : int list;
 
-    base_w <- nseq outlen 0;
+    (* base_w <- nseq outlen 0; *)
 
     while (consumed < outlen) {
       if (bits = 0) {
