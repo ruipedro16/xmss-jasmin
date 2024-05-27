@@ -36,20 +36,19 @@ qed.
 
 lemma test_cmp_32 (_a _b _c : W32.t) :
     (! (TEST_8 (SETcc ((CMP_32 _a _b).`2)) (SETcc ((CMP_32 _a _c).`2))).`5) = 
-    (_a \ult _b) /\ (_a \ult _c).
+    ( (_a \ult _b) /\ (_a \ult _c) ).
 proof.
 do rewrite -cmp_and.
 pose b1 := (CMP_32 _a _b).`2.
 pose b2 := (CMP_32 _a _c).`2.
-(* apply test_8_bool / smt(@W32 test_8_bool). FIXME: THIS DOES NOT WORK *)
-admit.
+apply test_8_bool.
 qed.
 
 (* cond = a < b /\ a < c *)
 lemma cond_u32_a_below_b_and_a_below_c(_a : W32.t, _b : W32.t, _c : W32.t) : 
     hoare[M(Syscall).__cond_u32_a_below_b_and_a_below_c :
       arg = (_a, _b, _c) ==> 
-         res =  _a \ult _b /\ _a \ult _c].
+         res =  (_a \ult _b /\ _a \ult _c)].
 proof.
 proc.
 auto => /> *.
@@ -88,14 +87,12 @@ smt(@W32).
 qed.
 
 lemma test_cmp_32_64 (_a _b : W64.t) (_c _d : W32.t) :
-    (! (TEST_8 (SETcc (! (CMP_64 _a _b).`2)) (SETcc (CMP_32 _c _d).`5)).`5) =
-(_b \ule _a) /\ _c = _d.
+    (! (TEST_8 (SETcc (! (CMP_64 _a _b).`2)) (SETcc (CMP_32 _c _d).`5)).`5) = ((_b \ule _a) /\ _c = _d).
 proof.
 rewrite cmp_eq_W32 ; rewrite cmp_W64.
 pose b1 := (_b \ule _a).
 pose b2 := (_c = _d).
-(* apply test_8_bool. FIXME: THIS DOES NOT WORK (but should?) *)
-admit.
+apply test_8_bool.
 qed.
 
 (* cond = a >= b /\ c == d *)
@@ -103,7 +100,7 @@ qed.
 lemma cond_u64_geq_u64_u32_eq_u32(_a : W64.t, _b : W64.t, _c : W32.t, _d :W32.t) :
     hoare[M(Syscall).__cond_u64_geq_u64_u32_eq_u32 :
       arg = (_a, _b, _c, _d) ==>
-        res = _b \ule _a /\ _c = _d].
+        res = ( _b \ule _a /\ _c = _d )].
 proof.
 proc.
 auto => />.
