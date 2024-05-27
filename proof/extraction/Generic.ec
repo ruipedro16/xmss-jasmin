@@ -1,3 +1,5 @@
+pragma Goals : printall.
+
 require import AllCore List RealExp IntDiv.
 
 from Jasmin require import JModel.
@@ -29,7 +31,6 @@ module Memcpy = {
     i <- (W64.of_int 0);
 
     while ((i \ult inlen)) {
-      (* out.[(W64.to_uint offset)] <- (loadW8 Glob.mem (W64.to_uint (in_0 + i))); *)
       out <- put out (W64.to_uint offset) (loadW8 Glob.mem (W64.to_uint (in_0 + i)));
       i <- (i + (W64.of_int 1));
       offset <- (offset + (W64.of_int 1));
@@ -45,7 +46,6 @@ module Memcpy = {
     i <- (W64.of_int 0);
 
     while ((i \ult bytes)) {
-      (* out.[(W64.to_uint i)] <- in_0.[(W64.to_uint in_offset)]; *)
       out <- put out (W64.to_uint i) (nth witness in_0 (W64.to_uint in_offset));
       i <- (i + (W64.of_int 1));
       in_offset <- (in_offset + (W64.of_int 1));
@@ -53,6 +53,32 @@ module Memcpy = {
     return (out, in_offset);
   }
 }.
+
+lemma memcpy_u8u8_vals (_out : W8.t list, len_out : int, _offset : W64.t, _in : W8.t list, len_in : int) :
+    0 <= len_in /\
+    to_uint _offset + len_in <= len_out => 
+      hoare [Memcpy._x_memcpy_u8u8 :
+        arg = (_out, len_out, _offset, _in, len_in) ==> 
+          forall (k : int), 0 <= k < len_in => nth witness res.`1 (to_uint _offset + k) = nth witness _in k].
+proof.
+move => H.
+move: H => [#] inlen_g0 ?.
+proc.
+while (
+  inlen = len_in /\
+  0 <= to_uint i <= len_in /\
+  forall (k : int), 0 <= k < to_uint i => nth witness out (to_uint offset + k) = nth witness _in k
+).
+(* first subgoal of while *)
+auto => /> &h *.
+do split; 1,2: by smt(@W64).
+auto => /> *.
+congr ; by admit. (* TODO : *)
+(* second subgoal of while *)
+auto => /> * ; do split.
+auto => /> *. smt.
+auto => /> *. admit. (* TODO: *)
+qed.
 
 module BaseWGeneric = {
   proc __base_w (output : W32.t list, outlen : W64.t, input : W8.t list) : W32.t list = {
@@ -77,7 +103,6 @@ module BaseWGeneric = {
 
     while ((consumed \ult outlen)) {
       if (bits = W64.zero) {
-        (* total <- input.[(W64.to_uint in_0)]; *)
         total <- nth witness input (W64.to_uint in_0);
         in_0 <- (in_0 + (W64.of_int 1));
         bits <- (bits + (W64.of_int 8));

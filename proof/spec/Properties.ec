@@ -11,7 +11,6 @@ require import XMSS_IMPL.
 
 require import Array8.
 
-
 import DList.
 import NBytes.
 
@@ -155,7 +154,6 @@ qed.
 (******************************************************************************)
 
 module Checksum = {
-  (* part of WOTS *)
   proc checksum (m : W32.t list) : W32.t = {
     var i : int <- 0;
     var m_i : W32.t <- witness;

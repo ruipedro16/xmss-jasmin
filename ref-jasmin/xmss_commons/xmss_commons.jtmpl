@@ -52,12 +52,10 @@ inline fn __l_tree(
 
             // First we need to copy wots_pk + i*params->n and wots_pk + (i*2)*params->n to the respective buffers
             () = #unspill(wots_pk);
-            // offset_out = 0; // TODO: Delete this variable
             offset_in = i * XMSS_N;
             bytes = XMSS_N;
             buf0, /* _, */ _ = __memcpy_u8u8_2<XMSS_N, XMSS_WOTS_SIG_BYTES>(buf0, /* offset_out, */ wots_pk, offset_in, bytes);
 
-            // offset_out = 0; // TODO: Delete this variable 
             offset_in = (i * 2); offset_in *= XMSS_N;
             bytes = 2 * XMSS_N;
             buf1, /* _, */ _ = __memcpy_u8u8_2<2 * XMSS_N, XMSS_WOTS_SIG_BYTES>(buf1, /* offset_out, */ wots_pk, offset_in, bytes);
@@ -456,7 +454,6 @@ inline fn __xmssmt_core_sign_open(
     idx_hash = idx;
 
     // NOTE: We use root instead of mhash because mhash is just a pointer to root
-    // TODO: Confirmar isto
     #declassify root = __hash_message(root, buf, pk[0 : XMSS_N], idx_hash, t64, bytes);
 
     // sm += params->index_bytes + params->n;

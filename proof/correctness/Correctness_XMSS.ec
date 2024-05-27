@@ -33,10 +33,47 @@ axiom hash__128 (out : W8.t Array32.t, in_0 : W8.t Array128.t) :
 
 (**********************************************************************************************************************)
 
-lemma xmss_keypair_jazz_equiv (_pk : W8.t Array68.t, _sk : W8.t Array136.t) :
-equiv[M(Syscall).xmss_keypair_jazz ~ Mp(Syscall).xmss_keypair_jazz : true ==> ={res}].
+lemma xmss_kg_ll : islossless Mp(Syscall).xmss_keypair_jazz.
 proof.
 proc.
-auto => />.
+islossless; 4,9,10: by admit. (* replace with islossless ; last by smt. *)
+
+while (true) (32 - i) => //=; by auto => /> /#. (* 1st subgoal *)
+while (true) (32 - i) => //=; by auto => /> /#. (* 2nd subgoal *)
+while (true) (32 - j) => //=; by auto => /> /#. (* 3rd subgoal *)
+while (true) (8 - i) => //=; by auto => /> /#. (* 5th subgoal *)
+while (true) (8 - i) => //=; by auto => /> /#. (* 6th subgoal *)
+while (true) (8 - i) => //=; by auto => /> /#. (* 7th subgoal *)
+while (0 < inlen < W64.max_uint) (inlen - (to_uint i)). (* 8th subgoal *)
 admit.
+auto => /> * //=. do split. admit. admit.
+auto => /> * //=. admit.
+(* 8th subgoal finishes here *)
+while (true) (4 - (to_uint i)) ; by auto => /> * ; smt. (* 1th subgoal: *)
+while (true) (8 - i) => //= ; by auto => /> /#. (* 12th subgoal *)
+smt.
+qed.
+
+lemma compute_root_ll : islossless Mp(Syscall).__compute_root.
+proof.
+proc.
+(* islossless. *)
+islossless ; 6,8,9,10: by admit.
+(* 1st subgoal *)
+while (true) (64 - to_uint i) => //=; by auto => /> * ; smt.
+(* 2nd subgoal *)
+while (true) (8 - i) => //=; last by auto => /#.
+auto. inline. auto => /> /#.
+(* 3rd subgoal *)
+while (true) (8 - i) => //=; last by auto => /#.
+auto. inline. auto => /> /#.
+(* 4th subgoal *)
+while (true) (8 - i) => //=; last by auto => /#.
+auto. inline. auto => /> /#.
+(* 5th subgoal *)
+while (true) (i - aux) => //=; by auto => /#.
+(* 6th subgoal *)
+(* 7th subgoal *)
+while (true) (to_uint inlen - to_uint i) => //=; last by auto => /> /#.
+auto => /> *. smt.
 qed.

@@ -31,7 +31,7 @@ clone import Subtype as LEN1 with
 
 
 type wots_message = nbytes.
-type wots_message_base_w = len1_bytes. (* should be W32 instead of W8 *)
+type wots_message_base_w = len1_bytes.
 type wots_pk = len_n_bytes.
 type wots_sk = len_n_bytes.
 type wots_keypair = wots_pk * wots_sk.
@@ -242,7 +242,7 @@ For the parameter sets specified in the RFC, a  32-bit unsigned integer is suffi
 to hold the checksum
  *)
 pred wots_checksum_pred (checksum : W32.t) =
-  W32.to_uint checksum <= len1 * (w -2^8).
+  W32.to_uint checksum <= len1 * (w - 2^8).
 
 (* ??? *)
 axiom wots_pseudorandom_keygen (s : nbytes) : 

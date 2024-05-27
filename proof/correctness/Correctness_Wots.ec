@@ -12,16 +12,10 @@ lemma array3_list_put ['a] (x : 'a Array3.t) (v : 'a) (i : int) : put (to_list x
 
 lemma array67_list_put ['a] (x : 'a Array67.t) (v : 'a) (i : int) : put (to_list x) i v = to_list (x.[i <- v]) by admit.
 
-lemma zero_L (x : int) :
-    W64.of_int x = W64.zero => x = 0.
-proof.
-rewrite /of_int /W64.zero.
-admit.
-qed.
-
 lemma zero (x : int) :
-    W64.of_int x = W64.zero <=> x = 0.
-proof. split ; last by []. apply zero_L. qed.
+    0 <= x <= W64.max_uint =>
+       W64.of_int x = W64.zero <=> x = 0.
+proof. move => ? ; split => // ; by smt(@W64). qed.
 
 (******************************************* BASE W ******************************************************)
 
@@ -129,9 +123,9 @@ qed.
 
 (* We need to prove that (nth witness X{`&2} _in{`&2} `>>`  (of_int (bits{`&2} + 8 - floor (log2 w%r)))%W8) `&`  (of_int (w - 1))%W8))
 ((SHR_32 (zeroextu32 (nth witness X{`&2} (to_uint ((of_int _in{`&2}))%W64))) (truncateu8 ((of_int (bits{`&2} + 4)))%W64)).`6 `&` (of_int 15)%W32)) *)
+
 lemma base_w_correctness (x_out : W32.t list, len_out : int, in_list : byte list) :
-    0 < len_out /\ 
-    (* len_out is either len2 or len *)
+    (len_out = XMSS_WOTS_LEN \/ len_out = XMSS_WOTS_LEN2) /\ (* len_out is either len2 or len *)
     w = XMSS_WOTS_W /\
     floor (log2 w%r) = XMSS_WOTS_LOG_W => (* log2 w is a precomputed parameter *)
       equiv[BaseWGeneric.__base_w ~ BaseW.base_w :
@@ -141,32 +135,38 @@ lemma base_w_correctness (x_out : W32.t list, len_out : int, in_list : byte list
 proof.
 rewrite /XMSS_WOTS_W /XMSS_WOTS_LOG_W.
 move => H.
-move: H => [#] outlen_ge0 w_val logw.
+move: H => [#] len__out w_vals logw.
 proc ; inline.
 auto => /> *.
 while (
+  outlen{2} = len_out /\
   outlen{1} = W64.of_int outlen{2} /\
   consumed{1} = W64.of_int consumed{2} /\
   input{1} = X{2} /\
-  bits{1} = W64.of_int bits{2} /\
+  bits{2} = to_uint bits{1} /\
   ={total} /\
-  in_0{1} = W64.of_int _in{2} /\
+  _in{2} = to_uint in_0{1} /\ 
+  to_uint in_0{1} + 1 < W64.max_uint /\
   0 <= consumed{2} <= outlen{2} /\
-  0 <= _in{2} <= consumed{2} /\
+  0 <= _in{2} < outlen{2}  /\
   forall (k : int), (0 <= k < consumed{2}) => to_uint (nth witness output{1} k) = nth witness base_w{2} k
-(*  to_uint total_32{1} = to_uint total{1} *)
 ).
 (* ------------------------- first subgoal of while starts here ------------------------- *)
 if.
 (* 1st goal of if *)
-auto => /> *.
-smt(zero).
+auto => /> &1 &2 *.
+smt(@W64).
 (* 2nd goal of if *)
 auto => /> &1 &2 *.
-do split; 3,4,5,6,8: by smt().
+do split.
 rewrite logw //=. (* 1st subgoal of split *)
-smt. (* 2nd subgoal of split *)
-move => *. rewrite logw w_val /=.  admit. 
+smt.
+admit. (* 2nd subgoal of split *)
+smt(). (* 3rd subgoal of split *)
+smt(). (* 4th subgoal of split *)
+smt(). (* 5th subgoal of split *)
+simplify.
+smt(). (* 6th subgoal of split *)
 smt. (* 9th *)
 (* 3rd subgoal of if *)
 auto => /> *.

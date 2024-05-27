@@ -34,14 +34,14 @@ rewrite /rflags_of_aluop => //=.
 smt(@W32).
 qed.
 
-lemma foo (_a _b _c : W32.t) :
+lemma test_cmp_32 (_a _b _c : W32.t) :
     (! (TEST_8 (SETcc ((CMP_32 _a _b).`2)) (SETcc ((CMP_32 _a _c).`2))).`5) = 
     (_a \ult _b) /\ (_a \ult _c).
 proof.
 do rewrite -cmp_and.
 pose b1 := (CMP_32 _a _b).`2.
 pose b2 := (CMP_32 _a _c).`2.
-(* apply test_8_bool. FIXME: THIS DOES NOT WORK *)
+(* apply test_8_bool / smt(@W32 test_8_bool). FIXME: THIS DOES NOT WORK *)
 admit.
 qed.
 
@@ -55,7 +55,7 @@ proc.
 auto => /> *.
 rewrite /_uLT /_NEQ.
 rewrite /_EQ.
-smt(foo).
+smt(test_cmp_32).
 qed.
 
 lemma cmp_W64 :
@@ -87,12 +87,11 @@ rewrite /rflags_of_aluop => //=.
 smt(@W32).
 qed.
 
-lemma bar (_a _b : W64.t) (_c _d : W32.t) :
+lemma test_cmp_32_64 (_a _b : W64.t) (_c _d : W32.t) :
     (! (TEST_8 (SETcc (! (CMP_64 _a _b).`2)) (SETcc (CMP_32 _c _d).`5)).`5) =
 (_b \ule _a) /\ _c = _d.
 proof.
-rewrite cmp_eq_W32.
-rewrite cmp_W64.
+rewrite cmp_eq_W32 ; rewrite cmp_W64.
 pose b1 := (_b \ule _a).
 pose b2 := (_c = _d).
 (* apply test_8_bool. FIXME: THIS DOES NOT WORK (but should?) *)
@@ -111,5 +110,5 @@ auto => />.
 rewrite /_uGE /_EQ.
 rewrite /_uLT /_NEQ.
 rewrite /_EQ.
-smt(bar).
+smt(test_cmp_32_64).
 qed.

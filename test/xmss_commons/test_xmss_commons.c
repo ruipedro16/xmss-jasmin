@@ -164,8 +164,6 @@ void test_compute_root(void) {
 #undef XMSS_MLEN
 }
 
-void test_gen_leaf_wots(void) {}  // TODO:
-
 void test_sign_open_xmss(void) {
 bool debug = true;
 
@@ -337,7 +335,6 @@ void test_xmssmt(void) {
 
 int main(void) {
     test_ltree();
-    // test_gen_leaf_wots();  // TODO: TODO: 
     starts_with(xstr(IMPL), "XMSSMT") ? test_xmssmt() : test_xmss();
     printf("[%s]: XMSS Commons OK\n", xstr(IMPL));
     return 0;
