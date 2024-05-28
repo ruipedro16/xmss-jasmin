@@ -3,7 +3,7 @@ require Subtype.
 
 from Jasmin require import JModel.
 
-require import Notation Parameters Address Primitives Wots.
+require import Params Notation Parameters Address Primitives Wots.
 
 import NBytes.
 import Array8.
@@ -30,10 +30,8 @@ op h : { int | 0 < h /\ h %% d = 0} as h_vals. (* hyper-tree of total height h, 
 clone import Subtype as OTSKeys with 
    type T = wots_sk list,
    op P = fun l => size l = 2^h
-   rename "T" as "wots_ots_keys"
-   proof inhabited by admit (* FIXME: *)
-   proof *.
-
+   rename "T" as "wots_ots_keys".
+   
 clone import Subtype as AuthPath with
   type T = nbytes list,
   op P = fun l => size l = len
@@ -157,7 +155,7 @@ module LTree = {
 
     address <- set_tree_height address 0;
 
-    while (_len > 1) {
+    while (1 < _len) { (* Same as _len > 1 *)
       i <- 0;
       while (i < floor (len%r / 2%r)) {
         address <- set_tree_index address i;
@@ -400,7 +398,7 @@ module XMSS = {
     while (k < h) {
       address <- set_tree_height address k;
 
-      if (floor( (W32.to_uint idx_sig)%r / ((2^k) %% 2)%r) = 0) {
+      if (floor ((W32.to_uint idx_sig)%r / (2^k)%r) %% 2 = 0) {
         index <- get_tree_index address;
         address <- set_tree_index address (index %/ 2);
 

@@ -66,7 +66,7 @@ typecheck_spec: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Notation.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Primitives.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Wots.ec
-	# $(EASYCRYPT) $(EC_INCLUDE) spec/XMSS.ec
+	$(EASYCRYPT) $(EC_INCLUDE) spec/XMSS.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Properties.ec
 
 
