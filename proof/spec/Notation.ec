@@ -4,24 +4,19 @@ require import AllCore List RealExp IntDiv.
 
 from Jasmin require import JModel.
 
-type byte = W8.t.
+require import Params.
 
-abbrev (>) (a b : int) = b < a. 
+type byte = W8.t.
 
 (* prefix of big endian byte representation of a 32-bit word *)
 op toByte(x : W32.t, k : int) : byte list =  
      take k (rev (to_list (W4u8.unpack8 x))).
 
-(* the range of indices into a wots chain *)
-op w : { int | w = 4 \/ w = 16} as w_vals.
-
 (* From the RFC
-
-A byte string can be considered as a string of base w numbers, i.e.,
-integers in the set {0, ... , w - 1}.
-In base_w(X, w, out_len), the length out_len is REQUIRED to be less than 
-or equal to 8 * len_X / lg(w).
-
+  A byte string can be considered as a string of base w numbers, i.e.,
+  integers in the set {0, ... , w - 1}.
+  In base_w(X, w, out_len), the length out_len is REQUIRED to be less than 
+  or equal to 8 * len_X / lg(w).
 *)
 module BaseW = {
   proc base_w(X : byte list, outlen : int) : int list = {

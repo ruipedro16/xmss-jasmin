@@ -126,17 +126,25 @@ inline fn __gen_chain(
     return out, addr;
 }
 
-fn _gen_chain(reg ptr u8[XMSS_N] out, reg u64 in, reg u32 start, 
-                       reg u32 steps, reg ptr u8[XMSS_N] pub_seed,
-                       reg ptr u32[8] addr) -> reg ptr u8[XMSS_N], reg ptr u32[8]
+fn _gen_chain(
+    reg ptr u8[XMSS_N] out, 
+    reg u64 in, 
+    reg u32 start steps, 
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8]
 {
     out, addr = __gen_chain(out, in, start, steps, pub_seed, addr);
     return out, addr;
 }
 
-inline fn __gen_chain_(reg ptr u8[XMSS_N] out, reg u64 in, reg u32 start, 
-                       reg u32 steps, reg ptr u8[XMSS_N] pub_seed,
-                       reg ptr u32[8] addr) -> reg ptr u8[XMSS_N], reg ptr u32[8]
+inline fn __gen_chain_(
+    reg ptr u8[XMSS_N] out, 
+    reg u64 in, 
+    reg u32 start steps, 
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8]
 {
     out = out;
     in = in;
@@ -158,7 +166,7 @@ inline fn __gen_chain_(reg ptr u8[XMSS_N] out, reg u64 in, reg u32 start,
 // NOTE: `out` and `in` point to the same memory location
 inline fn __gen_chain_inplace(
     reg ptr u8[XMSS_N] out, 
-    reg u32 start, reg u32 steps, 
+    reg u32 start steps, 
     reg ptr u8[XMSS_N] pub_seed,
     reg ptr u32[8] addr
 ) -> reg ptr u8[XMSS_N], reg ptr u32[8]

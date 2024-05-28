@@ -5,7 +5,7 @@ from Jasmin require import JModel_x86.
 
 require import Array8.
 
-require import Notation Parameters.
+require import Notation Params.
 
 (**********************************************************************************************************************)
 
@@ -102,7 +102,7 @@ pred set_ltree_addr_pre (ltree_addr : int) = 0 <= ltree_addr.
 op set_ltree_addr (address : adrs, ltree_addr : int) : adrs = 
     address.[4 <- W32.of_int ltree_addr].
 
-pred tree_height_pre (tree_height : int) = 0 <= tree_height <= XMSS_TREE_HEIGHT. 
+pred tree_height_pre (tree_height : int) = 0 <= tree_height. 
 op set_tree_height (address : adrs, tree_height : int) : adrs = 
     address.[5 <- W32.of_int tree_height].
 op get_tree_height (address : adrs) : int =
@@ -114,6 +114,7 @@ op set_tree_index (address : adrs, tree_index : int) : adrs =
 
 op get_tree_index (address : adrs) : int = to_uint (address.[6]).
 
+pred set_key_and_mask_pre (key_and_mask : int) = 0 <= key_and_mask <= 2.
 op set_key_and_mask (address : adrs, key_and_mask : int) : adrs = 
     address.[7 <- W32.of_int key_and_mask].
 

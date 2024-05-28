@@ -16,10 +16,10 @@ proof.
 move => y ; smt(@List).
 qed.
 
-axiom array4_list_put  ['a] (x : 'a Array4.t)  (v : 'a) (i : int) : put (to_list x) i v = to_list (x.[i <- v]).
-axiom array32_list_put_ ['a] (x : 'a Array32.t) (v : 'a) (i : int) : put (to_list x) i v = to_list (x.[i <- v]).
-axiom array64_list_put_ ['a] (x : 'a Array64.t) (v : 'a) (i : int) : put (to_list x) i v = to_list (x.[i <- v]).
-axiom array128_list_put ['a] (x : 'a Array128.t) (v : 'a) (i : int) : put (to_list x) i v = to_list (x.[i <- v]).
+lemma array4_list_put  ['a] (x : 'a Array4.t)  (v : 'a) (i : int) : put (to_list x) i v = to_list (x.[i <- v]) by admit.
+lemma array32_list_put_ ['a] (x : 'a Array32.t) (v : 'a) (i : int) : put (to_list x) i v = to_list (x.[i <- v]) by admit.
+lemma array64_list_put_ ['a] (x : 'a Array64.t) (v : 'a) (i : int) : put (to_list x) i v = to_list (x.[i <- v]) by admit.
+lemma array128_list_put ['a] (x : 'a Array128.t) (v : 'a) (i : int) : put (to_list x) i v = to_list (x.[i <- v]) by admit.
 
 (* Adding 1 to a positive number yields a positive number *)
 lemma add_1_W64 (x : W64.t) :

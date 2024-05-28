@@ -4,16 +4,8 @@ require import AllCore List RealExp IntDiv.
 require (*  *) Subtype. 
 from Jasmin require import JModel.
 
-require import Notation Address.
+require import Params Notation Address.
 require import Array8.
-
-op n : { int | 0 <= n } as ge0_n.
-
-op len1 : int = ceil (8%r * n%r / log2 w%r).
-op len2 : int = floor (log2 (len1 * (w - 1))%r / log2 w%r) + 1.
-op len : int = len1 + len2.
-
-axiom ge0_len : 0 <= len.
 
 clone import Subtype as NBytes with 
    type T = byte list,
@@ -30,7 +22,7 @@ type seed = nbytes.
 *)
 op F : key -> nbytes -> nbytes.
 
-(* WOTS+ uses a pseudorandom function PRF.  PRF takes as input an n-byte
+(* WOTS+ uses a pseudorandom function PRF. PRF takes as input an n-byte
    key and a 32-byte index and generates pseudorandom outputs of length
    n.
 *)

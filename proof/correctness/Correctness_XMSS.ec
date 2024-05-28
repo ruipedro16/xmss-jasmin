@@ -33,6 +33,18 @@ axiom hash__128 (out : W8.t Array32.t, in_0 : W8.t Array128.t) :
 
 (**********************************************************************************************************************)
 
+lemma l_tree_ll : islossless Mp(Syscall).__l_tree.
+proof.
+proc.
+islossless ; last by admit.
+while (0 <= inlen < W64.max_uint) (inlen - to_uint i).
+auto => /> *. smt.
+auto => /> *. do split.
+admit.
+admit.
+auto => /> *. smt.
+qed.
+
 lemma xmss_kg_ll : islossless Mp(Syscall).xmss_keypair_jazz.
 proof.
 proc.

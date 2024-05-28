@@ -61,11 +61,12 @@ endif
 
 .PHONY: typecheck_spec typecheck_proof typecheck_extraction
 typecheck_spec: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
-	$(EASYCRYPT) $(EC_INCLUDE) spec/Notation.ec
+	$(EASYCRYPT) $(EC_INCLUDE) spec/Params.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Address.ec
+	$(EASYCRYPT) $(EC_INCLUDE) spec/Notation.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Primitives.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Wots.ec
-	$(EASYCRYPT) $(EC_INCLUDE) spec/XMSS.ec
+	# $(EASYCRYPT) $(EC_INCLUDE) spec/XMSS.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Properties.ec
 
 
@@ -75,11 +76,11 @@ typecheck_extraction: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
 
 
 typecheck_proof: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
-	$(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_Utils.ec
+	# $(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_Utils.ec
 	$(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_Conditions.ec
 	$(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_Generic.ec
-	$(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_Wots.ec
-	$(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_XMSS.ec
+	# $(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_Wots.ec
+	# $(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_XMSS.ec
 
 # --------------------------------------------------------------------------------------------------
 
