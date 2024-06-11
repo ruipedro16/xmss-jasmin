@@ -1,134 +1,163 @@
 pragma Goals : printall.
 
-
 require import AllCore List RealExp IntDiv.
 from Jasmin require import JModel.
 require import Params Notation Parameters Address Primitives Wots.
-require import XMSS_IMPL XMSS_IMPL_PP Parameters.
-require import Generic (* Properties *). 
+
+require import XMSS_IMPL XMSS_IMPL_PP Generic.
+
 require import Array2 Array3 Array8 Array32 Array67 Array2144.
 
-lemma array3_list_put ['a] (x : 'a Array3.t) (v : 'a) (i : int) : put (to_list x) i v = to_list (x.[i <- v]) by admit.
-lemma array67_list_put ['a] (x : 'a Array67.t) (v : 'a) (i : int) : put (to_list x) i v = to_list (x.[i <- v]) by admit.
+(*****************************************************************************************************************)
 
-lemma zero (x : int) :
-    0 <= x <= W64.max_uint =>
-       W64.of_int x = W64.zero <=> x = 0.
-proof. move => ? ; split => // ; by smt(@W64). qed.
-
-(******************************************* BASE W ******************************************************)
-
-lemma base_w_generic_1 (_output : W32.t Array3.t, _input : W8.t Array2.t) :
-    equiv[M(Syscall).__base_w_3_2 ~ BaseWGeneric.__base_w :
-       arg{1} = (_output, _input) /\ arg{2} = (to_list _output, W64.of_int 3, to_list _input) ==>
-    res{2} = to_list res{1}].
+lemma take_drop_3 (x : 'a Array3.t) (v : 'a) (i : int) :
+    take i (mkseq ("_.[_]" x) 3) ++ v :: drop (i + 1) (mkseq ("_.[_]" x) 3) =
+    mkseq ("_.[_]" x.[i <- v]) 3.
 proof.
-proc.
-while (
-  outlen{2} = W64.of_int 3 /\ 
-  ={in_0, bits, out, consumed, total} /\
-  0 <= to_uint consumed{1} <= 3 /\
-  0 <= to_uint out{1} <= 3 /\
-  out{1} = consumed{1} /\ 0 <= to_uint in_0{2} <= to_uint consumed{2} /\ 
-  input{2} = (to_list input{1}) /\ output{2} = to_list output{1} 
-); 
-last by auto => />.
-if; 1: by auto.
-auto => />.
-move => &1 &2 *.
-do split.
-smt(@W64).
-smt(@W64).
-smt(@W64).
-smt(@W64).
-smt(@W64).
-smt(@W64).
-apply (eq_from_nth witness).
-smt(size_put Array3.size_to_list).
-move => i ib *. 
-rewrite (nth_put witness).
-smt(Array3.size_to_list @W64).
-pose xx :=  (
-     output{1}.[to_uint consumed{2} <-
-       (SHR_32 (zeroextu32 input{1}.[to_uint in_0{2}])
-          (truncateu8 ((of_int 4))%W64)).`6 `&`
-       (of_int 15)%W32]).
-rewrite (Array3.get_to_list xx i) /xx.
-case (to_uint consumed{2}=i).
-move => h. rewrite get_setE. smt(@W64). rewrite ifT. smt(). 
-do congr.
-move => h ; smt(@List @Array3 @Array2).
-auto => />.
-move => *.
-do split.
-smt(@W64).
-smt(@W64).
-smt(@W64).
-smt(@W64).
-smt(@W64).
-smt(array3_list_put).
-qed.
-
-lemma base_w_generic_2 (_output : W32.t Array67.t, _input : W8.t Array32.t) :
-    equiv[M(Syscall).__base_w_67_32 ~ BaseWGeneric.__base_w :
-       arg{1} = (_output, _input) /\ arg{2} = (to_list _output, W64.of_int 67, to_list _input) ==>
-    res{2} = to_list res{1}].
-proof.
-proc.
-while (
-  outlen{2} = W64.of_int 67 /\ 
-  ={in_0, bits, out, consumed, total} /\
-  0 <= to_uint consumed{1} <= 67 /\
-  0 <= to_uint out{1} <= 67 /\
-  out{1} = consumed{1} /\ 0 <= to_uint in_0{2} <= to_uint consumed{2} /\ 
-  input{2} = (to_list input{1}) /\ output{2} = to_list output{1} 
-); 
-last by auto => />.
-if; 1: by auto.
-auto => />.
-move => &1 &2 *.
-do split.
-smt(@W64).
-smt(@W64).
-smt(@W64).
-smt(@W64).
-smt(@W64).
-smt. (* smt(@W64) fails *)
-apply (eq_from_nth witness).
-smt(size_put Array67.size_to_list).
-move => i ib *. 
-rewrite (nth_put witness).
-smt(Array67.size_to_list @W64).
-pose xx :=  (
-     output{1}.[to_uint consumed{2} <-
-       (SHR_32 (zeroextu32 input{1}.[to_uint in_0{2}])
-          (truncateu8 ((of_int 4))%W64)).`6 `&`
-       (of_int 15)%W32]).
-rewrite (Array67.get_to_list xx i) /xx.
-case (to_uint consumed{2}=i).
-move => h. rewrite get_setE. smt(@W64). rewrite ifT. smt(). 
-do congr.
-move => h ; smt(@List @Array32 @Array67).
-auto => />.
-move => *.
-do split.
-smt(@W64).
-smt(@W64).
-smt(@W64).
-smt(@W64).
-smt. (* smt(@W64) fails *)
-smt(array67_list_put).
+case (0 <= i /\ i < 3).
+move => H. move : H => [#] i_ge0 i_lt3.
+pose s := mkseq ("_.[_]" x) 3.
+rewrite -put_in.
+smt(size_mkseq).
+admit.
+move => H.
+admit.
 qed.
 
 
-lemma base_w_correctness_67 (_out : W32.t Array67.t, _in_ : W8.t Array32.t) :
+lemma array3_list_put ['a] (x : 'a Array3.t) (v : 'a) (i : int) : put (to_list x) i v = to_list (x.[i <- v]).
+proof.
+rewrite /to_list /put => />.
+case (0 <= i /\ i < 3).
+move => H.
+move : H => [#] i_ge0 i_lt3.
+rewrite ifT.
+split ; first by apply i_ge0. 
+smt(@List).
+apply take_drop_3.
+move => H.
+rewrite ifF.
+smt(@List).
+congr.
+smt(@Array3).
+qed.
+
+
+lemma take_drop_67 (x : 'a Array67.t) (v : 'a) (i : int) :
+    take i (mkseq ("_.[_]" x) 67) ++ v :: drop (i + 1) (mkseq ("_.[_]" x) 67) =
+    mkseq ("_.[_]" x.[i <- v]) 67.
+proof.
+case (0 <= i /\ i < 67).
+move => H. 
+move : H => [#] i_ge0 i_lt67.
+pose s := mkseq ("_.[_]" x) 67.
+rewrite -put_in.
+smt(size_mkseq).
+admit.
+admit.
+qed.
+
+
+lemma array67_list_put ['a] (x : 'a Array67.t) (v : 'a) (i : int) : put (to_list x) i v = to_list (x.[i <- v]).
+proof.
+rewrite /to_list /put => />.
+case (0 <= i /\ i < 67).
+move => H. 
+move : H => [#] i_ge0 i_lt67.
+rewrite ifT.
+split ; first by apply i_ge0.
+smt(@List).
+apply take_drop_67.
+move => H.
+rewrite ifF.
+smt(@List).
+congr.
+smt(@Array67).
+qed.
+
+(*****************************************************************************************************************)
+
+lemma foo (i y : W64.t) :
+ ! (i \ult y) = y \ule i by smt.
+
+lemma plus_one (x : W64.t) :
+(*     to_uint x < W64.max_uint =>  *)
+    to_uint x + 1 = to_uint (x + W64.one).
+proof.
+admit.
+qed.
+
+
+lemma lt (x y : W64.t) :
+    x \ult y => x + W64.one \ule y by smt.
+
+
+(*****************************************************************************************************************)
+
+
+lemma f0 (x y : W64.t) : to_uint (x - y) <= 0 <=> ! (y \ult x) by smt.
+lemma f1 (x y : int) : x - y <= 0 <=> ! (y < x) by smt().
+lemma f2 (x y : W64.t) :
+    to_uint (x - (y + W64.one)) < to_uint (x - y) by smt.
+
+(*****************************************************************************************************************)
+
+
+(* 
+base w 
+TERMINATION : DONE 
+CORRECTNESS : Auxiliary lemmas with admit
+*)
+lemma base_w_ll : islossless BaseWGeneric.__base_w.
+proof.
+proc.
+islossless.
+while (true) ((to_uint outlen) - (to_uint consumed)) ; first by auto => /> *; smt(@W64).
+skip.
+auto => /> /#.
+qed.
+
+
+lemma shr_base_w (input : W8.t Array32.t) (output : W32.t Array67.t) (base_w : int list) (in_0 : W64.t) (k : int) (out : W64.t):
+to_uint
+  output.[to_uint out <-
+    (SHR_32 (zeroextu32 input.[to_uint in_0])
+       (truncateu8 ((of_int 4))%W64)).`6 `&`
+    (of_int 15)%W32].[k] =
+nth witness
+  (put base_w (to_uint out)
+     (to_uint
+        ((input.[to_uint in_0] `>>` (of_int 4)%W8) `&`
+         (of_int 15)%W8))) k.
+proof.
+admit.
+qed.
+
+lemma shr_base_w_2 (input : W8.t Array32.t) (output : W32.t Array67.t) (base_w : int list) (total : W8.t) (k : int) (bits out : W64.t):
+to_uint
+  output.[to_uint out <-
+    (SHR_32 (zeroextu32 total) (truncateu8 (bits - (of_int 4)%W64))).`6 `&`
+    (of_int 15)%W32].[k] =
+nth witness
+  (put base_w (to_uint out)
+     (to_uint
+        ((total `>>` (of_int (to_uint bits - 4))%W8) `&`
+         (of_int 15)%W8))) k.
+proof.
+admit.
+qed.
+
+
+lemma base_w_correctness_67_32 (_out : W32.t Array67.t, _in_ : W8.t Array32.t) :
+    w = XMSS_WOTS_W =>
     floor (log2 w%r) = XMSS_WOTS_LOG_W => 
     equiv[M(Syscall).__base_w_67_32 ~ BaseW.base_w :
       arg{1} = (_out, _in_) /\
       arg{2} = (to_list _in_, 67) ==>
         res{2} = map W32.to_uint (to_list res{1})].
 proof.
-move => logw.
+rewrite /XMSS_WOTS_W /XMSS_WOTS_LOG_W.
+move => w_val logw.
 proc.
 auto => /> *.
 while (
@@ -139,64 +168,80 @@ while (
   to_uint bits{1} = bits{2} /\
   ={total} /\
   0 <= _in{2} <= 67 /\
+  out{2} = to_uint out{1} /\
   W64.zero \ule in_0{1} /\ in_0{1} \ule W64.of_int 67 /\
   _in{2} = to_uint in_0{1} /\
   forall (k : int), (0 <= k < out{2}) => to_uint (output{1}.[k]) = nth witness base_w{2} k
-) ; last by admit.
-if ; last by admit.
-(* 1st subgoal of if *)
-auto => /> &1 &2 *. smt.
-(* 2nd subgoal of if *)
-auto => /> * ; do split.
-(* 1 *)
-smt(@W64).
-(* 2 *)
-smt(@W64).
-(* 3 *)
-smt.
-(* 4 *)
-rewrite logw => //.
-(* 5 *)
-smt().
-(* 6 *)
-admit.
-(* 7 *)
-admit.
-(* 8 *)
-admit.
-(* 9 *)
-admit.
-(* 10 *)
-move => ? . admit.
-(* 11 *)
-smt(@W64).
-(* 12 *)
-move => ? . admit.
-(* 3rd subgoal of if *)
-qed.
-
-
-(* We need to prove that (nth witness X{`&2} _in{`&2} `>>`  (of_int (bits{`&2} + 8 - floor (log2 w%r)))%W8) `&`  (of_int (w - 1))%W8))
-((SHR_32 (zeroextu32 (nth witness X{`&2} (to_uint ((of_int _in{`&2}))%W64))) (truncateu8 ((of_int (bits{`&2} + 4)))%W64)).`6 `&` (of_int 15)%W32)) *)
-
-lemma base_w_correctness (x_out : W32.t list, len_out : int, in_list : byte list) :
-    (len_out = XMSS_WOTS_LEN \/ len_out = XMSS_WOTS_LEN2) /\ (* len_out is either len2 or len *)
-    w = XMSS_WOTS_W /\
-    floor (log2 w%r) = XMSS_WOTS_LOG_W => (* log2 w is a precomputed parameter *)
-      equiv[BaseWGeneric.__base_w ~ BaseW.base_w :
-        arg{1} = (x_out, W64.of_int len_out, in_list) /\
-        arg{2} = (in_list, len_out) ==> 
-          res{2} = map W32.to_uint res{1}].
-proof.
-rewrite /XMSS_WOTS_LEN /XMSS_WOTS_LEN2 /XMSS_WOTS_W /XMSS_WOTS_LOG_W.
-move => H.
-move: H => [#] len__out w_vals logw.
-proc.
+).
+(* First subgoal of while *)
+if.
+(* First subgoal of if *)
+auto => /> *. smt.
+(* 2nd+3rd subgoals of if *)
 auto => /> *.
+do split.
+    - smt(@W64).
+    - smt(@W64).
+    - smt(plus_one).
+    - rewrite logw //.
+    - smt(@W64).
+    - smt.
+    - smt(plus_one).
+    - smt(@W64).
+    - smt.
+    - smt(plus_one).
+    - auto => /> *. rewrite logw. rewrite w_val //=. smt(shr_base_w).
+    - smt(@W64).
+    - smt.
+    - auto => /> *. do split.
+        - smt(@W64).
+        - smt(@W64).
+        - smt.
+        - rewrite logw. smt.       
+        - smt(plus_one). 
+        - auto => /> *. rewrite logw. rewrite w_val //=. smt(shr_base_w_2).
+        - smt(@W64).
+        - smt.
+(* Last subgoal of while *)
+auto => /> *. 
+do split.
+    - smt().
+    - auto => /> *. smt. 
+qed.
+
+(*
+expand seed :
+CORRECTNESS : Auxiliary lemmas with admit
+TERMINATION : NOT DONE
+*)
+
+lemma e0 (a : int) (b : W64.t):
+    a - to_uint b <= 0 => ! (b \ult W64.of_int a).
+proof.
 admit.
 qed.
 
-(*********************************** EXPAND SEED ************************************************)
+lemma expand_seed_correctness (outseeds : W8.t Array2144.t, inseed : W8.t Array32.t,
+                               pub_seed : W8.t Array32.t, addr : W32.t Array8.t) :
+    len = XMSS_WOTS_LEN =>
+    equiv [Mp(Syscall).__expand_seed ~ WOTS.pseudorandom_genSK :
+    arg{1} = (outseeds, inseed, pub_seed, addr) /\
+      arg{2} = (to_list inseed, to_list pub_seed, addr) ==> 
+        to_list res{1}.`1 = flatten res{2}].
+proof.
+rewrite /XMSS_WOTS_LEN.
+move => wots_len.
+proc.
+inline*.
+auto => />*.
+while (
+  len{2} = 67 /\
+  ={i}
+).
+admit.
+admit.
+qed.
+
 
 lemma expand_seed_ll : islossless Mp(Syscall).__expand_seed_.
 proof.
@@ -207,111 +252,69 @@ auto => /> *.
 islossless ; first by smt().
 while (true) (8 - i1) ; last by skip ; auto => /> /#.
 auto => /> /#.
-while (true) (inlen - (to_uint i0)) => //=.
-auto => /> *.
-admit.
-skip ; auto => /> *. 
-admit.
+while (true) (inlen - (to_uint i0)) => //=; last by skip => /> * ; smt(e0).
+auto => /> *. smt.
 qed.
 
-lemma expand_seed_correctness (out : W8.t Array2144.t, _in : W8.t Array32.t, seed : W8.t Array32.t, address : W32.t Array8.t) :
-    n = XMSS_N =>
-    equiv[Mp(Syscall).__expand_seed ~ WOTS.pseudorandom_genSK :
-      arg{1} = (out, _in, seed, address) /\
-      arg{2} = to_list _in ==>
-      flatten(res{2}) = to_list res{1}.`1].
-proof. 
-rewrite /XMSS_N. move => H.
-proc ; inline => //=.
-auto => /> *.
-rewrite /XMSS_N.
-while (
-  n = XMSS_N /\
-  0 <= i{2} <= n /\
-  ={i}
-).
-admit.
-admit.
-qed.
+(* gen chain *)
 
-(****************************** GEN CHAIN ********************************************************)
+lemma b (i : W64.t) (t : int) : ! (i \ult (W64.of_int t)) <=> W64.of_int t \ule i by split ; by smt.
+lemma c (i : W64.t) : 64 - to_uint i <= 0 <=> (W64.of_int 64) \ule i by smt.
 
-lemma chain_correctness (mem, _out : W8.t Array32.t, _in_ptr : W64.t, _start : W32.t,
-                         _steps : W32.t, seed : W8.t Array32.t, _address : W32.t Array8.t) :
-    n = XMSS_N => 
-    equiv [Mp(Syscall).__gen_chain ~ Chain.chain :
-      Glob.mem{1} = mem /\ Glob.mem{2} = mem /\
-      arg{1} = (_out, _in_ptr, _start, _steps, seed, address) /\
-      arg{2} = (mkseq (fun i => loadW8 mem (W64.to_uint (_in_ptr + (W64.of_int i))) n), 
-                to_uint _start, to_uint _steps, to_list seed, _address) =>
-        true].
-
-lemma chain_inplace (_out : W8.t Array32.t, _in_ptr : W64.t, _start:W32.t,
-                     _steps : W32.t, seed : W8.t Array32.t, address : W32.t Array8.t) :
-equiv [Mp(Syscall).__gen_chain ~ Mp(Syscall).__gen_chain_inplace :
-      ={Glob.mem} /\
-      arg{1} = (_out, _in_ptr, _start, _steps, seed, address) /\
-      arg{2} = (Array32.init (fun (i : int) => loadW8 Glob.mem{2} ((to_uint _in_ptr) + i)),
-                _start, _steps, seed, address) ==> true].
-proof.
-proc ; inline => //=.
-auto => /> *.
-admit.
-
-(***************************************************************************************)
-
-(* Pseudorandom key generation *)
-(* During key generation, a uniformly random n-byte string S is
-sampled from a secure source of randomness. This string S is stored
-as private key. The private key elements are computed as sk[i] =
-PRF(S, toByte(i, 32)) whenever needed.
-*)
-
-
-lemma correctness_wots_gen_pk(pk : W8.t Array2144.t, 
-                              seed:W8.t Array32.t,
-                              pub_seed:W8.t Array32.t, 
-                              addr:W32.t Array8.t) :
-    equiv[WOTS.genPK ~ Mp(Syscall).__wots_pkgen : 
-        arg{2} = (pk, seed, pub_seed, addr) ==> true ].
-proof.
-admit.
-qed.
-
-(**************************************** CHECKSUM ***********************************)
-
-lemma wots_checksum_lossless : islossless Mp(Syscall).__wots_checksum.
+lemma gen_chain_ll : islossless Mp(Syscall).__gen_chain.
 proof.
 proc.
 islossless.
-(* 1st subgoal *)
-while (true) ((to_uint outlen) - (to_uint consumed)); last by skip ; smt.
-auto => /> *. 
-smt.
-(* 2nd subgoal *)
-while (true) (i - aux); last by skip ; smt.
+(* First *)
+while (cond = i \ult t /\ i \ult W32.of_int 16) (to_uint (t - i)).
+auto => />. 
+move => &h H cond.
+move : H => [#] a b c d e.
+split.
+admit.
+admit.
+admit.
+skip => /> *. split. admit.
+auto => /> *. admit.
+(* Last *)
+while (true) ((to_uint inlen) - (to_uint i)).
 auto => /> *.
-smt.
-(* 3rd subgoal *)
-while (true) (64 - (to_uint i)); last by skip ; smt.
-auto => /> *.
-smt.
+smt(@W64).
+skip => /> /#.
 qed.
 
-lemma wots_checksum_ll : islossless Mp(Syscall).__csum.
-proof. proc. while (true) (64 - (to_uint i)); by auto => /> * ; smt. qed.
+lemma gen_chain_inplace_ll : islossless Mp(Syscall).__gen_chain_inplace.
+proof.
+proc.
+islossless.
+while (cond = i \ult t /\ i \ult W32.of_int 16 /\ t = start + steps) (to_uint (t - i)). (* i < (start+steps) && i < XMSS_WOTS_W  *)
+auto => /> *.
+admit.
+admit.
+skip.
+auto => /> &h *.
+split.
+admit.
+auto => /> i0 H.
+pose x := start{h} + steps{h}.
+move => ?. admit. (* smt f0 should work but doesnt *)
+qed.
 
+(* checksum 
+CORRECTNESS : DONE
+TERMINATION : DONE
+*)
 lemma wots_checksum_correctness (msg : W32.t Array67.t) :
     len1 = XMSS_WOTS_LEN1 => 
     w = XMSS_WOTS_W =>
     equiv [Mp(Syscall).__csum ~ WOTS.checksum :
-      arg{1} = msg /\ arg{2} = to_list msg ==> to_uint res{1} = to_uint res{2}].
+      arg{1} = msg /\ arg{2} = map W32.to_uint (to_list msg) ==> to_uint res{1} = to_uint res{2}].
 proof.
 rewrite /XMSS_WOTS_LEN_1 /XMSS_WOTS_W ; move => ? ?.
 proc => /=.
 while (
   i{2} = to_uint i{1} /\
-  m{2} = to_list msg_base_w{1} /\
+  m{2} = map W32.to_uint (to_list msg_base_w{1}) /\
   0 <= i{2} <= len1
 ).
 auto => /> *.
@@ -321,18 +324,77 @@ split; 1: by smt().
 auto => /> *. smt.
 qed.
 
-(* FIX THIS LEMMA *)
-lemma wots_checksum(csum_base_w : W32.t Array3.t, msg_base_w : W32.t Array67.t) :
-    len1 = XMSS_WOTS_LEN1 =>
-    len2 = XMSS_WOTS_LEN2 =>
-    len = XMSS_WOTS_LEN =>
-    w = XMSS_WOTS_W =>
-    hoare[Mp(Syscall).__wots_checksum :
-      arg = (csum_base_w, msg_base_w) ==> true].
+lemma csum_ll : islossless Mp(Syscall).__csum.
 proof.
-move => ? ? ? ?.
 proc.
-auto => /> *.
+islossless.
+while (true) (64 - to_uint i).
+auto => /> &h i_lt64.
+smt. (* smt(@W64 @Int) fails *)
+auto => /> i *.  
+rewrite b.
+smt(c).
 qed.
 
-(*********************************************************************************)
+lemma checksum_ll : islossless Mp(Syscall).__wots_checksum.
+proof.
+proc.
+islossless.
+while (true) (to_uint (outlen - consumed)) ; last by skip => /> * ; smt(f0). auto => /> * ; smt(f2).
+while (true) (i - aux). auto => /#. skip => /> /#.
+while (true) (to_uint ((W64.of_int 64) - i)) ; last by skip => /> ; smt(f0). auto => /> * ; smt(f2).
+qed.
+
+(* 
+pkgen 
+TERMINATION : One subgoal with adimt. I want to apply the lemma gen_chain_inplace_ll
+CORRECTNESS :
+*)
+
+
+lemma wots_pkgen_ll : islossless Mp(Syscall).__wots_pkgen.
+proof.
+proc.
+islossless.
+- while (true) (67 - i) ; last by skip => /> /#. auto => /> *. admit. (* How do apply trhe lemma gen_chain_inplace_ll here *)
+- while (true) (67 - i) ; last by skip => /> /#. auto => /> *. islossless ; first by smt(). while (true) (8 - i) ; last by skip => /> /#. auto => /> *. islossless => /#.
+- while (true) (to_uint ((W64.of_int inlen) - i)) ; last by skip => /> * ;  smt(f0). auto => /> * ; smt(f2).
+qed.
+
+(*
+sign 
+TERMINATION : DONE
+CORRECTNESS : 
+*)
+lemma wots_sign_ll : islossless Mp(Syscall).__wots_sign.
+proof.
+proc.
+islossless.
+- while (true) (67 - i) ; last by skip => /> /#. auto => /> *. admit. (* How do I apply the lemma gen_chain_inplace_ll here? *)
+- while (true) (67 - i) ; last by skip => /> /#. auto => /> *. 
+  islossless; first by auto => /> /#. while (true) (8 - i); last by skip => /> /#. auto => /> *. islossless. auto => /> /#.
+- while (true) (to_uint ((W64.of_int inlen) - i)) ; last by skip => /> * ; smt(f0). auto => /> *. smt(f2).
+- while (true) (to_uint (outlen - consumed)); last by skip => /> ; smt(f0). auto => /> *. smt(f2).
+- while (true) (i - aux). auto => /#. skip => /> * ; smt(f1).
+- while (true) (to_uint ((W64.of_int 64) - i)); last by skip => /> * ; smt(f0). auto => /> *. smt(f2).
+- while (true) (to_uint (outlen - consumed)); last by skip => /> * ; smt(f0). auto => /> *. smt(f2).
+qed.
+
+(* 
+pk from sig 
+TERMINATION : One subgoal with admit
+CORRECTNESS :
+*)
+
+lemma wots_pk_from_sig_ll : islossless Mp(Syscall).__wots_pk_from_sig.
+proof.
+proc.
+islossless.
+- while (true) (67 - i) ; last by skip => /> /#. auto => /> *. islossless ; first by smt().
+   - admit. (* cond *)
+   - while (true) (to_uint (inlen - i)); last by skip => /> * ; smt(f0). auto => /> *. smt.
+- while (true) (to_uint (outlen - consumed)) ; last by skip => /> * ; smt(f0). auto => /> *. smt(f2).
+- while (true) (i - aux) ; last by skip => /> /#. auto => /> /#.
+- while (true) (to_uint ((W64.of_int 64) - i)) ; last by skip => /> * ; smt(f0). auto => /> ; smt(f2).
+- while (true) (to_uint (outlen - consumed)) ; last by skip => /> * ; smt(f0). auto => /> *; smt(f2).
+qed.

@@ -435,7 +435,7 @@ inline fn __chain_lengths_(
 
 inline fn __wots_pkgen(
     reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk,
-    reg ptr u8[XMSS_N] seed,
+    reg ptr u8[XMSS_N] seed, // secret
     reg ptr u8[XMSS_N] pub_seed,
     reg ptr u32[8] addr
 ) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]

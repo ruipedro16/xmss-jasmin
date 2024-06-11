@@ -22,8 +22,8 @@ clone import Subtype as Three_NBytes with
    proof inhabited by (exists (nseq (3*n) W8.zero);smt(size_nseq ge0_n))
    proof *.
 
-op d : { int | 0 < d } as g0_d. (* d layers of trees, each having height h/d  *)
-op h : { int | 0 < h /\ h %% d = 0} as h_vals. (* hyper-tree of total height h, where h is a multiple of d *)
+(* op d : { int | 0 < d } as g0_d. (* d layers of trees, each having height h/d  *) *)
+(* op h : { int | 0 < h /\ h %% d = 0} as h_vals. (* hyper-tree of total height h, where h is a multiple of d *) *)
 
 (* NOTE: XMSS is the same as XMSS_MT with d = 1 *)
 
@@ -64,11 +64,6 @@ op _prf_ : nbytes -> byte list -> nbytes.
 op impl_oid : W32.t.
 
 (* Format sk: [OID || (ceil(h/8) bit) idx || SK_SEED || SK_PRF || PUB_SEED || root] *)
-(* type sk_t = oid * W32.t * nbytes * nbytes * nbytes * nbytes. *)
-(* TODO: REMOVE THIS 
-type xmss_sk = W32.t * wots_sk list * nbytes * nbytes * nbytes.
-*)
-(* TODO: Remove the sk preffix *)
 type xmss_sk = { sk_idx : W32.t;
                  ots_keys : wots_sk list;
                  sk_prf : nbytes;
@@ -76,9 +71,6 @@ type xmss_sk = { sk_idx : W32.t;
                  sk_root : nbytes }.
 
 (* Format pk: [OID || root || PUB_SEED] *)
-(* TODO: Remove this 
-type xmss_pk = oid * nbytes * nbytes.
-*)
 type xmss_pk = { pk_oid : W32.t;
                  pk_root : nbytes;
                  pk_seed : nbytes }.
@@ -87,9 +79,6 @@ type xmss_keypair = xmss_sk * xmss_pk.
 
 type msg_t = byte list.
 
-(* TODO: Remove this 
-type sig_t = W32.t * nbytes * wots_signature * auth_path. (* Section 4.1.8. XMSS Signature *)
-*)
 type sig_t = { sig_idx : W32.t;
                r : nbytes;
                wots_sig : wots_signature;
@@ -382,6 +371,8 @@ module XMSS = {
     root <- sk.`sk_root;
     t <- _R ++ root ++ idx_nbytes;
     _M' <- H_msg t m;
+
+    (ots_sig, auth) <@ TreeSig.treesig(_M', sk, idx, address);
 
     sig <- {| sig_idx=idx; r=_R; wots_sig=ots_sig; authentication_path=auth |};
   
