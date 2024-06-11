@@ -112,6 +112,25 @@ module WOTS = {
     return pk;
   }
 
+  (* Generates the key grom the seed *)
+  proc pkGen(sk_seed : nbytes, _seed : seed, address : adrs) : wots_pk = {
+    var pk : wots_pk <- witness;
+    var wots_skey : wots_sk;
+    var i : int <- 0;
+    var pk_i, sk_i : nbytes;
+
+    wots_skey <@ pseudorandom_genSK(sk_seed, _seed, address); (* Generate sk from the secret key *)
+    while (i < len) {
+      address <- set_chain_addr address i;
+      sk_i <- nth witness wots_skey i;
+      pk_i <@ Chain.chain (sk_i, 0, (w - 1), _seed, address);
+      pk <- put pk i pk_i;
+      i <- i + 1;
+    }
+
+    return pk;
+  }
+
   proc kg(sk_seed : nbytes, _seed : seed, address : adrs) : wots_keypair = {
     var pk : wots_pk;
     var sk : wots_sk;
