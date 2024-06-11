@@ -79,10 +79,11 @@ inline fn __expand_seed_(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// Precondition: start+steps <= WOTS_W
 inline fn __gen_chain(
     reg ptr u8[XMSS_N] out, 
     reg u64 in_ptr,
-    reg u32 start, reg u32 steps, 
+    reg u32 start steps, 
     reg ptr u8[XMSS_N] pub_seed,
     reg ptr u32[8] addr
 ) -> reg ptr u8[XMSS_N], reg ptr u32[8]
@@ -101,10 +102,7 @@ inline fn __gen_chain(
     i = start;
     t = start;
     t += steps; 
-    while {
-      // i < (start+steps) && i < XMSS_WOTS_W
-      cond = __cond_u32_a_below_b_and_a_below_c(i, t, XMSS_WOTS_W);
-    } (cond) {
+    while (i < t) {
         () = #spill(i, t);
 
         // set_hash_addr(addr, i);
@@ -164,6 +162,7 @@ inline fn __gen_chain_(
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // NOTE: `out` and `in` point to the same memory location
+// Precondition: start+steps <= WOTS_W
 inline fn __gen_chain_inplace(
     reg ptr u8[XMSS_N] out, 
     reg u32 start steps, 
@@ -180,10 +179,7 @@ inline fn __gen_chain_inplace(
     i = start;
     t = start;
     t += steps;
-    while {
-      // i < (start+steps) && i < XMSS_WOTS_W
-      cond = __cond_u32_a_below_b_and_a_below_c(i, t, XMSS_WOTS_W);
-    } (cond) {
+    while (i < t) {
         () = #spill(i, t);
 
         // set_hash_addr(addr, i);
