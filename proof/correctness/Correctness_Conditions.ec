@@ -18,45 +18,6 @@ smt().
 move => ? => //=.
 qed.
 
-lemma cmp_and : 
-    forall (a b : W32.t), 
-    (CMP_32 a b).`2 = a \ult b.
-proof.
-move => a b.
-case (a \ult b).
-move => ?.
-rewrite /CMP_32.
-rewrite /rflags_of_aluop => //=.
-smt(@W32).
-move => ?.
-rewrite /CMP_32.
-rewrite /rflags_of_aluop => //=.
-smt(@W32).
-qed.
-
-lemma test_cmp_32 (_a _b _c : W32.t) :
-    (! (TEST_8 (SETcc ((CMP_32 _a _b).`2)) (SETcc ((CMP_32 _a _c).`2))).`5) = 
-    ( (_a \ult _b) /\ (_a \ult _c) ).
-proof.
-do rewrite -cmp_and.
-pose b1 := (CMP_32 _a _b).`2.
-pose b2 := (CMP_32 _a _c).`2.
-apply test_8_bool.
-qed.
-
-(* cond = a < b /\ a < c *)
-lemma cond_u32_a_below_b_and_a_below_c(_a : W32.t, _b : W32.t, _c : W32.t) : 
-    hoare[M(Syscall).__cond_u32_a_below_b_and_a_below_c :
-      arg = (_a, _b, _c) ==> 
-         res =  (_a \ult _b /\ _a \ult _c)].
-proof.
-proc.
-auto => /> *.
-rewrite /_uLT /_NEQ.
-rewrite /_EQ.
-smt(test_cmp_32).
-qed.
-
 lemma cmp_W64 :
     forall (a b : W64.t), (! (CMP_64 a b).`2) = (b \ule a).
 move => a b.
