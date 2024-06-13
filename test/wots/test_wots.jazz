@@ -15,7 +15,7 @@ export fn wots_checksum_jazz(
     reg ptr u32[XMSS_WOTS_LEN] msg_base_w
 ) -> reg ptr u32[XMSS_WOTS_LEN2] 
 {
-    csum_base_w = __wots_checksum_(csum_base_w, msg_base_w);
+    csum_base_w = __wots_checksum(csum_base_w, msg_base_w);
     return csum_base_w;
 }
 

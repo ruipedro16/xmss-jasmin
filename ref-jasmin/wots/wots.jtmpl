@@ -359,30 +359,6 @@ inline fn __wots_checksum(
     return csum_base_w;
 }
 
-fn _wots_checksum(
-    reg ptr u32[XMSS_WOTS_LEN2] csum_base_w,
-    reg ptr u32[XMSS_WOTS_LEN] msg_base_w
-) -> reg ptr u32[XMSS_WOTS_LEN2]
-{
-    csum_base_w = __wots_checksum(csum_base_w, msg_base_w);
-    return csum_base_w;
-}
-
-inline fn __wots_checksum_(
-    reg ptr u32[XMSS_WOTS_LEN2] csum_base_w,
-    reg ptr u32[XMSS_WOTS_LEN] msg_base_w
-) -> reg ptr u32[XMSS_WOTS_LEN2]
-{
-    csum_base_w = csum_base_w;
-    msg_base_w = msg_base_w;
-
-    csum_base_w = _wots_checksum(csum_base_w, msg_base_w);
-    
-    csum_base_w = csum_base_w;
-    
-    return csum_base_w;
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 inline fn __chain_lengths(
