@@ -131,33 +131,6 @@ module Mp(SC:Syscall_t) = {
     return (result);
   }
 
-  proc __cond_u32_a_below_b_and_a_below_c (a:W32.t, b:W32.t, c:W32.t) : 
-  bool = {
-
-    var c3:bool;
-    var _of_:bool;
-    var _cf_:bool;
-    var _sf_:bool;
-    var _zf_:bool;
-    var c1:bool;
-    var bc1:W8.t;
-    var c2:bool;
-    var bc2:W8.t;
-    var  _0:bool;
-    var  _1:bool;
-    var  _2:bool;
-
-    (_of_, _cf_, _sf_,  _0, _zf_) <- CMP_32 a b;
-    c1 <- (_uLT _of_ _cf_ _sf_ _zf_);
-    bc1 <- SETcc c1;
-    (_of_, _cf_, _sf_,  _1, _zf_) <- CMP_32 a c;
-    c2 <- (_uLT _of_ _cf_ _sf_ _zf_);
-    bc2 <- SETcc c2;
-    (_of_, _cf_, _sf_,  _2, _zf_) <- TEST_8 bc1 bc2;
-    c3 <- (_NEQ _of_ _cf_ _sf_ _zf_);
-    return (c3);
-  }
-
   proc __cond_u64_geq_u64_u32_eq_u32 (a:W64.t, b:W64.t, c:W32.t, d:W32.t) : 
   bool = {
 
@@ -257,22 +230,6 @@ module Mp(SC:Syscall_t) = {
     return (out_ptr, out_offset, in_offset);
   }
 
-  proc __memcpy_u8pu8_4 (out:W64.t, offset:W64.t, in_0:W8.t Array4.t) : 
-  W64.t * W64.t = {
-
-    var i:W64.t;
-
-    i <- (W64.of_int 0);
-
-    while ((i \ult (W64.of_int 4))) {
-      Glob.mem <-
-      storeW8 Glob.mem (W64.to_uint (out + offset)) (in_0.[(W64.to_uint i)]);
-      offset <- (offset + (W64.of_int 1));
-      i <- (i + (W64.of_int 1));
-    }
-    return (out, offset);
-  }
-
   proc __memcpy_u8pu8_32 (out:W64.t, offset:W64.t, in_0:W8.t Array32.t) : 
   W64.t * W64.t = {
 
@@ -289,10 +246,19 @@ module Mp(SC:Syscall_t) = {
     return (out, offset);
   }
 
-  proc _memcpy_u8pu8_4 (out:W64.t, offset:W64.t, in_0:W8.t Array4.t) : 
+  proc __memcpy_u8pu8_4 (out:W64.t, offset:W64.t, in_0:W8.t Array4.t) : 
   W64.t * W64.t = {
 
-    (out, offset) <@ __memcpy_u8pu8_4 (out, offset, in_0);
+    var i:W64.t;
+
+    i <- (W64.of_int 0);
+
+    while ((i \ult (W64.of_int 4))) {
+      Glob.mem <-
+      storeW8 Glob.mem (W64.to_uint (out + offset)) (in_0.[(W64.to_uint i)]);
+      offset <- (offset + (W64.of_int 1));
+      i <- (i + (W64.of_int 1));
+    }
     return (out, offset);
   }
 
@@ -303,15 +269,10 @@ module Mp(SC:Syscall_t) = {
     return (out, offset);
   }
 
-  proc _x_memcpy_u8pu8_4 (out:W64.t, offset:W64.t, in_0:W8.t Array4.t) : 
+  proc _memcpy_u8pu8_4 (out:W64.t, offset:W64.t, in_0:W8.t Array4.t) : 
   W64.t * W64.t = {
 
-    out <- out;
-    offset <- offset;
-    in_0 <- in_0;
-    (out, offset) <@ _memcpy_u8pu8_4 (out, offset, in_0);
-    out <- out;
-    offset <- offset;
+    (out, offset) <@ __memcpy_u8pu8_4 (out, offset, in_0);
     return (out, offset);
   }
 
@@ -322,6 +283,18 @@ module Mp(SC:Syscall_t) = {
     offset <- offset;
     in_0 <- in_0;
     (out, offset) <@ _memcpy_u8pu8_32 (out, offset, in_0);
+    out <- out;
+    offset <- offset;
+    return (out, offset);
+  }
+
+  proc _x_memcpy_u8pu8_4 (out:W64.t, offset:W64.t, in_0:W8.t Array4.t) : 
+  W64.t * W64.t = {
+
+    out <- out;
+    offset <- offset;
+    in_0 <- in_0;
+    (out, offset) <@ _memcpy_u8pu8_4 (out, offset, in_0);
     out <- out;
     offset <- offset;
     return (out, offset);
@@ -713,7 +686,6 @@ module Mp(SC:Syscall_t) = {
     var offset:W64.t;
     var i:W32.t;
     var t:W32.t;
-    var cond:bool;
     var  _0:W64.t;
 
     offset <- (W64.of_int 0);
@@ -723,15 +695,14 @@ module Mp(SC:Syscall_t) = {
     i <- start;
     t <- start;
     t <- (t + steps);
-    cond <@ __cond_u32_a_below_b_and_a_below_c (i, t, (W32.of_int 16));
-    while (cond) {
+
+    while ((i \ult t)) {
 
       addr <@ __set_hash_addr (addr, i);
 
       (out, addr) <@ __thash_f (out, pub_seed, addr);
 
       i <- (i + (W32.of_int 1));
-      cond <@ __cond_u32_a_below_b_and_a_below_c (i, t, (W32.of_int 16));
     }
 
     return (out, addr);
@@ -767,20 +738,18 @@ module Mp(SC:Syscall_t) = {
 
     var i:W32.t;
     var t:W32.t;
-    var cond:bool;
 
     i <- start;
     t <- start;
     t <- (t + steps);
-    cond <@ __cond_u32_a_below_b_and_a_below_c (i, t, (W32.of_int 16));
-    while (cond) {
+
+    while ((i \ult t)) {
 
       addr <@ __set_hash_addr (addr, i);
 
       (out, addr) <@ __thash_f_ (out, pub_seed, addr);
 
       i <- (i + (W32.of_int 1));
-      cond <@ __cond_u32_a_below_b_and_a_below_c (i, t, (W32.of_int 16));
     }
 
     return (out, addr);
