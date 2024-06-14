@@ -1,7 +1,7 @@
 pragma Goals : printall.
 
 require import AllCore List RealExp IntDiv.
-require import XMSS_IMPL XMSS_IMPL_PP Generic.
+require import XMSS_IMPL XMSS_IMPL_PP Generic Parameters.
 
 from Jasmin require import JModel.
 
@@ -15,8 +15,23 @@ while (#pre /\ 0 <= to_uint i <= inlen) (inlen - to_uint i) ; auto => />.
   - move => &hr ?????. rewrite ultE //= => *. rewrite to_of_int => /#. 
 qed.
 
+lemma memcpy_ptr_ll : islossless Memcpy._x_memcpy_u8u8p.
+proof.
+proc.
+while (true) ((to_uint inlen) - (to_uint i)).
+  - auto => /> &hr. rewrite ultE => //= * ; smt(@W64).
+  - auto => /> ; move => &hr ?. rewrite ultE => //= /#.
+qed.
+
 lemma ull_to_bytes_2_ll  : islossless Mp(Syscall).__ull_to_bytes_2 by proc ; while (true) (i - aux) ; by auto => /> /#.
 lemma ull_to_bytes_32_ll : islossless Mp(Syscall).__ull_to_bytes_32 by proc ; while (true) (i - aux) ; by auto => /> /#.
+
+lemma zero_addr_ll : islossless Mp(Syscall).__zero_address. 
+proof.
+proc ; inline *.
+auto => />.
+while (true) (8 - i) ; by auto => /> /#.
+qed.
 
 lemma addr_to_bytes_ll : islossless Mp(Syscall).__addr_to_bytes.
 proc.
@@ -25,10 +40,9 @@ auto => />.
 inline; by auto => /> /#.
 qed.
 
-lemma thash_f_ll : islossless Mp(Syscall)._thash_f.
+lemma thash_f_ll : islossless Mp(Syscall).__thash_f.
 proof.
 proc.
-inline Mp(Syscall).__thash_f => //=.
 auto => />.
 while (0 <= to_uint i <= 32) (32 - to_uint i) ; auto => />.
   - auto => /> &hr *. do split ; 1,2: by smt(@W64). rewrite to_uintD_small => /#.
@@ -70,16 +84,38 @@ lemma gen_chain_inplace_ll : islossless Mp(Syscall).__gen_chain_inplace.
 proof.
 proc.
 auto => />.
+admit.
 (*
 while (0 <= to_uint i <= to_uint t) ((to_uint t) - (to_uint i)).
   - auto => />. inline Mp(Syscall).__thash_f_ ;  auto => /> ; call(thash_f_ll).
     inline. auto => /> &hr. rewrite ultE. rewrite to_uintD_small => //=. admit. progress. smt(). admit. idtac => //= /#.
   - auto => /> &hr i. rewrite ultE -lezNgt => /#.
 *)
-admit.
 qed.
 
-lemma gen_chain_ll : islossless Mp(Syscall).__gen_chain by admit.
+lemma gen_chain_ll : islossless Mp(Syscall).__gen_chain.
+proc.
+auto => /> *.
+while (to_uint start <= to_uint i <= to_uint t /\ to_uint t <= XMSS_WOTS_W - 1) ((to_uint t) - (to_uint i)).
+(* First *)
+auto => /> *.
+call (thash_f_ll).
+inline ; auto => /> &hr H0 H1 H2.
+rewrite to_uintD_small => //=.
+rewrite /XMSS_WOTS_W in H2 => /#.
+move => ? ; do split => /#.
+(* Last *)
+auto => />.
+(* 1st *)
+auto => /> &hr *. progress => /#.
+(* 2nd *)
+call (memcpy_ptr_ll) ; auto => /> &hr.
+split ; last by move => ? ; rewrite ultE => // * /#.
+rewrite to_uintD_small.
+admit.
+rewrite /XMSS_WOTS_W => //=. 
+admit.
+qed.
 
 (* Chain Lengths *)
 lemma chain_lengths_ll : islossless Mp(Syscall).__chain_lengths.
@@ -134,3 +170,13 @@ while (true) (67 - i).
     call (chain_lengths_ll) ; by auto => /> /#.
 qed.
 
+(* XMSS *)
+
+lemma ltree_ll : islossless Mp(Syscall).__l_tree by admit.
+
+lemma treehash_array_ll : islossless Mp(Syscall).__treehash_array.
+proof.
+proc.
+pose x := 1 `<<` 10.
+admit.
+qed.

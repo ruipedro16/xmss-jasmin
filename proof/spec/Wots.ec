@@ -5,7 +5,7 @@ require (*  *) Subtype.
 
 from Jasmin require import JModel.
 
-require import Params Notation Address Primitives.
+require import Params Notation Address Primitives Params.
 
 import DList.
 import NBytes.
@@ -269,3 +269,79 @@ to hold the checksum.
 
 axiom checksum_max : hoare[WOTS.checksum : true ==> to_uint res <= len1 * (w - 1) * 2^8].
 axiom checksum_W32 : hoare[WOTS.checksum : true ==> to_uint res <= W32.max_uint].
+
+(********************************************************************************************************************)
+
+lemma wots_genSK_ll : islossless WOTS.genSK.
+proof.
+proc.
+while (true) (len - i) ; auto => />.
+  - move => &hr ?. smt.
+  - move => i. rewrite -lezNgt /#.
+qed.
+
+lemma wots_genSK_prf_ll : islossless WOTS.pseudorandom_genSK.
+proof.
+proc ; islossless.
+while (true) (len - i) ; by auto => /> /#.
+qed.
+
+(* TODO: Remove chain_ll lemma from this file => it is already in Properties *)
+lemma chain_ll : islossless Chain.chain
+  by proc; while (true) (s - chain_count); by auto => /#.
+
+(* TODO: Move this to Generic.ec *)
+require import Generic.
+
+lemma spec_base_w_ll : islossless BaseW.base_w.
+proof.
+proc.
+islossless.
+while (true) (outlen - consumed) ; by auto => /> /#.
+qed.
+
+lemma wots_genPK_ll : islossless WOTS.genPK.
+proof.
+proc ; islossless.
+while (true) (len - i) ; auto => />.
+  - call (chain_ll) ; auto => /> /#.
+  - smt().
+qed.
+
+lemma wots_pkGen_ll : islossless WOTS.pkGen.
+proof.
+proc.
+while (true) (len - i) ; auto => />.
+  - call (chain_ll) ; auto => /> /#.
+  - call (wots_genSK_prf_ll) ; auto => /#.
+qed.
+
+lemma wots_kg_ll : islossless WOTS.kg by proc ; call (wots_genPK_ll) ; call (wots_genSK_prf_ll).
+
+lemma wots_checksum_ll : islossless WOTS.checksum. 
+proof.
+proc.
+while (true) (len1 - i) ; by auto => /> /#.
+qed.
+
+lemma wots_sign_ll : islossless WOTS.sign.
+proof.
+proc.
+while (true) (len - i).
+    - auto => />. call (chain_ll) ; auto => /> /#.
+    - auto => /> ; call (spec_base_w_ll). 
+      auto => /> ; call (wots_checksum_ll). 
+      auto => /> ; call (spec_base_w_ll). auto => /> /#.
+qed.
+
+lemma wots_pkFromSig_ll : islossless WOTS.pkFromSig.
+proof.
+proc.
+while (true) (len - i).
+  - auto => />. call (chain_ll) ; auto => /> /#.
+  - auto => />. call (spec_base_w_ll).
+    auto => />. call (wots_checksum_ll) ; call (spec_base_w_ll).
+    auto => /> /#.
+qed.
+
+lemma wots_verify_ll : islossless WOTS.verify by proc ; call (wots_pkFromSig_ll).
