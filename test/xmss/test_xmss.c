@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <inttypes.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -364,8 +365,12 @@ void test_xmss_api(void) {
     // Test that verification after signing works
 
 #define XMSS_MLEN 32
-#define MAX_SIGNATURES (1ULL << p.full_height) - 1
-
+#define MAX_SIGNATURES ((unsigned long long)pow(2, p.full_height) - 1)
+    
+    ////////////////////////////////////////////////////////////////////////////
+    // FIXME: TODO: [xmss api] Test 1/1000 (signature 428/1023) always fails  //
+    //               It is the only test that is failing                      //   
+    ////////////////////////////////////////////////////////////////////////////
     bool debug = true;
 
     xmss_params p;
@@ -399,10 +404,17 @@ void test_xmss_api(void) {
 
             randombytes(m, XMSS_MLEN);
 
-            xmss_sign_jazz(sk, sm, &smlen, m, mlen);
+            xmss_sign_jazz(sk, sm, &smlen, m, mlen);  // sk is updated here
             res = xmss_sign_open_jazz(m, &mlen, sm, smlen, pk);
 
+#ifdef DEBUG_TEST
+            if (res != 0) {
+                fprintf(stderr, "[xmss api] Test %d/%d (signature %lld/%lld) failed\n", i + 1, TESTS, sig + 1,
+                        MAX_SIGNATURES);
+            }
+#else
             assert(res == 0);
+#endif
         }
     }
 

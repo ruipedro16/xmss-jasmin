@@ -1,10 +1,10 @@
 from Stdlib require "conditions/conditions.jinc"
 
-export fn cond_u32_a_below_b_and_a_below_c_jazz(reg u32 a b c) -> reg u8 {
+export fn cond_u64_geq_u64_u32_eq_u32_jazz (reg u64 a b, reg u32 c d) -> reg u8 {
     reg u8 r;
     reg bool res;
 
-    res = __cond_u32_a_below_b_and_a_below_c(a, b, c);
+    res = __cond_u64_geq_u64_u32_eq_u32(a, b, c);
 
     r = #SETcc(res);
 

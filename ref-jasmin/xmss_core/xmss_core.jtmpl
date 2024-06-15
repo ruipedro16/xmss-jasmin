@@ -443,7 +443,7 @@ inline fn __xmssmt_core_sign(
             () = #unspill(sk);
             sk_seed = sk[XMSS_INDEX_BYTES : XMSS_N];
             pub_seed = sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N];
-            #declassify root = root; // Safe to declassify because root only depends on public values
+            #declassify root = root; // root is public
             sig, ots_addr = __wots_sign_(sig, root, sk_seed, pub_seed, ots_addr);
             () = #unspill(sm_ptr);
             for j=0 to XMSS_WOTS_LEN * XMSS_N { (u8)[sm_ptr + j] = sig[j]; }

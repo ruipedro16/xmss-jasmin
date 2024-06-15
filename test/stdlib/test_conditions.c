@@ -15,28 +15,15 @@
 #define TESTS 100000
 #endif
 
-extern uint8_t cond_u32_a_below_b_and_a_below_c_jazz(uint32_t, uint32_t, uint32_t);
+extern uint8_t cond_u64_geq_u64_u32_eq_u32_jazz(uint64_t, uint64_t, uint32_t, uint32_t);
 
-void test_cond_u32_a_below_b_and_a_below_c(void) {
-    uint32_t a, b, c;
-    uint8_t r;
-
+void test_cond_u64_geq_u64_u32_eq_u32(void) {
     for (int i = 0; i < TESTS; i++) {
-        randombytes((uint8_t *)&a, sizeof(uint32_t));
-        randombytes((uint8_t *)&b, sizeof(uint32_t));
-        randombytes((uint8_t *)&c, sizeof(uint32_t));
-
-        r = cond_u32_a_below_b_and_a_below_c_jazz(a, b, c);
-        assert((a < b && a < c) ? (r == 1) : (r == 0));
+        // TODO:
     }
-
-    // TODO: More tests
-
-    puts("cond_u32_a_below_b_and_a_below_c: a < b /\\ a < c OK");
 }
 
 int main(void) {
-    test_cond_u32_a_below_b_and_a_below_c();
     puts("CONDITIONS : OK");
     return 0;
 }

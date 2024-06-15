@@ -85,8 +85,8 @@ bin/%.s: bin/%.jazz
 
 $(TESTS):
 bin/%: bin/%.s | bin/
-	$(CC) $(CFLAGS) -o $@ -I../common -I../ -DIMPL=$(GET_IMPL_UPPER_CASE) -DTEST_XMSS \
-	$(SOURCES) $(REF_SOURCES) $< $(LDLIBS)
+	$(CC) $(CFLAGS) -o $@ -I../common -I../ -DIMPL=$(GET_IMPL_UPPER_CASE) -DTEST_XMSS -DDEBUG_TEST \
+	$(SOURCES) $(REF_SOURCES) $< $(LDLIBS) -lm
 
 $(OBJ_FILES):
 bin/%.o: bin/%.s

@@ -1,20 +1,3 @@
-// cond = a < b && a < c
-inline fn __cond_u32_a_below_b_and_a_below_c(reg u32 a b c) -> reg bool
-{
-  reg bool c1 c2 c3;
-  reg u8 bc1 bc2;
-
-  ?{ "<u" = c1 } = #CMP_32(a, b);
-  bc1 = #SETcc(c1);
-
-  ?{ "<u" = c2 } = #CMP_32(a, c);
-  bc2 = #SETcc(c2);
-
-  ?{ "!=" = c3 } = #TEST_8(bc1, bc2); 
-
-  return c3;
-}
-
 // cond = a >= b && c == d
 // used in treehash
 inline fn __cond_u64_geq_u64_u32_eq_u32(

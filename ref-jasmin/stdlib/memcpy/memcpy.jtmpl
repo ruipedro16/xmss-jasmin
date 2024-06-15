@@ -9,7 +9,7 @@ inline fn __memcpy_u8u8<OUTLEN, INLEN>(
     reg u64 i;
     
     i = 0;
-    while( i < INLEN) {
+    while (i < INLEN) {
         out[offset] = in[i];
         i += 1;
         offset += 1;
@@ -59,7 +59,7 @@ inline fn __memcpy_u8u8p<OUTLEN>(
     reg u64 i;
 
     i = 0;
-    while( i < inlen ) {
+    while (i < inlen ) {
       out[offset] = (u8)[in + i];
       i += 1;
       offset += 1;
