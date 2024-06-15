@@ -29,11 +29,10 @@ export fn bytes_to_ull_ptr_jazz(reg u64 in_ptr inlen) -> reg u64 {
 //               offset <= OUTLEN - INLEN
 export fn memcpy_u8u8_jazz<OUTLEN,INLEN>(
     reg ptr u8[OUTLEN] out,
-    reg u64 offset,
     reg ptr u8[INLEN] in
 ) -> reg ptr u8[OUTLEN]
 {
-    out, _ = _x_memcpy_u8u8<OUTLEN,INLEN>(out, offset, in);
+    out = _x_memcpy_u8u8<OUTLEN,INLEN>(out, in);
     return out;
 }//<>
 

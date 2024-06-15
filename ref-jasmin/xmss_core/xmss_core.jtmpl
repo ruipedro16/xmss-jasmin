@@ -246,14 +246,17 @@ inline fn __xmssmt_core_seed_keypair(
     sk[0 : XMSS_INDEX_BYTES] = __memset_zero_u8(sk[0 : XMSS_INDEX_BYTES]);
     
     // memcpy(sk, seed, 2 * params->n);
-    sk[XMSS_INDEX_BYTES : 2 * XMSS_N], _ = _x_memcpy_u8u8<2*XMSS_N, 2*XMSS_N>(sk[XMSS_INDEX_BYTES : 2 * XMSS_N], 0, seed[0 : 2 * XMSS_N]);
+    sk[XMSS_INDEX_BYTES : 2 * XMSS_N] = 
+        _x_memcpy_u8u8<2*XMSS_N, 2*XMSS_N>(sk[XMSS_INDEX_BYTES : 2 * XMSS_N], seed[0 : 2 * XMSS_N]);
 
     // memcpy(sk + 3 * params->n, seed + 2 * params->n, params->n);
-    sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N], _ = _x_memcpy_u8u8<XMSS_N, XMSS_N>(sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N], 0, seed[2*XMSS_N : XMSS_N]);
+    sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N] = 
+        _x_memcpy_u8u8<XMSS_N, XMSS_N>(sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N], seed[2*XMSS_N : XMSS_N]);
     // sk = #randombytes(sk);
 
     // memcpy(pk + params->n, sk + 3*params->n, params->n);
-    pk[XMSS_N : XMSS_N], _  = _x_memcpy_u8u8<XMSS_N, XMSS_N>(pk[XMSS_N : XMSS_N], 0, sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N]);
+    pk[XMSS_N : XMSS_N] = 
+        _x_memcpy_u8u8<XMSS_N, XMSS_N>(pk[XMSS_N : XMSS_N], sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N]);
 
     // treehash(params, pk, auth_path, sk, pk + params->n, 0, top_tree_addr);
     // FIXME: Regalloc fails with pk[0 : XMSS_N] as the 1st argument

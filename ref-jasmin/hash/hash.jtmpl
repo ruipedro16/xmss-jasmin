@@ -29,7 +29,6 @@ inline fn __prf(
 {
     reg u64 offset;
     stack u8[XMSS_PADDING_LEN + XMSS_N + 32] buf;
-    reg ptr u8[XMSS_PADDING_LEN + XMSS_N + 32] buf_p;
     reg ptr u8[XMSS_PADDING_LEN] padding_buf;
     
     // ull_to_bytes(buf, params->padding_len, XMSS_HASH_PADDING_PRF);
@@ -38,16 +37,14 @@ inline fn __prf(
     buf[0:XMSS_PADDING_LEN] = padding_buf;
 
     // memcpy(buf + params->padding_len, key, params->n);
-    buf_p = buf;
     offset = XMSS_PADDING_LEN;
-    buf_p, _ = _x_memcpy_u8u8<XMSS_PADDING_LEN + XMSS_N + 32, XMSS_N>(buf_p, offset, key);
+    buf[XMSS_PADDING_LEN : XMSS_N] = _x_memcpy_u8u8<XMSS_N, XMSS_N>(buf[XMSS_PADDING_LEN : XMSS_N], key);
 
     // memcpy(buf + params->padding_len + params->n, in, 32);
-    offset = XMSS_PADDING_LEN + XMSS_N;
-    buf_p, _ = _x_memcpy_u8u8<XMSS_PADDING_LEN + XMSS_N + 32, 32>(buf_p, offset, in);
+    buf[XMSS_PADDING_LEN + XMSS_N : 32] = _x_memcpy_u8u8<32, 32>(buf[XMSS_PADDING_LEN + XMSS_N : 32], in);
 
     // out = __core_hash_ <OUTLEN, XMSS_PADDING_LEN + XMSS_N + 32>(out, buf_p);
-    out = __core_hash<XMSS_PADDING_LEN + XMSS_N + 32>(out, buf_p);
+    out = __core_hash<XMSS_PADDING_LEN + XMSS_N + 32>(out, buf);
 
     return out;
 }//<>
@@ -93,12 +90,11 @@ inline fn __prf_keygen(
     buf[0:XMSS_PADDING_LEN] = padding_buf;
 
     // memcpy(buf + params->padding_len, key, params->n);
-    offset = XMSS_PADDING_LEN;
-    buf, _ = _x_memcpy_u8u8<XMSS_PADDING_LEN + 2*XMSS_N + 32, XMSS_N>(buf, offset, key);
+    buf[XMSS_PADDING_LEN : 32] = _x_memcpy_u8u8<32, XMSS_N>(buf[XMSS_PADDING_LEN : 32], key);
 
     // memcpy(buf + params->padding_len + params->n, in, params->n + 32);
-    offset = XMSS_PADDING_LEN + XMSS_N;
-    buf, _ = _x_memcpy_u8u8<XMSS_PADDING_LEN + 2*XMSS_N + 32, XMSS_N + 32>(buf, offset, in);
+    buf[XMSS_PADDING_LEN + XMSS_N : XMSS_N + 32] =
+        _x_memcpy_u8u8<XMSS_N + 32, XMSS_N + 32>(buf[XMSS_PADDING_LEN + XMSS_N : XMSS_N + 32], in);
 
     // core_hash(params, out, buf, params->padding_len + 2*params->n + 32);
     out = __core_hash<XMSS_PADDING_LEN + 2*XMSS_N + 32>(out, buf); // FIXME: Calling the local function causes register allocation to fail

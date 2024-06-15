@@ -29,6 +29,21 @@ module Mp(SC:Syscall_t) = {
     return (out);
   }
 
+  proc __ull_to_bytes_4 (out:W8.t Array4.t, in_0:W64.t) : W8.t Array4.t = {
+    var aux: int;
+
+    var i:int;
+
+    aux <- (- 1);
+    i <- (4 - 1);
+    while (aux < i) {
+      out.[i] <- (truncateu8 in_0);
+      in_0 <- (in_0 `>>` (W8.of_int 8));
+      i <- i - 1;
+    }
+    return (out);
+  }
+
   proc __ull_to_bytes_32 (out:W8.t Array32.t, in_0:W64.t) : W8.t Array32.t = {
     var aux: int;
 
@@ -51,21 +66,6 @@ module Mp(SC:Syscall_t) = {
 
     aux <- (- 1);
     i <- (2 - 1);
-    while (aux < i) {
-      out.[i] <- (truncateu8 in_0);
-      in_0 <- (in_0 `>>` (W8.of_int 8));
-      i <- i - 1;
-    }
-    return (out);
-  }
-
-  proc __ull_to_bytes_4 (out:W8.t Array4.t, in_0:W64.t) : W8.t Array4.t = {
-    var aux: int;
-
-    var i:int;
-
-    aux <- (- 1);
-    i <- (4 - 1);
     while (aux < i) {
       out.[i] <- (truncateu8 in_0);
       in_0 <- (in_0 `>>` (W8.of_int 8));
@@ -186,6 +186,21 @@ module Mp(SC:Syscall_t) = {
       i <- (i + (W64.of_int 1));
     }
     return ();
+  }
+
+  proc __memcpy_u8u8_offset_2144_32 (out:W8.t Array2144.t, offset:W64.t,
+                                     in_0:W8.t Array32.t) : W8.t Array2144.t = {
+
+    var i:W64.t;
+
+    i <- (W64.of_int 0);
+
+    while ((i \ult (W64.of_int 32))) {
+      out.[(W64.to_uint offset)] <- in_0.[(W64.to_uint i)];
+      i <- (i + (W64.of_int 1));
+      offset <- (offset + (W64.of_int 1));
+    }
+    return (out);
   }
 
   proc __memcpy_u8pu8p (out_ptr:W64.t, out_offset:W64.t, in_ptr:W64.t,
@@ -616,24 +631,19 @@ module Mp(SC:Syscall_t) = {
                       pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
   W8.t Array2144.t * W32.t Array8.t = {
     var aux_list : W8.t list;
-    var aux_1: int;
-    var aux_0: W64.t;
+    var aux_0: int;
     var aux: W8.t Array32.t;
 
-    var offset:W64.t;
     var buf:W8.t Array64.t;
     var i:int;
-    var  _0:W64.t;
     buf <- witness;
 
     addr <@ __set_hash_addr (addr, (W32.of_int 0));
     addr <@ __set_key_and_mask (addr, (W32.of_int 0));
-    offset <- (W64.of_int 0);
-    (aux_list, aux_0) <@ Memcpy._x_memcpy_u8u8(to_list (Array32.init (fun i_0 => buf.[0 + i_0])), 32, offset, to_list pub_seed, 32);
-    aux <- Array32.of_list witness aux_list;
+    aux <@ _x_memcpy_u8u8_32_32 ((Array32.init (fun i_0 => buf.[0 + i_0])),
+    pub_seed);
     buf <- Array64.init
            (fun i_0 => if 0 <= i_0 < 0 + 32 then aux.[i_0-0] else buf.[i_0]);
-     _0 <- aux_0;
     i <- 0;
     while (i < 67) {
       addr <@ __set_chain_addr (addr, (W32.of_int i));
@@ -1081,11 +1091,9 @@ module Mp(SC:Syscall_t) = {
     var  _0:bool;
     var  _1:W64.t;
     var  _2:W64.t;
-    var  _3:W64.t;
+    var  _3:bool;
     var  _4:bool;
     var  _5:bool;
-    var  _6:bool;
-    var  _7:W64.t;
     buf0 <- witness;
     buf1 <- witness;
     l <- (W64.of_int 67);
@@ -1118,8 +1126,7 @@ module Mp(SC:Syscall_t) = {
         (buf0, addr) <@ __thash_h (buf0, buf1, pub_seed, addr);
 
         offset_out <- (i * (W64.of_int 32));
-        (wots_pk_list, _3) <@ Memcpy._x_memcpy_u8u8(to_list wots_pk, 2144, offset_out, to_list buf0, 32);
-        wots_pk <- Array2144.of_list witness wots_pk_list;
+        wots_pk <@ __memcpy_u8u8_offset_2144_32 (wots_pk, offset_out, buf0);
 
         i <- (i + (W64.of_int 1));
       }
@@ -1129,7 +1136,7 @@ module Mp(SC:Syscall_t) = {
       if ((t <> (W64.of_int 0))) {
 
         offset_out <- l;
-        (_of_, _cf_, _sf_,  _5, _zf_, offset_out) <- SHR_64 offset_out
+        (_of_, _cf_, _sf_,  _4, _zf_, offset_out) <- SHR_64 offset_out
         (W8.of_int 1);
         offset_out <- (offset_out * (W64.of_int 32));
         offset_in <- l;
@@ -1142,10 +1149,10 @@ module Mp(SC:Syscall_t) = {
           j <- j + 1;
         }
 
-        (_of_, _cf_, _sf_,  _6, _zf_, l) <- SHR_64 l (W8.of_int 1);
+        (_of_, _cf_, _sf_,  _5, _zf_, l) <- SHR_64 l (W8.of_int 1);
         l <- (l + (W64.of_int 1));
       } else {
-        (_of_, _cf_, _sf_,  _4, _zf_, l) <- SHR_64 l (W8.of_int 1);
+        (_of_, _cf_, _sf_,  _3, _zf_, l) <- SHR_64 l (W8.of_int 1);
       }
 
       height <- (height + (W32.of_int 1));
@@ -1153,9 +1160,8 @@ module Mp(SC:Syscall_t) = {
 
     }
 
-    offset_out <- (W64.of_int 0);
-    (leaf_list, _7) <@ Memcpy._x_memcpy_u8u8(to_list leaf, 32, offset_out, to_list (Array32.init (fun i_0 => wots_pk.[0 + i_0])), 32);
-    leaf <- Array32.of_list witness leaf_list;
+    leaf <@ _x_memcpy_u8u8_32_32 (leaf,
+    (Array32.init (fun i_0 => wots_pk.[0 + i_0])));
     return (leaf, wots_pk, addr);
   }
 
@@ -1194,8 +1200,8 @@ module Mp(SC:Syscall_t) = {
 
     var auth_path_ptr:W64.t;
     var t32:W32.t;
-    var offset_out:W64.t;
     var buffer:W8.t Array64.t;
+    var offset_out:W64.t;
     var len:W64.t;
     var i:W64.t;
     var tree_height:W32.t;
@@ -1206,12 +1212,10 @@ module Mp(SC:Syscall_t) = {
     var thash_in:W8.t Array64.t;
     var  _0:W64.t;
     var  _1:W64.t;
-    var  _2:W64.t;
+    var  _2:bool;
     var  _3:W64.t;
-    var  _4:bool;
-    var  _5:W64.t;
-    var  _6:W64.t;
-    var  _7:bool;
+    var  _4:W64.t;
+    var  _5:bool;
     buffer <- witness;
     thash_in <- witness;
     auth_path_ptr <- _auth_path_ptr;
@@ -1219,21 +1223,21 @@ module Mp(SC:Syscall_t) = {
     t32 <- leaf_idx;
     t32 <- (t32 `&` (W32.of_int 1));
     if ((t32 <> (W32.of_int 0))) {
-      offset_out <- (W64.of_int 32);
-      (buffer_list, _2) <@ Memcpy._x_memcpy_u8u8(to_list buffer, 64, offset_out, to_list leaf, 32);
-      buffer <- Array64.of_list witness buffer_list;
+      aux <@ _x_memcpy_u8u8_32_32 ((Array32.init (fun i_0 => buffer.[32 + i_0])),
+      leaf);
+      buffer <- Array64.init
+                (fun i_0 => if 32 <= i_0 < 32 + 32 then aux.[i_0-32]
+                else buffer.[i_0]);
       offset_out <- (W64.of_int 0);
-      len <- (W64.of_int 32);
-      (buffer_list, _3) <@ Memcpy._x_memcpy_u8u8p(to_list buffer, offset_out, auth_path_ptr, len);
-      buffer <- Array64.of_list witness buffer_list;
-    } else {
-      offset_out <- (W64.of_int 0);
-    (buffer_list,  _0) <@ Memcpy._x_memcpy_u8u8(to_list buffer, 64, offset_out, to_list leaf, 32);
-    buffer <- Array64.of_list witness buffer_list;
-      offset_out <- (W64.of_int 32);
       len <- (W64.of_int 32);
       (buffer_list, _1) <@ Memcpy._x_memcpy_u8u8p(to_list buffer, offset_out, auth_path_ptr, len);
       buffer <- Array64.of_list witness buffer_list;
+    } else {
+      buffer <@ _x_memcpy_u8u8_64_32 (buffer, leaf);
+      offset_out <- (W64.of_int 32);
+      len <- (W64.of_int 32);
+      (buffer,  _0) <@ _x_memcpy_u8u8p_64 (buffer, offset_out, auth_path_ptr,
+      len);
     }
     auth_path_ptr <- (auth_path_ptr + (W64.of_int 32));
 
@@ -1244,7 +1248,7 @@ module Mp(SC:Syscall_t) = {
       tree_height <- (truncateu32 i);
       addr <@ __set_tree_height (addr, tree_height);
 
-      (_of_, _cf_, _sf_,  _4, _zf_, leaf_idx) <- SHR_32 leaf_idx
+      (_of_, _cf_, _sf_,  _2, _zf_, leaf_idx) <- SHR_32 leaf_idx
       (W8.of_int 1);
       addr <@ __set_tree_index (addr, leaf_idx);
 
@@ -1266,8 +1270,8 @@ module Mp(SC:Syscall_t) = {
         addr <- aux_0;
         offset_out <- (W64.of_int 0);
         len <- (W64.of_int 32);
-        (buffer_list, _6) <@ Memcpy._x_memcpy_u8u8p(to_list buffer, offset_out, auth_path_ptr, len);
-        buffer <- Array64.of_list witness buffer_list;
+        (buffer,  _4) <@ _x_memcpy_u8u8p_64 (buffer, offset_out,
+        auth_path_ptr, len);
       } else {
         thash_in <-
         (Array64.init (fun i_0 => get8
@@ -1284,8 +1288,8 @@ module Mp(SC:Syscall_t) = {
         addr <- aux_0;
         offset_out <- (W64.of_int 32);
         len <- (W64.of_int 32);
-        (buffer_list, _5) <@ Memcpy._x_memcpy_u8u8p(to_list buffer, offset_out, auth_path_ptr, len);
-        buffer <- Array64.of_list witness buffer_list;
+        (buffer,  _3) <@ _x_memcpy_u8u8p_64 (buffer, offset_out,
+        auth_path_ptr, len);
       }
 
       auth_path_ptr <- (auth_path_ptr + (W64.of_int 32));
@@ -1294,7 +1298,7 @@ module Mp(SC:Syscall_t) = {
     }
 
     addr <@ __set_tree_height (addr, (W32.of_int (10 - 1)));
-    (_of_, _cf_, _sf_,  _7, _zf_, leaf_idx) <- SHR_32 leaf_idx (W8.of_int 1);
+    (_of_, _cf_, _sf_,  _5, _zf_, leaf_idx) <- SHR_32 leaf_idx (W8.of_int 1);
     addr <@ __set_tree_index (addr, leaf_idx);
 
     (root, addr) <@ __thash_h (root, buffer, pub_seed, addr);
@@ -1749,21 +1753,17 @@ module Mp(SC:Syscall_t) = {
                                                           W8.t Array132.t = {
     var aux_2_list : W8.t list;
     var aux_0_list : W8.t list;
-    var aux_3: int;
-    var aux_1: W64.t;
+    var aux_2: int;
     var aux: W8.t Array4.t;
-    var aux_2: W8.t Array32.t;
+    var aux_1: W8.t Array32.t;
     var aux_0: W8.t Array64.t;
 
     var top_tree_addr:W32.t Array8.t;
     var buf:W8.t Array32.t;
     var auth_path:W8.t Array320.t;
     var i:int;
-    var  _0:W64.t;
-    var  _1:W64.t;
-    var  _2:W64.t;
-    var  _3:W8.t Array320.t;
-     _3 <- witness;
+    var  _0:W8.t Array320.t;
+     _0 <- witness;
     auth_path <- witness;
     buf <- witness;
     top_tree_addr <- witness;
@@ -1772,31 +1772,22 @@ module Mp(SC:Syscall_t) = {
     aux <@ __memset_zero_u8 ((Array4.init (fun i_0 => sk.[0 + i_0])));
     sk <- Array132.init
           (fun i_0 => if 0 <= i_0 < 0 + 4 then aux.[i_0-0] else sk.[i_0]);
-    (aux_0_list,
-    aux_1) <@ Memcpy._x_memcpy_u8u8(to_list (Array64.init (fun i_0 => sk.[4 + i_0])), 64,
-    (W64.of_int 0), to_list (Array64.init (fun i_0 => seed.[0 + i_0])), 64);
-    aux_0 <- Array64.of_list witness aux_0_list;
+    aux_0 <@ _x_memcpy_u8u8_64_64 ((Array64.init (fun i_0 => sk.[4 + i_0])),
+    (Array64.init (fun i_0 => seed.[0 + i_0])));
     sk <- Array132.init
           (fun i_0 => if 4 <= i_0 < 4 + 64 then aux_0.[i_0-4] else sk.[i_0]);
-     _0 <- aux_1;
-    (aux_2_list,
-    aux_1) <@ Memcpy._x_memcpy_u8u8(to_list (Array32.init (fun i_0 => sk.[(4 + (3 * 32)) + i_0])), 32,
-    (W64.of_int 0), to_list (Array32.init (fun i_0 => seed.[(2 * 32) + i_0])), 32);
-    aux_2 <- Array32.of_list witness aux_2_list;
+    aux_1 <@ _x_memcpy_u8u8_32_32 ((Array32.init (fun i_0 => sk.[(4 + (3 * 32)) + i_0])),
+    (Array32.init (fun i_0 => seed.[(2 * 32) + i_0])));
     sk <- Array132.init
           (fun i_0 => if (4 + (3 * 32)) <= i_0 < (4 + (3 * 32)) + 32
-          then aux_2.[i_0-(4 + (3 * 32))] else sk.[i_0]);
-     _1 <- aux_1;
-    (aux_2_list,
-    aux_1) <@ Memcpy._x_memcpy_u8u8(to_list (Array32.init (fun i_0 => pk.[32 + i_0])), 32,
-    (W64.of_int 0), to_list (Array32.init (fun i_0 => sk.[(4 + (3 * 32)) + i_0])), 32);
-    aux_2 <- Array32.of_list witness aux_2_list;
+          then aux_1.[i_0-(4 + (3 * 32))] else sk.[i_0]);
+    aux_1 <@ _x_memcpy_u8u8_32_32 ((Array32.init (fun i_0 => pk.[32 + i_0])),
+    (Array32.init (fun i_0 => sk.[(4 + (3 * 32)) + i_0])));
     pk <- Array64.init
-          (fun i_0 => if 32 <= i_0 < 32 + 32 then aux_2.[i_0-32]
+          (fun i_0 => if 32 <= i_0 < 32 + 32 then aux_1.[i_0-32]
           else pk.[i_0]);
-     _2 <- aux_1;
 
-    (buf,  _3) <@ __treehash_array_ (buf, auth_path,
+    (buf,  _0) <@ __treehash_array_ (buf, auth_path,
     (Array32.init (fun i_0 => sk.[4 + i_0])),
     (Array32.init (fun i_0 => pk.[32 + i_0])), (W32.of_int 0),
     top_tree_addr);
