@@ -1,5 +1,4 @@
 // cond = a >= b && c == d
-// used in treehash
 inline fn __cond_u64_geq_u64_u32_eq_u32(
   reg u64 a b,
   reg u32 c d
