@@ -4,23 +4,21 @@ require import AllCore List RealExp IntDiv.
 
 from Jasmin require import JModel.
 
+require import Array64.
+
 module Memcpy = {
   (* This assumes that offset + inlen <= OUTLEN *)
   (* I.e. writing INLEN elements starting at index offset does not write past the end of the array *)
   proc _x_memcpy_u8u8(out : W8.t list, 
-                      outlen : int, 
-                      offset : W64.t,
-                      in_0 : W8.t list, 
-                      inlen : int) : W8.t list * W64.t = {
+                      in_0 : W8.t list) : W8.t list = {
     var i : W64.t <- W64.zero;
 
-    while ((i \ult (W64.of_int inlen))) {
-      out <- put out (W64.to_uint offset) in_0.[(W64.to_uint i)];
+    while ((i \ult (W64.of_int (size in_0)))) {
+      out <- put out (W64.to_uint i) (nth witness in_0 (W64.to_uint i));
       i <- (i + (W64.of_int 1));
-      offset <- (offset + (W64.of_int 1));
     }
 
-    return (out, offset);
+    return out;
   }
 
   proc _x_memcpy_u8u8p(out:W8.t list, offset:W64.t, in_0:W64.t,
@@ -38,7 +36,7 @@ module Memcpy = {
     return (out, offset);
   }
 
-    proc __memcpy_u8u8_2 (out:W8.t list, in_0:W8.t list, in_offset:W64.t,
+  proc __memcpy_u8u8_2 (out:W8.t list, in_0:W8.t list, in_offset:W64.t,
                           bytes:W64.t) : W8.t list * W64.t = {
 
     var i:W64.t;
@@ -53,32 +51,6 @@ module Memcpy = {
     return (out, in_offset);
   }
 }.
-
-lemma memcpy_u8u8_vals (_out : W8.t list, len_out : int, _offset : W64.t, _in : W8.t list, len_in : int) :
-    0 <= len_in /\
-    to_uint _offset + len_in <= len_out => 
-      hoare [Memcpy._x_memcpy_u8u8 :
-        arg = (_out, len_out, _offset, _in, len_in) ==> 
-          forall (k : int), 0 <= k < len_in => nth witness res.`1 (to_uint _offset + k) = nth witness _in k].
-proof.
-move => H.
-move: H => [#] inlen_g0 ?.
-proc.
-while (
-  inlen = len_in /\
-  0 <= to_uint i <= len_in /\
-  forall (k : int), 0 <= k < to_uint i => nth witness out (to_uint offset + k) = nth witness _in k
-).
-(* first subgoal of while *)
-auto => /> &h *.
-do split; 1,2: by smt(@W64).
-auto => /> *.
-congr ; by admit. (* TODO : *)
-(* second subgoal of while *)
-auto => /> * ; do split.
-auto => /> *. smt.
-auto => /> *. admit. (* TODO: *)
-qed.
 
 module BaseWGeneric = {
   proc __base_w (output : W32.t list, outlen : W64.t, input : W8.t list) : W32.t list = {
@@ -128,7 +100,7 @@ module Memset = {
     i <- (W64.of_int 0);
     
     while ((i \ult inlen)) {
-      a<- put a (W64.to_uint i) value; (* a.[(W64.to_uint i)] <- value; *)
+      a <- put a (W64.to_uint i) value;
       i <- (i + (W64.of_int 1));
     }
     return (a);

@@ -144,6 +144,8 @@ op prf_keygen : W8.t list -> W8.t list -> W8.t list.
     t = text.rfind("module")
     return text[:t] + string_to_add + "\n" + text[t:]
 
+def replace_memcpy(text: str) -> str:
+    return text
 
 def replace_calls(text: str) -> str:
     """
@@ -276,10 +278,10 @@ def replace_calls(text: str) -> str:
 
     text = text.replace(
 """
-    (buf,  _0) <@ _x_memcpy_u8u8_128_32 (buf, offset, key);
+    (buf,  _0) <@ _x_memcpy_u8u8_128_32 (buf, key);
 """,
 """
-    (buf_list, _0) <@ Memcpy._x_memcpy_u8u8 (to_list buf, 128, offset, to_list key, 32);
+    (buf_list, _0) <@ Memcpy._x_memcpy_u8u8 (to_list buf, 128, to_list key, 32);
     buf <- Array128.of_list witness buf_list;
 """
     )
@@ -327,24 +329,31 @@ def replace_calls(text: str) -> str:
   proc __expand_seed (outseeds:W8.t Array2144.t, inseed:W8.t Array32.t,
                       pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
   W8.t Array2144.t * W32.t Array8.t = {
+    var aux_0: int;
+    var aux: W8.t Array32.t;
 """,
 """
   proc __expand_seed (outseeds:W8.t Array2144.t, inseed:W8.t Array32.t,
                       pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
   W8.t Array2144.t * W32.t Array8.t = {
-    var aux_list : W8.t list;
+    var aux_0: int;
+    var aux: W8.t Array32.t;
+    var aux_list: W8.t list;
 """
     )
 
     text = text.replace(
 """
-    (aux,
-    aux_0) <@ _x_memcpy_u8u8_32_32 ((Array32.init (fun i_0 => buf.[0 + i_0])),
-    offset, pub_seed);
+    aux <@ _x_memcpy_u8u8_32_32 ((Array32.init (fun i_0 => buf.[0 + i_0])),
+    pub_seed);
+    buf <- Array64.init
+           (fun i_0 => if 0 <= i_0 < 0 + 32 then aux.[i_0-0] else buf.[i_0]);
 """,
 """
-    (aux_list, aux_0) <@ Memcpy._x_memcpy_u8u8(to_list (Array32.init (fun i_0 => buf.[0 + i_0])), 32, offset, to_list pub_seed, 32);
-    aux <- Array32.of_list witness aux_list;
+    aux_list <@ Memcpy._x_memcpy_u8u8 (to_list (Array32.init (fun i_0 => buf.[0 + i_0])),
+    to_list pub_seed);
+    buf <- Array64.init
+           (fun i_0 => if 0 <= i_0 < 0 + 32 then (nth witness aux_list (i_0-0)) else buf.[i_0]);
 """
     )
 
@@ -368,12 +377,14 @@ def replace_calls(text: str) -> str:
 
     text = text.replace(
 """
-    (leaf,  _7) <@ _x_memcpy_u8u8_32_32 (leaf, offset_out,
+    leaf <@ _x_memcpy_u8u8_32_32 (leaf,
     (Array32.init (fun i_0 => wots_pk.[0 + i_0])));
 """,
 """
-    (leaf_list, _7) <@ Memcpy._x_memcpy_u8u8(to_list leaf, 32, offset_out, to_list (Array32.init (fun i_0 => wots_pk.[0 + i_0])), 32);
+    leaf_list <@ Memcpy._x_memcpy_u8u8 (to_list leaf,
+    to_list (Array32.init (fun i_0 => wots_pk.[0 + i_0])));
     leaf <- Array32.of_list witness leaf_list;
+
 """
     )
 
@@ -387,51 +398,51 @@ def replace_calls(text: str) -> str:
   proc __xmssmt_core_seed_keypair (pk:W8.t Array64.t, sk:W8.t Array132.t,
                                    seed:W8.t Array96.t) : W8.t Array64.t *
                                                           W8.t Array132.t = {
-    var aux_2_list : W8.t list;
     var aux_0_list : W8.t list;
+    var aux_1_list : W8.t list;
 """
     )
 
     text = text.replace(
 """
-    (aux_2,
-    aux_1) <@ _x_memcpy_u8u8_32_32 ((Array32.init (fun i_0 => sk.[(4 + (3 * 32)) + i_0])),
-    (W64.of_int 0), (Array32.init (fun i_0 => seed.[(2 * 32) + i_0])));
+    aux_1 <@ _x_memcpy_u8u8_32_32 ((Array32.init (fun i_0 => sk.[(4 + (3 * 32)) + i_0])),
+    (Array32.init (fun i_0 => seed.[(2 * 32) + i_0])));
 """,
 """
-    (aux_2_list,
-    aux_1) <@ Memcpy._x_memcpy_u8u8(to_list (Array32.init (fun i_0 => sk.[(4 + (3 * 32)) + i_0])), 32,
-    (W64.of_int 0), to_list (Array32.init (fun i_0 => seed.[(2 * 32) + i_0])), 32);
-    aux_2 <- Array32.of_list witness aux_2_list;
+
+    aux_1_list <@ Memcpy._x_memcpy_u8u8 (to_list (Array32.init (fun i_0 => sk.[(4 + (3 * 32)) + i_0])),
+    to_list (Array32.init (fun i_0 => seed.[(2 * 32) + i_0])));
+    aux_1 <- Array32.of_list witness aux_1_list;
+
 """
     )
 
     text = text.replace(
 """
-    (aux_2,
-    aux_1) <@ _x_memcpy_u8u8_32_32 ((Array32.init (fun i_0 => pk.[32 + i_0])),
-    (W64.of_int 0), (Array32.init (fun i_0 => sk.[(4 + (3 * 32)) + i_0])));
+    aux_1 <@ _x_memcpy_u8u8_32_32 ((Array32.init (fun i_0 => pk.[32 + i_0])),
+    (Array32.init (fun i_0 => sk.[(4 + (3 * 32)) + i_0])));
 """,
 """
-    (aux_2_list,
-    aux_1) <@ Memcpy._x_memcpy_u8u8(to_list (Array32.init (fun i_0 => pk.[32 + i_0])), 32,
-    (W64.of_int 0), to_list (Array32.init (fun i_0 => sk.[(4 + (3 * 32)) + i_0])), 32);
-    aux_2 <- Array32.of_list witness aux_2_list;
+
+    aux_1_list <@ Memcpy._x_memcpy_u8u8(to_list (Array32.init (fun i_0 => pk.[32 + i_0])),
+    to_list (Array32.init (fun i_0 => sk.[(4 + (3 * 32)) + i_0])));
+    aux_1 <- Array32.of_list witness aux_1_list;
+    
 """
     )
 
     # 2.4 _x_memcpy_u8u8_64_64
     text = text.replace(
 """
-    (aux_0,
-    aux_1) <@ _x_memcpy_u8u8_64_64 ((Array64.init (fun i_0 => sk.[4 + i_0])),
-    (W64.of_int 0), (Array64.init (fun i_0 => seed.[0 + i_0])));
+    aux_0 <@ _x_memcpy_u8u8_64_64 ((Array64.init (fun i_0 => sk.[4 + i_0])),
+    (Array64.init (fun i_0 => seed.[0 + i_0])));
 """,
 """
-    (aux_0_list,
-    aux_1) <@ Memcpy._x_memcpy_u8u8(to_list (Array64.init (fun i_0 => sk.[4 + i_0])), 64,
-    (W64.of_int 0), to_list (Array64.init (fun i_0 => seed.[0 + i_0])), 64);
+
+    aux_0_list <@ Memcpy._x_memcpy_u8u8(to_list (Array64.init (fun i_0 => sk.[4 + i_0])),
+    to_list (Array64.init (fun i_0 => seed.[0 + i_0])));
     aux_0 <- Array64.of_list witness aux_0_list;
+
 """
     )
 
@@ -449,26 +460,39 @@ def replace_calls(text: str) -> str:
                        pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
   W8.t Array32.t * W32.t Array8.t = {
     var buffer_list : W8.t list;
+    var aux_list: W8.t list;
 """
     )
 
     text = text.replace(
 """
-      (buffer,  _2) <@ _x_memcpy_u8u8_64_32 (buffer, offset_out, leaf);
+      aux <@ _x_memcpy_u8u8_32_32 ((Array32.init (fun i_0 => buffer.[32 + i_0])),
+      leaf);
+      buffer <- Array64.init
+                (fun i_0 => if 32 <= i_0 < 32 + 32 then aux.[i_0-32]
+                else buffer.[i_0]);
 """,
 """
-      (buffer_list, _2) <@ Memcpy._x_memcpy_u8u8(to_list buffer, 64, offset_out, to_list leaf, 32);
+
+      aux_list <@ Memcpy._x_memcpy_u8u8 (to_list (Array32.init (fun i_0 => buffer.[32 + i_0])),
+      to_list leaf);
+
+      buffer <- Array64.init
+                (fun i_0 => if 32 <= i_0 < 32 + 32 then (nth witness aux_list (i_0-32))
+                else buffer.[i_0]);
+
+"""
+    )
+
+    text = text.replace(
+"""
+      buffer <@ _x_memcpy_u8u8_64_32 (buffer, leaf);
+""",
+"""
+
+      buffer_list <@ Memcpy._x_memcpy_u8u8 (to_list buffer, to_list leaf);
       buffer <- Array64.of_list witness buffer_list;
-"""
-    )
 
-    text = text.replace(
-"""
-      (buffer,  _0) <@ _x_memcpy_u8u8_64_32 (buffer, offset_out, leaf);
-""",
-"""
-    (buffer_list,  _0) <@ Memcpy._x_memcpy_u8u8(to_list buffer, 64, offset_out, to_list leaf, 32);
-    buffer <- Array64.of_list witness buffer_list;
 """
     )
 
@@ -556,30 +580,49 @@ def replace_calls(text: str) -> str:
       len);
 """,
 """
-      (buffer_list, _1) <@ Memcpy._x_memcpy_u8u8p(to_list buffer, offset_out, auth_path_ptr, len);
+
+      (buffer_list, _1) <@ Memcpy._x_memcpy_u8u8p (to_list buffer, offset_out, auth_path_ptr, len);
       buffer <- Array64.of_list witness buffer_list;
+
 """
     )
 
     text = text.replace(
 """
-        (buffer,  _6) <@ _x_memcpy_u8u8p_64 (buffer, offset_out,
-        auth_path_ptr, len);
+      (buffer,  _0) <@ _x_memcpy_u8u8p_64 (buffer, offset_out, auth_path_ptr,
+      len);
 """,
 """
-        (buffer_list, _6) <@ Memcpy._x_memcpy_u8u8p(to_list buffer, offset_out, auth_path_ptr, len);
+
+        (buffer_list, _0) <@ Memcpy._x_memcpy_u8u8p(to_list buffer, offset_out, auth_path_ptr, len);
         buffer <- Array64.of_list witness buffer_list;
+
 """
     )
 
     text = text.replace(
 """
-        (buffer,  _5) <@ _x_memcpy_u8u8p_64 (buffer, offset_out,
+        (buffer,  _3) <@ _x_memcpy_u8u8p_64 (buffer, offset_out,
         auth_path_ptr, len);
 """,
 """
-        (buffer_list, _5) <@ Memcpy._x_memcpy_u8u8p(to_list buffer, offset_out, auth_path_ptr, len);
+
+        (buffer_list, _3) <@ Memcpy._x_memcpy_u8u8p(to_list buffer, offset_out, auth_path_ptr, len);
         buffer <- Array64.of_list witness buffer_list;
+
+"""
+    )
+
+    text = text.replace(
+"""
+        (buffer,  _4) <@ _x_memcpy_u8u8p_64 (buffer, offset_out,
+        auth_path_ptr, len);
+""",
+"""
+
+        (buffer_list, _4) <@ Memcpy._x_memcpy_u8u8p(to_list buffer, offset_out, auth_path_ptr, len);
+        buffer <- Array64.of_list witness buffer_list;
+
 """
     )
 
