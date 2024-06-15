@@ -66,7 +66,7 @@ inline fn __l_tree(
             // Copy the result back to wots_pk: same as memcpy(wots_pk + i*XMSS_N, buf0, XMSS_N)
             () = #unspill(i, wots_pk);
             offset_out = i * XMSS_N;
-            wots_pk, _ = __memcpy_u8u8<XMSS_WOTS_SIG_BYTES, XMSS_N>(wots_pk, offset_out, buf0);
+            wots_pk = __memcpy_u8u8_offset<XMSS_WOTS_SIG_BYTES, XMSS_N>(wots_pk, offset_out, buf0);
             () = #spill(wots_pk);
 
             () = #unspill(parent_nodes);
@@ -107,8 +107,7 @@ inline fn __l_tree(
 
     // memcpy(leaf, wots_pk, params->n);
     () = #unspill(leaf, wots_pk);
-    offset_out = 0;
-    leaf, _ =  _x_memcpy_u8u8<XMSS_N, XMSS_N>(leaf, offset_out, wots_pk[0: XMSS_N]);
+    leaf =  _x_memcpy_u8u8<XMSS_N, XMSS_N>(leaf, wots_pk[0: XMSS_N]);
 
     return leaf, wots_pk, addr;
 }
@@ -178,9 +177,7 @@ inline fn __compute_root(
         // memcpy(buffer + params->n, leaf, params->n);
         // memcpy(buffer, auth_path, params->n);
         // i.e. buffer = auth path || leaf
-        
-        offset_out = XMSS_N;
-        buffer, _ = _x_memcpy_u8u8<2 * XMSS_N, XMSS_N>(buffer, offset_out, leaf);
+        buffer[XMSS_N : XMSS_N] = _x_memcpy_u8u8<XMSS_N, XMSS_N>(buffer[XMSS_N : XMSS_N], leaf);
 
         offset_out = 0;
         len = XMSS_N;
@@ -190,8 +187,7 @@ inline fn __compute_root(
         // memcpy(buffer + params->n, auth_path, params->n);
         // i.e. buffer = leaf || auth path
 
-        offset_out = 0;
-        buffer, _ = _x_memcpy_u8u8<2 * XMSS_N, XMSS_N>(buffer, offset_out, leaf);
+        buffer = _x_memcpy_u8u8<2 * XMSS_N, XMSS_N>(buffer, leaf);
 
         offset_out = XMSS_N;
         len = XMSS_N;
