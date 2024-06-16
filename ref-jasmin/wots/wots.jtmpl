@@ -92,8 +92,7 @@ inline fn __gen_chain(
     reg u64 offset;
 
     // memcpy(out, in, params->n);
-    offset = 0;
-    out, _ = _x_memcpy_u8u8p<XMSS_N>(out, offset, in_ptr, XMSS_N);
+    out = _x_memcpy_u8u8p<XMSS_N>(out, in_ptr);
 
     () = #spill(pub_seed, addr, out);
 
