@@ -1,5 +1,30 @@
 from XMSS require "xmss/xmss.jtmpl"
 
+export fn xmss_seed_keypair_jazz(
+    reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk, 
+    reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES] sk,
+    reg ptr u8[3 * XMSS_N] seed
+) -> reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES],
+     reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES],
+     reg u64
+{
+    reg u64 res;
+    reg u32 oid;
+
+    oid = XMSS_OID;
+    oid = #BSWAP_32(oid);
+    
+    pk[u32 0] = oid;
+    sk[u32 0] = oid;
+
+    pk[XMSS_OID_LEN : XMSS_PK_BYTES], sk[XMSS_OID_LEN : XMSS_SK_BYTES] = 
+        __xmssmt_core_seed_keypair(pk[XMSS_OID_LEN : XMSS_PK_BYTES], sk[XMSS_OID_LEN : XMSS_SK_BYTES], seed);
+
+    ?{}, res = #set0();
+
+    return pk, sk, res;
+}
+
 export fn xmss_keypair_jazz(
     reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk, 
     reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES] sk

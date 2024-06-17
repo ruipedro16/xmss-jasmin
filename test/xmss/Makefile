@@ -13,7 +13,7 @@ LDLIBS   = -lcrypto
 
 JASMIN   ?= jasminc
 JAZZCT   ?= jazzct
-JFLAGS   ?= -nowarning ${JADDFLAGS}
+JFLAGS   ?= -nowarning -wunusedvar ${JADDFLAGS}
 JINCLUDE ?= -I XMSS:../../ref-jasmin/ -I Stdlib:../../ref-jasmin/stdlib
 
 JPP          ?= ../../submodules/jasmin-preprocessor/jpp

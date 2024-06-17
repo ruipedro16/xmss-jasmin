@@ -11,7 +11,6 @@ inline fn  __xmss_keypair(
 ) -> reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES],
      reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES]
 {
-    inline int i;
     reg u32 oid;
 
     oid = XMSS_OID;
@@ -20,7 +19,6 @@ inline fn  __xmss_keypair(
     pk[u32 0] = oid;
     sk[u32 0] = oid;
 
-    // TODO: Replace with xmss_core_keypair (nned to write it first)
     pk[XMSS_OID_LEN : XMSS_PK_BYTES], sk[XMSS_OID_LEN : XMSS_SK_BYTES] = 
         __xmssmt_core_keypair_(pk[XMSS_OID_LEN : XMSS_PK_BYTES], sk[XMSS_OID_LEN : XMSS_SK_BYTES]);
 
@@ -33,7 +31,6 @@ inline fn  __xmssmt_keypair(
 ) -> reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES],
      reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES]
 {
-    inline int i;
     reg u32 oid;
 
     oid = XMSS_OID;
@@ -42,7 +39,6 @@ inline fn  __xmssmt_keypair(
     pk[u32 0] = oid;
     sk[u32 0] = oid;
 
-    // TODO: Replace with xmss_core_keypair (nned to write it first)
     pk[XMSS_OID_LEN : XMSS_PK_BYTES], sk[XMSS_OID_LEN : XMSS_SK_BYTES] = 
         __xmssmt_core_keypair_(pk[XMSS_OID_LEN : XMSS_PK_BYTES], sk[XMSS_OID_LEN : XMSS_SK_BYTES]);
 
@@ -55,10 +51,8 @@ inline fn __xmss_sign(
     reg u64 m_ptr mlen
 ) -> reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES], reg u64
 {
-    reg u32 oid;
     reg u64 res;
 
-    // TODO: Replace with __xmss_core_sign (nned to write it first)
     sk[XMSS_OID_LEN : XMSS_SK_BYTES], res = 
         __xmssmt_core_sign(sk[XMSS_OID_LEN : XMSS_SK_BYTES], sm_ptr, smlen_ptr, m_ptr, mlen);
 
@@ -71,10 +65,8 @@ inline fn __xmssmt_sign(
     reg u64 m_ptr mlen
 ) -> reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES], reg u64
 {
-    reg u32 oid;
     reg u64 res;
 
-    // TODO: Replace with __xmss_core_sign (nned to write it first)
     sk[XMSS_OID_LEN : XMSS_SK_BYTES], res = 
         __xmssmt_core_sign(sk[XMSS_OID_LEN : XMSS_SK_BYTES], sm_ptr, smlen_ptr, m_ptr, mlen);
 
@@ -86,7 +78,6 @@ inline fn __xmss_sign_open(
     reg u64 m_ptr mlen_ptr sm_ptr smlen
 ) -> reg u64
 {
-    reg u32 oid;
     reg u64 res;
 
     res = __xmssmt_core_sign_open_(m_ptr, mlen_ptr, sm_ptr, smlen, pk[XMSS_OID_LEN : XMSS_PK_BYTES]);
@@ -98,7 +89,6 @@ inline fn __xmssmt_sign_open(
     reg u64 m_ptr mlen_ptr sm_ptr smlen
 ) -> reg u64
 {
-    reg u32 oid;
     reg u64 res;
 
     res = __xmssmt_core_sign_open_(m_ptr, mlen_ptr, sm_ptr, smlen, pk[XMSS_OID_LEN : XMSS_PK_BYTES]);

@@ -82,8 +82,6 @@ inline fn __prf_keygen(
     stack u8[XMSS_PADDING_LEN + 2*XMSS_N + 32] buf;
     reg ptr u8[XMSS_PADDING_LEN] padding_buf;
 
-    reg u64 offset;
-
     // ull_to_bytes(buf, params->padding_len, XMSS_HASH_PADDING_PRF_KEYGEN); 
     padding_buf = buf[0:XMSS_PADDING_LEN];
     padding_buf = __ull_to_bytes<XMSS_PADDING_LEN>(padding_buf, XMSS_HASH_PADDING_PRF_KEYGEN);

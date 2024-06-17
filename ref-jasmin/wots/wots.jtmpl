@@ -12,7 +12,6 @@ inline fn __expand_seed(
 {  
     stack u8[XMSS_N + 32] buf;
 
-    reg u64 offset;
     inline int i;
 
     () = #spill(outseeds, inseed);
@@ -87,9 +86,7 @@ inline fn __gen_chain(
     reg ptr u32[8] addr
 ) -> reg ptr u8[XMSS_N], reg ptr u32[8]
 {
-    reg bool cond;
     reg u32 i t;
-    reg u64 offset;
 
     // memcpy(out, in, params->n);
     out = _x_memcpy_u8u8p<XMSS_N>(out, in_ptr);
@@ -167,8 +164,7 @@ inline fn __gen_chain_inplace(
     reg ptr u32[8] addr
 ) -> reg ptr u8[XMSS_N], reg ptr u32[8]
 {
-    reg bool cond;
-    reg u32 i t;
+    reg u32 i;
 
     () = #spill(out, pub_seed, addr);
 
@@ -326,8 +322,7 @@ inline fn __wots_checksum(
     stack u8[(XMSS_WOTS_LEN2 * XMSS_WOTS_LOG_W + 7) / 8] csum_bytes;
     reg ptr u8[(XMSS_WOTS_LEN2 * XMSS_WOTS_LOG_W + 7) / 8] csum_bytes_p;
 
-    reg u64 i;
-    reg u64 csum t u;
+    reg u64 csum u;
 
     inline int k;
 
@@ -475,8 +470,6 @@ inline fn __wots_sign(
     reg u32 chain;
     inline int i;
 
-    reg ptr u8[XMSS_N] pk_ptr;
-
     () = #spill(pub_seed);
 
     // chain_lengths(params, lengths, msg);
@@ -542,14 +535,11 @@ inline fn __wots_pk_from_sig(
     reg ptr u32[8] addr
 ) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]
 {
-    stack u8[XMSS_N] buf;
     stack u32[XMSS_WOTS_LEN] lengths;
 
     reg u32 chain start steps;
     reg u64 t;
-    inline int i j;
-
-    reg ptr u8[XMSS_N] pk_ptr;
+    inline int i;
 
     () = #spill(pub_seed, sig_ptr);
 

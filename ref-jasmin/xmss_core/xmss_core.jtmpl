@@ -21,14 +21,12 @@ inline fn __treehash_array(
     stack u32[(XMSS_TREE_HEIGHT + 1)] heights;
     stack u32[8] ots_addr ltree_addr node_addr;
 
-    stack u8[XMSS_N] buf;
     reg u64 index;
     inline int j;
 
     reg u32 idx tree_idx;
     reg u32 t u;
     reg u64 offset t64;
-    reg u64 offset_in offset_out;
 
     reg bool cond;
     reg u32 a b;
@@ -252,7 +250,6 @@ inline fn __xmssmt_core_seed_keypair(
     // memcpy(sk + 3 * params->n, seed + 2 * params->n, params->n);
     sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N] = 
         _x_memcpy_u8u8<XMSS_N, XMSS_N>(sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N], seed[2*XMSS_N : XMSS_N]);
-    // sk = #randombytes(sk);
 
     // memcpy(pk + params->n, sk + 3*params->n, params->n);
     pk[XMSS_N : XMSS_N] = 
@@ -285,7 +282,7 @@ inline fn __xmssmt_core_keypair(
     seed_p = seed;
     seed_p = #randombytes(seed_p);
 
-    pk, sk = __xmssmt_core_seed_keypair(pk, sk, seed);
+    pk, sk = __xmssmt_core_seed_keypair(pk, sk, seed_p);
 
     return pk, sk;
 }
