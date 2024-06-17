@@ -21,20 +21,6 @@ module Memcpy = {
     return out;
   }
 
-  proc _x_memcpy_u8u8p(out:W8.t list, in_ptr:W64.t) : W8.t list = {
-
-    var i:W64.t;
-
-    i <- (W64.of_int 0);
-
-    while ((i \ult (W64.of_int (size out)))) {
-      out <- put out (W64.to_uint i) (loadW8 Glob.mem (W64.to_uint (in_ptr + i)));
-      i <- (i + (W64.of_int 1));
-    }
-
-    return out;
-  }
-
   proc __memcpy_u8u8_2 (out:W8.t list, in_0:W8.t list, in_offset:W64.t,
                           bytes:W64.t) : W8.t list * W64.t = {
 
