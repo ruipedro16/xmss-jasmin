@@ -239,7 +239,7 @@ def replace_calls(text: str) -> str:
     )
     text = text.replace("csum_base_w <@ __base_w_3_2 (csum_base_w, csum_bytes_p);",
     """
-    t_list <@ BaseWGeneric.__base_w(to_list csum_base_w, W64.of_int 3, to_list csum_bytes_p);
+    t_list <@ BaseWGeneric.__base_w(to_list csum_base_w, to_list csum_bytes_p);
     csum_base_w <- Array3.of_list witness t_list;
     """)
 
@@ -257,7 +257,7 @@ def replace_calls(text: str) -> str:
 
     text = text.replace("lengths <@ __base_w_67_32 (lengths, msg);",
     """
-    t_list <@ BaseWGeneric.__base_w(to_list lengths, W64.of_int 67, to_list msg);
+    t_list <@ BaseWGeneric.__base_w(to_list lengths, to_list msg);
     lengths <- Array67.of_list witness t_list;
     """)
 
@@ -757,7 +757,7 @@ def replace_calls(text: str) -> str:
 
     buf_list <@ Memcpy._x_memcpy_u8u8p(to_list buf, t64);
     buf <- Array32.of_list witness buf_list;
-    
+
 """
     )
 

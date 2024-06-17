@@ -29,13 +29,13 @@ module Mp(SC:Syscall_t) = {
     return (out);
   }
 
-  proc __ull_to_bytes_32 (out:W8.t Array32.t, in_0:W64.t) : W8.t Array32.t = {
+  proc __ull_to_bytes_4 (out:W8.t Array4.t, in_0:W64.t) : W8.t Array4.t = {
     var aux: int;
 
     var i:int;
 
     aux <- (- 1);
-    i <- (32 - 1);
+    i <- (4 - 1);
     while (aux < i) {
       out.[i] <- (truncateu8 in_0);
       in_0 <- (in_0 `>>` (W8.of_int 8));
@@ -59,13 +59,13 @@ module Mp(SC:Syscall_t) = {
     return (out);
   }
 
-  proc __ull_to_bytes_4 (out:W8.t Array4.t, in_0:W64.t) : W8.t Array4.t = {
+  proc __ull_to_bytes_32 (out:W8.t Array32.t, in_0:W64.t) : W8.t Array32.t = {
     var aux: int;
 
     var i:int;
 
     aux <- (- 1);
-    i <- (4 - 1);
+    i <- (32 - 1);
     while (aux < i) {
       out.[i] <- (truncateu8 in_0);
       in_0 <- (in_0 `>>` (W8.of_int 8));
@@ -245,22 +245,6 @@ module Mp(SC:Syscall_t) = {
     return (out_ptr, out_offset, in_offset);
   }
 
-  proc __memcpy_u8pu8_32 (out:W64.t, offset:W64.t, in_0:W8.t Array32.t) : 
-  W64.t * W64.t = {
-
-    var i:W64.t;
-
-    i <- (W64.of_int 0);
-
-    while ((i \ult (W64.of_int 32))) {
-      Glob.mem <-
-      storeW8 Glob.mem (W64.to_uint (out + offset)) (in_0.[(W64.to_uint i)]);
-      offset <- (offset + (W64.of_int 1));
-      i <- (i + (W64.of_int 1));
-    }
-    return (out, offset);
-  }
-
   proc __memcpy_u8pu8_4 (out:W64.t, offset:W64.t, in_0:W8.t Array4.t) : 
   W64.t * W64.t = {
 
@@ -277,10 +261,19 @@ module Mp(SC:Syscall_t) = {
     return (out, offset);
   }
 
-  proc _memcpy_u8pu8_32 (out:W64.t, offset:W64.t, in_0:W8.t Array32.t) : 
+  proc __memcpy_u8pu8_32 (out:W64.t, offset:W64.t, in_0:W8.t Array32.t) : 
   W64.t * W64.t = {
 
-    (out, offset) <@ __memcpy_u8pu8_32 (out, offset, in_0);
+    var i:W64.t;
+
+    i <- (W64.of_int 0);
+
+    while ((i \ult (W64.of_int 32))) {
+      Glob.mem <-
+      storeW8 Glob.mem (W64.to_uint (out + offset)) (in_0.[(W64.to_uint i)]);
+      offset <- (offset + (W64.of_int 1));
+      i <- (i + (W64.of_int 1));
+    }
     return (out, offset);
   }
 
@@ -291,15 +284,10 @@ module Mp(SC:Syscall_t) = {
     return (out, offset);
   }
 
-  proc _x_memcpy_u8pu8_32 (out:W64.t, offset:W64.t, in_0:W8.t Array32.t) : 
+  proc _memcpy_u8pu8_32 (out:W64.t, offset:W64.t, in_0:W8.t Array32.t) : 
   W64.t * W64.t = {
 
-    out <- out;
-    offset <- offset;
-    in_0 <- in_0;
-    (out, offset) <@ _memcpy_u8pu8_32 (out, offset, in_0);
-    out <- out;
-    offset <- offset;
+    (out, offset) <@ __memcpy_u8pu8_32 (out, offset, in_0);
     return (out, offset);
   }
 
@@ -310,6 +298,18 @@ module Mp(SC:Syscall_t) = {
     offset <- offset;
     in_0 <- in_0;
     (out, offset) <@ _memcpy_u8pu8_4 (out, offset, in_0);
+    out <- out;
+    offset <- offset;
+    return (out, offset);
+  }
+
+  proc _x_memcpy_u8pu8_32 (out:W64.t, offset:W64.t, in_0:W8.t Array32.t) : 
+  W64.t * W64.t = {
+
+    out <- out;
+    offset <- offset;
+    in_0 <- in_0;
+    (out, offset) <@ _memcpy_u8pu8_32 (out, offset, in_0);
     out <- out;
     offset <- offset;
     return (out, offset);
@@ -739,18 +739,15 @@ module Mp(SC:Syscall_t) = {
     return (out, addr);
   }
 
-  proc __gen_chain_inplace (out:W8.t Array32.t, start:W32.t, steps:W32.t,
+  proc __gen_chain_inplace (out:W8.t Array32.t, steps:W32.t,
                             pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
   W8.t Array32.t * W32.t Array8.t = {
 
     var i:W32.t;
-    var t:W32.t;
 
-    i <- start;
-    t <- start;
-    t <- (t + steps);
+    i <- (W32.of_int 0);
 
-    while ((i \ult t)) {
+    while ((i \ult steps)) {
 
       addr <@ __set_hash_addr (addr, i);
 
@@ -762,24 +759,22 @@ module Mp(SC:Syscall_t) = {
     return (out, addr);
   }
 
-  proc _gen_chain_inplace (out:W8.t Array32.t, start:W32.t, steps:W32.t,
+  proc _gen_chain_inplace (out:W8.t Array32.t, steps:W32.t,
                            pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
   W8.t Array32.t * W32.t Array8.t = {
 
-    (out, addr) <@ __gen_chain_inplace (out, start, steps, pub_seed, addr);
+    (out, addr) <@ __gen_chain_inplace (out, steps, pub_seed, addr);
     return (out, addr);
   }
 
-  proc __gen_chain_inplace_ (out:W8.t Array32.t, start:W32.t, steps:W32.t,
+  proc __gen_chain_inplace_ (out:W8.t Array32.t, steps:W32.t,
                              pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
   W8.t Array32.t * W32.t Array8.t = {
 
     out <- out;
-    start <- start;
-    steps <- steps;
     pub_seed <- pub_seed;
     addr <- addr;
-    (out, addr) <@ _gen_chain_inplace (out, start, steps, pub_seed, addr);
+    (out, addr) <@ _gen_chain_inplace (out, steps, pub_seed, addr);
     out <- out;
     addr <- addr;
     return (out, addr);
@@ -830,7 +825,7 @@ module Mp(SC:Syscall_t) = {
     csum_bytes_p <- csum_bytes;
     csum_bytes_p <@ __ull_to_bytes_2 (csum_bytes_p, csum);
 
-    t_list <@ BaseWGeneric.__base_w(to_list csum_base_w, W64.of_int 3, to_list csum_bytes_p);
+    t_list <@ BaseWGeneric.__base_w(to_list csum_base_w, to_list csum_bytes_p);
     csum_base_w <- Array3.of_list witness t_list;
 
     return (csum_base_w);
@@ -843,7 +838,7 @@ module Mp(SC:Syscall_t) = {
     var t:W32.t Array3.t;
     t <- witness;
 
-    t_list <@ BaseWGeneric.__base_w(to_list lengths, W64.of_int 67, to_list msg);
+    t_list <@ BaseWGeneric.__base_w(to_list lengths, to_list msg);
     lengths <- Array67.of_list witness t_list;
 
     t <- (Array3.init (fun i => lengths.[64 + i]));
@@ -889,7 +884,7 @@ module Mp(SC:Syscall_t) = {
 
       (aux_0,
       aux_1) <@ __gen_chain_inplace_ ((Array32.init (fun i_0 => pk.[(i * 32) + i_0])),
-      (W32.of_int 0), (W32.of_int (16 - 1)), pub_seed, addr);
+      (W32.of_int (16 - 1)), pub_seed, addr);
       pk <- Array2144.init
             (fun i_0 => if (i * 32) <= i_0 < (i * 32) + 32
             then aux_0.[i_0-(i * 32)] else pk.[i_0]);
@@ -922,7 +917,7 @@ module Mp(SC:Syscall_t) = {
 
       (aux_0,
       aux_1) <@ __gen_chain_inplace ((Array32.init (fun i_0 => sig.[(i * 32) + i_0])),
-      (W32.of_int 0), lengths.[i], pub_seed, addr);
+      lengths.[i], pub_seed, addr);
       sig <- Array2144.init
              (fun i_0 => if (i * 32) <= i_0 < (i * 32) + 32
              then aux_0.[i_0-(i * 32)] else sig.[i_0]);

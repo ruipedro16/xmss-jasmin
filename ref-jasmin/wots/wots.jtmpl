@@ -159,11 +159,10 @@ inline fn __gen_chain_(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// NOTE: `out` and `in` point to the same memory location
-// Precondition: start+steps <= WOTS_W
+// NOTE: In this case, start=0
 inline fn __gen_chain_inplace(
     reg ptr u8[XMSS_N] out, 
-    reg u32 start steps, 
+    reg u32 steps, 
     reg ptr u8[XMSS_N] pub_seed,
     reg ptr u32[8] addr
 ) -> reg ptr u8[XMSS_N], reg ptr u32[8]
@@ -174,11 +173,9 @@ inline fn __gen_chain_inplace(
     () = #spill(out, pub_seed, addr);
 
     // for (i = start; i < (start+steps) && i < params->wots_w; i++)
-    i = start;
-    t = start;
-    t += steps;
-    while (i < t) {
-        () = #spill(i, t);
+    i = 0;
+    while (i < steps) {
+        () = #spill(i, steps);
 
         // set_hash_addr(addr, i);
         () = #unspill(addr);
@@ -189,7 +186,7 @@ inline fn __gen_chain_inplace(
 
         () = #spill(out, addr);
 
-        () = #unspill(i, t);
+        () = #unspill(i, steps);
         i += 1;
     }
 
@@ -200,31 +197,27 @@ inline fn __gen_chain_inplace(
 
 fn _gen_chain_inplace(
     reg ptr u8[XMSS_N] out,
-    reg u32 start, 
     reg u32 steps, 
     reg ptr u8[XMSS_N] pub_seed,
     reg ptr u32[8] addr
 ) -> reg ptr u8[XMSS_N], reg ptr u32[8]
 {
-    out, addr = __gen_chain_inplace(out, start, steps, pub_seed, addr);
+    out, addr = __gen_chain_inplace(out, steps, pub_seed, addr);
     return out, addr;
 }
 
 inline fn __gen_chain_inplace_(
     reg ptr u8[XMSS_N] out,
-    reg u32 start,
     reg u32 steps,
     reg ptr u8[XMSS_N] pub_seed,
     reg ptr u32[8] addr
 ) -> reg ptr u8[XMSS_N], reg ptr u32[8]
 {
     out = out;
-    start = start;
-    steps = steps;
     pub_seed = pub_seed;
     addr = addr;
 
-    out, addr = _gen_chain_inplace(out, start, steps, pub_seed, addr);
+    out, addr = _gen_chain_inplace(out, steps, pub_seed, addr);
     
     out = out;
     addr = addr;
@@ -426,7 +419,7 @@ inline fn __wots_pkgen(
         addr = __set_chain_addr(addr, chain);
 
         () = #unspill(pk, pub_seed);
-        pk[i*XMSS_N : XMSS_N], addr = __gen_chain_inplace_(pk[i*XMSS_N : XMSS_N], 0, XMSS_WOTS_W - 1, pub_seed, addr);
+        pk[i*XMSS_N : XMSS_N], addr = __gen_chain_inplace_(pk[i*XMSS_N : XMSS_N], XMSS_WOTS_W - 1, pub_seed, addr);
         
         () = #spill(pk);
     }
@@ -499,7 +492,7 @@ inline fn __wots_sign(
 
         // gen_chain(params, sig + i * params->n, sig + i * params->n, 0, lengths[i], pub_seed, addr);
         () = #unspill(pub_seed);
-        sig[i*XMSS_N : XMSS_N], addr = __gen_chain_inplace(sig[i*XMSS_N : XMSS_N], 0, lengths[i], pub_seed, addr);
+        sig[i*XMSS_N : XMSS_N], addr = __gen_chain_inplace(sig[i*XMSS_N : XMSS_N], lengths[i], pub_seed, addr);
     }
 
     return sig, addr;

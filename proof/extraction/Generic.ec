@@ -21,17 +21,17 @@ module Memcpy = {
     return out;
   }
 
-  proc _x_memcpy_u8u8p(out:W8.t list, in_0:W64.t) : W8.t list = {
+  proc _x_memcpy_u8u8p(out:W8.t list, in_ptr:W64.t) : W8.t list = {
 
     var i:W64.t;
 
     i <- (W64.of_int 0);
 
     while ((i \ult (W64.of_int (size out)))) {
-      out <- put out (W64.to_uint i) (loadW8 Glob.mem (W64.to_uint (in_0 + i)));
+      out <- put out (W64.to_uint i) (loadW8 Glob.mem (W64.to_uint (in_ptr + i)));
       i <- (i + (W64.of_int 1));
     }
-    
+
     return out;
   }
 
@@ -52,7 +52,7 @@ module Memcpy = {
 }.
 
 module BaseWGeneric = {
-  proc __base_w (output : W32.t list, outlen : W64.t, input : W8.t list) : W32.t list = {
+  proc __base_w (output : W32.t list, input : W8.t list) : W32.t list = {
 
     var in_0:W64.t;
     var out:W64.t;
@@ -72,7 +72,7 @@ module BaseWGeneric = {
     consumed <-W64.zero;
     total <- W8.zero;
 
-    while ((consumed \ult outlen)) {
+    while ((consumed \ult (W64.of_int (size output)))) {
       if (bits = W64.zero) {
         total <- nth witness input (W64.to_uint in_0);
         in_0 <- (in_0 + (W64.of_int 1));
