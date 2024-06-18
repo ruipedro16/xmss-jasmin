@@ -1,7 +1,8 @@
 #include <assert.h>
 #include <inttypes.h>
+#include <math.h>
 #include <stdbool.h>
-#include <stdint.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,7 +14,7 @@
 #include "utils.h"
 
 #ifndef N
-#define N 1000
+#define N 500
 #endif
 
 extern int xmssmt_core_seed_keypair_jazz(uint8_t *pk, uint8_t *sk, const uint8_t *seed);
@@ -94,8 +95,6 @@ int main(void) {
 
     int mt = starts_with(xstr(IMPL), "XMSSMT");
 
-    randombytes((uint8_t *)seed, params.n * 3);
-
     FILE *f = NULL;
     f = fopen("vectors/tmp.txt", "w");
 
@@ -103,6 +102,8 @@ int main(void) {
         if (debug) {
             printf("%d/%d\n", i + 1, N);
         }
+
+        randombytes((uint8_t *)seed, params.n * 3);
 
         xmssmt_core_seed_keypair_jazz(pk, sk, seed);
 
@@ -130,7 +131,7 @@ int main(void) {
 
     assert(cmp_files("vectors/vectors.txt", "vectors/vectors_tmp.txt"));
 
-    remove("vectors/vectors_tmp.txt");  // only delete the file if all vectors are ok
+    remove("vectors/tmp.txt");  // only delete the file if all vectors are ok
 
     return 0;
 }

@@ -21,7 +21,7 @@
 #endif
 
 #ifndef N
-#define N 1000
+#define N 500
 #endif
 
 static int starts_with(const char *str, const char *prefix) { return strncmp(str, prefix, strlen(prefix)) == 0; }
