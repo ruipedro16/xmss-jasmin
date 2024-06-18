@@ -29,21 +29,6 @@ module Mp(SC:Syscall_t) = {
     return (out);
   }
 
-  proc __ull_to_bytes_4 (out:W8.t Array4.t, in_0:W64.t) : W8.t Array4.t = {
-    var aux: int;
-
-    var i:int;
-
-    aux <- (- 1);
-    i <- (4 - 1);
-    while (aux < i) {
-      out.[i] <- (truncateu8 in_0);
-      in_0 <- (in_0 `>>` (W8.of_int 8));
-      i <- i - 1;
-    }
-    return (out);
-  }
-
   proc __ull_to_bytes_2 (out:W8.t Array2.t, in_0:W64.t) : W8.t Array2.t = {
     var aux: int;
 
@@ -66,6 +51,21 @@ module Mp(SC:Syscall_t) = {
 
     aux <- (- 1);
     i <- (32 - 1);
+    while (aux < i) {
+      out.[i] <- (truncateu8 in_0);
+      in_0 <- (in_0 `>>` (W8.of_int 8));
+      i <- i - 1;
+    }
+    return (out);
+  }
+
+  proc __ull_to_bytes_4 (out:W8.t Array4.t, in_0:W64.t) : W8.t Array4.t = {
+    var aux: int;
+
+    var i:int;
+
+    aux <- (- 1);
+    i <- (4 - 1);
     while (aux < i) {
       out.[i] <- (truncateu8 in_0);
       in_0 <- (in_0 `>>` (W8.of_int 8));
@@ -806,21 +806,19 @@ module Mp(SC:Syscall_t) = {
     return (out, addr);
   }
 
-  proc __csum (msg_base_w:W32.t Array67.t) : W64.t = {
+  proc __csum (msg_base_w:W32.t Array67.t) : W32.t = {
 
-    var csum:W64.t;
+    var csum:W32.t;
     var i:W64.t;
-    var t:W64.t;
-    var u:W64.t;
+    var t:W32.t;
 
-    csum <- (W64.of_int 0);
+    csum <- (W32.of_int 0);
     i <- (W64.of_int 0);
 
     while ((i \ult (W64.of_int 64))) {
-      t <- (W64.of_int (16 - 1));
-      u <- (zeroextu64 msg_base_w.[(W64.to_uint i)]);
-      t <- (t - u);
+      t <- (W32.of_int (16 - 1));
       csum <- (csum + t);
+      csum <- (csum - msg_base_w.[(W64.to_uint i)]);
       i <- (i + (W64.of_int 1));
     }
     return (csum);
@@ -831,8 +829,9 @@ module Mp(SC:Syscall_t) = {
 
     var t_list : W32.t list;
 
-    var csum:W64.t;
+    var csum:W32.t;
     var k:int;
+    var csum_64:W64.t;
     var u:W64.t;
     var _of_:bool;
     var _cf_:bool;
@@ -845,11 +844,12 @@ module Mp(SC:Syscall_t) = {
     csum_bytes_p <- witness;
     csum <@ __csum (msg_base_w);
     k <- ((3 * 4) %% 8);
+    csum_64 <- (zeroextu64 csum);
     u <- (W64.of_int 8);
     u <- (u - (W64.of_int k));
-    (_of_, _cf_, _sf_,  _0, _zf_, csum) <- SHL_64 csum (truncateu8 u);
+    (_of_, _cf_, _sf_,  _0, _zf_, csum_64) <- SHL_64 csum_64 (truncateu8 u);
     csum_bytes_p <- csum_bytes;
-    csum_bytes_p <@ __ull_to_bytes_2 (csum_bytes_p, csum);
+    csum_bytes_p <@ __ull_to_bytes_2 (csum_bytes_p, csum_64);
 
     t_list <@ BaseWGeneric.__base_w(to_list csum_base_w, to_list csum_bytes_p);
     csum_base_w <- Array3.of_list witness t_list;

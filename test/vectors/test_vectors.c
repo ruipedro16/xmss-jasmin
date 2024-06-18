@@ -14,7 +14,7 @@
 #include "utils.h"
 
 #ifndef N
-#define N 500
+#define N 2500
 #endif
 
 extern int xmssmt_core_seed_keypair_jazz(uint8_t *pk, uint8_t *sk, const uint8_t *seed);

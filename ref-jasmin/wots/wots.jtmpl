@@ -294,19 +294,19 @@ inline fn __base_w_<OUTLEN, INLEN>(
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Just computes the checksum
-inline fn __csum(reg ptr u32[XMSS_WOTS_LEN] msg_base_w) -> reg u64
+inline fn __csum(reg ptr u32[XMSS_WOTS_LEN] msg_base_w) -> reg u32
 {
-    reg u64 csum i t u;
-
+    reg u32 csum t;
+    reg u64 i;
+    
     csum = 0;
 
     // for (i = 0; i < params->wots_len1; i++) { csum += params->wots_w - 1 - msg_base_w[i]; }
     i = 0;
     while (i < XMSS_WOTS_LEN1) {
       t = XMSS_WOTS_W - 1;
-      u = (64u) msg_base_w[i];
-      t -= u; 
       csum += t;
+      csum -= msg_base_w[i];
       i += 1;
     }
 
@@ -322,7 +322,8 @@ inline fn __wots_checksum(
     stack u8[(XMSS_WOTS_LEN2 * XMSS_WOTS_LOG_W + 7) / 8] csum_bytes;
     reg ptr u8[(XMSS_WOTS_LEN2 * XMSS_WOTS_LOG_W + 7) / 8] csum_bytes_p;
 
-    reg u64 csum u;
+    reg u32 csum;
+    reg u64 csum_64 u;
 
     inline int k;
 
@@ -331,13 +332,15 @@ inline fn __wots_checksum(
     // csum = csum << (8 - ((params->wots_len2 * params->wots_log_w) % 8));
     k = (XMSS_WOTS_LEN2 * XMSS_WOTS_LOG_W) % 8;
 
+    csum_64 = (64u) csum;
+
     u = 8;
     u -= k; // u holds the value of (8 - ((params->wots_len2 * params->wots_log_w) % 8))
-    ?{}, csum = #SHL(csum, u);
+    ?{}, csum_64 = #SHL(csum_64, u);
 
     // ull_to_bytes(csum_bytes, sizeof(csum_bytes), csum);
     csum_bytes_p = csum_bytes;
-    csum_bytes_p = __ull_to_bytes<(XMSS_WOTS_LEN2 * XMSS_WOTS_LOG_W + 7) / 8>(csum_bytes_p, csum);
+    csum_bytes_p = __ull_to_bytes<(XMSS_WOTS_LEN2 * XMSS_WOTS_LOG_W + 7) / 8>(csum_bytes_p, csum_64);
 
     // base_w(params, csum_base_w, params->wots_len2, csum_bytes);
     csum_base_w = __base_w<XMSS_WOTS_LEN2, (XMSS_WOTS_LEN2 * XMSS_WOTS_LOG_W + 7) / 8>(csum_base_w, csum_bytes_p);

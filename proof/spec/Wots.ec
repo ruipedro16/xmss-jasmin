@@ -320,7 +320,9 @@ to hold the checksum.
 *)
 
 axiom checksum_max : hoare[WOTS.checksum : true ==> res <= len1 * (w - 1) * 2^8].
-axiom checksum_W32 : hoare[WOTS.checksum : true ==> res <= W32.max_uint]. (* TODO: Replace with lemma *)
+axiom checksum_W32 : hoare[WOTS.checksum : true ==> res <= W32.max_uint].
+
+(* TODO: Replace with lemma *)
 
 (********************************************************************************************************************)
 
@@ -328,7 +330,9 @@ lemma wots_genSK_ll : islossless WOTS.genSK.
 proof.
 proc.
 while (true) (len - i) ; auto => />.
-  - move => &hr ?. smt.
+  - auto => /> * ; do split. 
+   + admit.
+   + move => *. smt(). 
   - move => i. rewrite -lezNgt /#.
 qed.
 

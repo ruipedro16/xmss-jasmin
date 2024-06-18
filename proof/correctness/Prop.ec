@@ -28,6 +28,19 @@ rewrite get_to_list get_setE // nth_put 1:size_to_list //.
 by rewrite [j=i]eq_sym.
 qed.
 
+
+lemma list_put_3 ['a] (x : 'a Array3.t) (v : 'a) (i : int) :
+    0 <= i < 3 => put (to_list x) i v = to_list (x.[i <- v]).
+proof.
+move => [i_ge0 i_lt_3].
+apply (eq_from_nth witness).
+  - by rewrite size_put !size_to_list.
+  - move => j. rewrite size_put size_to_list. move => [j_ge0 j_lt_3].
+    rewrite get_to_list get_setE //. 
+    rewrite nth_put 1:size_to_list //.
+    by rewrite [j=i]eq_sym.
+qed.
+
 lemma list_put_32 ['a] (x : 'a Array32.t) (v : 'a) (i : int) :
     0 <= i < 32 => put (to_list x) i v = to_list (x.[i <- v]).
 proof.
@@ -36,6 +49,19 @@ apply (eq_from_nth witness).
   - by rewrite size_put !size_to_list.
   - move => j. rewrite size_put size_to_list. move => [j_ge0 j_lt_32].
     rewrite get_to_list get_setE //. 
+    rewrite nth_put 1:size_to_list //.
+    by rewrite [j=i]eq_sym.
+qed.
+
+lemma list_put_67 ['a] (x : 'a Array67.t) (v : 'a) (i : int) : 
+    0 <= i < 67 => put (to_list x) i v = to_list (x.[i <- v]).
+proof.
+move => [i_ge0 i_lt_67].
+apply (eq_from_nth witness).
+  - by rewrite size_put !size_to_list.
+  - move => j ; rewrite size_put size_to_list. 
+    move => [j_ge0 j_lt_67].
+    rewrite get_to_list get_setE //.
     rewrite nth_put 1:size_to_list //.
     by rewrite [j=i]eq_sym.
 qed.
@@ -149,84 +175,28 @@ qed.
 (* Memcpy_ptr *)
 
 require import Utils.
-lemma memcpy_ptr_32 (output : W8.t Array32.t, _offset : W64.t, 
-                     in_ptr : W64.t, _inlen : W64.t) :
+
+lemma memcpy_ptr_32 (output : W8.t Array32.t, in_ptr : W64.t) :
     equiv [ M(Syscall).__memcpy_u8u8p_32 ~ Memcpy._x_memcpy_u8u8p :
-            0 <= to_uint _inlen <= 32 /\ ={Glob.mem} /\
-            arg{1} = (output, _offset, in_ptr, _inlen) /\
-            arg{2} = (to_list output, _offset, in_ptr, _inlen) ==>
-            res{2}.`1 = to_list res{1}.`1].
+            ={Glob.mem} /\
+            arg{1} = (output, in_ptr) /\
+            arg{2} = (to_list output, in_ptr) ==>
+            res{2} = to_list res{1}].
 proof.
 proc.
+idtac.
 while (
-  ={i, offset, Glob.mem, in_0} /\
-  0 <= to_uint i{1} <= to_uint inlen{1} /\
-  0 <= to_uint offset{1} <= to_uint inlen{1} /\
+  ={i, Glob.mem, in_ptr} /\
+  0 <= to_uint i{1} <= 32 /\
   out{2} = to_list out{1}
-); auto => />.
-move => &1 &2 H0 H1 H2 H3 H4 H5.
-do split.
-    - smt(@W64).
-    - smt(@W64).
-    - smt(@W64).
-    - admit.
-    - pose x := out{1}.
-    - move => ? ; smt(@W64).
-
-lemma memcpy_ptr_32 (_out : W8.t Array32.t, _in : W64.t, _inlen : W64.t) :
-    0 < to_uint _inlen <= 32 =>
-    equiv[M(Syscall).__memcpy_u8u8p_32 ~ Memcpy._x_memcpy_u8u8p :
-      arg{1} = (_out, W64.zero, _in, _inlen) /\ 
-      arg{2} = (to_list _out, W64.zero, _in, _inlen) /\
-      ={Glob.mem} ==> 
-         res{2}.`1 = to_list res{1}.`1 /\ res{1}.`2 = res{2}.`2].
-proof.
-move => [inlen_g0 inlen_lt_32].
-proc.
-while(
-  inlen{1} = _inlen /\
-  ={i, offset, inlen, Glob.mem, in_0} /\
-  0 <= to_uint i{1} <= to_uint inlen{1} /\
-  out{2} = to_list out{1} /\
-  offset{1} = i{1}
-) ; auto => /> ; last by smt().
-move => &1 &2 H0 H1 H2.
-do split.
-    - smt(W64.to_uint_cmp).
-    - move => ?. rewrite to_uintD_small //= /#.
-    - rewrite list_put_32 //. split. assumption. move => ?. smt.
-qed.
-
-lemma memcpy_ptr_32 (_out : W8.t Array32.t, _offset : W64.t, _in : W64.t, _inlen : W64.t) :
-    0 <= to_uint _offset /\ 
-    0 <= to_uint _inlen <= 32
-    => 
-    equiv[M(Syscall).__memcpy_u8u8p_32 ~ Memcpy._x_memcpy_u8u8p :
-      arg{1} = (_out, _offset, _in, _inlen) /\ 
-      arg{2} = (to_list _out, _offset, _in, _inlen) /\
-      ={Glob.mem} ==> 
-         res{2}.`1 = to_list res{1}.`1 /\ res{1}.`2 = res{2}.`2].
-proof.
-move => [offset_ge0 t].
-move : t => [#] inlen_ge0 inlen_lte_32.
-proc.
-while(
-  ={i, offset, inlen, Glob.mem, in_0} /\
-  inlen{1} = _inlen /\
-  to_uint _offset <= to_uint offset{1} /\
-  0 <= to_uint i{1} <= to_uint inlen{1} /\
-  out{2} = to_list out{1}
-) ; auto => />.
+); auto => /> ; last by rewrite size_to_list.
 move => &1 &2 H0 H1 H2 H3.
 do split.
-    - admit.
-    - rewrite to_uintD_small /#.
-    - admit.
-    - rewrite list_put_32 //. split ; by admit.
-
-    - smt(W64.to_uint_cmp).
-    - rewrite to_uintD_small /#.
-    - rewrite list_put_32 //. split. idtac.
+    - smt(@W64).
+    - smt(@W64).
+    - rewrite list_put_32 //. split ; smt. (* Dúvida: Nao percebi pq o 2o goal do split é resolvido pelo smt *)
+    - move => ?. rewrite size_put size_to_list //.
+    - rewrite size_put size_to_list //.
 qed.
 
 (* Memset *)
@@ -262,6 +232,60 @@ do split ; last first.
     - move => ?. rewrite to_uintD_small ; smt(@W64).
 qed.
 
-
-
 (* Base W *)
+
+lemma base_w_67_32 (_out : W32.t Array67.t, _in : W8.t Array32.t) :
+    equiv [ M(Syscall).__base_w_67_32 ~ BaseWGeneric.__base_w : 
+            arg{1} = (_out, _in) /\ arg{2} = (to_list _out, to_list _in) ==>
+            res{2} = to_list res{1} ].
+proof.
+proc.
+while (
+  ={consumed, in_0, out, bits, total} /\
+  0 <= to_uint consumed{1} <= 67 /\
+  input{2} = to_list input{1} /\
+  output{2} = to_list output{1} /\
+  out{1} = consumed{1}
+) ; auto => /> ; last by rewrite size_to_list.
+auto => /> &1 &2 H0 H1 H2 H3.
+do split.
+    - smt(@W64).
+    - smt(@W64).
+    - rewrite list_put_67 //. split ; smt(@W64).
+    - move => ?. rewrite size_put size_to_list //.
+    - rewrite size_put size_to_list //.
+    - move => ? ; do split.
+      + smt(@W64).
+      + smt(@W64).
+      + rewrite list_put_67 //. split ; smt(@W64).
+      + move => ?. rewrite size_put size_to_list //.
+      + move => ?. smt.
+qed.
+
+lemma base_w_3_2 (_out : W32.t Array3.t, _in : W8.t Array2.t) :
+        equiv [ M(Syscall).__base_w_3_2 ~ BaseWGeneric.__base_w : 
+            arg{1} = (_out, _in) /\ arg{2} = (to_list _out, to_list _in) ==>
+            res{2} = to_list res{1} ].
+proof.
+proc.
+while (
+  ={consumed, in_0, out, bits, total} /\
+  0 <= to_uint consumed{1} <= 3 /\
+  input{2} = to_list input{1} /\
+  output{2} = to_list output{1} /\
+  out{1} = consumed{1}
+) ; auto => /> ; last by rewrite size_to_list.
+auto => /> &1 &2 H0 H1 H2 H3.
+do split.
+    - smt(@W64).
+    - smt(@W64).
+    - rewrite list_put_3 //. split ; smt(@W64).
+    - move => ?. rewrite size_put size_to_list //.
+    - rewrite size_put size_to_list //.
+    - move => ? ; do split.
+      + smt(@W64).
+      + smt(@W64).
+      + rewrite list_put_3 //. split ; smt(@W64).
+      + move => ?. rewrite size_put size_to_list //.
+      + move => ?. smt.
+qed.
