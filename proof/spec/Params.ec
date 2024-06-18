@@ -29,5 +29,7 @@ const len2 : int = floor (log2 (len1 * (w - 1))%r / log2 w%r) + 1.
 const len : int = len1 + len2.
 
 axiom ge0_h : 0 <= h.
+axiom g0_len  : 0 < len.
+axiom g0_len1 : 0 < len1.
 axiom ge0_len  : 0 <= len.
 axiom ge0_len1 : 0 <= len1.

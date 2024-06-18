@@ -30,7 +30,7 @@ clone import Subtype as Three_NBytes with
 clone import Subtype as OTSKeys with 
    type T = wots_sk list,
    op P = fun l => size l = 2^h
-   rename "T" as "wots_ots_keys". (* FIXME: no proof inhabited by ... here *)
+   rename "T" as "wots_ots_keys".
    
 clone import Subtype as AuthPath with
   type T = nbytes list,

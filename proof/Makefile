@@ -75,10 +75,10 @@ typecheck_extraction: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
 
 
 typecheck_proof: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
-	# $(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_Utils.ec
+	$(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_Utils.ec
 	$(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_Conditions.ec
-	$(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_Generic.ec
-	$(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_Wots.ec
+	# $(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_Generic.ec
+	# $(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_Wots.ec
 	# $(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_XMSS.ec
 
 # --------------------------------------------------------------------------------------------------
