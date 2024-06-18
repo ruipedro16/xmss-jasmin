@@ -62,86 +62,30 @@ lemma base_w_correctness_67 (o : W32.t Array67.t, i : W8.t Array32.t) :
 proof.
 rewrite /XMSS_WOTS_W /XMSS_WOTS_LOG_W ; move => [w_val logw_val].
 proc.
-while (
-  outlen{2} = 67 /\
-  _in{2} = to_uint in_0{1} /\
-  out{2} = to_uint out{1} /\ 0 <= to_uint out{1} <= 67 /\
-  consumed{2} = to_uint consumed{1} /\ 
-  0 <= to_uint consumed{1} <= 67 /\
-  ={total} /\ 
-  bits{2} = to_uint bits{1} /\
-  X{2} = to_list input{1} /\
-  _in{2} = to_uint in_0{1} /\ 0 <= to_uint in_0{1} <= to_uint consumed{1} /\
-  forall (k : int), 0 <= consumed{2} < 67 => nth witness base_w{2} k = to_uint output{1}.[k]
-) ; auto => /> ; last first.
-- progress.
-    + admit.
-    + admit.
-- progress.
-    + rewrite to_uintD_small ; smt(@W64).
-    + rewrite to_uintD_small ; smt(@W64).
-    + smt(@W64).
-    + rewrite to_uintD_small. smt(@W64). admit.
-    + rewrite to_uintD_small ; smt(@W64).
-    + rewrite to_uintD_small ; smt(@W64).
-    + rewrite to_uintD_small ; smt(@W64).
-    + by rewrite logw_val.
-    + rewrite to_uintD_small ; smt(@W64).
-    + rewrite to_uintD_small ; smt(@W64).
-    + rewrite to_uintD_small //=. smt(@W64). admit. (* cant prove this because in_0 != consumed *)
-    + rewrite w_val //=. admit.
-    + smt(@W64).
-    + rewrite ultE of_uintK //=. smt(@W64).
-    + admit. (* Falso *)
-    + rewrite to_uintD_small // /#.
-    + smt(@W64).
-    + smt(@W64).
-    + smt(@W64).
-    + smt(@W64).
-    + smt(@W64).
-    + smt(@W64).
-    + smt(@W64).
-    + smt(@W64).
-    + smt(@W64).
-    + rewrite logw_val w_val //=. admit.
-    + smt(@W64).
-    + smt(@W64).
-    + rewrite to_uintD_small ; smt(@W64).
-    + smt(@W64).
-    + rewrite to_uintD_small. smt(@W64). search to_uint. admit.
-    + rewrite to_uintD //=. admit. (* acrescentar ao invariante o range do consumed *)
-    + rewrite to_uintD_small //=. admit. (* Acrescentar o range dos bits ao invariante *)
-    +  admit.
-    + admit. (* aidiconar in0 <= consumed *)
-    + admit.
-    + admit.
-    + admit.
-    + admit.
-    + admit.
+admit.
 qed.
 
 (* Gen Chain *)
 require import Utils.
 
 lemma memcpy_32_t (_out : W8.t Array32.t) (_in_ptr : W64.t) :
-    hoare [Mp(Syscall)._x_memcpy_u8u8p_32 : 
+    hoare [Mp(Syscall)._memcpy_u8u8p_32 : 
     valid_ptr _in_ptr (W64.of_int 32) /\ arg = (_out, _in_ptr) ==> 
       res  = Array32.init (fun (i:int) => loadW8 Glob.mem ((W64.to_uint _in_ptr) + i))].
 proof.
 proc ; inline*.
-wp.
+sp ; wp.
 while (
-  #pre /\
   0 <= to_uint i <= 32 /\
-  forall (k : int), 0 <= k < to_uint i => out1.[k] = loadW8 Glob.mem (to_uint (in_ptr1 + i))
+  forall (k : int), 0 <= k < to_uint i => out0.[k] = loadW8 Glob.mem (to_uint (in_ptr0 + i))
 ) ; auto => />.
-- progress.
-    + smt(@W64).
+progress.
+    + rewrite to_uintD_small // /#.
     + smt(@W64).
     + admit.
 - progress.
     + smt.
-    + admit.
+    + admit. (* Apply H4 *)
 qed.
 
 lemma gen_chain_correctness(_out : W8.t Array32.t, _in_ptr : W64.t, _start : W32.t,

@@ -37,8 +37,8 @@ clone import Subtype as AuthPath with
   proof inhabited by (exists (nseq len (nseq n W8.zero));smt(size_nseq ge0_len))
   proof *.
 
-op d : { int | 0 < d } as g0_d. (* d layers of trees, each having height h/d  *)
-op h : { int | 0 < h /\ h %% d = 0} as h_vals. (* hyper-tree of total height h, where h is a multiple of d *)
+op d : { int | 1 <= d } as ge1_d. (* d layers of trees, each having height h/d  *)
+op h : { int | 0 <= h /\ h %% d = 0} as h_vals. (* hyper-tree of total height h, where h is a multiple of d *)
 
 (**********************************************************************************************)
 
@@ -128,6 +128,7 @@ module LTree = {
       }
 
       _len <- ceil (len%r / 2%r);
+      i <- i + 1;
     }
 
     pk_i <- nth witness pk 0;
@@ -136,8 +137,20 @@ module LTree = {
   }
 }. 
 
+
 lemma neg_lt (x y : int) : ! (x < y) <=> y <= x by smt().
 
+
+lemma ltree_ll : islossless LTree.ltree.
+proof.
+proc.
+sp ; wp.
+while (1 <= _len <= len) (_len - 1) ; auto => />.
+- while (0 <= i <= floor (len%r / 2%r)) (floor (len%r / 2%r) - i) ; auto => />.
+  + progress. rewrite neg_lt. admit.
+  + progress; 1,2,3,4,5: by admit.
+- split ;  [ smt(g0_len) | move => * ; rewrite neg_lt /# ].
+qed.
 
 (**********************************************************************************************)
 
@@ -227,6 +240,15 @@ module TreeHash = {
   }
 }.
 
+lemma treehash_ll : islossless TreeHash.treehash.
+proof.
+proc.
+sp ; wp.
+while (true) (2^t - i) ; auto => /> ; last by progress ; rewrite neg_lt /#.
+sp ; wp. 
+admit.
+qed.
+
 module TreeSig = {
   proc buildAuthPath(sk : xmss_mt_sk, idx : W32.t, address : adrs) : auth_path = {
     var authentication_path : auth_path;
@@ -261,7 +283,23 @@ module TreeSig = {
   }
 }.
 
-(**********************************************************************************************)
+lemma buildAuthPath_ll : islossless TreeSig.buildAuthPath.
+proof.
+proc.
+while (0 <= j <= h) (h - j) ; auto => />.
+  - call treehash_ll ; auto => /> /#. 
+  - split ; smt(h_vals). 
+qed.
+
+lemma treesig_ll : islossless TreeSig.treesig.
+proof.
+proc.
+call wots_sign_seed_ll.
+auto => /> ; call buildAuthPath_ll.
+by skip.
+qed.
+
+ (**********************************************************************************************)
 
 op append_sig (sig : sig_mt) (sig_tmp : reduced_sig) : sig_mt =    
     let new_sigs: reduced_sig list = sig.`reduced_sig_mt  ++  [sig_tmp] in
@@ -449,6 +487,31 @@ module XMSS_MT_PRF = {
      return is_valid;
    }
 }.
+
+lemma xmss_mt_kg_ll : islossless XMSS_MT_PRF.kg.
+proof.
+proc.
+auto => /> ; call treehash_ll.
+auto => /> *. smt.
+qed.
+
+lemma root_from_sig_ll : islossless XMSS_MT_PRF.rootFromSig.
+proof.
+proc.
+while (0 <= k <= h) (h - k) ; auto => /> ; 1,2: by progress ; smt().
+call ltree_ll ; auto => />. 
+call wots_pkFromSig_ll ; auto => />.
+smt(h_vals).
+qed.
+
+lemma xmss_mt_sign_ll : islossless XMSS_MT_PRF.sign.
+proof.
+proc.
+while (0 <= j <= d) (d - j) ; auto => />.
+  - call treesig_ll ; auto => />. call treehash_ll. skip => /> /#.
+  - progress ; smt().
+  - call treesig_ll ; auto => /> ; smt(ge1_d).
+qed.
 
 axiom prf_keygen : equiv [XMSS_MT.kg ~ XMSS_MT_PRF.kg : true ==> true].
 
