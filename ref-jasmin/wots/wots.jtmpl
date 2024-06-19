@@ -232,42 +232,35 @@ inline fn __base_w<OUTLEN, INLEN>(
   reg ptr u8[INLEN] input
 ) -> reg ptr u32[OUTLEN]
 {
-    reg u64 in out;
-    reg u8 total;
-    reg u32 total_32;
-    reg u64 bits consumed;
+    reg u32 total;
+    reg u64 i in bits;
 
     in = 0;
-    out  = 0;
     bits = 0;
     total = 0;
+    i = 0;
+
+    // NOTE: consumed & out = i 
 
     // for (consumed = 0; consumed < out_len; consumed++) 
-    consumed = 0;
-    while (consumed < OUTLEN)
-    {
+    while (i < OUTLEN) {
         // if (bits == 0) { total = input[in]; in++; bits += 8; }
-        if (bits == 0) 
-        {
-          total = input[in];
+        if (bits == 0) {
+          total = (32u) input[in];
           in += 1;
           bits += 8;
         }   
+	    bits -= XMSS_WOTS_LOG_W;
 
-        // bits -= params->wots_log_w;
-        bits -= XMSS_WOTS_LOG_W;
-    
         // output[out] = (total >> bits) & (params->wots_w - 1);
-        total_32 = (32u) total;
-        ?{}, total_32 = #SHR_32(total_32, bits);
-        total_32 &= (XMSS_WOTS_W - 1);
-        output[out] = total_32;
+        ?{}, total = #SHR_32(total, bits);
+        total &= (XMSS_WOTS_W - 1);
+        output[i] = total;
 
       // out++;
-      out += 1;
-      consumed += 1;
+      i += 1;
     }
-
+    
     return output;
 }//<>
 
