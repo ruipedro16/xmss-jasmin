@@ -5,33 +5,11 @@ require import XMSS_IMPL XMSS_IMPL_PP Generic Parameters.
 
 from Jasmin require import JModel.
 
-lemma to_of_int (i : int) : 0 <= i < W64.max_uint => to_uint ((of_int i))%W64 = i by move => ? ; smt(@W64).
+lemma ull_to_bytes_2_ll  : islossless Mp(Syscall).__ull_to_bytes_2 
+    by proc ; while (true) (i - aux) ; by auto => /> /#.
 
-lemma memcpy_ll : phoare [Memcpy._x_memcpy_u8u8 : 0 <= inlen < W64.max_uint ==> true] = 1%r.
-proof.
-proc.
-while (#pre /\ 0 <= to_uint i <= inlen) (inlen - to_uint i) ; auto => />.
-  - move => &hr. rewrite ultE of_uintK //= => *. rewrite to_uintD_small => /#.
-  - move => &hr ?????. rewrite ultE //= => *. rewrite to_of_int => /#. 
-qed.
-
-lemma memcpy_ptr_ll : islossless Memcpy._x_memcpy_u8u8p.
-proof.
-proc.
-while (true) ((to_uint inlen) - (to_uint i)).
-  - auto => /> &hr. rewrite ultE => //= * ; smt(@W64).
-  - auto => /> ; move => &hr ?. rewrite ultE => //= /#.
-qed.
-
-lemma ull_to_bytes_2_ll  : islossless Mp(Syscall).__ull_to_bytes_2 by proc ; while (true) (i - aux) ; by auto => /> /#.
-lemma ull_to_bytes_32_ll : islossless Mp(Syscall).__ull_to_bytes_32 by proc ; while (true) (i - aux) ; by auto => /> /#.
-
-lemma zero_addr_ll : islossless Mp(Syscall).__zero_address. 
-proof.
-proc ; inline *.
-auto => />.
-while (true) (8 - i) ; by auto => /> /#.
-qed.
+lemma ull_to_bytes_32_ll : islossless Mp(Syscall).__ull_to_bytes_32 
+    by proc ; while (true) (i - aux) ; by auto => /> /#.
 
 lemma addr_to_bytes_ll : islossless Mp(Syscall).__addr_to_bytes.
 proc.
@@ -39,6 +17,9 @@ while (true) (8 - i); last by auto => /> /#.
 auto => />.
 inline; by auto => /> /#.
 qed.
+
+lemma zero_addr_ll : islossless Mp(Syscall).__zero_address_
+    by proc ; inline ; wp ; while (true) (8 - i) ; auto => /> /#.
 
 lemma thash_f_ll : islossless Mp(Syscall).__thash_f.
 proof.
@@ -49,15 +30,27 @@ while (0 <= to_uint i <= 32) (32 - to_uint i) ; auto => />.
   - auto => /> *. split ; [ progress ; rewrite ultE => /# | auto ].
   - call (addr_to_bytes_ll). inline Mp(Syscall).__set_key_and_mask ; auto => />. 
     call (addr_to_bytes_ll) ; auto => />. 
-    call (ull_to_bytes_32_ll). auto => /> i. rewrite ultE /= => * /#.
+    call (ull_to_bytes_32_ll). auto => /> *. rewrite ultE => /#.
 qed.
 
-(* Base w *)
-lemma base_w_ll : islossless BaseWGeneric.__base_w.
+lemma base_w_ll : phoare [BaseWGeneric.__base_w : size output <= 67 ==> true] = 1%r.
 proof.
 proc.
-islossless.
-while (true) ((to_uint outlen) - (to_uint consumed)) ; [auto => /> *; smt(@W64) | skip => /> /#].
+wp.
+while (#pre /\ 0 <= to_uint i <= size output) ((size output) - (to_uint i)) ; auto => /> *.
+- do split.
+  + rewrite size_put /#.
+  + rewrite to_uintD_small /#.
+  + rewrite size_put ; smt(@W64).
+  + rewrite size_put to_uintD_small ; smt(@W64).
+  + move => ? ; do split.
+    * rewrite size_put /#.
+    * rewrite to_uintD_small /#.
+    * move => ? ; rewrite size_put ; smt(@W64).
+    * rewrite size_put to_uintD_small /#.
+- split.
+  + apply size_ge0.
+  + move => * ; rewrite ultE of_uintK /#.
 qed.
 
 lemma csum_ll : islossless Mp(Syscall).__csum.
@@ -76,45 +69,33 @@ call (base_w_ll).
 call (ull_to_bytes_2_ll).
 auto => />.
 call (csum_ll).
-auto => /> .
+auto => /> *.
+by rewrite /to_list size_mkseq.
 qed.
 
 (* Gen Chain *)
-lemma gen_chain_inplace_ll : islossless Mp(Syscall).__gen_chain_inplace.
+lemma gen_chain_inplace_ll : phoare[Mp(Syscall).__gen_chain_inplace : 
+    0 <= to_uint steps <= XMSS_WOTS_W ==> true] = 1%r.
 proof.
 proc.
-auto => />.
-admit.
-(*
-while (0 <= to_uint i <= to_uint t) ((to_uint t) - (to_uint i)).
-  - auto => />. inline Mp(Syscall).__thash_f_ ;  auto => /> ; call(thash_f_ll).
-    inline. auto => /> &hr. rewrite ultE. rewrite to_uintD_small => //=. admit. progress. smt(). admit. idtac => //= /#.
-  - auto => /> &hr i. rewrite ultE -lezNgt => /#.
-*)
+while (#pre /\ 0 <= to_uint i <= to_uint  steps) ((to_uint steps) - (to_uint i)) ; auto => />.
+- inline Mp(Syscall).__thash_f_ Mp(Syscall)._thash_f  Mp(Syscall).__set_hash_addr. wp. call thash_f_ll. 
+  auto => /> * ; do split ; by rewrite to_uintD_small /#.
+- smt(@W64).
 qed.
 
-lemma gen_chain_ll : islossless Mp(Syscall).__gen_chain.
+lemma gen_chain_ll : phoare [Mp(Syscall).__gen_chain :
+    0 <= to_uint start <= XMSS_WOTS_W - 1 /\
+    0 <= to_uint steps <= XMSS_WOTS_W - 1 /\
+    0 <= to_uint (start + steps) <= XMSS_WOTS_W - 1 ==>
+      true] = 1%r.
 proc.
 auto => /> *.
-while (to_uint start <= to_uint i <= to_uint t /\ to_uint t <= XMSS_WOTS_W - 1) ((to_uint t) - (to_uint i)).
-(* First *)
-auto => /> *.
-call (thash_f_ll).
-inline ; auto => /> &hr H0 H1 H2.
-rewrite to_uintD_small => //=.
-rewrite /XMSS_WOTS_W in H2 => /#.
-move => ? ; do split => /#.
-(* Last *)
-auto => />.
-(* 1st *)
-auto => /> &hr *. progress => /#.
-(* 2nd *)
-call (memcpy_ptr_ll) ; auto => /> &hr.
-split ; last by move => ? ; rewrite ultE => // * /#.
-rewrite to_uintD_small.
-admit.
-rewrite /XMSS_WOTS_W => //=. 
-admit.
+while (#pre /\ 0 <= to_uint i <= to_uint (start + steps) /\ t = start + steps)
+      ((to_uint t) - (to_uint i)) ; auto => /> ; 2: by smt(@W32).
+- inline Mp(Syscall).__set_hash_addr. call thash_f_ll.
+  auto => /> * ; do split ; smt(@W32).
+- admit. (* TODO: dont replace memcpyu8u8p *)
 qed.
 
 (* Chain Lengths *)
@@ -124,6 +105,18 @@ proc.
 auto => /> ; call (checksum_ll).
 auto => /> ; call (base_w_ll).
 auto => />.
+by rewrite /to_list size_mkseq.
+qed.
+
+lemma memcpy_ll : phoare [ Memcpy._x_memcpy_u8u8 : size in_0 <= 64 ==> true ] = 1%r.
+proof.
+proc.
+while (#pre /\ 0 <= to_uint i <= size in_0) ((size in_0) - (to_uint i)) ; auto => />.
+  - move => &hr *. do split.
+    + smt(@W64).
+    + rewrite to_uintD_small // ; smt(@W64).
+    + rewrite to_uintD_small // ; smt(@W64).
+  - progress ; [ apply size_ge0 | smt(@W64) ].
 qed.
 
 (* Expand Seed *)
@@ -131,8 +124,10 @@ lemma expand_seed_ll : islossless Mp(Syscall).__expand_seed.
 proof.
 proc.
 while (true) (67 - i) ; auto => />.
-  - call (addr_to_bytes_ll). inline. auto => /> /#.
-  - call (memcpy_ll). auto => />. inline ; auto => /> /#.
+- call (addr_to_bytes_ll). inline. auto => /> /#.
+- call memcpy_ll. auto => />. inline*. auto => /> *. split.
+  + by rewrite /to_list size_mkseq.
+  + smt().
 qed.
 
 (* Pk Gen *)
@@ -141,22 +136,24 @@ proof.
 proc.
 while (true) (67 - i).
   - auto => />. inline Mp(Syscall).__gen_chain_inplace_ ; inline Mp(Syscall)._gen_chain_inplace ; auto => />.
-    call (gen_chain_inplace_ll). inline. auto => /> /#.
-  - inline Mp(Syscall).__expand_seed_.
-    inline Mp(Syscall)._expand_seed ; auto => />.
-    call(expand_seed_ll) ; by auto => /> /#.
+    call gen_chain_inplace_ll. inline. auto => /> /#.
+  - inline Mp(Syscall).__expand_seed_ Mp(Syscall)._expand_seed ; auto => />.
+    call expand_seed_ll ; by auto => /> /#.
 qed.
 
 (* Sign *)
 lemma wots_sign_ll : islossless Mp(Syscall).__wots_sign.
 proof.
 proc.
+sp ; wp.
 while (true) (67 - i).
-  - auto => />. inline Mp(Syscall).__gen_chain_inplace_ ; inline Mp(Syscall)._gen_chain_inplace ; auto => />.
-    call (gen_chain_inplace_ll). inline* ; auto => /> /#.
-  - inline Mp(Syscall).__expand_seed_ ; inline Mp(Syscall)._expand_seed ; auto => /> ; call(expand_seed_ll).
-    inline Mp(Syscall).__chain_lengths_ ; inline Mp(Syscall)._chain_lengths ; auto => />.
-    call(chain_lengths_ll) ; by auto => /> /#.
+- auto => />. inline Mp(Syscall).__set_chain_addr ; call gen_chain_inplace_ll ; auto => /> *. do split.
+  + smt(@Array67 @W32).
+  + admit.
+  + admit.
+- inline Mp(Syscall).__expand_seed_ Mp(Syscall)._expand_seed.  wp ; call expand_seed_ll.
+  inline Mp(Syscall).__chain_lengths_ Mp(Syscall)._chain_lengths. wp ; call chain_lengths_ll.
+  auto => /> /#.
 qed.
 
 (* Pk from Sig *)
@@ -164,11 +161,19 @@ lemma wots_pk_from_sig_ll : islossless Mp(Syscall).__wots_pk_from_sig.
 proof.
 proc => //=.
 while (true) (67 - i).
-  - auto => />. inline Mp(Syscall).__gen_chain_ ; inline Mp(Syscall)._gen_chain ; auto => />.
-    call(gen_chain_ll); by inline ; auto => /> /#.
-  - inline Mp(Syscall).__chain_lengths_ ; inline Mp(Syscall)._chain_lengths ; auto => />.
-    call (chain_lengths_ll) ; by auto => /> /#.
+- auto => />. inline Mp(Syscall).__gen_chain_ ; inline Mp(Syscall)._gen_chain Mp(Syscall).__set_chain_addr ; auto => />.
+  call gen_chain_ll. auto => /> *. do split.
+  + admit.
+  + admit.
+  + admit.
+  + admit.
+  + admit.
+  + admit.
+  + admit.
+- inline Mp(Syscall).__chain_lengths_ ; inline Mp(Syscall)._chain_lengths ; auto => />.
+  call chain_lengths_ll ; by auto => /> /#.
 qed.
+
 
 (* XMSS *)
 
@@ -177,6 +182,11 @@ lemma ltree_ll : islossless Mp(Syscall).__l_tree by admit.
 lemma treehash_array_ll : islossless Mp(Syscall).__treehash_array.
 proof.
 proc.
-pose x := 1 `<<` 10.
-admit.
+inline Mp(Syscall).__copy_subtree_addr Mp(Syscall).__set_type Mp(Syscall).__set_ltree_addr Mp(Syscall).__set_ots_addr.
+wp ; sp.
+while (0 <= j <= 32) (32 - j) ; first by auto => /> /#.
+inline Mp(Syscall).__cond_u64_geq_u64_u32_eq_u32. wp.
+while (0 <= j <= 32) (32 - j).
+- admit.
+- admit.
 qed.

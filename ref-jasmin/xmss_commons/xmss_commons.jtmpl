@@ -401,9 +401,9 @@ inline fn __xmssmt_core_sign_open(
     // uint32_t ots_addr[8] = {0};
     // uint32_t ltree_addr[8] = {0};
     // uint32_t node_addr[8] = {0};
-    ots_addr = __zero_address(ots_addr);
-    ltree_addr = __zero_address(ltree_addr);
-    node_addr = __zero_address(node_addr);
+    ots_addr = __zero_address_(ots_addr);
+    ltree_addr = __zero_address_(ltree_addr);
+    node_addr = __zero_address_(node_addr);
 
     // set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
     // set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);

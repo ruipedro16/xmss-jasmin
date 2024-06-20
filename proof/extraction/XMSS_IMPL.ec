@@ -961,21 +961,6 @@ module M(SC:Syscall_t) = {
     return (out);
   }
   
-  proc __ull_to_bytes_2 (out:W8.t Array2.t, in_0:W64.t) : W8.t Array2.t = {
-    var aux: int;
-    
-    var i:int;
-    
-    aux <- (- 1);
-    i <- (2 - 1);
-    while (aux < i) {
-      out.[i] <- (truncateu8 in_0);
-      in_0 <- (in_0 `>>` (W8.of_int 8));
-      i <- i - 1;
-    }
-    return (out);
-  }
-  
   proc __ull_to_bytes_4 (out:W8.t Array4.t, in_0:W64.t) : W8.t Array4.t = {
     var aux: int;
     
@@ -998,6 +983,21 @@ module M(SC:Syscall_t) = {
     
     aux <- (- 1);
     i <- (32 - 1);
+    while (aux < i) {
+      out.[i] <- (truncateu8 in_0);
+      in_0 <- (in_0 `>>` (W8.of_int 8));
+      i <- i - 1;
+    }
+    return (out);
+  }
+  
+  proc __ull_to_bytes_2 (out:W8.t Array2.t, in_0:W64.t) : W8.t Array2.t = {
+    var aux: int;
+    
+    var i:int;
+    
+    aux <- (- 1);
+    i <- (2 - 1);
     while (aux < i) {
       out.[i] <- (truncateu8 in_0);
       in_0 <- (in_0 `>>` (W8.of_int 8));
@@ -1103,19 +1103,6 @@ module M(SC:Syscall_t) = {
     return (a);
   }
   
-  proc __memset_u8_4 (a:W8.t Array4.t, value:W8.t) : W8.t Array4.t = {
-    
-    var i:W64.t;
-    
-    i <- (W64.of_int 0);
-    
-    while ((i \ult (W64.of_int 4))) {
-      a.[(W64.to_uint i)] <- value;
-      i <- (i + (W64.of_int 1));
-    }
-    return (a);
-  }
-  
   proc __memset_u8_128 (a:W8.t Array128.t, value:W8.t) : W8.t Array128.t = {
     
     var i:W64.t;
@@ -1123,6 +1110,19 @@ module M(SC:Syscall_t) = {
     i <- (W64.of_int 0);
     
     while ((i \ult (W64.of_int 128))) {
+      a.[(W64.to_uint i)] <- value;
+      i <- (i + (W64.of_int 1));
+    }
+    return (a);
+  }
+  
+  proc __memset_u8_4 (a:W8.t Array4.t, value:W8.t) : W8.t Array4.t = {
+    
+    var i:W64.t;
+    
+    i <- (W64.of_int 0);
+    
+    while ((i \ult (W64.of_int 4))) {
       a.[(W64.to_uint i)] <- value;
       i <- (i + (W64.of_int 1));
     }
@@ -1175,20 +1175,6 @@ module M(SC:Syscall_t) = {
     return (out);
   }
   
-  proc __memcpy_u8u8_64_64 (out:W8.t Array64.t, in_0:W8.t Array64.t) : 
-  W8.t Array64.t = {
-    
-    var i:W64.t;
-    
-    i <- (W64.of_int 0);
-    
-    while ((i \ult (W64.of_int 64))) {
-      out.[(W64.to_uint i)] <- in_0.[(W64.to_uint i)];
-      i <- (i + (W64.of_int 1));
-    }
-    return (out);
-  }
-  
   proc __memcpy_u8u8_32_32 (out:W8.t Array32.t, in_0:W8.t Array32.t) : 
   W8.t Array32.t = {
     
@@ -1197,6 +1183,20 @@ module M(SC:Syscall_t) = {
     i <- (W64.of_int 0);
     
     while ((i \ult (W64.of_int 32))) {
+      out.[(W64.to_uint i)] <- in_0.[(W64.to_uint i)];
+      i <- (i + (W64.of_int 1));
+    }
+    return (out);
+  }
+  
+  proc __memcpy_u8u8_64_64 (out:W8.t Array64.t, in_0:W8.t Array64.t) : 
+  W8.t Array64.t = {
+    
+    var i:W64.t;
+    
+    i <- (W64.of_int 0);
+    
+    while ((i \ult (W64.of_int 64))) {
       out.[(W64.to_uint i)] <- in_0.[(W64.to_uint i)];
       i <- (i + (W64.of_int 1));
     }
@@ -1212,21 +1212,21 @@ module M(SC:Syscall_t) = {
     return (out);
   }
   
-  proc _memcpy_u8u8_64_64 (out:W8.t Array64.t, in_0:W8.t Array64.t) : 
-  W8.t Array64.t = {
-    
-    
-    
-    out <@ __memcpy_u8u8_64_64 (out, in_0);
-    return (out);
-  }
-  
   proc _memcpy_u8u8_32_32 (out:W8.t Array32.t, in_0:W8.t Array32.t) : 
   W8.t Array32.t = {
     
     
     
     out <@ __memcpy_u8u8_32_32 (out, in_0);
+    return (out);
+  }
+  
+  proc _memcpy_u8u8_64_64 (out:W8.t Array64.t, in_0:W8.t Array64.t) : 
+  W8.t Array64.t = {
+    
+    
+    
+    out <@ __memcpy_u8u8_64_64 (out, in_0);
     return (out);
   }
   
@@ -1242,18 +1242,6 @@ module M(SC:Syscall_t) = {
     return (out);
   }
   
-  proc _x_memcpy_u8u8_64_64 (out:W8.t Array64.t, in_0:W8.t Array64.t) : 
-  W8.t Array64.t = {
-    
-    
-    
-    out <- out;
-    in_0 <- in_0;
-    out <@ _memcpy_u8u8_64_64 (out, in_0);
-    out <- out;
-    return (out);
-  }
-  
   proc _x_memcpy_u8u8_32_32 (out:W8.t Array32.t, in_0:W8.t Array32.t) : 
   W8.t Array32.t = {
     
@@ -1262,6 +1250,18 @@ module M(SC:Syscall_t) = {
     out <- out;
     in_0 <- in_0;
     out <@ _memcpy_u8u8_32_32 (out, in_0);
+    out <- out;
+    return (out);
+  }
+  
+  proc _x_memcpy_u8u8_64_64 (out:W8.t Array64.t, in_0:W8.t Array64.t) : 
+  W8.t Array64.t = {
+    
+    
+    
+    out <- out;
+    in_0 <- in_0;
+    out <@ _memcpy_u8u8_64_64 (out, in_0);
     out <- out;
     return (out);
   }
@@ -1376,22 +1376,6 @@ module M(SC:Syscall_t) = {
     return (out_ptr, out_offset, in_offset);
   }
   
-  proc __memcpy_u8pu8_4 (out:W64.t, offset:W64.t, in_0:W8.t Array4.t) : 
-  W64.t * W64.t = {
-    
-    var i:W64.t;
-    
-    i <- (W64.of_int 0);
-    
-    while ((i \ult (W64.of_int 4))) {
-      Glob.mem <-
-      storeW8 Glob.mem (W64.to_uint (out + offset)) (in_0.[(W64.to_uint i)]);
-      offset <- (offset + (W64.of_int 1));
-      i <- (i + (W64.of_int 1));
-    }
-    return (out, offset);
-  }
-  
   proc __memcpy_u8pu8_32 (out:W64.t, offset:W64.t, in_0:W8.t Array32.t) : 
   W64.t * W64.t = {
     
@@ -1408,12 +1392,19 @@ module M(SC:Syscall_t) = {
     return (out, offset);
   }
   
-  proc _memcpy_u8pu8_4 (out:W64.t, offset:W64.t, in_0:W8.t Array4.t) : 
+  proc __memcpy_u8pu8_4 (out:W64.t, offset:W64.t, in_0:W8.t Array4.t) : 
   W64.t * W64.t = {
     
+    var i:W64.t;
     
+    i <- (W64.of_int 0);
     
-    (out, offset) <@ __memcpy_u8pu8_4 (out, offset, in_0);
+    while ((i \ult (W64.of_int 4))) {
+      Glob.mem <-
+      storeW8 Glob.mem (W64.to_uint (out + offset)) (in_0.[(W64.to_uint i)]);
+      offset <- (offset + (W64.of_int 1));
+      i <- (i + (W64.of_int 1));
+    }
     return (out, offset);
   }
   
@@ -1426,17 +1417,12 @@ module M(SC:Syscall_t) = {
     return (out, offset);
   }
   
-  proc _x_memcpy_u8pu8_4 (out:W64.t, offset:W64.t, in_0:W8.t Array4.t) : 
+  proc _memcpy_u8pu8_4 (out:W64.t, offset:W64.t, in_0:W8.t Array4.t) : 
   W64.t * W64.t = {
     
     
     
-    out <- out;
-    offset <- offset;
-    in_0 <- in_0;
-    (out, offset) <@ _memcpy_u8pu8_4 (out, offset, in_0);
-    out <- out;
-    offset <- offset;
+    (out, offset) <@ __memcpy_u8pu8_4 (out, offset, in_0);
     return (out, offset);
   }
   
@@ -1449,6 +1435,20 @@ module M(SC:Syscall_t) = {
     offset <- offset;
     in_0 <- in_0;
     (out, offset) <@ _memcpy_u8pu8_32 (out, offset, in_0);
+    out <- out;
+    offset <- offset;
+    return (out, offset);
+  }
+  
+  proc _x_memcpy_u8pu8_4 (out:W64.t, offset:W64.t, in_0:W8.t Array4.t) : 
+  W64.t * W64.t = {
+    
+    
+    
+    out <- out;
+    offset <- offset;
+    in_0 <- in_0;
+    (out, offset) <@ _memcpy_u8pu8_4 (out, offset, in_0);
     out <- out;
     offset <- offset;
     return (out, offset);
@@ -1467,7 +1467,7 @@ module M(SC:Syscall_t) = {
     return (addr);
   }
   
-  proc __zero_address (addr:W32.t Array8.t) : W32.t Array8.t = {
+  proc __zero_address_ (addr:W32.t Array8.t) : W32.t Array8.t = {
     
     
     
@@ -2791,9 +2791,9 @@ module M(SC:Syscall_t) = {
     pub_seed <- (Array32.init (fun i_0 => pk.[32 + i_0]));
     idx <- (W64.of_int 0);
     (* Erased call to spill *)
-    ots_addr <@ __zero_address (ots_addr);
-    ltree_addr <@ __zero_address (ltree_addr);
-    node_addr <@ __zero_address (node_addr);
+    ots_addr <@ __zero_address_ (ots_addr);
+    ltree_addr <@ __zero_address_ (ltree_addr);
+    node_addr <@ __zero_address_ (node_addr);
     ots_addr <@ __set_type (ots_addr, (W32.of_int 0));
     ltree_addr <@ __set_type (ltree_addr, (W32.of_int 1));
     node_addr <@ __set_type (node_addr, (W32.of_int 2));
@@ -2945,9 +2945,9 @@ module M(SC:Syscall_t) = {
     ots_addr <- witness;
     offset <- (W64.of_int 0);
     (* Erased call to spill *)
-    ots_addr <@ __zero_address (ots_addr);
-    ltree_addr <@ __zero_address (ltree_addr);
-    node_addr <@ __zero_address (node_addr);
+    ots_addr <@ __zero_address_ (ots_addr);
+    ltree_addr <@ __zero_address_ (ltree_addr);
+    node_addr <@ __zero_address_ (node_addr);
     ots_addr <@ __copy_subtree_addr (ots_addr, subtree_addr);
     ltree_addr <@ __copy_subtree_addr (ltree_addr, subtree_addr);
     node_addr <@ __copy_subtree_addr (node_addr, subtree_addr);
@@ -3132,7 +3132,7 @@ module M(SC:Syscall_t) = {
     auth_path <- witness;
     buf <- witness;
     top_tree_addr <- witness;
-    top_tree_addr <@ __zero_address (top_tree_addr);
+    top_tree_addr <@ __zero_address_ (top_tree_addr);
     top_tree_addr <@ __set_layer_addr (top_tree_addr, (W32.of_int (1 - 1)));
     aux <@ __memset_zero_u8 ((Array4.init (fun i_0 => sk.[0 + i_0])));
     sk <- Array132.init
@@ -3251,7 +3251,7 @@ module M(SC:Syscall_t) = {
     sk_prf <- witness;
     sk_seed <- witness;
     (* Erased call to spill *)
-    ots_addr <@ __zero_address (ots_addr);
+    ots_addr <@ __zero_address_ (ots_addr);
     ots_addr <@ __set_type (ots_addr, (W32.of_int 0));
     ( _0,  _1,  _2) <@ _x__memcpy_u8pu8p (sm_ptr, (W64.of_int 2500), m_ptr,
     (W64.of_int 0), mlen);

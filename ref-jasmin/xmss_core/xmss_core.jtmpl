@@ -44,9 +44,9 @@ inline fn __treehash_array(
     // uint32_t ots_addr[8] = {0};
     // uint32_t ltree_addr[8] = {0};
     // uint32_t node_addr[8] = {0};
-    ots_addr = __zero_address(ots_addr);
-    ltree_addr = __zero_address(ltree_addr);
-    node_addr = __zero_address(node_addr);
+    ots_addr = __zero_address_(ots_addr);
+    ltree_addr = __zero_address_(ltree_addr);
+    node_addr = __zero_address_(node_addr);
 
     // copy_subtree_addr(ots_addr, subtree_addr);
     // copy_subtree_addr(ltree_addr, subtree_addr);
@@ -238,7 +238,7 @@ inline fn __xmssmt_core_seed_keypair(
     inline int i;
     stack u8[XMSS_N] buf;
 
-    top_tree_addr = __zero_address(top_tree_addr);
+    top_tree_addr = __zero_address_(top_tree_addr);
 
     top_tree_addr =  __set_layer_addr(top_tree_addr, XMSS_D - 1);
     
@@ -349,7 +349,7 @@ inline fn __xmssmt_core_sign(
     () = #spill(mlen, sk);
 
     // uint32_t ots_addr[8] = {0};
-    ots_addr = __zero_address(ots_addr);
+    ots_addr = __zero_address_(ots_addr);
 
     // set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
     ots_addr = __set_type(ots_addr, XMSS_ADDR_TYPE_OTS);

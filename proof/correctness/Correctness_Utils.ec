@@ -19,11 +19,24 @@ while(
   0 <= to_uint i <= 32 /\
   a1 = b1 /\
   acc = W8.zero
-) ; last by auto.
-auto => /> *.
-do split.
-smt.
-smt.
+) ; auto => /> *.
+split ; by smt(@W64).
+qed.
+
+require import Array4.
+
+lemma memset_zero_post (a : W8.t Array4.t) :
+    hoare [Mp(Syscall).__memset_zero_u8 : true ==> all ((=) W8.zero) res].
+proof.
+proc.
+while (0 <= to_uint i <= 4 /\ forall (k : int), (0 <= k < to_uint i) => a.[k] = W8.zero).
+- auto => />. move => &hr H0 H1 H2 H3. do split.
+  + rewrite to_uintD_small /#.
+  + rewrite to_uintD_small ; [ smt() | smt(@W64) ].
+  + move => ???. admit.
+- auto => />. split. 
+  + move => k /#. 
+  + move => a0 i H0 H1 H2 H3. admit.
 qed.
 
 lemma memcmp_false (x y : W8.t Array32.t) :

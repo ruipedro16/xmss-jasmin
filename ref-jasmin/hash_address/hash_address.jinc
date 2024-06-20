@@ -4,7 +4,7 @@ fn _zero_address(reg ptr u32[8] addr) -> reg ptr u32[8] {
     return addr;
 }
 
-inline fn __zero_address(reg ptr u32[8] addr) -> reg ptr u32[8] {
+inline fn __zero_address_(reg ptr u32[8] addr) -> reg ptr u32[8] {
     addr = addr;
     addr = _zero_address(addr);
     addr = addr;

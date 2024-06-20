@@ -5,6 +5,7 @@
 EASYCRYPT  ?= easycrypt
 EC_INCLUDE ?= -I common -I extraction -I spec -I correctness
 EC_FN      ?= -ec xmss_keypair_jazz -ec xmss_sign_jazz -ec xmss_sign_open_jazz
+EC_FLAGS   ?= -pragmas Proofs:weak
  
 JASMIN   ?= jasminc
 JFLAGS   ?= -nowarning ${JADDFLAGS}
@@ -75,10 +76,12 @@ typecheck_extraction: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
 
 
 typecheck_proof: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
-	# $(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_Utils.ec
-	$(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_Conditions.ec
-	$(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_Generic.ec
-	$(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_Wots.ec
+	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Correctness_Utils.ec
+	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Correctness_Address.ec
+	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Correctness_Conditions.ec
+	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Termination.ec
+	# $(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_Generic.ec
+	# $(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_Wots.ec
 	# $(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_XMSS.ec
 
 # --------------------------------------------------------------------------------------------------

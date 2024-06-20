@@ -70,9 +70,6 @@ def remove_functions(input_text: str, template_functions_dict, debug: bool) -> s
         "_memcpy_u8u8",
         "_x_memcpy_u8u8",
         "__memset_u8",
-        "__memcpy_u8u8p",
-        "_memcpy_u8u8p",
-        "_x_memcpy_u8u8p",
         "__memcpy_u8u8_2"
     ]
 
@@ -543,7 +540,7 @@ def replace_calls(text: str) -> str:
       (W8.of_int 255));
 """,
 """
-      aux_list <@ Memset.memset_u8(to_list (Array4.init (fun i_0 => sk.[0 + i_0])), W64.of_int 4, (W8.of_int 255));
+      aux_list <@ Memset.memset_u8(to_list (Array4.init (fun i_0 => sk.[0 + i_0])), (W8.of_int 255));
       aux <- Array4.of_list witness aux_list;
 """
     )
@@ -554,210 +551,8 @@ def replace_calls(text: str) -> str:
       (W8.of_int 0));
 """,
 """
-      aux_0_list <@ Memset.memset_u8(to_list (Array128.init (fun i_0 => sk.[4 + i_0])), W64.of_int 128, (W8.of_int 0));
+      aux_0_list <@ Memset.memset_u8(to_list (Array128.init (fun i_0 => sk.[4 + i_0])), (W8.of_int 0));
       aux_0 <- Array128.of_list witness aux_0_list;
-"""
-    )
-
-    # 4. _x_memcpy_u8u8p
-    # 4.1 _x_memcpy_u8u8p_64
-
-    # NOTE: buffer_list is already declared at this point (for both cases)
-    text = text.replace(
-"""
-      aux <@ _x_memcpy_u8u8p_32 ((Array32.init (fun i_0 => buffer.[32 + i_0])),
-      auth_path_ptr, len);
-      buffer <- Array64.init
-                (fun i_0 => if 32 <= i_0 < 32 + 32 then aux.[i_0-32]
-                else buffer.[i_0]);
-""",
-"""
-
-      aux_list <@ Memcpy._x_memcpy_u8u8p (to_list (Array32.init (fun i_0 => buffer.[32 + i_0])),   
-      auth_path_ptr);
-      buffer <- Array64.init
-                (fun i_0 => if 32 <= i_0 < 32 + 32 then (nth witness aux (i_0-32))
-                else buffer.[i_0]);
-
-"""
-    )
-
-    text = text.replace(
-"""
-      (buffer,  _1) <@ _x_memcpy_u8u8p_64 (buffer, offset_out, auth_path_ptr,
-      len);
-""",
-"""
-
-      (buffer_list, _1) <@ Memcpy._x_memcpy_u8u8p (to_list buffer, offset_out, auth_path_ptr, len);
-      buffer <- Array64.of_list witness buffer_list;
-
-"""
-    )
-
-    text = text.replace(
-"""
-      (buffer,  _0) <@ _x_memcpy_u8u8p_64 (buffer, offset_out, auth_path_ptr,
-      len);
-""",
-"""
-
-        (buffer_list, _0) <@ Memcpy._x_memcpy_u8u8p(to_list buffer, offset_out, auth_path_ptr, len);
-        buffer <- Array64.of_list witness buffer_list;
-
-"""
-    )
-
-    text = text.replace(
-"""
-        (buffer,  _3) <@ _x_memcpy_u8u8p_64 (buffer, offset_out,
-        auth_path_ptr, len);
-""",
-"""
-
-        (buffer_list, _3) <@ Memcpy._x_memcpy_u8u8p(to_list buffer, offset_out, auth_path_ptr, len);
-        buffer <- Array64.of_list witness buffer_list;
-
-"""
-    )
-
-    text = text.replace(
-"""
-        (buffer,  _4) <@ _x_memcpy_u8u8p_64 (buffer, offset_out,
-        auth_path_ptr, len);
-""",
-"""
-
-        (buffer_list, _4) <@ Memcpy._x_memcpy_u8u8p(to_list buffer, offset_out, auth_path_ptr, len);
-        buffer <- Array64.of_list witness buffer_list;
-
-"""
-    )
-
-    # 4.2 _x_memcpy_u8u8p_32
-    text = text.replace(
-"""
-  proc __gen_chain (out:W8.t Array32.t, in_ptr:W64.t, start:W32.t,
-                    steps:W32.t, pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
-  W8.t Array32.t * W32.t Array8.t = {
-""",
-"""
-  proc __gen_chain (out:W8.t Array32.t, in_ptr:W64.t, start:W32.t,
-                    steps:W32.t, pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
-  W8.t Array32.t * W32.t Array8.t = {
-    var out_list : W8.t list;
-"""
-    )
-
-    text = text.replace(
-"""
-    out <@ _x_memcpy_u8u8p_32 (out, in_ptr);
-""",
-"""
-
-    out_list <@ Memcpy._x_memcpy_u8u8p(to_list out, in_ptr);
-    out <- Array32.of_list witness out_list;
-
-"""
-    )
-
-    text = text.replace(
-"""
-      aux <@ _x_memcpy_u8u8p_32 ((Array32.init (fun i_0 => buffer.[32 + i_0])),
-      auth_path_ptr);
-      buffer <- Array64.init
-                (fun i_0 => if 32 <= i_0 < 32 + 32 then aux.[i_0-32]
-                else buffer.[i_0]);
-""",
-"""
-
-      aux_list <@ Memcpy._x_memcpy_u8u8p (to_list (Array32.init (fun i_0 => buffer.[32 + i_0])),
-      auth_path_ptr);
-      buffer <- Array64.init
-                (fun i_0 => if 32 <= i_0 < 32 + 32 then (nth witness aux_list (i_0-32))
-                else buffer.[i_0]);
-                
-"""
-    )
-
-    text = text.replace(
-"""
-      aux <@ _x_memcpy_u8u8p_32 ((Array32.init (fun i_0 => buffer.[0 + i_0])),
-      auth_path_ptr);
-      buffer <- Array64.init
-                (fun i_0 => if 0 <= i_0 < 0 + 32 then aux.[i_0-0]
-                else buffer.[i_0]);
-""",
-"""
-
-      aux_list <@ Memcpy._x_memcpy_u8u8p (to_list (Array32.init (fun i_0 => buffer.[0 + i_0])),
-      auth_path_ptr);
-      buffer <- Array64.init
-                (fun i_0 => if 0 <= i_0 < 0 + 32 then (nth witness aux_list (i_0-0))
-                else buffer.[i_0]);
-
-"""
-    )
-
-    text = text.replace(
-"""
-        aux <@ _x_memcpy_u8u8p_32 ((Array32.init (fun i_0 => buffer.[32 + i_0])),
-        auth_path_ptr);
-        buffer <- Array64.init
-                  (fun i_0 => if 32 <= i_0 < 32 + 32 then aux.[i_0-32]
-                  else buffer.[i_0]);
-""",
-"""
-
-        aux_list <@ Memcpy._x_memcpy_u8u8p (to_list (Array32.init (fun i_0 => buffer.[32 + i_0])),
-        auth_path_ptr);
-        buffer <- Array64.init
-                  (fun i_0 => if 32 <= i_0 < 32 + 32 then (nth witness aux_list (i_0-32))
-                  else buffer.[i_0]);
-
-"""
-    )
-
-    text = text.replace(
-"""
-        aux <@ _x_memcpy_u8u8p_32 ((Array32.init (fun i_0 => buffer.[0 + i_0])),
-        auth_path_ptr);
-        buffer <- Array64.init
-                  (fun i_0 => if 0 <= i_0 < 0 + 32 then aux.[i_0-0]
-                  else buffer.[i_0]);
-""",
-"""
-
-        aux_list <@ Memcpy._x_memcpy_u8u8p (to_list (Array32.init (fun i_0 => buffer.[0 + i_0])),
-        auth_path_ptr);
-        buffer <- Array64.init
-                  (fun i_0 => if 0 <= i_0 < 0 + 32 then (nth witness aux_list (i_0-0))
-                  else buffer.[i_0]);
-
-"""
-    )
-
-    text = text.replace(
-"""
-  proc __xmssmt_core_sign_open (m_ptr:W64.t, mlen_ptr:W64.t, sm_ptr:W64.t,
-                                smlen:W64.t, pk:W8.t Array64.t) : W64.t = {
-""",
-"""
-  proc __xmssmt_core_sign_open (m_ptr:W64.t, mlen_ptr:W64.t, sm_ptr:W64.t,
-                                smlen:W64.t, pk:W8.t Array64.t) : W64.t = {
-    var buf_list : W8.t list;
-"""
-    )
-
-    text = text.replace(
-"""
-    buf <@ _x_memcpy_u8u8p_32 (buf, t64);
-""",
-"""
-
-    buf_list <@ Memcpy._x_memcpy_u8u8p(to_list buf, t64);
-    buf <- Array32.of_list witness buf_list;
-
 """
     )
 
