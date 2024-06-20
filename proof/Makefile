@@ -21,8 +21,8 @@ JQ_EXISTS := $(shell which jq)
 
 # --------------------------------------------------------------------------------------------------
 
-default: extract typecheck_spec typecheck_proof typecheck_extraction
-all: clean distclean extract typecheck_spec typecheck_proof typecheck_extraction
+default: extract typecheck_spec typecheck_proofs typecheck_extraction
+all: clean distclean extract typecheck_spec typecheck_proofs typecheck_extraction
 extract: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
 
 # --------------------------------------------------------------------------------------------------
@@ -58,7 +58,7 @@ endif
 
 # --------------------------------------------------------------------------------------------------
 
-.PHONY: typecheck_spec typecheck_proof typecheck_extraction
+.PHONY: typecheck_spec typecheck_proofs typecheck_extraction
 typecheck_spec: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Params.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Address.ec
@@ -75,12 +75,13 @@ typecheck_extraction: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
 	$(EASYCRYPT) $(EC_INCLUDE) extraction/XMSS_IMPL_PP.ec
 
 
-typecheck_proof: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
+typecheck_proofs: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
 	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Correctness_Utils.ec
 	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Correctness_Address.ec
 	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Correctness_Conditions.ec
+	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Correctness_Mem.ec
+	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Correctness_Hash.ec
 	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Termination.ec
-	# $(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_Generic.ec
 	# $(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_Wots.ec
 	# $(EASYCRYPT) $(EC_INCLUDE) correctness/Correctness_XMSS.ec
 

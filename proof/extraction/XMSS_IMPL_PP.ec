@@ -171,6 +171,32 @@ module Mp(SC:Syscall_t) = {
     return (a);
   }
 
+  proc __memset_u8_128 (a:W8.t Array128.t, value:W8.t) : W8.t Array128.t = {
+
+    var i:W64.t;
+
+    i <- (W64.of_int 0);
+
+    while ((i \ult (W64.of_int 128))) {
+      a.[(W64.to_uint i)] <- value;
+      i <- (i + (W64.of_int 1));
+    }
+    return (a);
+  }
+
+  proc __memset_u8_4 (a:W8.t Array4.t, value:W8.t) : W8.t Array4.t = {
+
+    var i:W64.t;
+
+    i <- (W64.of_int 0);
+
+    while ((i \ult (W64.of_int 4))) {
+      a.[(W64.to_uint i)] <- value;
+      i <- (i + (W64.of_int 1));
+    }
+    return (a);
+  }
+
   proc __memset_u8_ptr (a_ptr:W64.t, inlen:W64.t, value:W8.t) : unit = {
 
     var _ptr:W64.t;
@@ -1867,8 +1893,6 @@ module Mp(SC:Syscall_t) = {
 
   proc __xmssmt_core_sign (sk:W8.t Array132.t, sm_ptr:W64.t, smlen_ptr:W64.t,
                            m_ptr:W64.t, mlen:W64.t) : W8.t Array132.t * W64.t = {
-    var aux_list : W8.t list;
-    var aux_0_list : W8.t list;
     var aux_1: int;
     var aux: W8.t Array4.t;
     var aux_2: W8.t Array32.t;
@@ -1925,12 +1949,12 @@ module Mp(SC:Syscall_t) = {
 
     if (((W64.of_int ((1 `<<` 10) - 1)) \ule idx)) {
 
-      aux_list <@ Memset.memset_u8(to_list (Array4.init (fun i_0 => sk.[0 + i_0])), (W8.of_int 255));
-      aux <- Array4.of_list witness aux_list;
+      aux <@ __memset_u8_4 ((Array4.init (fun i_0 => sk.[0 + i_0])),
+      (W8.of_int 255));
       sk <- Array132.init
             (fun i_0 => if 0 <= i_0 < 0 + 4 then aux.[i_0-0] else sk.[i_0]);
-      aux_0_list <@ Memset.memset_u8(to_list (Array128.init (fun i_0 => sk.[4 + i_0])), (W8.of_int 0));
-      aux_0 <- Array128.of_list witness aux_0_list;
+      aux_0 <@ __memset_u8_128 ((Array128.init (fun i_0 => sk.[4 + i_0])),
+      (W8.of_int 0));
       sk <- Array132.init
             (fun i_0 => if 4 <= i_0 < 4 + 128 then aux_0.[i_0-4]
             else sk.[i_0]);

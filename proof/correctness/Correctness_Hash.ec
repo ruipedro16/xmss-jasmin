@@ -6,6 +6,8 @@ from Jasmin require import JModel.
 require import XMSS_IMPL_PP XMSS_IMPL.
 require import Properties.
 
+require import Array8 Array32.
+
 
 lemma thash_f_correctness (out:W8.t Array32.t, pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : 
     hoare [ Mp(Syscall).__thash_f : 

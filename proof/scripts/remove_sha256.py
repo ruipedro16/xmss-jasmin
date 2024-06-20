@@ -69,7 +69,6 @@ def remove_functions(input_text: str, template_functions_dict, debug: bool) -> s
         "__memcpy_u8u8",
         "_memcpy_u8u8",
         "_x_memcpy_u8u8",
-        "__memset_u8",
         "__memcpy_u8u8_2"
     ]
 
@@ -517,42 +516,6 @@ def replace_calls(text: str) -> str:
 """
         (wots_pk_list, _3) <@ Memcpy._x_memcpy_u8u8(to_list wots_pk, 2144, offset_out, to_list buf0, 32);
         wots_pk <- Array2144.of_list witness wots_pk_list;
-"""
-    )
-
-    # 3. __memset_u8
-    text = text.replace(
-"""
-  proc __xmssmt_core_sign (sk:W8.t Array132.t, sm_ptr:W64.t, smlen_ptr:W64.t,
-                           m_ptr:W64.t, mlen:W64.t) : W8.t Array132.t * W64.t = {
-""",
-"""
-  proc __xmssmt_core_sign (sk:W8.t Array132.t, sm_ptr:W64.t, smlen_ptr:W64.t,
-                           m_ptr:W64.t, mlen:W64.t) : W8.t Array132.t * W64.t = {
-    var aux_list : W8.t list;
-    var aux_0_list : W8.t list;
-"""
-    )
-
-    text = text.replace(
-"""
-      aux <@ __memset_u8_4 ((Array4.init (fun i_0 => sk.[0 + i_0])),
-      (W8.of_int 255));
-""",
-"""
-      aux_list <@ Memset.memset_u8(to_list (Array4.init (fun i_0 => sk.[0 + i_0])), (W8.of_int 255));
-      aux <- Array4.of_list witness aux_list;
-"""
-    )
-
-    text = text.replace(
-"""
-      aux_0 <@ __memset_u8_128 ((Array128.init (fun i_0 => sk.[4 + i_0])),
-      (W8.of_int 0));
-""",
-"""
-      aux_0_list <@ Memset.memset_u8(to_list (Array128.init (fun i_0 => sk.[4 + i_0])), (W8.of_int 0));
-      aux_0 <- Array128.of_list witness aux_0_list;
 """
     )
 
