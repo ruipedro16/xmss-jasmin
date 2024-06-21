@@ -29,21 +29,6 @@ module Mp(SC:Syscall_t) = {
     return (out);
   }
 
-  proc __ull_to_bytes_4 (out:W8.t Array4.t, in_0:W64.t) : W8.t Array4.t = {
-    var aux: int;
-
-    var i:int;
-
-    aux <- (- 1);
-    i <- (4 - 1);
-    while (aux < i) {
-      out.[i] <- (truncateu8 in_0);
-      in_0 <- (in_0 `>>` (W8.of_int 8));
-      i <- i - 1;
-    }
-    return (out);
-  }
-
   proc __ull_to_bytes_32 (out:W8.t Array32.t, in_0:W64.t) : W8.t Array32.t = {
     var aux: int;
 
@@ -66,6 +51,21 @@ module Mp(SC:Syscall_t) = {
 
     aux <- (- 1);
     i <- (2 - 1);
+    while (aux < i) {
+      out.[i] <- (truncateu8 in_0);
+      in_0 <- (in_0 `>>` (W8.of_int 8));
+      i <- i - 1;
+    }
+    return (out);
+  }
+
+  proc __ull_to_bytes_4 (out:W8.t Array4.t, in_0:W64.t) : W8.t Array4.t = {
+    var aux: int;
+
+    var i:int;
+
+    aux <- (- 1);
+    i <- (4 - 1);
     while (aux < i) {
       out.[i] <- (truncateu8 in_0);
       in_0 <- (in_0 `>>` (W8.of_int 8));
@@ -102,7 +102,7 @@ module Mp(SC:Syscall_t) = {
     return (result);
   }
 
-  proc __bytes_to_ull_ptr (in_ptr:W64.t, inlen:W64.t) : W64.t = {
+  proc __bytes_to_ull_ptr (in_ptr:W64.t) : W64.t = {
 
     var result:W64.t;
     var i:W64.t;
@@ -118,10 +118,9 @@ module Mp(SC:Syscall_t) = {
     result <- (W64.of_int 0);
     i <- (W64.of_int 0);
 
-    while ((i \ult inlen)) {
+    while ((i \ult (W64.of_int 4))) {
       t <- (zeroextu64 (loadW8 Glob.mem (W64.to_uint (in_ptr + i))));
-      u <- inlen;
-      u <- (u - (W64.of_int 1));
+      u <- (W64.of_int (4 - 1));
       u <- (u - i);
       (_of_, _cf_, _sf_,  _0, _zf_, u) <- SHL_64 u (W8.of_int 3);
       (_of_, _cf_, _sf_,  _1, _zf_, t) <- SHL_64 t (truncateu8 u);
@@ -171,19 +170,6 @@ module Mp(SC:Syscall_t) = {
     return (a);
   }
 
-  proc __memset_u8_128 (a:W8.t Array128.t, value:W8.t) : W8.t Array128.t = {
-
-    var i:W64.t;
-
-    i <- (W64.of_int 0);
-
-    while ((i \ult (W64.of_int 128))) {
-      a.[(W64.to_uint i)] <- value;
-      i <- (i + (W64.of_int 1));
-    }
-    return (a);
-  }
-
   proc __memset_u8_4 (a:W8.t Array4.t, value:W8.t) : W8.t Array4.t = {
 
     var i:W64.t;
@@ -191,6 +177,19 @@ module Mp(SC:Syscall_t) = {
     i <- (W64.of_int 0);
 
     while ((i \ult (W64.of_int 4))) {
+      a.[(W64.to_uint i)] <- value;
+      i <- (i + (W64.of_int 1));
+    }
+    return (a);
+  }
+
+  proc __memset_u8_128 (a:W8.t Array128.t, value:W8.t) : W8.t Array128.t = {
+
+    var i:W64.t;
+
+    i <- (W64.of_int 0);
+
+    while ((i \ult (W64.of_int 128))) {
       a.[(W64.to_uint i)] <- value;
       i <- (i + (W64.of_int 1));
     }
@@ -258,7 +257,7 @@ module Mp(SC:Syscall_t) = {
   }
 
   proc __memcpy_u8pu8p (out_ptr:W64.t, out_offset:W64.t, in_ptr:W64.t,
-                        in_offset:W64.t, bytes:W64.t) : W64.t * W64.t * W64.t = {
+                        in_offset:W64.t, bytes:W64.t) : unit = {
 
     var i:W64.t;
 
@@ -271,32 +270,26 @@ module Mp(SC:Syscall_t) = {
       in_offset <- (in_offset + (W64.of_int 1));
       out_offset <- (out_offset + (W64.of_int 1));
     }
-    return (out_ptr, out_offset, in_offset);
+    return ();
   }
 
   proc _memcpy_u8pu8p (out_ptr:W64.t, out_offset:W64.t, in_ptr:W64.t,
-                       in_offset:W64.t, bytes:W64.t) : W64.t * W64.t * W64.t = {
+                       in_offset:W64.t, bytes:W64.t) : unit = {
 
-    (out_ptr, out_offset, in_offset) <@ __memcpy_u8pu8p (out_ptr, out_offset,
-    in_ptr, in_offset, bytes);
-    return (out_ptr, out_offset, in_offset);
+    __memcpy_u8pu8p (out_ptr, out_offset, in_ptr, in_offset, bytes);
+    return ();
   }
 
   proc _x__memcpy_u8pu8p (out_ptr:W64.t, out_offset:W64.t, in_ptr:W64.t,
-                          in_offset:W64.t, bytes:W64.t) : W64.t * W64.t *
-                                                          W64.t = {
+                          in_offset:W64.t, bytes:W64.t) : unit = {
 
     out_ptr <- out_ptr;
     out_offset <- out_offset;
     in_ptr <- in_ptr;
     in_offset <- in_offset;
     bytes <- bytes;
-    (out_ptr, out_offset, in_offset) <@ _memcpy_u8pu8p (out_ptr, out_offset,
-    in_ptr, in_offset, bytes);
-    out_ptr <- out_ptr;
-    out_offset <- out_offset;
-    in_offset <- in_offset;
-    return (out_ptr, out_offset, in_offset);
+    _memcpy_u8pu8p (out_ptr, out_offset, in_ptr, in_offset, bytes);
+    return ();
   }
 
   proc __memcpy_u8pu8_32 (out:W64.t, offset:W64.t, in_0:W8.t Array32.t) : 
@@ -1087,25 +1080,6 @@ module Mp(SC:Syscall_t) = {
     return (r);
   }
 
-  proc _memcmp (a:W8.t Array32.t, b:W8.t Array32.t) : W64.t = {
-
-    var r:W64.t;
-
-    r <@ __memcmp (a, b);
-    return (r);
-  }
-
-  proc __memcmp_ (a:W8.t Array32.t, b:W8.t Array32.t) : W64.t = {
-
-    var r:W64.t;
-
-    a <- a;
-    b <- b;
-    r <@ _memcmp (a, b);
-    r <- r;
-    return (r);
-  }
-
   proc __l_tree (leaf:W8.t Array32.t, wots_pk:W8.t Array2144.t,
                  pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : W8.t Array32.t *
                                                                  W8.t Array2144.t *
@@ -1432,6 +1406,28 @@ module Mp(SC:Syscall_t) = {
     return (leaf, ltree_addr, ots_addr);
   }
 
+  proc __set_result (are_equal:W64.t, m_ptr:W64.t, mlen_ptr:W64.t,
+                     sm_ptr:W64.t, sm_offset:W64.t) : W64.t = {
+
+    var res_0:W64.t;
+    var bytes:W64.t;
+    var offset_in:W64.t;
+
+    if ((are_equal <> (W64.of_int 0))) {
+      res_0 <- (W64.of_int (- 1));
+      bytes <- (loadW64 Glob.mem (W64.to_uint (mlen_ptr + (W64.of_int 0))));
+      __memset_u8_ptr (m_ptr, bytes, (W8.of_int 0));
+      Glob.mem <-
+      storeW64 Glob.mem (W64.to_uint (mlen_ptr + (W64.of_int 0))) ((W64.of_int 0));
+    } else {
+      res_0 <- (W64.of_int 0);
+      bytes <- (loadW64 Glob.mem (W64.to_uint (mlen_ptr + (W64.of_int 0))));
+      offset_in <- sm_offset;
+      _x__memcpy_u8pu8p (m_ptr, (W64.of_int 0), sm_ptr, offset_in, bytes);
+    }
+    return (res_0);
+  }
+
   proc __xmssmt_core_sign_open (m_ptr:W64.t, mlen_ptr:W64.t, sm_ptr:W64.t,
                                 smlen:W64.t, pk:W8.t Array64.t) : W64.t = {
 
@@ -1459,13 +1455,7 @@ module Mp(SC:Syscall_t) = {
     var wots_pk:W8.t Array2144.t;
     var leaf:W8.t Array32.t;
     var are_equal:W64.t;
-    var  _0:W64.t;
-    var  _1:W64.t;
-    var  _2:W64.t;
-    var  _3:bool;
-    var  _4:W64.t;
-    var  _5:W64.t;
-    var  _6:W64.t;
+    var  _0:bool;
     buf <- witness;
     leaf <- witness;
     ltree_addr <- witness;
@@ -1490,13 +1480,12 @@ module Mp(SC:Syscall_t) = {
     t64 <- (t64 - (W64.of_int 2500));
     Glob.mem <-
     storeW64 Glob.mem (W64.to_uint (mlen_ptr + (W64.of_int 0))) (t64);
-    idx <@ __bytes_to_ull_ptr (sm_ptr, (W64.of_int 4));
+    idx <@ __bytes_to_ull_ptr (sm_ptr);
 
     offset_out <- (W64.of_int 2500);
     offset_in <- (W64.of_int 2500);
     bytes <- (loadW64 Glob.mem (W64.to_uint (mlen_ptr + (W64.of_int 0))));
-    ( _0,  _1,  _2) <@ _x__memcpy_u8pu8p (m_ptr, offset_out, sm_ptr,
-    offset_in, bytes);
+    _x__memcpy_u8pu8p (m_ptr, offset_out, sm_ptr, offset_in, bytes);
     t64 <- sm_ptr;
     t64 <- (t64 + (W64.of_int 4));
     buf <@ _x_memcpy_u8u8p_32 (buf, t64);
@@ -1514,7 +1503,7 @@ module Mp(SC:Syscall_t) = {
 
       idx_leaf <- (W32.of_int ((1 `<<` 10) - 1));
       idx_leaf <- (idx_leaf `&` (truncateu32 idx));
-      (_of_, _cf_, _sf_,  _3, _zf_, idx) <- SHR_64 idx (W8.of_int 10);
+      (_of_, _cf_, _sf_,  _0, _zf_, idx) <- SHR_64 idx (W8.of_int 10);
 
       ots_addr <@ __set_layer_addr (ots_addr, i);
       ltree_addr <@ __set_layer_addr (ltree_addr, i);
@@ -1551,22 +1540,9 @@ module Mp(SC:Syscall_t) = {
       i <- (i + (W32.of_int 1));
     }
 
-    are_equal <@ __memcmp_ (root, pub_root);
-    if ((are_equal <> (W64.of_int 0))) {
-      res_0 <- (W64.of_int (- 1));
+    are_equal <@ __memcmp (root, pub_root);
 
-      bytes <- (loadW64 Glob.mem (W64.to_uint (mlen_ptr + (W64.of_int 0))));
-      __memset_u8_ptr (m_ptr, bytes, (W8.of_int 0));
-      Glob.mem <-
-      storeW64 Glob.mem (W64.to_uint (mlen_ptr + (W64.of_int 0))) ((W64.of_int 0));
-    } else {
-      res_0 <- (W64.of_int 0);
-
-      bytes <- (loadW64 Glob.mem (W64.to_uint (mlen_ptr + (W64.of_int 0))));
-      offset_in <- sm_offset;
-      ( _4,  _5,  _6) <@ _x__memcpy_u8pu8p (m_ptr, (W64.of_int 0), sm_ptr,
-      offset_in, bytes);
-    }
+    res_0 <@ __set_result (are_equal, m_ptr, mlen_ptr, sm_ptr, sm_offset);
     return (res_0);
   }
 
@@ -1869,7 +1845,7 @@ module Mp(SC:Syscall_t) = {
     seed_p <- witness;
     seed_p <- seed;
     seed_p <@ SC.randombytes_96 (seed_p);
-    (pk, sk) <@ __xmssmt_core_seed_keypair (pk, sk, seed);
+    (pk, sk) <@ __xmssmt_core_seed_keypair (pk, sk, seed_p);
     return (pk, sk);
   }
 
@@ -1922,10 +1898,7 @@ module Mp(SC:Syscall_t) = {
     var auth_path:W8.t Array320.t;
     var  _0:W64.t;
     var  _1:W64.t;
-    var  _2:W64.t;
-    var  _3:W64.t;
-    var  _4:W64.t;
-    var  _5:bool;
+    var  _2:bool;
     auth_path <- witness;
     buf <- witness;
     idx_bytes <- witness;
@@ -1939,8 +1912,8 @@ module Mp(SC:Syscall_t) = {
 
     ots_addr <@ __zero_address_ (ots_addr);
     ots_addr <@ __set_type (ots_addr, (W32.of_int 0));
-    ( _0,  _1,  _2) <@ _x__memcpy_u8pu8p (sm_ptr, (W64.of_int 2500), m_ptr,
-    (W64.of_int 0), mlen);
+    _x__memcpy_u8pu8p (sm_ptr, (W64.of_int 2500), m_ptr, (W64.of_int 0),
+    mlen);
     t64 <- mlen;
     t64 <- (t64 + (W64.of_int 2500));
     Glob.mem <-
@@ -1967,7 +1940,7 @@ module Mp(SC:Syscall_t) = {
       } 
     } 
     if ((exit_0 <> (W8.of_int 1))) {
-      (sm_ptr,  _3) <@ _x_memcpy_u8pu8_4 (sm_ptr, (W64.of_int 0),
+      (sm_ptr,  _0) <@ _x_memcpy_u8pu8_4 (sm_ptr, (W64.of_int 0),
       (Array4.init (fun i_0 => sk.[0 + i_0])));
 
       t64 <- idx;
@@ -1979,7 +1952,7 @@ module Mp(SC:Syscall_t) = {
       idx_bytes <@ __ull_to_bytes_32 (idx_bytes, idx);
       sk_prf <- (Array32.init (fun i_0 => sk.[(4 + 32) + i_0]));
       buf <- PRF buf idx_bytes sk_prf;
-      (sm_ptr,  _4) <@ _x_memcpy_u8pu8_32 (sm_ptr, (W64.of_int 4), buf);
+      (sm_ptr,  _1) <@ _x_memcpy_u8pu8_32 (sm_ptr, (W64.of_int 4), buf);
 
       pub_root <- (Array32.init (fun i_0 => sk.[(4 + (2 * 32)) + i_0]));
       j <- 0;
@@ -2005,7 +1978,7 @@ module Mp(SC:Syscall_t) = {
 
         idx_leaf <- (W32.of_int ((1 `<<` 10) - 1));
         idx_leaf <- (idx_leaf `&` (truncateu32 idx));
-        (_of_, _cf_, _sf_,  _5, _zf_, idx) <- SHR_64 idx (W8.of_int 10);
+        (_of_, _cf_, _sf_,  _2, _zf_, idx) <- SHR_64 idx (W8.of_int 10);
 
         ots_addr <@ __set_layer_addr (ots_addr, i);
         ots_addr <@ __set_tree_addr (ots_addr, idx);
