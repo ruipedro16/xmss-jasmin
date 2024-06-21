@@ -353,7 +353,7 @@ inline fn __xmssmt_core_sign(
     ots_addr = __set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
 
     // memcpy(sm + params->sig_bytes, m, mlen);
-    _, _, _ = _x__memcpy_u8pu8p(sm_ptr, XMSS_SIG_BYTES, m_ptr, 0, mlen);
+    _x__memcpy_u8pu8p(sm_ptr, XMSS_SIG_BYTES, m_ptr, 0, mlen);
 
     // *smlen = params->sig_bytes + mlen;
     t64 = mlen; t64 += XMSS_SIG_BYTES;

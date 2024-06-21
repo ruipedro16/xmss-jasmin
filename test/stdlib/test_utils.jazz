@@ -15,11 +15,11 @@ export fn bytes_to_ull_jazz(reg ptr u8[XMSS_INDEX_BYTES] in) -> reg u64 {
     return res;
 }//<>
 
-export fn bytes_to_ull_ptr_jazz(reg u64 in_ptr inlen) -> reg u64 {
-    reg u64 res;
-    res = __bytes_to_ull_ptr(in_ptr, inlen);
-    return res;
-}
+// export fn bytes_to_ull_ptr_jazz(reg u64 in_ptr inlen) -> reg u64 {
+//     reg u64 res;
+//     res = __bytes_to_ull_ptr(in_ptr, inlen);
+//     return res;
+// }
 
 /////////////////////////////////////////////////////////////////////// MEMCPY
 
@@ -37,5 +37,5 @@ export fn memcpy_u8u8_jazz<OUTLEN,INLEN>(
 }//<>
 
 export fn memcpy_u8pu8p_jazz(reg u64 out_ptr offset_out in_ptr offset_in len) {
-    _, _, _ = _x__memcpy_u8pu8p(out_ptr, offset_out, in_ptr, offset_in, len);
+    _x__memcpy_u8pu8p(out_ptr, offset_out, in_ptr, offset_in, len);
 }

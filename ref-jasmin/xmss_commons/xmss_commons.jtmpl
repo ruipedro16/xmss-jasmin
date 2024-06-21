@@ -386,7 +386,7 @@ inline fn __set_result (
         // memcpy(m, sm, *mlen);
         #declassify bytes =  (u64) [mlen_ptr];
         offset_in = sm_offset;
-        _, _, _ = _x__memcpy_u8pu8p(m_ptr, 0, sm_ptr, offset_in, bytes);
+        _x__memcpy_u8pu8p(m_ptr, 0, sm_ptr, offset_in, bytes);
     }
 
     return res;
@@ -452,7 +452,7 @@ inline fn __xmssmt_core_sign_open(
     offset_out = XMSS_SIG_BYTES; 
     offset_in = XMSS_SIG_BYTES;
     #declassify bytes = (u64) [mlen_ptr];
-    _, _, _ = _x__memcpy_u8pu8p(m_ptr, offset_out, sm_ptr, offset_in, bytes);
+    _x__memcpy_u8pu8p(m_ptr, offset_out, sm_ptr, offset_in, bytes);
 
     // hash_message(params, mhash, sm + params->index_bytes, pk, idx,
     //              m + params->sig_bytes - params->padding_len - 3*params->n,

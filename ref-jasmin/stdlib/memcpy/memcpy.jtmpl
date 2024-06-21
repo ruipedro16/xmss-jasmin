@@ -139,20 +139,19 @@ inline fn __memcpy_u8pu8p(
     reg u64 in_ptr,
     reg u64 in_offset,
     reg u64 bytes
-) -> reg u64, reg u64, reg u64
+)
 {
     reg u64 i;
 
     i = 0;
+    
     while(i < bytes) {
         (u8) [out_ptr + out_offset] = (u8) [in_ptr + in_offset];
         i += 1;
         in_offset += 1;
         out_offset += 1;
     }
-
-    return out_ptr, out_offset, in_offset;
-}//<>
+}
 
 fn _memcpy_u8pu8p(
     reg u64 out_ptr,
@@ -160,10 +159,9 @@ fn _memcpy_u8pu8p(
     reg u64 in_ptr,
     reg u64 in_offset,
     reg u64 bytes
-) -> reg u64, reg u64, reg u64
+)
 {
-    out_ptr, out_offset, in_offset = __memcpy_u8pu8p(out_ptr, out_offset, in_ptr, in_offset, bytes);
-    return out_ptr, out_offset, in_offset;
+    __memcpy_u8pu8p(out_ptr, out_offset, in_ptr, in_offset, bytes);
 }
 
 inline fn _x__memcpy_u8pu8p(
@@ -172,7 +170,7 @@ inline fn _x__memcpy_u8pu8p(
     reg u64 in_ptr,
     reg u64 in_offset,
     reg u64 bytes
-) -> reg u64, reg u64, reg u64
+)
 {
     out_ptr = out_ptr;
     out_offset = out_offset;
@@ -180,13 +178,7 @@ inline fn _x__memcpy_u8pu8p(
     in_offset = in_offset;
     bytes = bytes;
 
-    out_ptr, out_offset, in_offset = _memcpy_u8pu8p(out_ptr, out_offset, in_ptr, in_offset, bytes);
-
-    out_ptr = out_ptr;
-    out_offset = out_offset;
-    in_offset = in_offset;
-
-    return out_ptr, out_offset, in_offset;
+    _memcpy_u8pu8p(out_ptr, out_offset, in_ptr, in_offset, bytes);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
