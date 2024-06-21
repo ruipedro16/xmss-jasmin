@@ -364,6 +364,34 @@ inline fn __gen_leaf_wots_(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// Simplifies proof
+inline fn __set_result (
+    reg u64 are_equal m_ptr mlen_ptr sm_ptr,
+    stack u64 sm_offset
+) -> reg u64
+{
+    reg u64 res bytes offset_in;
+    if (are_equal != 0) {
+        res = -1;
+
+        // memset(m, 0, *mlen);
+        #declassify bytes =  (u64) [mlen_ptr];
+        __memset_u8_ptr(m_ptr, bytes, 0);
+
+        // *mlen = 0;
+        (u64) [mlen_ptr] = 0;
+    } else {
+        res = 0;
+
+        // memcpy(m, sm, *mlen);
+        #declassify bytes =  (u64) [mlen_ptr];
+        offset_in = sm_offset;
+        _, _, _ = _x__memcpy_u8pu8p(m_ptr, 0, sm_ptr, offset_in, bytes);
+    }
+
+    return res;
+}
+
 inline fn __xmssmt_core_sign_open(
     reg u64 m_ptr mlen_ptr,
     reg u64 sm_ptr smlen,
@@ -417,7 +445,7 @@ inline fn __xmssmt_core_sign_open(
     (u64) [mlen_ptr] = t64;
 
     // idx = bytes_to_ull(sm, params->index_bytes);
-    idx = __bytes_to_ull_ptr(sm_ptr, XMSS_INDEX_BYTES);
+    idx = __bytes_to_ull_ptr(sm_ptr);
     () = #spill(idx);
 
     // memcpy(m + params->sig_bytes, sm + params->sig_bytes, *mlen);
@@ -515,28 +543,12 @@ inline fn __xmssmt_core_sign_open(
     
     // if (memcmp(root, pub_root, params->n)) { memset(m, 0, *mlen); *mlen = 0; return -1; }
     () = #unspill(pub_root);
-    #declassify are_equal = __memcmp_(root, pub_root);
-    if (are_equal != 0) {
-        res = -1;
+    #declassify are_equal = __memcmp(root, pub_root);
 
-        () = #unspill(mlen_ptr, m_ptr);
 
-        // memset(m, 0, *mlen);
-        #declassify bytes =  (u64) [mlen_ptr];
-        __memset_u8_ptr(m_ptr, bytes, 0);
+    () = #unspill(mlen_ptr, m_ptr, sm_ptr);
 
-        // *mlen = 0;
-        (u64) [mlen_ptr] = 0;
-    } else {
-        res = 0;
-
-        () = #unspill(mlen_ptr, m_ptr, sm_ptr);
-
-        // memcpy(m, sm, *mlen);
-        #declassify bytes =  (u64) [mlen_ptr];
-        offset_in = sm_offset;
-        _, _, _ = _x__memcpy_u8pu8p(m_ptr, 0, sm_ptr, offset_in, bytes);
-    }
+    res = __set_result(are_equal, m_ptr, mlen_ptr, sm_ptr, sm_offset);
 
     return res;
 }

@@ -24,21 +24,3 @@ inline fn __memcmp(reg ptr u8[XMSS_N] a b) -> reg u64 {
 
     return r;
 }
-
-fn _memcmp(reg ptr u8[XMSS_N] a b) -> reg u64 {
-    reg u64 r;
-    r = __memcmp(a, b);
-    return r;
-}
-
-inline fn __memcmp_(reg ptr u8[XMSS_N] a b) -> reg u64 {
-    reg u64 r;
-
-    a = a; b = b;
-
-    r = _memcmp(a, b);
-
-    r = r;
-
-    return r;
-}
