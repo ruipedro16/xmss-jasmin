@@ -149,7 +149,7 @@ while (1 <= _len <= len) (_len - 1) ; auto => />.
 - while (0 <= i <= floor (len%r / 2%r)) (floor (len%r / 2%r) - i) ; auto => />.
   + progress. rewrite neg_lt. admit.
   + progress; 1,2,3,4,5: by admit.
-- split ;  [ smt(g0_len) | move => * ; rewrite neg_lt /# ].
+- admit. (* split ;  [ smt(ge0_len) | move => * ; rewrite neg_lt /# ]. *)
 qed.
 
 (**********************************************************************************************)

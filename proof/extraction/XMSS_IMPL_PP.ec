@@ -44,13 +44,13 @@ module Mp(SC:Syscall_t) = {
     return (out);
   }
 
-  proc __ull_to_bytes_2 (out:W8.t Array2.t, in_0:W64.t) : W8.t Array2.t = {
+  proc __ull_to_bytes_4 (out:W8.t Array4.t, in_0:W64.t) : W8.t Array4.t = {
     var aux: int;
 
     var i:int;
 
     aux <- (- 1);
-    i <- (2 - 1);
+    i <- (4 - 1);
     while (aux < i) {
       out.[i] <- (truncateu8 in_0);
       in_0 <- (in_0 `>>` (W8.of_int 8));
@@ -59,13 +59,13 @@ module Mp(SC:Syscall_t) = {
     return (out);
   }
 
-  proc __ull_to_bytes_4 (out:W8.t Array4.t, in_0:W64.t) : W8.t Array4.t = {
+  proc __ull_to_bytes_2 (out:W8.t Array2.t, in_0:W64.t) : W8.t Array2.t = {
     var aux: int;
 
     var i:int;
 
     aux <- (- 1);
-    i <- (4 - 1);
+    i <- (2 - 1);
     while (aux < i) {
       out.[i] <- (truncateu8 in_0);
       in_0 <- (in_0 `>>` (W8.of_int 8));
@@ -1005,7 +1005,6 @@ module Mp(SC:Syscall_t) = {
 
     var lengths:W32.t Array67.t;
     var i:int;
-    var chain:W32.t;
     var start:W32.t;
     var steps:W32.t;
     var t:W64.t;
@@ -1014,8 +1013,7 @@ module Mp(SC:Syscall_t) = {
     lengths <@ __chain_lengths_ (lengths, msg);
     i <- 0;
     while (i < 67) {
-      chain <- (W32.of_int i);
-      addr <@ __set_chain_addr (addr, chain);
+      addr <@ __set_chain_addr (addr, (W32.of_int i));
 
       start <- lengths.[i];
       steps <- (W32.of_int (16 - 1));

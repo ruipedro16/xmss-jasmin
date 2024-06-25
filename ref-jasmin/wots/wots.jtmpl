@@ -538,7 +538,7 @@ inline fn __wots_pk_from_sig(
     stack u8[XMSS_N] buf;
     stack u32[XMSS_WOTS_LEN] lengths;
 
-    reg u32 chain start steps;
+    reg u32 start steps;
     reg u64 t;
     inline int i j;
 
@@ -551,8 +551,7 @@ inline fn __wots_pk_from_sig(
 
     for i=0 to XMSS_WOTS_LEN {
         // set_chain_addr(addr, i);
-        chain = i;
-        addr = __set_chain_addr(addr, chain);
+        addr = __set_chain_addr(addr, i);
 
         // gen_chain(params, pk + i * params->n, sig + i * params->n, lengths[i], params->wots_w - 1 - lengths[i], pub_seed, addr);
         () = #unspill(pub_seed, sig_ptr);

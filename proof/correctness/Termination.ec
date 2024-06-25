@@ -242,7 +242,6 @@ while (true) (67 - i) ; auto => />.
   + smt().
 qed.
 
-(* Pk Gen *)
 lemma pkgen_ll : islossless Mp(Syscall).__wots_pkgen.
 proof.
 proc.
@@ -253,22 +252,28 @@ while (true) (67 - i).
     call expand_seed_ll ; by auto => /> /#.
 qed.
 
+require import Array67.
+
+(* TODO: replace with lemma *)
+axiom chain_lengths_post : hoare [Mp(Syscall).__chain_lengths : true ==> 
+  forall (k : int), 0 <= k < 67 => (0 <= (to_uint res.[k]) <= 16) ].    
+
 lemma wots_sign_ll : islossless Mp(Syscall).__wots_sign.
 proof.
 proc.
 sp ; wp.
 while (true) (67 - i).
-- auto => />. inline Mp(Syscall).__set_chain_addr ; call gen_chain_inplace_ll ; auto => /> *. 
+- auto => />. inline Mp(Syscall).__set_chain_addr ; call gen_chain_inplace_ll. auto => /> *. 
   rewrite /XMSS_WOTS_W ; do split.
   + smt(@Array67 @W32).
-  + admit.
-  + admit.
-- inline Mp(Syscall).__expand_seed_ Mp(Syscall)._expand_seed.  wp ; call expand_seed_ll.
-  inline Mp(Syscall).__chain_lengths_ Mp(Syscall)._chain_lengths. wp ; call chain_lengths_ll.
+  + move => ?.  admit.
+  + move => ?? /#.
+- inline Mp(Syscall).__expand_seed_ Mp(Syscall)._expand_seed ;  wp ; call expand_seed_ll.
+  inline Mp(Syscall).__chain_lengths_ Mp(Syscall)._chain_lengths ; wp ; call chain_lengths_ll.
   auto => /> /#.
 qed.
 
-(* Pk from Sig *)
+
 lemma wots_pk_from_sig_ll : islossless Mp(Syscall).__wots_pk_from_sig.
 proof.
 proc => //=.
@@ -276,11 +281,11 @@ while (true) (67 - i).
 - auto => />. inline Mp(Syscall).__gen_chain_ ; inline Mp(Syscall)._gen_chain Mp(Syscall).__set_chain_addr ; auto => />.
   call gen_chain_ll. auto => /> *. rewrite /XMSS_WOTS_W //=. do split.
   + smt(@Array67 @W32).
-  + admit.
+  + move => ?. admit. (* apply chain_lengths_post *)
   + smt (@Array67 @W32).
-  + admit.
+  + move => ?. admit.
   + smt (@Array67 @W32).
-  + admit.
+  + move => ?. admit.
   + progress => /#.
 - inline Mp(Syscall).__chain_lengths_ ; inline Mp(Syscall)._chain_lengths ; auto => />.
   call chain_lengths_ll ; by auto => /> /#.
@@ -288,7 +293,20 @@ qed.
 
 (* XMSS *)
 
-lemma ltree_ll : islossless Mp(Syscall).__l_tree by admit.
+lemma ltree_ll : islossless Mp(Syscall).__l_tree.
+proof.
+proc.
+inline Mp(Syscall).__set_tree_height.
+wp ; sp ; call memcpy_ll.
+while (1 <= to_uint l <= 67) (to_uint l - 1).
+- auto. wp ; sp. seq 1 : true;  1,2: by admit.
+(*3*)  + sp. if.
+       * sp ; wp. while (0 <= j <= 32) (32 - j) ; auto => /> ; first by smt(). progress. smt(@W64). admit. admit. admit.
+       * auto ; progress ; by admit. 
+(*4*)  + admit.
+(*5*)  + auto.
+- skip => /> ; progress ; [ smt(@W64) | by rewrite /to_list size_mkseq ]. 
+qed.
 
 lemma treehash_array_ll : islossless Mp(Syscall).__treehash_array.
 proof.

@@ -112,9 +112,9 @@ module WOTS = {
     return pk;
   }
 
-  (* Generates the key grom the seed *)
+  (* Generates the key from the seed *)
   proc pkGen(sk_seed : nbytes, _seed : seed, address : adrs) : wots_pk = {
-    var pk : wots_pk <- witness;
+    var pk : wots_pk;
     var wots_skey : wots_sk;
     var i : int <- 0;
     var pk_i, sk_i : nbytes;
@@ -143,8 +143,10 @@ module WOTS = {
 
   proc checksum (m : int list) : W32.t = {
     var i : int <- 0;
-    var m_i : int <- witness;
-    var checksum : int <- 0;
+    var m_i : int;
+    var checksum : int;
+
+    checksum <- 0;
 
     while (i < len1) {
       m_i <- nth witness m i;
@@ -327,20 +329,20 @@ qed.
 lemma wots_sign_ll : islossless WOTS.sign.
 proof.
 proc.
-while (true) (len - i).
-    - auto => />. call (chain_ll) ; auto => /> /#.
-    - auto => /> ; call (spec_base_w_ll). 
-      auto => /> ; call (wots_checksum_ll). 
-      auto => /> ; call (spec_base_w_ll). auto => /> /#.
+while (true) (len - i) ; auto => />.
+    - wp ; call (chain_ll) ; auto => /> /#.
+    - wp ; call (spec_base_w_ll). 
+      wp ; call (wots_checksum_ll). 
+      wp ; call (spec_base_w_ll). auto => /> /#.
 qed.
 
 lemma wots_pkFromSig_ll : islossless WOTS.pkFromSig.
 proof.
 proc.
-while (true) (len - i).
-  - auto => />. call (chain_ll) ; auto => /> /#.
-  - auto => />. call (spec_base_w_ll).
-    auto => />. call (wots_checksum_ll) ; call (spec_base_w_ll).
+while (true) (len - i) ; auto => />.
+  - call (chain_ll) ; auto => /> /#.
+  - wp ; call (spec_base_w_ll).
+    wp ; call (wots_checksum_ll) ; call (spec_base_w_ll).
     auto => /> /#.
 qed.
 

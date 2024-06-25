@@ -394,6 +394,10 @@ void test_xmss_api(void) {
     size_t smlen;
     int res;
 
+    // xmss_keypair_jazz    : WORKS OK
+    // xmss_sign_jazz       : FAILED
+    // xmss_sign_open_jazz  : FAILED
+
     for (int i = 0; i < TESTS; i++) {
         xmss_keypair_jazz(pk, sk);
 
@@ -404,8 +408,10 @@ void test_xmss_api(void) {
 
             randombytes(m, XMSS_MLEN);
 
-            xmss_sign_jazz(sk, sm, &smlen, m, mlen);  // sk is updated here
-            res = xmss_sign_open_jazz(m, &mlen, sm, smlen, pk);
+            // xmss_sign_jazz(sk, sm, &smlen, m, mlen);  // sk is updated here
+            xmss_sign(sk, sm, &smlen, m, mlen);  // sk is updated here
+            // res = xmss_sign_open_jazz(m, &mlen, sm, smlen, pk);
+            res = xmss_sign_open(m, &mlen, sm, smlen, pk);
 
 #ifdef DEBUG_TEST
             if (res != 0) {

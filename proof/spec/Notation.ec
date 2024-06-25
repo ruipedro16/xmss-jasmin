@@ -6,10 +6,8 @@ from Jasmin require import JModel.
 
 require import Params.
 
-type byte = W8.t.
-
 (* prefix of big endian byte representation of a 32-bit word *)
-op toByte(x : W32.t, k : int) : byte list =  
+op toByte(x : W32.t, k : int) : W8.t list =  
      take k (rev (to_list (W4u8.unpack8 x))).
 
 (* From the RFC
@@ -19,13 +17,14 @@ op toByte(x : W32.t, k : int) : byte list =
   or equal to 8 * len_X / lg(w).
 *)
 module BaseW = {
-  proc base_w(X : byte list, outlen : int) : int list = {
+  proc base_w(X : W8.t list, outlen : int) : int list = {
     var _in : int <- 0;
     var out : int <- 0;
     var total : W8.t <- W8.zero;
     var bits : int <- 0;
     var consumed : int <- 0;
     var base_w : int list;
+    var v : int;
 
     (* base_w <- nseq outlen 0; *)
 
@@ -37,8 +36,9 @@ module BaseW = {
       }
 
       bits <- bits - floor(log2 w%r);
-
-      base_w <- put base_w out (W8.to_uint ((total `>>` W8.of_int bits) `&` W8.of_int (w - 1)));
+      
+      v <- (W8.to_uint ((total `>>` W8.of_int bits) `&` W8.of_int (w - 1)));
+      base_w <- put base_w out v;
 
       out <- out + 1;
       consumed <- consumed + 1;
@@ -48,9 +48,19 @@ module BaseW = {
   }
 }.
 
-pred base_w_pre (X : byte list, outlen : int) =
+pred base_w_pre (X : W8.t list, outlen : int) =
   0 <= outlen <= 8 * size X %/ floor (log2 w%r).
 
-pred base_w_post (X : byte list, outlen : int, base_w : int list) =
+pred base_w_post (X : W8.t list, outlen : int, base_w : int list) =
   size base_w = outlen /\
   all (fun x => 0 <= x <= w - 1) base_w.
+
+(* TODO: Replace with a lemma *)
+axiom base_w_pre_post : hoare [BaseW.base_w : base_w_pre X outlen ==> true (* base_w_post X outlen res *)].
+
+lemma base_w_spec_ll : islossless BaseW.base_w.
+proof.
+proc ; while (true) (outlen - consumed) ; auto => /> /#.
+qed.
+
+
