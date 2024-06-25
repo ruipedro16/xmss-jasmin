@@ -32,7 +32,7 @@ op nbytexor(a b : nbytes) : nbytes =
     map (fun (ab : byte * byte) => ab.`1 `^` ab.`2) (zip a b).
 
 module Chain = {
-  proc chain(X : nbytes, i s : int, _seed : seed, address : adrs) : nbytes = {
+  proc chain(X : nbytes, i s : int, _seed : seed, address : adrs) : nbytes * adrs = {
     var t : nbytes <- X;
     var _key : key;
     var chain_count : int <- 0;
@@ -50,7 +50,7 @@ module Chain = {
      chain_count <- chain_count + 1;
     }
     
-    return t;
+    return (t, address);
   }
 }.
 

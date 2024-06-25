@@ -73,7 +73,7 @@ module WOTS = {
     confidentiality is security-critical.
 
   *)
-  proc pseudorandom_genSK(sk_seed : nbytes, seed : nbytes, address : adrs) : wots_sk = {
+  proc pseudorandom_genSK(sk_seed : nbytes, seed : nbytes, address : adrs) : wots_sk * adrs= {
     var sk : wots_sk <- nseq len (nseq n witness);
     var sk_i : nbytes;
     var key : nbytes;
@@ -91,12 +91,12 @@ module WOTS = {
       i <- i + 1;
     }
 
-    return sk;
+    return (sk, address);
   }
 
   (* The len n-byte strings in the private key each define the start node for one hash chain. The public
   key consists of the end nodes of these hash chains *)
-  proc genPK(sk : wots_sk, _seed : seed, address : adrs) : wots_pk = {
+  proc genPK(sk : wots_sk, _seed : seed, address : adrs) : wots_pk * adrs = {
     var pk : wots_pk <- nseq len (nseq n W8.zero);
     var i : int <- 0;
     var pk_i, sk_i : nbytes;
@@ -104,39 +104,39 @@ module WOTS = {
     while (i < len) {
       address <- set_chain_addr address i;
       sk_i <- nth witness sk i;
-      pk_i <@ Chain.chain (sk_i, 0, (w - 1), _seed, address);
+      (pk_i, address) <@ Chain.chain (sk_i, 0, (w - 1), _seed, address);
       pk <- put pk i pk_i;
       i <- i + 1;
     }
 
-    return pk;
+    return (pk, address);
   }
 
   (* Generates the key from the seed *)
-  proc pkGen(sk_seed : nbytes, _seed : seed, address : adrs) : wots_pk = {
+  proc pkGen(sk_seed : nbytes, _seed : seed, address : adrs) : wots_pk * adrs = {
     var pk : wots_pk;
     var wots_skey : wots_sk;
     var i : int <- 0;
     var pk_i, sk_i : nbytes;
 
-    wots_skey <@ pseudorandom_genSK(sk_seed, _seed, address); (* Generate sk from the secret key *)
+    (wots_skey, address) <@ pseudorandom_genSK(sk_seed, _seed, address); (* Generate sk from the secret key *)
     while (i < len) {
       address <- set_chain_addr address i;
       sk_i <- nth witness wots_skey i;
-      pk_i <@ Chain.chain (sk_i, 0, (w - 1), _seed, address);
+      (pk_i, address) <@ Chain.chain (sk_i, 0, (w - 1), _seed, address);
       pk <- put pk i pk_i;
       i <- i + 1;
     }
 
-    return pk;
+    return (pk, address);
   }
 
   proc kg(sk_seed : nbytes, _seed : seed, address : adrs) : wots_keypair = {
     var pk : wots_pk;
     var sk : wots_sk;
 
-    sk <@ pseudorandom_genSK(sk_seed, _seed, address);
-    pk <@ genPK(sk, _seed, address);
+    (sk, address) <@ pseudorandom_genSK(sk_seed, _seed, address);
+    (pk, address) <@ genPK(sk, _seed, address);
 
     return (pk, sk);
   }
@@ -174,7 +174,7 @@ module WOTS = {
 
                                 WOTS+ Signature
   *)
-  proc sign(M : wots_message, sk : wots_sk, _seed : seed, address : adrs) : wots_signature = {
+  proc sign(M : wots_message, sk : wots_sk, _seed : seed, address : adrs) : wots_signature * adrs = {
     var csum : W32.t;
     var msg : int list;
     var msg_i : int;
@@ -206,15 +206,15 @@ module WOTS = {
       address <- set_chain_addr address i;
       msg_i <- nth witness msg i;
       sk_i <- nth witness sk i;
-      sig_i <@ Chain.chain (sk_i, 0, msg_i, _seed, address);
+      (sig_i, address) <@ Chain.chain (sk_i, 0, msg_i, _seed, address);
       sig <- put sig i sig_i;
       i <- i + 1;
     }
 
-    return sig;
+    return (sig, address);
   }
 
-  proc pkFromSig(M : wots_message, sig : wots_signature, _seed : seed, address : adrs) : wots_pk = {
+  proc pkFromSig(M : wots_message, sig : wots_signature, _seed : seed, address : adrs) : wots_pk * adrs = {
     var tmp_pk : wots_pk <- witness;
     var csum : W32.t;
     var msg : int list;
@@ -246,17 +246,17 @@ module WOTS = {
       address <- set_chain_addr address i;
       msg_i <- nth witness msg i;
       sig_i <- nth witness sig i;
-      pk_i <@ Chain.chain (sig_i, msg_i, (w - 1 - msg_i), _seed, address);
+      (pk_i, address) <@ Chain.chain (sig_i, msg_i, (w - 1 - msg_i), _seed, address);
       tmp_pk <- put tmp_pk i pk_i; 
       i <- i + 1;
     }
 
-    return tmp_pk;
+    return (tmp_pk, address);
   }
 
   proc verify(pk : wots_pk, M : wots_message, sig : wots_signature, _seed : seed, address : adrs) : bool = {
     var tmp_pk : wots_pk;
-    tmp_pk <@ pkFromSig(M, sig, _seed, address);
+    (tmp_pk, address) <@ pkFromSig(M, sig, _seed, address);
     return pk = tmp_pk;
   }
 }.
