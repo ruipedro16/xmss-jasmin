@@ -141,7 +141,7 @@ module WOTS = {
     return (pk, sk);
   }
 
-  proc checksum (m : int list) : W32.t = {
+  proc checksum (m : int list) : int = {
     var i : int <- 0;
     var m_i : int;
     var checksum : int;
@@ -154,7 +154,7 @@ module WOTS = {
       i <- i + 1;
     }
 
-    return (W32.of_int checksum);
+    return checksum;
   }
 
   (*
@@ -175,7 +175,8 @@ module WOTS = {
                                 WOTS+ Signature
   *)
   proc sign(M : wots_message, sk : wots_sk, _seed : seed, address : adrs) : wots_signature * adrs = {
-    var csum : W32.t;
+    var csum_32 : W32.t;
+    var csum : int;
     var msg : int list;
     var msg_i : int;
     var sk_i : nbytes;
@@ -191,13 +192,14 @@ module WOTS = {
 
     (* Compute checksum *)
     csum <@ checksum(msg);
+    csum_32 <- W32.of_int csum;
 
     (* Convert checksum to base w *)
-    csum <- csum `<<` W8.of_int (8 - ((ceil (len2%r * log2(w%r))) %% 8));
+    csum_32 <- csum_32 `<<` W8.of_int (8 - ((ceil (len2%r * log2(w%r))) %% 8));
     len_2_bytes <- (ceil ((ceil (len2%r * log2(w%r)))%r / 8%r));
 
-    (* msg = msg || base_w(toByte(csum, len_2_bytes), w, len_2); *)
-    csum_bytes <- toByte csum len;
+    (* msg = msg || base_w(toByte(csum_32, len_2_bytes), w, len_2); *)
+    csum_bytes <- toByte csum_32 len;
     csum_base_w <@ BaseW.base_w(csum_bytes, len_2_bytes);
     msg <- msg ++ csum_base_w;
 
@@ -214,9 +216,56 @@ module WOTS = {
     return (sig, address);
   }
 
+  proc sign_seed (M : wots_message, sk_seed : seed, pub_seed : seed, address : adrs) : wots_signature * adrs = {
+    var wots_skey : wots_sk;
+    var csum_32 : W32.t;
+    var csum : int;
+    var msg : int list;
+    var msg_i : int;
+    var sk_i : nbytes;
+    var len_2_bytes : int;
+    var csum_bytes : byte list;
+    var csum_base_w : int list;
+    var sig : wots_signature <- witness;
+    var sig_i : nbytes;
+    var i : int;
+
+    (* Generate sk from the secret seed *)
+    (wots_skey, address) <@ pseudorandom_genSK(sk_seed, pub_seed, address); 
+
+    (* Convert message to base w *)
+    msg <@ BaseW.base_w(M, len1);
+
+    (* Compute checksum *)
+    csum <@ checksum(msg);
+    csum_32 <- W32.of_int csum;
+
+    (* Convert checksum to base w *)
+    csum_32 <- csum_32 `<<` W8.of_int (8 - ((ceil (len2%r * log2(w%r))) %% 8));
+    len_2_bytes <- (ceil ((ceil (len2%r * log2(w%r)))%r / 8%r));
+
+    (* msg = msg || base_w(toByte(csum, len_2_bytes), w, len_2); *)
+    csum_bytes <- toByte csum_32 len;
+    csum_base_w <@ BaseW.base_w(csum_bytes, len_2_bytes);
+    msg <- msg ++ csum_base_w;
+
+    i <- 0;
+    while (i < len) {
+      address <- set_chain_addr address i;
+      msg_i <- nth witness msg i;
+      sk_i <- nth witness wots_skey i;
+      (sig_i, address) <@ Chain.chain (sk_i, 0, msg_i, pub_seed, address);
+      sig <- put sig i sig_i;
+      i <- i + 1;
+    }
+
+    return (sig, address);
+  }
+
   proc pkFromSig(M : wots_message, sig : wots_signature, _seed : seed, address : adrs) : wots_pk * adrs = {
     var tmp_pk : wots_pk <- witness;
-    var csum : W32.t;
+    var csum_32 : W32.t;
+    var csum : int;
     var msg : int list;
     var len_2_bytes : int;
     var csum_bytes : byte list;
@@ -231,16 +280,17 @@ module WOTS = {
 
     (* Compute checksum *)
     csum <@ checksum(msg);
+    csum_32 <- W32.of_int csum;
 
     (* Convert checksum to base w *)
-    csum <- csum `<<` W8.of_int (8 - ((ceil (len2%r * log2(w%r))) %% 8));
+    csum_32 <- csum_32 `<<` W8.of_int (8 - ((ceil (len2%r * log2(w%r))) %% 8));
     len_2_bytes <- (ceil ((ceil (len2%r * log2(w%r)))%r / 8%r));
 
-    (* msg = msg || base_w(toByte(csum, len_2_bytes), w, len_2); *)
-    csum_bytes <- toByte csum len;
+    (* msg = msg || base_w(toByte(csum_32, len_2_bytes), w, len_2); *)
+    csum_bytes <- toByte csum_32 len;
     csum_base_w <@ BaseW.base_w(csum_bytes, len_2_bytes);
     msg <- msg ++ csum_base_w;
-    
+        
     i <- 0;
     while (i < len) {
       address <- set_chain_addr address i;
@@ -269,8 +319,8 @@ For the parameter sets specified in the RFC, a  32-bit unsigned integer is suffi
 to hold the checksum.
 *)
 
-axiom checksum_max : hoare[WOTS.checksum : true ==> to_uint res <= len1 * (w - 1) * 2^8].
-axiom checksum_W32 : hoare[WOTS.checksum : true ==> to_uint res <= W32.max_uint].
+axiom checksum_max : hoare[WOTS.checksum : true ==> res <= len1 * (w - 1) * 2^8].
+axiom checksum_W32 : hoare[WOTS.checksum : true ==> res <= W32.max_uint].
 
 (********************************************************************************************************************)
 
@@ -334,6 +384,17 @@ while (true) (len - i) ; auto => />.
     - wp ; call (spec_base_w_ll). 
       wp ; call (wots_checksum_ll). 
       wp ; call (spec_base_w_ll). auto => /> /#.
+qed.
+
+lemma wots_sign_seed_ll : islossless WOTS.sign_seed.
+proof.
+proc.
+while (true) (len - i) ; auto => />.
+  - call chain_ll ; auto => /#.
+  - call (spec_base_w_ll) ; auto => />. 
+    call (wots_checksum_ll) ; auto => />.
+    call (spec_base_w_ll) ; auto => />.
+    call (wots_genSK_prf_ll) ; auto => /#.
 qed.
 
 lemma wots_pkFromSig_ll : islossless WOTS.pkFromSig.

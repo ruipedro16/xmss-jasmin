@@ -10,8 +10,6 @@ require import Params Notation Parameters Address Primitives Wots.
 import NBytes.
 import Array8.
 
-require import XMSS.
-
 clone import Subtype as Bitmask with 
    type T = byte list,
    op P = fun l => size l = 2 * n
@@ -90,7 +88,7 @@ type xmss_mt_keypair = xmss_mt_sk * xmss_mt_pk.
 (**********************************************************************************************)
 
 (* 4.1.4 Randomized tree hashing *)
-op rand_hash (_left _right : nbytes, _seed : seed, address : adrs) : nbytes = 
+op rand_hash (_left _right : nbytes, _seed : seed, address : adrs) : nbytes * adrs = 
   let address : adrs = set_key_and_mask address 0 in
   let key : nbytes = PRF _seed address in
   let address : adrs = set_key_and_mask address 1 in
@@ -98,13 +96,13 @@ op rand_hash (_left _right : nbytes, _seed : seed, address : adrs) : nbytes =
   let address : adrs = set_key_and_mask address 2 in
   let bitmask_1 : nbytes = PRF _seed address in
   let hash_in : nbytes = (nbytexor _left bitmask_0) ++ (nbytexor _right bitmask_1) in
-  H key hash_in.
+  (H key hash_in, address).
 
 (**********************************************************************************************)
 
 (* 4.1.5 L-Trees *)
 module LTree = {
-  proc ltree (pk : wots_pk, address : adrs, _seed : seed) : nbytes = {
+  proc ltree (pk : wots_pk, address : adrs, _seed : seed) : nbytes * adrs = {
     var pk_i : nbytes;
     var tmp : nbytes;
     var i : int <- witness;
@@ -118,7 +116,7 @@ module LTree = {
         address <- set_tree_index address i;
         pk_i <- nth witness pk (2*i);
         tmp <- nth witness pk (2*i + 1);
-        pk_i <- rand_hash pk_i tmp _seed address;
+        (pk_i, address) <- rand_hash pk_i tmp _seed address;
         pk <- put pk i pk_i;
       }
 
@@ -133,7 +131,7 @@ module LTree = {
 
     pk_i <- nth witness pk 0;
 
-    return pk_i;
+    return (pk_i, address);
   }
 }. 
 
@@ -176,7 +174,7 @@ pred treehash_p (s t : int) = s %% (1 `<<` t) <> 0.
          path and the resulting root node *)
 module TreeHash = {
   (* Computes the root *)
-  proc treehash(sk : xmss_mt_sk, s t : int, address : adrs) : nbytes = {
+  proc treehash(sk : xmss_mt_sk, s t : int, address : adrs) : nbytes * adrs = {
   var node : nbytes;
   var stack : nbytes list;
   var top_node : nbytes;
@@ -199,12 +197,12 @@ module TreeHash = {
       address <- set_ots_addr address (s + 1);
 
       (* Generate the public key from the secret seed *)
-      pk <@ WOTS.pkGen(sk_seed, pub_seed, address);
+      (pk, address) <@ WOTS.pkGen(sk_seed, pub_seed, address);
 
       address <- set_type address 1;
       address <- set_tree_addr address (s + 1);
 
-      node <@ LTree.ltree(pk, address, pub_seed); 
+      (node, address) <@ LTree.ltree(pk, address, pub_seed); 
 
       address <- set_type address 2;
       address <- set_tree_height address 0;
@@ -220,7 +218,7 @@ module TreeHash = {
         address <- set_tree_index address (ceil((tree_index - 1)%r / 2%r));
         (stack, top_node) <- pop stack;
 
-        node <- rand_hash top_node node pub_seed address;
+        (node, address) <- rand_hash top_node node pub_seed address;
         
         (* ----------- not in the RFC ----------- *)
         offset <- offset - 1;
@@ -236,7 +234,7 @@ module TreeHash = {
       i <- i + 1;
     }
     
-  return node;
+  return (node, address);
   }
 }.
 
@@ -250,7 +248,7 @@ admit.
 qed.
 
 module TreeSig = {
-  proc buildAuthPath(sk : xmss_mt_sk, idx : W32.t, address : adrs) : auth_path = {
+  proc buildAuthPath(sk : xmss_mt_sk, idx : W32.t, address : adrs) : auth_path * adrs = {
     var authentication_path : auth_path;
     
     var j : int <- 0;
@@ -259,27 +257,27 @@ module TreeSig = {
 
     while (j < h) {
       k <- floor((W32.to_uint idx)%r / (2^j)%r);
-      t <@ TreeHash.treehash(sk, k * (2^j), j, address);
+      (t, address) <@ TreeHash.treehash(sk, k * (2^j), j, address);
       authentication_path <- put authentication_path j t;
       j <- j+1;
     }
 
-    return authentication_path;
+    return (authentication_path, address);
   }
 
-  proc treesig(M : nbytes, sk : xmss_mt_sk, idx : W32.t, address : adrs) : wots_signature * auth_path  = {
+  proc treesig(M : nbytes, sk : xmss_mt_sk, idx : W32.t, address : adrs) : wots_signature * auth_path * adrs  = {
     var auth : auth_path;
     var sig_ots : wots_signature;
     var ots_sk : wots_sk;
     var seed : nbytes;
     
-    auth <@ buildAuthPath (sk, idx, address);
+    (auth, address) <@ buildAuthPath (sk, idx, address);
     address <- set_type address 0;
     address <- set_ots_addr address (W32.to_uint idx);
 
-    sig_ots <@ WOTS.sign_seed(M, sk.`sk_seed, sk.`pub_seed_sk, address);
+    (sig_ots, address) <@ WOTS.sign_seed(M, sk.`sk_seed, sk.`pub_seed_sk, address);
     
-    return (sig_ots, auth);
+    return (sig_ots, auth, address);
   }
 }.
 
@@ -300,11 +298,9 @@ by skip.
 qed.
 
  (**********************************************************************************************)
-
-op append_sig (sig : sig_mt) (sig_tmp : reduced_sig) : sig_mt =    
-    let new_sigs: reduced_sig list = sig.`reduced_sig_mt  ++  [sig_tmp] in
-    {| sig with  reduced_sig_mt=new_sigs|}.
-
+(* op append_sig (sig : sig_mt) (sig_tmp : reduced_sig) : sig_mt =     *)
+(*     let new_sigs: reduced_sig list = sig.`reduced_sig_mt  ++  [sig_tmp] in *)
+(*     {| sig with  reduced_sig_mt=new_sigs|}. *)
 
 module XMSS_MT_PRF = {
    proc kg() : xmss_mt_keypair = {
@@ -320,7 +316,7 @@ module XMSS_MT_PRF = {
       sk_prf <$ DList.dlist W8.dword n;
       pub_seed <$ DList.dlist W8.dword n;
 
-      root <@ TreeHash.treehash(sk, 0, h, address);
+      (root, address) <@ TreeHash.treehash(sk, 0, h, address);
 
       sk <- {| idx=idx_MT;
                sk_seed=sk_seed;
@@ -345,12 +341,12 @@ module XMSS_MT_PRF = {
     address <- set_type address 0;
     address <- set_ots_addr address (W32.to_uint idx_sig);
 
-    pk_ots <@ WOTS.pkFromSig(M, sig_ots, _seed, address);
+    (pk_ots, address) <@ WOTS.pkFromSig(M, sig_ots, _seed, address);
 
     address <- set_type address 1;
     address <- set_ltree_addr address (W32.to_uint idx_sig);
 
-    nodes0 <@ LTree.ltree(pk_ots, address, _seed);
+    (nodes0, address) <@ LTree.ltree(pk_ots, address, _seed);
 
     address <- set_type address 2;
     address <- set_tree_index address (W32.to_uint idx_sig);
@@ -363,13 +359,13 @@ module XMSS_MT_PRF = {
         address <- set_tree_index address (index %/ 2);
 
         auth_k <- nth witness auth k;
-        nodes1 <- rand_hash nodes0 auth_k _seed address;
+        (nodes1, address) <- rand_hash nodes0 auth_k _seed address;
       } else {
         index <- get_tree_index address;
         address <- set_tree_index address ((index - 1) %/ 2);
 
         auth_k <- nth witness auth k;
-        nodes1 <- rand_hash auth_k nodes0 _seed address;
+        (nodes1, address) <- rand_hash auth_k nodes0 _seed address;
       }
 
       nodes0 <- nodes1;
@@ -381,8 +377,8 @@ module XMSS_MT_PRF = {
 
 
 
-   proc sign(sk : xmss_mt_sk, m : msg_t) : sig_mt * xmss_mt_sk = {
-      var sig : sig_mt;
+   proc sign(sk : xmss_mt_sk, m : msg_t) : sig_t * xmss_mt_sk = {
+      var sig : sig_t;
       var idx : W32.t <-sk.`idx;
       var idx_new : W32.t;
       var idx_bytes : byte list;
@@ -418,22 +414,22 @@ module XMSS_MT_PRF = {
       address <- set_layer_addr address 0;
       address <- set_tree_addr address (W32.to_uint idx_tree);
 
-      (sig_tmp, auth) <@ TreeSig.treesig(_M', sk, idx_leaf, address);
+      (sig_tmp, auth, address) <@ TreeSig.treesig(_M', sk, idx_leaf, address);
      
-      sig <- {| sig with reduced_sig_mt=[(sig_tmp, auth)] |};
+      (* sig <- {| sig with reduced_sig_mt=[(sig_tmp, auth)] |}; *)
 
       j <- 1;
       while (j < d) {
-      root <@ TreeHash.treehash(sk, 0, h %/ d, address);
+      (root, address) <@ TreeHash.treehash(sk, 0, h %/ d, address);
       idx_leaf <- lsb_w32_int idx_tree (h %/ d);
       idx_tree <- msb_w32_int idx_tree (h - (j * (h %/ d)));
       
       address <- set_layer_addr address j;
       address <- set_tree_addr address (W32.to_uint idx_tree);
 
-      (sig_tmp, auth) <@ TreeSig.treesig(root, sk, idx_leaf, address);
+      (sig_tmp, auth, address) <@ TreeSig.treesig(root, sk, idx_leaf, address);
       
-      sig <- append_sig sig (sig_tmp, auth);
+      (* sig <- append_sig sig (sig_tmp, auth); *)
       
       
       j <- j+1;
@@ -443,22 +439,23 @@ module XMSS_MT_PRF = {
       return (sig, sk);
    }
 
-   proc verify(pk : xmss_mt_pk, m : msg_t, s : sig_mt) : bool = {
+  (*
+   proc verify(pk : xmss_mt_pk, m : msg_t, s : sig_t) : bool = {
      var is_valid : bool;
-     var idx : W32.t <- s.`sig_idx_mt;
-     var idx_bytes : nbytes <- toByte idx n;
+     (* var idx : W32.t <- s.`sig_idx_mt; *)
+     (* var idx_bytes : nbytes <- toByte idx n; *)
      var seed : nbytes <- pk.`pk_pub_seed;
      var address : adrs <- zero_address;
-     var idx_leaf : W32.t <- lsb_w32_int idx (h %/ d);
-     var idx_tree : W32.t <- msb_w32_int idx (h - (h %/ d));
-     var _sig : reduced_sig;
+     (* var idx_leaf : W32.t <- lsb_w32_int idx (h %/ d); *)
+     (* var idx_tree : W32.t <- msb_w32_int idx (h - (h %/ d)); *)
+     (* var _sig : reduced_sig; *)
      var node, root, _R, _M': nbytes;
      var t : three_n_bytes;
      var j : int;
 
-      _sig <- nth witness s.`reduced_sig_mt 0;
+      (* _sig <- nth witness s.`reduced_sig_mt 0; *)
 
-      _R <- s.`r_mt;
+      (* _R <- s.`r_mt; *)
      root <- pk.`pk_root;
      t <- _R ++ root ++ idx_bytes;
       _M' <- H_msg t m; 
@@ -467,10 +464,10 @@ module XMSS_MT_PRF = {
 
      j <- 1;
      while (j < d) {
-       idx_leaf <- lsb_w32_int idx_tree (h %/ d);
-       idx_tree <- msb_w32_int idx_tree (h - (h %/ d));
+       (* idx_leaf <- lsb_w32_int idx_tree (h %/ d); *)
+       (* idx_tree <- msb_w32_int idx_tree (h - (h %/ d)); *)
 
-       _sig <- nth witness s.`reduced_sig_mt j;
+       (* _sig <- nth witness s.`reduced_sig_mt j; *)
       
        address <- set_layer_addr address j;
        address <- set_tree_addr address (W32.to_uint idx_tree);
@@ -486,6 +483,7 @@ module XMSS_MT_PRF = {
 
      return is_valid;
    }
+   *)
 }.
 
 lemma xmss_mt_kg_ll : islossless XMSS_MT_PRF.kg.
@@ -513,6 +511,6 @@ while (0 <= j <= d) (d - j) ; auto => />.
   - call treesig_ll ; auto => /> ; smt(ge1_d).
 qed.
 
-axiom prf_keygen : equiv [XMSS_MT.kg ~ XMSS_MT_PRF.kg : true ==> true].
+(* axiom prf_keygen : equiv [XMSS_MT.kg ~ XMSS_MT_PRF.kg : true ==> true]. *)
 
 
