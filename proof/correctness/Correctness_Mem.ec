@@ -4,10 +4,7 @@ require import AllCore List RealExp IntDiv.
 
 from Jasmin require import JModel.
 
-require import Array128 Array4.
-require import XMSS_IMPL.
-
-require import Array128 Array4.
+require import Array4 Array128.
 require import XMSS_IMPL XMSS_IMPL_PP.
 
 lemma memset_4_post (input : W8.t Array4.t, v : W8.t) :
@@ -20,10 +17,7 @@ while (
   value = v /\
   (forall (k : int), 0 <= k < to_uint i => (a.[k] = value))
 ); auto => /> *.
-- do split.
-  + smt(@W64).
-  + smt(@W64).
-  + move => ???. rewrite get_setE ; smt(@W64).
+- do split ; 1,2: by smt(@W64). move => ???. rewrite get_setE ; smt(@W64).
 - progress ; [ smt(@W64) | smt ].
 qed.
 
@@ -37,10 +31,7 @@ while (
   value = v /\
   (forall (k : int), 0 <= k < to_uint i => (a.[k] = value))
 ); auto => /> *.
-- do split.
-  + smt(@W64).
-  + smt(@W64).
-  + move => ???. rewrite get_setE ; smt(@W64).
+- do split ; 1,2: by smt(@W64). move => ???. rewrite get_setE ; smt(@W64).
 - progress ; [ smt(@W64) | smt ].
 qed.
 
@@ -52,10 +43,7 @@ while (
   0 <= to_uint i <= 4 /\ 
   (forall (k : int), 0 <= k < to_uint i => (a.[k] = W8.zero))
 ); auto => /> *.
-- do split.
-  + smt(@W64).
-  + smt(@W64).
-  + move => ???. rewrite get_setE ; smt(@W64).
+- do split ; 1,2: by smt(@W64). move => ???. rewrite get_setE ; smt(@W64).
 - progress ; [ smt(@W64) | smt ].
 qed.
 
