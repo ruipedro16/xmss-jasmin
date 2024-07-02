@@ -62,46 +62,45 @@ inline fn _x_memcpy_u8u8<OUTLEN,INLEN>(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline fn __memcpy_u8u8p<OUTLEN>(
-    reg ptr u8[OUTLEN] out,
+inline fn __memcpy_u8u8p(
+    reg ptr u8[XMSS_N] out,
     reg u64 in_ptr
-) -> reg ptr u8[OUTLEN]
+) -> reg ptr u8[XMSS_N]
 {
-    reg u64 i;
+    inline int i;
 
-    i = 0;
-    while (i < OUTLEN) {
-      out[i] = (u8)[in_ptr + i];
-      i += 1;
+    // TODO: Load 64 bytes at a time
+    for i = 0 to XMSS_N {
+        out[u8 i] = (u8) [in_ptr + i];
     }
 
     return out;
-}//<>
+}
 
 #[returnaddress="stack"]
-fn _memcpy_u8u8p<OUTLEN>(
-    reg ptr u8[OUTLEN] out,
+fn _memcpy_u8u8p(
+    reg ptr u8[XMSS_N] out,
     reg u64 in_ptr
-) -> reg ptr u8[OUTLEN]
+) -> reg ptr u8[XMSS_N]
 {
-    out = __memcpy_u8u8p<OUTLEN>(out, in_ptr);
+    out = __memcpy_u8u8p(out, in_ptr);
     return out;
-}//<>
+}
 
-inline fn _x_memcpy_u8u8p<OUTLEN>(
-    reg ptr u8[OUTLEN] out,
+inline fn _x_memcpy_u8u8p(
+    reg ptr u8[XMSS_N] out,
     reg u64 in_ptr
-) -> reg ptr u8[OUTLEN]
+) -> reg ptr u8[XMSS_N]
 {
     out = out;
     in_ptr = in_ptr;
 
-    out = _memcpy_u8u8p<OUTLEN>(out, in_ptr);
+    out = _memcpy_u8u8p(out, in_ptr);
 
     out = out;
   
     return out;
-}//<>
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 

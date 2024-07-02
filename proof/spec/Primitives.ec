@@ -32,26 +32,35 @@ op nbytexor(a b : nbytes) : nbytes =
     map (fun (ab : byte * byte) => ab.`1 `^` ab.`2) (zip a b).
 
 module Chain = {
-  proc chain(X : nbytes, i s : int, _seed : seed, address : adrs) : nbytes * adrs = {
+   proc thash(t : nbytes, address : adrs, _seed : nbytes) : nbytes * adrs = {
+      var _key : key;
+      var bitmask : nbytes;
+
+      _key <- PRF _seed address;
+      address <- set_key_and_mask address 1;
+      bitmask <- PRF _seed address;
+
+      t <- F _key (nbytexor t bitmask);
+
+      return (t, address);
+   }
+
+   proc chain(X : nbytes, i s : int, _seed : seed, address : adrs) : nbytes * adrs = {
     var t : nbytes <- X;
-    var _key : key;
     var chain_count : int <- 0;
-    var bitmask : nbytes;
 
     (* case i + s <= w-1 is precondition *)
     while (chain_count < s) {
      address <- set_hash_addr address (i + chain_count);
      address <- set_key_and_mask address 0;
-     _key <- PRF _seed address;
-     address <- set_key_and_mask address 1;
-     bitmask <- PRF _seed address;
 
-     t <- F _key (nbytexor t bitmask);
+     (t, address) <@ thash(t, address, _seed);
+     
      chain_count <- chain_count + 1;
     }
     
     return (t, address);
-  }
+   }
 }.
 
 pred chain_pre(X : nbytes, i s : int, _seed : seed, address : adrs) = 

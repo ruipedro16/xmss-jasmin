@@ -92,7 +92,7 @@ inline fn __gen_chain(
     reg u64 offset;
 
     // memcpy(out, in, params->n);
-    out = _x_memcpy_u8u8p<XMSS_N>(out, in_ptr);
+    out = _x_memcpy_u8u8p(out, in_ptr);
 
     () = #spill(pub_seed, addr, out);
 
@@ -297,7 +297,6 @@ inline fn __csum(reg ptr u32[XMSS_WOTS_LEN] msg_base_w) -> reg u64
 
     csum = 0;
 
-    // for (i = 0; i < params->wots_len1; i++) { csum += params->wots_w - 1 - msg_base_w[i]; }
     i = 0;
     while (i < XMSS_WOTS_LEN1) {
       t = XMSS_WOTS_W - 1;

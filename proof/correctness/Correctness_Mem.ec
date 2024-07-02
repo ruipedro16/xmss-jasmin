@@ -77,3 +77,29 @@ while (
     + smt.
     + admit.
 qed.
+
+
+lemma memcpy_ptr_post (ptr : W64.t, o : W8.t Array32.t):
+    hoare [M(Syscall).__memcpy_u8u8p : 
+      arg=(o, ptr) /\ valid_ptr ptr (W64.of_int 32) ==>
+            res = Array32.init (fun i => loadW8 Glob.mem (to_uint ptr + i))].
+proof.
+proc.
+while (
+  #pre /\
+  0 <= i <= 32 /\
+  (forall (k : int), 0 <= k < i => out.[k] = loadW8 Glob.mem ((to_uint in_ptr) + k))
+) ; auto => />.
+- move => &hr * ; do split.
+    + admit. (* dont understand how to prove this subgoal *)
+    + smt().
+    + smt().
+    + move => k. rewrite get_setE ; first by smt(). move => ??. case (k = i{hr}). 
+      * move => H0. rewrite H0. congr. rewrite to_uintD.
+        have E : to_uint ((of_int i{hr}))%W64 = i{hr} by smt.
+        rewrite E. admit. (* smt(@W64) doesnt work *)
+      * move => H0 /#. 
+- move => &hr * ; split. 
+    + smt().
+    + move => ?? H0 H1 H2. admit. (* H0 H1 & H2 should be enough to close this subgoal *)
+qed.

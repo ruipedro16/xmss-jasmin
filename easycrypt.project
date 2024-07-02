@@ -1,0 +1,11 @@
+[general]
+timeout = 1
+
+provers = Z3@4.12.4
+provers = Alt-Ergo@2.5.2
+
+rdirs = proof/correctness
+rdirs = proof/common
+rdirs = proof/extraction
+rdirs = proof/spec
+rdirs = submodules/FV-XMSS-EC

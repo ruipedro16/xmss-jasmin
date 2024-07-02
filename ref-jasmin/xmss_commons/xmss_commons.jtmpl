@@ -179,7 +179,7 @@ inline fn __compute_root(
         // i.e. buffer = auth path || leaf
         buffer[XMSS_N : XMSS_N] = _x_memcpy_u8u8<XMSS_N, XMSS_N>(buffer[XMSS_N : XMSS_N], leaf);
 
-        buffer[0 : XMSS_N] = _x_memcpy_u8u8p<XMSS_N>(buffer[0 : XMSS_N], auth_path_ptr);
+        buffer[0 : XMSS_N] = _x_memcpy_u8u8p(buffer[0 : XMSS_N], auth_path_ptr);
     } else {
         // memcpy(buffer, leaf, params->n);
         // memcpy(buffer + params->n, auth_path, params->n);
@@ -188,7 +188,7 @@ inline fn __compute_root(
         buffer = _x_memcpy_u8u8<2 * XMSS_N, XMSS_N>(buffer, leaf);
 
         buffer[XMSS_N : XMSS_N] = 
-            _x_memcpy_u8u8p<XMSS_N>(buffer[XMSS_N : XMSS_N], auth_path_ptr);
+            _x_memcpy_u8u8p(buffer[XMSS_N : XMSS_N], auth_path_ptr);
     }
         
     // auth_path += params->n;
@@ -224,7 +224,7 @@ inline fn __compute_root(
             buffer[XMSS_N : XMSS_N], addr = __thash_h(buffer[XMSS_N : XMSS_N], thash_in, pub_seed, addr);
             
             // memcpy(buffer, auth_path, params->n);
-            buffer[0 : XMSS_N] = _x_memcpy_u8u8p<XMSS_N>(buffer[0 : XMSS_N], auth_path_ptr);
+            buffer[0 : XMSS_N] = _x_memcpy_u8u8p(buffer[0 : XMSS_N], auth_path_ptr);
         } else {
             // thash_h(params, buffer, buffer, pub_seed, addr);
             thash_in = #copy(buffer);
@@ -232,7 +232,7 @@ inline fn __compute_root(
 
             // memcpy(buffer + params->n, auth_path, params->n);
             buffer[XMSS_N : XMSS_N] = 
-                _x_memcpy_u8u8p<XMSS_N>(buffer[XMSS_N : XMSS_N], auth_path_ptr);
+                _x_memcpy_u8u8p(buffer[XMSS_N : XMSS_N], auth_path_ptr);
         }
 
         () = #spill(addr);
@@ -460,7 +460,7 @@ inline fn __xmssmt_core_sign_open(
     // 
     // 1) First we need to copy the randomness from sm + params->index_bytes to buf
     t64 = sm_ptr; t64 += XMSS_INDEX_BYTES;
-    buf = _x_memcpy_u8u8p<XMSS_N>(buf, t64);
+    buf = _x_memcpy_u8u8p(buf, t64);
 
     t64 = m_ptr;
     t64 += XMSS_SIG_BYTES - XMSS_PADDING_LEN - (3 * XMSS_N);
