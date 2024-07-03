@@ -126,11 +126,12 @@ def remove_functions(input_text: str, template_functions_dict, debug: bool) -> s
 
 
 def add_operators(text: str) -> str:
+    assert text is not None
+
     string_to_add = """
 require import XMSS_IMPL Generic.
 
-op Hash_96 : W8.t Array32.t -> W8.t Array96.t -> W8.t Array32.t.
-op Hash_128 : W8.t Array32.t -> W8.t Array128.t -> W8.t Array32.t.
+op Hash : W8.t list -> W8.t list -> W8.t list.
 op Hash_ptr : W8.t Array32.t -> W64.t -> W64.t -> W8.t Array32.t.
 
 op PRF : W8.t Array32.t -> W8.t Array32.t -> W8.t Array32.t -> W8.t Array32.t.
@@ -167,13 +168,65 @@ def replace_calls(text: str) -> str:
         replacement = r"<- \1 \2 \3;"
         text = re.sub(pattern, replacement, text)
 
-    text = text.replace("__core_hash_96", "Hash_96")
-    text = text.replace("_core_hash_96", "Hash_96")
-    text = text.replace("__core_hash__96", "Hash_96")
+    # hash 128
+    text = text.replace(
+"""
+  proc __thash_h (out:W8.t Array32.t, in_0:W8.t Array64.t,
+                  pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : W8.t Array32.t *
+                                                                  W32.t Array8.t = {
+    var aux: W8.t Array32.t;
+""",
+"""
+  proc __thash_h (out:W8.t Array32.t, in_0:W8.t Array64.t,
+                  pub_seed:W8.t Array32.t, addr:W32.t Array8.t) : W8.t Array32.t *
+                                                                  W32.t Array8.t = {
+    var aux: W8.t Array32.t;
+    var out_list : W8.t list;
+    var buf_list : W8.t list;
+"""
+    )
 
-    text = text.replace("__core_hash_128", "Hash_128")
-    text = text.replace("_core_hash_128", "Hash_128")
-    text = text.replace("__core_hash__128", "Hash_128")
+    text = text.replace(
+"""
+    out <- _core_hash_128 out buf;
+""",
+"""
+    out_list <- to_list out;
+    buf_list <- to_list buf;
+    out_list <- Hash out_list buf_list;
+    out <- Array32.of_list witness out_list;
+"""
+    )
+
+    # Hash 96
+    text = text.replace(
+"""
+  proc __thash_f (out:W8.t Array32.t, pub_seed:W8.t Array32.t,
+                  addr:W32.t Array8.t) : W8.t Array32.t * W32.t Array8.t = {
+    var aux: W8.t Array32.t;
+""",
+"""
+  proc __thash_f (out:W8.t Array32.t, pub_seed:W8.t Array32.t,
+                  addr:W32.t Array8.t) : W8.t Array32.t * W32.t Array8.t = {
+    var aux: W8.t Array32.t;
+    var out_list : W8.t list;
+    var buf_list : W8.t list;
+"""
+    )
+
+    text = text.replace(
+"""
+    out <- __core_hash__96 out buf;
+""",
+"""
+
+    out_list <- to_list out;
+    buf_list <- to_list buf;
+    out_list <- Hash out_list buf_list;    
+    out <- Array32.of_list witness out_list;
+"""
+    )
+
 
     text = text.replace("__core_hash_in_ptr_", "Hash_ptr")
     text = text.replace("__core_hash_in_ptr", "Hash_ptr")
@@ -590,7 +643,6 @@ module Syscall : Syscall_t = {
     ec_out = remove_functions(ec_out, template_functions_dict, debug)
     ec_out = add_operators(ec_out)
     ec_out = replace_calls(ec_out)
-    ec_out = replace_hash(ec_out)
 
     ec_out = ec_out.replace("(* Erased call to spill *)", "")
     ec_out = ec_out.replace("(* Erased call to unspill *)", "")
