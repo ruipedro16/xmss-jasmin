@@ -131,8 +131,8 @@ def add_operators(text: str) -> str:
     string_to_add = """
 require import XMSS_IMPL Generic.
 
-op Hash : W8.t list -> W8.t list -> W8.t list.
-op Hash_ptr : W8.t Array32.t -> W64.t -> W64.t -> W8.t Array32.t.
+op Hash : W8.t list -> W8.t list.
+op Hash_ptr : W64.t -> W64.t -> W8.t Array32.t.
 
 op PRF : W8.t Array32.t -> W8.t Array32.t -> W8.t Array32.t -> W8.t Array32.t.
 
@@ -182,7 +182,6 @@ def replace_calls(text: str) -> str:
                                                                   W32.t Array8.t = {
     var aux: W8.t Array32.t;
     var out_list : W8.t list;
-    var buf_list : W8.t list;
 """
     )
 
@@ -191,9 +190,7 @@ def replace_calls(text: str) -> str:
     out <- _core_hash_128 out buf;
 """,
 """
-    out_list <- to_list out;
-    buf_list <- to_list buf;
-    out_list <- Hash out_list buf_list;
+    out_list <- Hash (to_list buf);
     out <- Array32.of_list witness out_list;
 """
     )
@@ -210,7 +207,6 @@ def replace_calls(text: str) -> str:
                   addr:W32.t Array8.t) : W8.t Array32.t * W32.t Array8.t = {
     var aux: W8.t Array32.t;
     var out_list : W8.t list;
-    var buf_list : W8.t list;
 """
     )
 
@@ -220,9 +216,7 @@ def replace_calls(text: str) -> str:
 """,
 """
 
-    out_list <- to_list out;
-    buf_list <- to_list buf;
-    out_list <- Hash out_list buf_list;    
+    out_list <- Hash (to_list buf);    
     out <- Array32.of_list witness out_list;
 """
     )
@@ -233,7 +227,7 @@ def replace_calls(text: str) -> str:
     text = text.replace("_core_hash_in_ptr", "Hash_ptr")
 
     text = text.replace(
-        "mhash <- Hash_ptr mhash, m_with_prefix_ptr len;", "mhash <- Hash_ptr mhash m_with_prefix_ptr len;"
+        "mhash <- Hash_ptr mhash, m_with_prefix_ptr len;", "mhash <- Hash_ptr m_with_prefix_ptr len;"
     )
 
     text = text.replace(
@@ -608,12 +602,6 @@ def replace_calls(text: str) -> str:
 """
     )
 
-    return text
-
-
-def replace_hash (text: str) -> str:
-    # text = text.replace("out <- Hash_96 out buf;", "woooooooo")
-    # TODO: 
     return text
 
 ########################################################################################################################

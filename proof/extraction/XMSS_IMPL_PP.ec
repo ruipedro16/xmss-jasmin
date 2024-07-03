@@ -11,8 +11,8 @@ require import WArray2 WArray4 WArray12 WArray32 WArray44 WArray64 WArray68
 
 require import XMSS_IMPL Generic.
 
-op Hash : W8.t list -> W8.t list -> W8.t list.
-op Hash_ptr : W8.t Array32.t -> W64.t -> W64.t -> W8.t Array32.t.
+op Hash : W8.t list -> W8.t list.
+op Hash_ptr : W64.t -> W64.t -> W8.t Array32.t.
 
 op PRF : W8.t Array32.t -> W8.t Array32.t -> W8.t Array32.t -> W8.t Array32.t.
 
@@ -28,13 +28,13 @@ module Mp(SC:Syscall_t) = {
     return (out);
   }
 
-  proc __ull_to_bytes_4 (out:W8.t Array4.t, in_0:W64.t) : W8.t Array4.t = {
+  proc __ull_to_bytes_2 (out:W8.t Array2.t, in_0:W64.t) : W8.t Array2.t = {
     var aux: int;
 
     var i:int;
 
     aux <- (- 1);
-    i <- (4 - 1);
+    i <- (2 - 1);
     while (aux < i) {
       out.[i] <- (truncateu8 in_0);
       in_0 <- (in_0 `>>` (W8.of_int 8));
@@ -43,13 +43,13 @@ module Mp(SC:Syscall_t) = {
     return (out);
   }
 
-  proc __ull_to_bytes_2 (out:W8.t Array2.t, in_0:W64.t) : W8.t Array2.t = {
+  proc __ull_to_bytes_4 (out:W8.t Array4.t, in_0:W64.t) : W8.t Array4.t = {
     var aux: int;
 
     var i:int;
 
     aux <- (- 1);
-    i <- (2 - 1);
+    i <- (4 - 1);
     while (aux < i) {
       out.[i] <- (truncateu8 in_0);
       in_0 <- (in_0 `>>` (W8.of_int 8));
@@ -509,7 +509,7 @@ module Mp(SC:Syscall_t) = {
     offset, buf_n);
     len <- mlen;
     len <- (len + (W64.of_int (32 + (3 * 32))));
-    mhash <- Hash_ptr mhash m_with_prefix_ptr len;
+    mhash <- Hash_ptr m_with_prefix_ptr len;
     return (mhash);
   }
 
@@ -541,7 +541,6 @@ module Mp(SC:Syscall_t) = {
                                                                   W32.t Array8.t = {
     var aux: W8.t Array32.t;
     var out_list : W8.t list;
-    var buf_list : W8.t list;
 
     var buf:W8.t Array128.t;
     var addr_as_bytes:W8.t Array32.t;
@@ -589,9 +588,7 @@ module Mp(SC:Syscall_t) = {
       i <- (i + (W64.of_int 1));
     }
 
-    out_list <- to_list out;
-    buf_list <- to_list buf;
-    out_list <- Hash out_list buf_list;
+    out_list <- Hash (to_list buf);
     out <- Array32.of_list witness out_list;
 
     return (out, addr);
@@ -623,7 +620,6 @@ module Mp(SC:Syscall_t) = {
                   addr:W32.t Array8.t) : W8.t Array32.t * W32.t Array8.t = {
     var aux: W8.t Array32.t;
     var out_list : W8.t list;
-    var buf_list : W8.t list;
 
     var buf:W8.t Array96.t;
     var addr_as_bytes:W8.t Array32.t;
@@ -659,9 +655,7 @@ module Mp(SC:Syscall_t) = {
       i <- (i + (W64.of_int 1));
     }
 
-    out_list <- to_list out;
-    buf_list <- to_list buf;
-    out_list <- Hash out_list buf_list;    
+    out_list <- Hash (to_list buf);    
     out <- Array32.of_list witness out_list;
 
     return (out, addr);

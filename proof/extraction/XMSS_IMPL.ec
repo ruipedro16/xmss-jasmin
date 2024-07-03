@@ -961,13 +961,13 @@ module M(SC:Syscall_t) = {
     return (out);
   }
   
-  proc __ull_to_bytes_4 (out:W8.t Array4.t, in_0:W64.t) : W8.t Array4.t = {
+  proc __ull_to_bytes_2 (out:W8.t Array2.t, in_0:W64.t) : W8.t Array2.t = {
     var aux: int;
     
     var i:int;
     
     aux <- (- 1);
-    i <- (4 - 1);
+    i <- (2 - 1);
     while (aux < i) {
       out.[i] <- (truncateu8 in_0);
       in_0 <- (in_0 `>>` (W8.of_int 8));
@@ -976,13 +976,13 @@ module M(SC:Syscall_t) = {
     return (out);
   }
   
-  proc __ull_to_bytes_2 (out:W8.t Array2.t, in_0:W64.t) : W8.t Array2.t = {
+  proc __ull_to_bytes_4 (out:W8.t Array4.t, in_0:W64.t) : W8.t Array4.t = {
     var aux: int;
     
     var i:int;
     
     aux <- (- 1);
-    i <- (2 - 1);
+    i <- (4 - 1);
     while (aux < i) {
       out.[i] <- (truncateu8 in_0);
       in_0 <- (in_0 `>>` (W8.of_int 8));
@@ -1160,8 +1160,8 @@ module M(SC:Syscall_t) = {
     return (out);
   }
   
-  proc __memcpy_u8u8_32_32 (out:W8.t Array32.t, in_0:W8.t Array32.t) : 
-  W8.t Array32.t = {
+  proc __memcpy_u8u8_64_32 (out:W8.t Array64.t, in_0:W8.t Array32.t) : 
+  W8.t Array64.t = {
     
     var i:W64.t;
     
@@ -1174,8 +1174,8 @@ module M(SC:Syscall_t) = {
     return (out);
   }
   
-  proc __memcpy_u8u8_64_32 (out:W8.t Array64.t, in_0:W8.t Array32.t) : 
-  W8.t Array64.t = {
+  proc __memcpy_u8u8_32_32 (out:W8.t Array32.t, in_0:W8.t Array32.t) : 
+  W8.t Array32.t = {
     
     var i:W64.t;
     
@@ -1202,21 +1202,21 @@ module M(SC:Syscall_t) = {
     return (out);
   }
   
-  proc _memcpy_u8u8_32_32 (out:W8.t Array32.t, in_0:W8.t Array32.t) : 
-  W8.t Array32.t = {
-    
-    
-    
-    out <@ __memcpy_u8u8_32_32 (out, in_0);
-    return (out);
-  }
-  
   proc _memcpy_u8u8_64_32 (out:W8.t Array64.t, in_0:W8.t Array32.t) : 
   W8.t Array64.t = {
     
     
     
     out <@ __memcpy_u8u8_64_32 (out, in_0);
+    return (out);
+  }
+  
+  proc _memcpy_u8u8_32_32 (out:W8.t Array32.t, in_0:W8.t Array32.t) : 
+  W8.t Array32.t = {
+    
+    
+    
+    out <@ __memcpy_u8u8_32_32 (out, in_0);
     return (out);
   }
   
@@ -1229,18 +1229,6 @@ module M(SC:Syscall_t) = {
     return (out);
   }
   
-  proc _x_memcpy_u8u8_32_32 (out:W8.t Array32.t, in_0:W8.t Array32.t) : 
-  W8.t Array32.t = {
-    
-    
-    
-    out <- out;
-    in_0 <- in_0;
-    out <@ _memcpy_u8u8_32_32 (out, in_0);
-    out <- out;
-    return (out);
-  }
-  
   proc _x_memcpy_u8u8_64_32 (out:W8.t Array64.t, in_0:W8.t Array32.t) : 
   W8.t Array64.t = {
     
@@ -1249,6 +1237,18 @@ module M(SC:Syscall_t) = {
     out <- out;
     in_0 <- in_0;
     out <@ _memcpy_u8u8_64_32 (out, in_0);
+    out <- out;
+    return (out);
+  }
+  
+  proc _x_memcpy_u8u8_32_32 (out:W8.t Array32.t, in_0:W8.t Array32.t) : 
+  W8.t Array32.t = {
+    
+    
+    
+    out <- out;
+    in_0 <- in_0;
+    out <@ _memcpy_u8u8_32_32 (out, in_0);
     out <- out;
     return (out);
   }
