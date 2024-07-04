@@ -20,7 +20,7 @@ fn _blocks_0_ref<INLEN>(
 {
   inline int t;
   reg u32 T1 T2 a b c d e f g h r v;
-  reg u64 offset index;
+  reg u64 offset;
   stack u32[64] W;
   reg ptr u32[64] Kp;
   stack ptr u32[8] Hp;

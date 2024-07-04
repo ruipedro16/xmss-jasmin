@@ -9,7 +9,7 @@ LDLIBS   = -lcrypto
 
 JASMIN   ?= jasminc
 JAZZCT   ?= jazzct
-JFLAGS   ?= -nowarning ${JADDFLAGS}
+JFLAGS   ?= -nowarning -wunusedvar ${JADDFLAGS}
 JINCLUDE ?= -I XMSS:../../ref-jasmin/ -I Stdlib:../../ref-jasmin/stdlib
 
 JPP          ?= ../../submodules/jasmin-preprocessor/jpp
@@ -78,7 +78,7 @@ bin/%.s: bin/%.jpp
 
 $(TESTS):
 bin/%: bin/%.s | bin/
-	$(CC) $(CFLAGS) -o $@ -I../common -I../ -DIMPL=$(GET_IMPL_UPPER_CASE) $(TEST_FLAGS) \
+	$(CC) $(CFLAGS) -o $@ -I../common -I../ -DIMPL=$(GET_IMPL_UPPER_CASE) $(TEST_FLAGS) -DDEBUG \
 	$(SOURCES) $(REF_SOURCES) $< $(LDLIBS)
 
 $(OBJ_FILES):

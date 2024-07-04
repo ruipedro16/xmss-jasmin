@@ -9,7 +9,7 @@ LDLIBS   = -lcrypto
 
 JASMIN   ?= jasminc
 JAZZCT   ?= jazzct
-JFLAGS   ?= ${JADDFLAGS}
+JFLAGS   ?= -nowarning ${JADDFLAGS}
 JINCLUDE ?= -I XMSS:../../ref-jasmin/ -I Stdlib:../../ref-jasmin/stdlib
 
 JPP          ?= ../../submodules/jasmin-preprocessor/jpp
@@ -17,12 +17,12 @@ PREPROCESSOR ?= ../../submodules/jasmin-preprocessor/preprocessor
 
 # --------------------------------------------------------------------------------------------------
 
-INLEN_LIST := $(shell seq 1 100)
-TLIST := $(foreach I,$(INLEN_LIST),$(I))
+IMPLS := XMSS-SHA2_10_256
+IMPL_STR := $(foreach impl,$(IMPLS),$(shell echo $(impl) | tr '[:upper:]' '[:lower:]'))
 
 # --------------------------------------------------------------------------------------------------
 
-TESTS := $(addprefix bin/test_utils_, $(TLIST)) bin/test_conditions
+TESTS := bin/test_conditions $(addprefix bin/test_mem_, $(IMPL_STR))
 OUT   := $(addsuffix .out, $(TESTS))
 
 # --------------------------------------------------------------------------------------------------
@@ -36,7 +36,7 @@ CHECK_SCT := $(JPP_FILES:.jpp=.check_sct)
 
 # --------------------------------------------------------------------------------------------------
 
-SOURCES := test_utils.c ../common/notrandombytes.c ../common/print.c ../utils.c
+SOURCES := ../common/notrandombytes.c ../common/print.c ../utils.c
 
 # --------------------------------------------------------------------------------------------------
 
@@ -53,15 +53,16 @@ sct: $(CHECK_SCT)
 # --------------------------------------------------------------------------------------------------
 
 $(JPP_FILES):
-.PRECIOUS: bin/%.jpp
-bin/test_utils_%.jpp: | bin/
-	cp test_utils.jazz $@
-	$(JPP) $(JINCLUDE) -in $@ -out $@
-	$(PREPROCESSOR) --input_file $@ --output_file $@ --task "fn:memcpy_u8u8_jazz p:INLEN:$* p:OUTLEN:$*"
-
 bin/test_conditions.jpp: bin/
 	cp test_conditions.jazz $@
 	$(JPP) $(JINCLUDE) -in $@ -out $@
+
+# TODO: FIXME: improve this rule
+bin/test_mem_xmss-sha2_10_256.jpp: bin/
+	echo "from XMSS require \"params/params-xmss-sha2_10_256.jinc\"\n" > $@
+	cat test_mem.jazz >> $@
+	$(JPP) $(JINCLUDE) -in $@ -out $@
+	$(PREPROCESSOR) --input_file $@ --output_file $@
 
 $(ASM_FILES):
 .PRECIOUS: bin/%.s
@@ -69,11 +70,12 @@ bin/%.s: bin/%.jpp
 	$(JASMIN) $(JFLAGS) $(JINCLUDE) $< -o $@
 
 $(TESTS):
-bin/test_utils_%: bin/test_utils_%.s | bin/
-	$(CC) $(CFLAGS) -o $@ -I../common -I../ -DINLEN=$* $(SOURCES) $<
-
 bin/test_conditions: bin/test_conditions.s | bin/
 	$(CC) $(CFLAGS) -o $@ -I../common -I../ test_conditions.c ../common/notrandombytes.c $<
+
+# TODO: FIXME: improve this rule
+bin/test_mem_xmss-sha2_10_256: bin/test_mem_xmss-sha2_10_256.s | bin/
+	$(CC) $(CFLAGS) -o $@ -I../common -I../ test_mem.c $(wildcard ../*.c) ../common/notrandombytes.c -DIMPL=XMSS-SHA2_10_256 $< -lcrypto
 
 $(OBJ_FILES):
 bin/%.o: bin/%.s

@@ -18,7 +18,7 @@ extern void gen_chain_jazz(uint8_t *, uint32_t *, const uint8_t *, uint32_t, uin
 #endif
 
 #ifdef TEST_GEN_CHAIN_INPLACE
-extern void gen_chain_inplace_jazz(uint8_t *, uint32_t *, uint32_t, uint32_t, const uint8_t *);
+extern void gen_chain_inplace_jazz(uint8_t *, uint32_t *, uint32_t, const uint8_t *);
 #endif
 
 #ifdef TEST_WOTS_CHECKSUM
@@ -108,7 +108,7 @@ static void base_w(const xmss_params *params, int *output, const int out_len, co
 }
 
 /* Computes the WOTS+ checksum over a message (in base_w). */
-static void wots_checksum(const xmss_params *params, int *csum_base_w, const int *msg_base_w) {
+void wots_checksum(const xmss_params *params, int *csum_base_w, const int *msg_base_w) {
     int csum = 0;
     unsigned char csum_bytes[(params->wots_len2 * params->wots_log_w + 7) / 8];
     unsigned int i;
@@ -159,7 +159,7 @@ void wots_pkgen(const xmss_params *params, unsigned char *pk, const unsigned cha
         set_chain_addr(addr, i);
 
 #ifdef TEST_GEN_CHAIN_INPLACE
-        gen_chain_inplace_jazz(pk + i * params->n, addr, 0, params->wots_w - 1, pub_seed);
+        gen_chain_inplace_jazz(pk + i * params->n, addr, params->wots_w - 1, pub_seed); // start = 0
 #else
         gen_chain(params, pk + i * params->n, pk + i * params->n, 0, params->wots_w - 1, pub_seed, addr);
 #endif
@@ -188,7 +188,7 @@ void wots_sign(const xmss_params *params, unsigned char *sig, const unsigned cha
         set_chain_addr(addr, i);
 
 #ifdef TEST_GEN_CHAIN
-        gen_chain_inplace_jazz(sig + i * params->n, addr, 0, lengths[i], pub_seed);
+        gen_chain_inplace_jazz(sig + i * params->n, addr, lengths[i], pub_seed); // start = 0
 #else
         gen_chain(params, sig + i * params->n, sig + i * params->n, 0, lengths[i], pub_seed, addr);
 #endif

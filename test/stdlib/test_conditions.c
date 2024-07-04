@@ -112,6 +112,7 @@ void test_cond_u64_geq_u64_u32_eq_u32(void) {
 }
 
 int main(void) {
+    test_cond_u64_geq_u64_u32_eq_u32();
     puts("CONDITIONS : OK");
     return 0;
 }

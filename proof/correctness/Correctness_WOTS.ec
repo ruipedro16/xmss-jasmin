@@ -3,7 +3,7 @@ pragma Goals : printall.
 require import AllCore List RealExp IntDiv.
 from Jasmin require import JModel JArray.
 
-require import Params Parameters Address Notation Primitives Wots.
+require import Params Parameters Address Notation Primitives Wots Generic.
 require import XMSS_IMPL XMSS_IMPL_PP.
 
 require import Array3 Array8 Array32 Array67 Array2144.
@@ -112,8 +112,7 @@ proc.
 inline Mp(Syscall).__set_hash_addr Mp(Syscall).__set_key_and_mask Mp(Syscall).__set_chain_addr.
 while (
   len{2} = 67 /\
-  ={i} /\
-  0 <= i{1} <= 67 /\
+  ={i} /\ 0 <= i{1} <= 67 /\
   addr{1} = address{2} /\
   aux_list{1} = sk_i{2}
 ) ; auto => />.

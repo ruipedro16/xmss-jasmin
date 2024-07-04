@@ -1,0 +1,30 @@
+from Stdlib require "memset/memset.jtmpl"
+from Stdlib require "memcmp/memcmp.jinc"
+
+////////////////////////////////////////////////////////////////////////////////
+///////////////////                  MEMSET                  ///////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+export fn memset_zero_u8_jazz(reg ptr u8[XMSS_INDEX_BYTES] a) -> reg ptr u8[XMSS_INDEX_BYTES] {
+    a = __memset_zero_u8(a);
+    return a;
+}
+
+export fn memset_u8_ptr_jazz(reg u64 _ptr inlen, reg u8 val) {
+    __memset_u8_ptr(_ptr, inlen, val);
+}
+
+export fn memset_u8_jazz<INLEN>(reg ptr u8[INLEN] a, reg u8 value) -> reg ptr u8[INLEN] {
+    a = __memset_u8(a, value):
+    return a;
+}//<>
+
+////////////////////////////////////////////////////////////////////////////////
+///////////////////                  MEMCMP                  ///////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+export fn memcmp_jazz(reg ptr u8[XMSS_N] a b) -> reg u64 {
+    reg u64 r;
+    r = __memcmp(a, b);
+    return r;
+}

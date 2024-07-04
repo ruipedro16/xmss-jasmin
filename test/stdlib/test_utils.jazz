@@ -15,13 +15,6 @@ export fn bytes_to_ull_jazz(reg ptr u8[XMSS_INDEX_BYTES] in) -> reg u64 {
     return res;
 }//<>
 
-// INLEN is always XMSS_INDEX_BYTES
-// export fn bytes_to_ull_ptr_jazz(reg u64 in_ptr inlen) -> reg u64 {
-//     reg u64 res;
-//     res = __bytes_to_ull_ptr(in_ptr, inlen);
-//     return res;
-// }
-
 /////////////////////////////////////////////////////////////////////// MEMCPY
 
 // Precondition: INLEN <= OUTLEN - offset 

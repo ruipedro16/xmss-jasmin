@@ -3,11 +3,13 @@ pragma Goals : printall.
 require import AllCore List RealExp IntDiv.
 
 from Jasmin require import JModel.
+
+clone import JArray.PolyArray as A.
  
 require import Array2 Array3 Array4 Array8 Array32 Array64 Array67 Array128 Array2144.
 require import Generic.
 
-clone import JArray.PolyArray as A.
+require import XMSS_IMPL XMSS_IMPL_PP.
 
 (********************)
 (* Auxiliary Lemmas *)
@@ -102,7 +104,7 @@ qed.
 
 (**********************************************************************************************************************)
 
-require import XMSS_IMPL XMSS_IMPL_PP.
+
 
 lemma memcpy_64 (output : W8.t Array64.t, input : W8.t Array64.t) :
     equiv [ M(Syscall).__memcpy_u8u8_64_64 ~ Memcpy._x_memcpy_u8u8 :

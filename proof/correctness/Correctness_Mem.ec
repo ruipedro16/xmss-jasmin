@@ -4,8 +4,10 @@ require import AllCore List RealExp IntDiv.
 
 from Jasmin require import JModel.
 
-require import Array4 Array128.
+require import Array4 Array32 Array128.
 require import XMSS_IMPL XMSS_IMPL_PP.
+
+require import Utils. (* valid_ptr predicate *)
 
 lemma memset_4_post (input : W8.t Array4.t, v : W8.t) :
     hoare [M(Syscall).__memset_u8_4 : arg=(input, v) ==> 
@@ -47,42 +49,39 @@ while (
 - progress ; [ smt(@W64) | smt ].
 qed.
 
-lemma load_store mem (ptr : W64.t) (v : W8.t) :
+lemma load_store  (mem : global_mem_t) (ptr : W64.t) (v : W8.t) :
     loadW8 (storeW8 mem (to_uint ptr) v) (to_uint ptr) = v 
       by rewrite /storeW8 /loadW8 get_setE ifT.
 
 lemma memset_ptr_post (ptr : W64.t, len : W64.t, v : W8.t) :
     hoare [Mp(Syscall).__memset_u8_ptr : 
-      0 <= to_uint len < W64.max_uint /\ 
-      0 <= to_uint ptr + to_uint len < W64.max_uint /\
-      0 <= to_uint ptr < W64.max_uint /\
+      0 <= to_uint len /\
+      0 <= to_uint ptr /\ to_uint (ptr + len) < W64.modulus /\ 
       arg=(ptr, len, v) ==>
         forall (k:int), 0 <= k < to_uint len => (loadW8 Glob.mem (W64.to_uint (ptr  + (W64.of_int k)))) = v].
 proof.
 proc.
+auto.
 while (
   #pre /\
-  (to_uint ptr) <= to_uint _ptr <= (to_uint (ptr + inlen)) /\
+  inlen = len /\ value = v /\ _ptr = ptr /\
   0 <= to_uint i <= to_uint inlen /\
-  (forall (k:int), 0 <= k < to_uint i => ((loadW8 Glob.mem (W64.to_uint (_ptr  + (W64.of_int k)))) = value))
-).
-- auto => /> * ; do split.
-    + rewrite to_uintD_small ; smt(@W64).
-    + move => ?. rewrite !to_uintD //=. admit.
+  (forall (k : int), 0 <= k < to_uint i => loadW8 Glob.mem ((W64.to_uint _ptr) + k) = v )
+) ; auto => />.
+- move => &hr * ; do split.
+    + rewrite to_uintD /#.
     + smt(@W64).
-    + smt(@W64).
-    + move => *. rewrite /storeW8 /loadW8 get_setE ifT //. congr. admit.
-- auto ; progress.
-    + rewrite to_uintD_small //= ; smt(@W64).
-    + smt.
-    + admit.
+    + move => k ??. rewrite /loadW8 /storeW8 get_setE //=. admit.
+- move => &hr * ; do split.
+    + smt().
+    + move => mem ????? k *. rewrite /loadW8. admit.
 qed.
 
 
 lemma memcpy_ptr_post (ptr : W64.t, o : W8.t Array32.t):
     hoare [M(Syscall).__memcpy_u8u8p : 
       arg=(o, ptr) /\ valid_ptr ptr (W64.of_int 32) ==>
-            res = Array32.init (fun i => loadW8 Glob.mem (to_uint ptr + i))].
+            forall (k : int), 0 <= k < 32 => res.[k] = loadW8 Glob.mem (to_uint ptr + k)].
 proof.
 proc.
 while (
@@ -91,15 +90,11 @@ while (
   (forall (k : int), 0 <= k < i => out.[k] = loadW8 Glob.mem ((to_uint in_ptr) + k))
 ) ; auto => />.
 - move => &hr * ; do split.
-    + admit. (* dont understand how to prove this subgoal *)
+    + rewrite /loadW8. admit.
     + smt().
     + smt().
-    + move => k. rewrite get_setE ; first by smt(). move => ??. case (k = i{hr}). 
-      * move => H0. rewrite H0. congr. rewrite to_uintD.
-        have E : to_uint ((of_int i{hr}))%W64 = i{hr} by smt.
-        rewrite E. admit. (* smt(@W64) doesnt work *)
-      * move => H0 /#. 
-- move => &hr * ; split. 
-    + smt().
-    + move => ?? H0 H1 H2. admit. (* H0 H1 & H2 should be enough to close this subgoal *)
+    + move => k *. rewrite /loadW8 get_setE. smt(). case ( k = i{hr}).
+      * move => H0. congr. rewrite to_uintD_small ; [ admit | rewrite of_uintK ; congr ; smt() ].
+      * move => ? ; smt(@JMemory).
+- move => &hr * ; do split ; by smt().
 qed.

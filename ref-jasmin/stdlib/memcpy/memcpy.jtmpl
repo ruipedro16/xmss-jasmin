@@ -69,9 +69,8 @@ inline fn __memcpy_u8u8p(
 {
     inline int i;
 
-    // TODO: Load 64 bytes at a time
     for i = 0 to XMSS_N {
-        out[u8 i] = (u8) [in_ptr + i];
+        out[i] = (u8) [in_ptr + i];
     }
 
     return out;

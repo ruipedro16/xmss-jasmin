@@ -22,6 +22,7 @@
 
 #define XMSS_N p.n
 #define XMSS_WOTS_LEN p.wots_len
+#define XMSS_WOTS_LEN2 p.wots_len2
 
 extern void wots_pkgen_jazz(uint8_t *, uint32_t *, const uint8_t *, const uint8_t *);
 extern void wots_sign_jazz(uint8_t *, uint32_t *, const uint8_t *, const uint8_t *, const uint8_t *);
@@ -167,7 +168,16 @@ void test_wots_sign(void) {
         wots_sign(&p, sig_ref, m, seed, pub_seed, addr_ref);
         wots_sign_jazz(sig_jazz, addr_jazz, m, seed, pub_seed);
 
+#ifdef DEBUG
+        if (memcmp(sig_ref, sig_jazz, p.wots_sig_bytes) != 0) {
+            printf("-------------------------- %d/%d --------------------------\n", i + 1, TESTS);
+            print_str_u8("Sig ref", sig_ref, p.wots_sig_bytes * sizeof(uint8_t));
+            print_str_u8("Sig Jasmin", sig_jazz, p.wots_sig_bytes * sizeof(uint8_t));
+            printf("---------------------------------------------------------\n\n");
+        }
+#else
         assert(memcmp(sig_ref, sig_jazz, p.wots_sig_bytes) == 0);
+#endif
     }
 }
 
@@ -263,11 +273,11 @@ void test_wots_jazz(void) {
 }
 
 int main(void) {
-    test_wots();
-    test_wots_pkgen();
-    // test_wots_sign();
-    // test_wots_pk_from_sig();
-    test_wots_jazz();
+    test_wots(); // OK
+    test_wots_pkgen(); // OK
+    test_wots_sign(); // OK
+    test_wots_pk_from_sig(); // OK
+    test_wots_jazz(); // OK
     printf("[%s]: WOTS OK\n", xstr(IMPL));
     return 0;
 }

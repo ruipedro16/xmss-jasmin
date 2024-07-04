@@ -34,7 +34,7 @@ export fn gen_chain_jazz(
 export fn gen_chain_inplace_jazz(
     reg ptr u8[XMSS_N] out,
     reg ptr u32[8] addr,
-    reg u32 start steps, 
+    reg u32 steps, 
     reg ptr u8[XMSS_N] pub_seed
 ) -> reg ptr u8[XMSS_N], reg ptr u32[8]
 {

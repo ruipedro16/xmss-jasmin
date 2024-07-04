@@ -103,7 +103,7 @@ def remove_functions(input_text: str, template_functions_dict, debug: bool) -> s
         "__core_hash_in_ptr",
         "_core_hash_in_ptr",
         "__core_hash_in_ptr_",
-        # PRF FUNCTIONS
+        # _PRF_ FUNCTIONS
         "__prf_",
         "_prf",
         "__prf",
@@ -134,7 +134,7 @@ require import XMSS_IMPL Generic.
 op Hash : W8.t list -> W8.t list.
 op Hash_ptr : W64.t -> W64.t -> W8.t Array32.t.
 
-op PRF : W8.t Array32.t -> W8.t Array32.t -> W8.t Array32.t -> W8.t Array32.t.
+op _PRF_ : W8.t Array32.t -> W8.t Array32.t -> W8.t Array32.t -> W8.t Array32.t.
 
 op prf_keygen : W8.t list -> W8.t list -> W8.t list.
 """
@@ -236,7 +236,7 @@ def replace_calls(text: str) -> str:
     pub_seed);
 """,
 """
-    aux <- PRF (Array32.init (fun i_0 => buf.[32 + i_0])) addr_as_bytes pub_seed;
+    aux <- _PRF_ (Array32.init (fun i_0 => buf.[32 + i_0])) addr_as_bytes pub_seed;
 """
 )
     
@@ -246,7 +246,7 @@ def replace_calls(text: str) -> str:
     addr_as_bytes, pub_seed);
 """,
 """
-    aux <- PRF (Array32.init (fun i_0 => bitmask.[0 + i_0])) addr_as_bytes pub_seed;
+    aux <- _PRF_ (Array32.init (fun i_0 => bitmask.[0 + i_0])) addr_as_bytes pub_seed;
 """
     )
 
@@ -256,12 +256,12 @@ def replace_calls(text: str) -> str:
     addr_as_bytes, pub_seed);
 """,
 """
-    aux <- PRF (Array32.init (fun i_0 => bitmask.[32 + i_0])) addr_as_bytes pub_seed;
+    aux <- _PRF_ (Array32.init (fun i_0 => bitmask.[32 + i_0])) addr_as_bytes pub_seed;
 """
     )
 
-    text = text.replace("bitmask <@ __prf_ (bitmask, addr_as_bytes, pub_seed);", "bitmask <- PRF bitmask addr_as_bytes pub_seed;")
-    text = text.replace("buf <@ __prf_ (buf, idx_bytes, sk_prf);", "buf <- PRF buf idx_bytes sk_prf;")
+    text = text.replace("bitmask <@ __prf_ (bitmask, addr_as_bytes, pub_seed);", "bitmask <- _PRF_ bitmask addr_as_bytes pub_seed;")
+    text = text.replace("buf <@ __prf_ (buf, idx_bytes, sk_prf);", "buf <- _PRF_ buf idx_bytes sk_prf;")
 
 
     # Replace functions that take arrays as arguments with functions that take lists
@@ -590,7 +590,7 @@ def replace_calls(text: str) -> str:
 """
     )
 
-    # PRF_KEYGEN
+    # _PRF__KEYGEN
     text = text.replace(
 """
       aux <@ __prf_keygen_ ((Array32.init (fun i_0 => outseeds.[(i * 32) + i_0])),

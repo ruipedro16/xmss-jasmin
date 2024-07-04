@@ -4,7 +4,10 @@
 #include <stdint.h>
 #include "params.h"
 
+// for testing
+void wots_checksum(const xmss_params *params, int *csum_base_w, const int *msg_base_w);
 
+// for testing
 void expand_seed(const xmss_params *params,
                         unsigned char *outseeds, const unsigned char *inseed, 
                         const unsigned char *pub_seed, uint32_t addr[8]);
