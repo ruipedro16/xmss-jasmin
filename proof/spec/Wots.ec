@@ -21,7 +21,7 @@ clone import Subtype as LEN_N with
 
 
 clone import Subtype as LEN1 with 
-   type T = byte list,
+   type T = W8.t list,
    op P = fun l => size l = len1
    rename "T" as "len1_bytes"
    proof inhabited by (exists (nseq len1 W8.zero);smt(size_nseq ge0_len1))
@@ -181,7 +181,7 @@ module WOTS = {
     var msg_i : int;
     var sk_i : nbytes;
     var len_2_bytes : int;
-    var csum_bytes : byte list;
+    var csum_bytes : W8.t list;
     var csum_base_w : int list;
     var sig : wots_signature <- witness;
     var sig_i : nbytes;
@@ -224,7 +224,7 @@ module WOTS = {
     var msg_i : int;
     var sk_i : nbytes;
     var len_2_bytes : int;
-    var csum_bytes : byte list;
+    var csum_bytes : W8.t list;
     var csum_base_w : int list;
     var sig : wots_signature <- witness;
     var sig_i : nbytes;
@@ -268,7 +268,7 @@ module WOTS = {
     var csum : int;
     var msg : int list;
     var len_2_bytes : int;
-    var csum_bytes : byte list;
+    var csum_bytes : W8.t list;
     var csum_base_w : int list;
     var i : int;
     var sig_i : nbytes;

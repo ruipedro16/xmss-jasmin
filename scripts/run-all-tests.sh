@@ -6,8 +6,8 @@ test_dirs=(
     "sha256/sha256_array"
     "sha256/sha256_in_ptr"
     "hash"
-    # "wots"
-    # "xmss"
+    "wots"
+    "xmss"
 )
 
 for dir in ${test_dirs[@]}; do

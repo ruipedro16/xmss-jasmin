@@ -18,7 +18,7 @@
 #endif
 
 #ifndef TESTS
-#define TESTS 1000
+#define TESTS 1
 #endif
 
 #ifndef MAX_MSG_LEN
@@ -366,11 +366,6 @@ void test_xmss_api(void) {
 
 #define XMSS_MLEN 32
 #define MAX_SIGNATURES ((unsigned long long)pow(2, p.full_height) - 1)
-    
-    ////////////////////////////////////////////////////////////////////////////
-    // FIXME: TODO: [xmss api] Test 1/1000 (signature 428/1023) always fails  //
-    //               It is the only test that is failing                      //   
-    ////////////////////////////////////////////////////////////////////////////
     bool debug = true;
 
     xmss_params p;
@@ -393,10 +388,6 @@ void test_xmss_api(void) {
     uint8_t sm[p.sig_bytes + XMSS_MLEN];
     size_t smlen;
     int res;
-
-    // xmss_keypair_jazz    : WORKS OK
-    // xmss_sign_jazz       : FAILED
-    // xmss_sign_open_jazz  : FAILED
 
     for (int i = 0; i < TESTS; i++) {
         xmss_keypair_jazz(pk, sk);

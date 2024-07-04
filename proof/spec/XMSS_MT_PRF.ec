@@ -11,14 +11,14 @@ import NBytes.
 import Array8.
 
 clone import Subtype as Bitmask with 
-   type T = byte list,
+   type T = W8.t list,
    op P = fun l => size l = 2 * n
    rename "T" as "bitmask"
    proof inhabited by (exists (nseq (2*n) W8.zero);smt(size_nseq ge0_n))
    proof *.
 
 clone import Subtype as Three_NBytes with 
-   type T = byte list,
+   type T = W8.t list,
    op P = fun l => size l = 3 * n
    rename "T" as "three_n_bytes"
    proof inhabited by (exists (nseq (3*n) W8.zero);smt(size_nseq ge0_n))
@@ -41,7 +41,7 @@ op h : { int | 0 <= h /\ h %% d = 0} as h_vals. (* hyper-tree of total height h,
 (**********************************************************************************************)
 
 (* gets the n most significant bits *)
-op msb (x : byte list) (n : int) : byte list = take n x. 
+op msb (x : W8.t list) (n : int) : W8.t list = take n x. 
 
 (* gets the n most significant bits of x *)
 (* n is at most 32 *)
@@ -60,8 +60,8 @@ op lsb_w32_int (x : W32.t) (n : int) : W32.t =
 (**********************************************************************************************)
 
 op H : nbytes -> bitmask -> nbytes.
-op H_msg : three_n_bytes -> byte list -> nbytes.
-op _prf_ : nbytes -> byte list -> nbytes.
+op H_msg : three_n_bytes -> W8.t list -> nbytes.
+op _prf_ : nbytes -> W8.t list -> nbytes.
 op impl_oid : W32.t.
 
 (**********************************************************************************************)
@@ -76,7 +76,7 @@ type xmss_mt_pk = { pk_oid : W32.t ;
                     pk_root : nbytes ;
                     pk_pub_seed : nbytes }.
 
-type msg_t = byte list.
+type msg_t = W8.t list.
 
 type sig_t = { sig_idx : W32.t;
                r : nbytes;
@@ -381,7 +381,7 @@ module XMSS_MT_PRF = {
       var sig : sig_t;
       var idx : W32.t <-sk.`idx;
       var idx_new : W32.t;
-      var idx_bytes : byte list;
+      var idx_bytes : W8.t list;
       var idx_nbytes : nbytes;
       var idx_tree : W32.t;
       var idx_leaf : W32.t;

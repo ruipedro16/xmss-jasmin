@@ -8,7 +8,7 @@ require import Params Notation Address.
 require import Array8.
 
 clone import Subtype as NBytes with 
-   type T = byte list,
+   type T = W8.t list,
    op P = fun l => size l = n
    rename "T" as "nbytes"
    proof inhabited by (exists (nseq n W8.zero);smt(size_nseq ge0_n))
@@ -29,32 +29,31 @@ op F : key -> nbytes -> nbytes.
 op PRF : seed -> adrs -> key.
 
 op nbytexor(a b : nbytes) : nbytes = 
-    map (fun (ab : byte * byte) => ab.`1 `^` ab.`2) (zip a b).
+    map (fun (ab : W8.t * W8.t) => ab.`1 `^` ab.`2) (zip a b).
 
 module Chain = {
-   proc thash(t : nbytes, address : adrs, _seed : nbytes) : nbytes * adrs = {
-      var _key : key;
-      var bitmask : nbytes;
-
-      _key <- PRF _seed address;
-      address <- set_key_and_mask address 1;
-      bitmask <- PRF _seed address;
-
-      t <- F _key (nbytexor t bitmask);
-
-      return (t, address);
-   }
-
    proc chain(X : nbytes, i s : int, _seed : seed, address : adrs) : nbytes * adrs = {
+      (*
+       *
+       * i: start index
+       * s: number of steps
+       *
+       *)
     var t : nbytes <- X;
     var chain_count : int <- 0;
+    var _key : key;
+    var bitmask : nbytes;
 
     (* case i + s <= w-1 is precondition *)
     while (chain_count < s) {
      address <- set_hash_addr address (i + chain_count);
      address <- set_key_and_mask address 0;
 
-     (t, address) <@ thash(t, address, _seed);
+     _key <- PRF _seed address;
+     address <- set_key_and_mask address 1;
+     bitmask <- PRF _seed address;
+
+     t <- F _key (nbytexor t bitmask);
      
      chain_count <- chain_count + 1;
     }

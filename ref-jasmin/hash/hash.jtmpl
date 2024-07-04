@@ -95,7 +95,7 @@ inline fn __prf_keygen(
         _x_memcpy_u8u8<XMSS_N + 32, XMSS_N + 32>(buf[XMSS_PADDING_LEN + XMSS_N : XMSS_N + 32], in);
 
     // core_hash(params, out, buf, params->padding_len + 2*params->n + 32);
-    out = __core_hash<XMSS_PADDING_LEN + 2*XMSS_N + 32>(out, buf); // FIXME: Calling the local function causes register allocation to fail
+    out = __core_hash_<XMSS_PADDING_LEN + 2*XMSS_N + 32>(out, buf); 
 
     return out; 
 }
@@ -320,6 +320,8 @@ inline fn __thash_f(
 
     reg u8 t;
     reg u64 i;
+
+    // buf = XMSS_HASH_PADDING_F || PRF (addr_as_bytes) || bitmask
 
     // ull_to_bytes(buf, params->padding_len, XMSS_HASH_PADDING_F);
     buf[0:XMSS_PADDING_LEN] = __ull_to_bytes<XMSS_PADDING_LEN>(buf[0:XMSS_PADDING_LEN], XMSS_HASH_PADDING_F);

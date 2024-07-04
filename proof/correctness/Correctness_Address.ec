@@ -31,58 +31,56 @@ lemma set_ots_addr_correct (address : adrs, ots_addr : int):
     set_ots_addr_pre ots_addr => 
         hoare[Mp(Syscall).__set_ots_addr :
             arg = (address, W32.of_int ots_addr) ==> res = set_ots_addr address ots_addr].
-proof. move => ?. proc. auto. qed.
+proof. move => ? ; proc ; auto. qed.
 
 lemma set_chain_addr_correct (address : adrs, chain_addr : int):
     set_chain_addr_pre chain_addr => 
         hoare[Mp(Syscall).__set_chain_addr :
             arg = (address, W32.of_int chain_addr) ==> res = set_chain_addr address chain_addr].
-proof. move => ?. proc. auto. qed.
+proof. move => ? ; proc ; auto. qed.
 
 lemma set_hash_addr_correct (address : adrs, hash_addr : int):
     set_hash_addr_pre hash_addr =>
         hoare[Mp(Syscall).__set_hash_addr :
             arg = (address, W32.of_int hash_addr) ==> res = set_hash_addr address hash_addr].
-proof. move => ?. proc. auto. qed.
+proof. move => ? ; proc ; auto. qed.
 
 lemma set_ltree_addr_correct (address : adrs, ltree_addr : int):
     set_ltree_addr_pre ltree_addr =>
         hoare[Mp(Syscall).__set_ltree_addr :
             arg = (address, W32.of_int ltree_addr) ==> 
                 res = set_ltree_addr address ltree_addr].
-proof. move => ?. proc. auto. qed.
+proof. move => ? ; proc ; auto. qed.
 
 lemma set_tree_height_correct (address : adrs, tree_height : int):
     tree_height_pre tree_height =>
         hoare[Mp(Syscall).__set_tree_height :
             arg = (address, W32.of_int tree_height) ==> res = set_tree_height address tree_height].
-proof. move => ?. proc. auto. qed.
+proof. move => ? ; proc ; auto. qed.
 
 lemma get_set_tree_height (address : adrs, tree_height : int) :
     tree_height_pre tree_height /\ tree_height < W32.max_uint => 
     get_tree_height (set_tree_height address tree_height) = tree_height.
 proof.
-rewrite /get_tree_height /set_tree_height /tree_height_pre.
-move => ?.
-smt(@W32).
+move => ? ; rewrite /get_tree_height /set_tree_height get_setE //= of_uintK ; smt(pow2_32).
 qed.
 
 lemma set_tree_index_correct (address : adrs, tree_index) : 
     set_tree_index_pre tree_index => 
         hoare[Mp(Syscall).__set_tree_index :
             arg = (address, W32.of_int tree_index) ==> res = set_tree_index address tree_index].
-proof. move => ?. proc. auto. qed.
+proof. move => ? ; proc ; auto. qed.
 
 lemma get_set_tree_index (address : adrs, tree_index : int) :
-  0 <= tree_index < W32.modulus => (* i.e. tree_index fits in a u32 *)
+  0 <= tree_index < W32.modulus =>
   get_tree_index (set_tree_index address tree_index) = tree_index.  
-proof. rewrite /get_tree_index /set_tree_index. move => ?. smt(get_setE @W32). qed.
+proof. move => ? ; rewrite /get_tree_index /set_tree_index get_setE //= of_uintK ; smt(pow2_32). qed.
 
 lemma set_key_and_mask_correct (address : adrs, key_and_mask : int):
     set_key_and_mask_pre key_and_mask =>
         hoare[Mp(Syscall).__set_key_and_mask :
             arg = (address, W32.of_int key_and_mask) ==> res = set_key_and_mask address key_and_mask].
-proof. move => ?. proc. auto. qed.
+proof. move => ? ; proc ; auto. qed.
 
 op zero_addr : adrs = Array8.init (fun _ => W32.zero). 
 

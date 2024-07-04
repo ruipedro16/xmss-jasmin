@@ -9,7 +9,6 @@ require import Notation Params.
 
 (**********************************************************************************************************************)
 
-type byte = W8.t.
 type adrs = W32.t Array8.t.
 
 op zero_address : adrs = Array8.init (fun _ => W32.zero).
