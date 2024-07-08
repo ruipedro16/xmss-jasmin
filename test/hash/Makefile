@@ -41,7 +41,7 @@ CHECK_SCT := $(JPP_FILES:.jpp=.check_sct)
 
 # --------------------------------------------------------------------------------------------------
 
-REF_SOURCES := $(wildcard ../*.c)
+REF_SOURCES := $(filter-out ../xmss_core_fast.c, $(wildcard ../*.c))
 
 SOURCES := test_hash.c ../common/notrandombytes.c ../common/print.c
 

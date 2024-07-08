@@ -52,7 +52,7 @@ sct: $(CHECK_SCT)
 
 # --------------------------------------------------------------------------------------------------
 
-REF_SOURCES := $(wildcard ../*.c)
+REF_SOURCES := $(filter-out ../xmss_core_fast.c, $(wildcard ../*.c))
 
 SOURCES := test_core_hash.c ../common/notrandombytes.c ../common/print.c
 
