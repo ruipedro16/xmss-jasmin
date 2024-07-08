@@ -1,16 +1,16 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-inline fn __memcpy_u8u8_offset<OUTLEN, INLEN>(
-    reg ptr u8[OUTLEN] out,
+inline fn __memcpy_u8u8_offset(
+    reg ptr u8[XMSS_WOTS_SIG_BYTES] out,
     reg u64 offset,
-    reg ptr u8[INLEN] in
-) -> reg ptr u8[OUTLEN]
+    reg ptr u8[XMSS_N] in
+) -> reg ptr u8[XMSS_WOTS_SIG_BYTES]
 {
     reg u64 i;
     
     i = 0;
-    while (i < INLEN) {
+    while (i < XMSS_N) {
         out[offset] = in[i];
         i += 1;
         offset += 1;

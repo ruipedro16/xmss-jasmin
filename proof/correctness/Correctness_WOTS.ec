@@ -11,16 +11,16 @@ require import Array3 Array8 Array32 Array67 Array2144.
 require import Utils. (* valid ptr predicate *)
 require import Correctness_Hash.
 
-lemma base_w_correctness_67 (_out : W32.t Array67.t, _in_ : W8.t Array32.t) :
-    floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
-    w = XMSS_WOTS_W => 
-    equiv[M(Syscall).__base_w_67_32 ~ BaseW.base_w :
-      arg{1} = (_out, _in_) /\
-      arg{2} = (to_list _in_, 67) ==>
-        res{2} = mkseq (fun i => to_uint res{1}.[i]) 67].
-proof.
-rewrite /XMSS_WOTS_LOG_W /XMSS_WOTS_W ; move => [logw_val w_val].
-proc.
+  lemma base_w_correctness_67 (_out : W32.t Array67.t, _in_ : W8.t Array32.t) :
+      floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
+      w = XMSS_WOTS_W => 
+      equiv[M(Syscall).__base_w_67_32 ~ BaseW.base_w :
+        arg{1} = (_out, _in_) /\
+        arg{2} = (to_list _in_, 67) ==>
+          res{2} = mkseq (fun i => to_uint res{1}.[i]) 67].
+  proof.
+  rewrite /XMSS_WOTS_LOG_W /XMSS_WOTS_W ; move => [logw_val w_val].
+  proc.
 while (
   outlen{2} = 67 /\
   _in{2} = to_uint in_0{1} /\ 

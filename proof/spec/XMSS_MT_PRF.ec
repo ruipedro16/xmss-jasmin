@@ -88,16 +88,24 @@ type xmss_mt_keypair = xmss_mt_sk * xmss_mt_pk.
 (**********************************************************************************************)
 
 (* 4.1.4 Randomized tree hashing *)
-op rand_hash (_left _right : nbytes, _seed : seed, address : adrs) : nbytes * adrs = 
-  let address : adrs = set_key_and_mask address 0 in
-  let key : nbytes = PRF _seed address in
-  let address : adrs = set_key_and_mask address 1 in
-  let bitmask_0 : nbytes = PRF _seed address in
-  let address : adrs = set_key_and_mask address 2 in
-  let bitmask_1 : nbytes = PRF _seed address in
-  let hash_in : nbytes = (nbytexor _left bitmask_0) ++ (nbytexor _right bitmask_1) in
-  (H key hash_in, address).
+module RandHash = {
+proc rand_hash (_left _right : nbytes, _seed : seed, address : adrs) : nbytes * adrs { 
+  var key : nbytes;
+  var bitmask0 : nbytes;
+  var bitmask1 : nbytes;
+  var hash_in : nbytes;
 
+  address <- set_key_and_mask address 0;
+  key <- PRF _seed address in
+  address <- set_key_and_mask address 1;
+  bitmask_0 <- PRF _seed address;
+  address <- set_key_and_mask address 2;
+  bitmask_1 <- PRF _seed address;
+  hash_in <- (nbytexor _left bitmask_0) ++ (nbytexor _right bitmask_1);
+  
+  return (H key hash_in, address).
+  }
+}.
 (**********************************************************************************************)
 
 (* 4.1.5 L-Trees *)
