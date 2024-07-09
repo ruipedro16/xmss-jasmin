@@ -19,7 +19,7 @@ inline fn __memcmp(reg ptr u8[XMSS_N] a b) -> reg u64 {
         i += 1;
     }
 
-    ?{ zf } = #AND_8(acc, acc);
+    ?{ zf }, _ = #AND_8(acc, acc);
     r = are_equal if zf;
 
     return r;
