@@ -248,7 +248,7 @@ inline fn __base_w<OUTLEN, INLEN>(
     
         // output[out] = (total >> bits) & (params->wots_w - 1);
         total_32 = (32u) total;
-        ?{}, total_32 = #SHR_32(total_32, bits);
+        total_32 >>= (bits & 31);
         total_32 &= (XMSS_WOTS_W - 1);
         output[out] = total_32;
 
