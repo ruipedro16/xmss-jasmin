@@ -4,6 +4,22 @@
 
 #include "params.h"
 
+/*
+ * Given a set of parameters, this function returns the size of the secret key.
+ * This is implementation specific, as varying choices in tree traversal will
+ * result in varying requirements for state storage.
+ *
+ * This function handles both XMSS and XMSSMT parameter sets.
+ */
+unsigned long long xmss_fast_core_sk_bytes(const xmss_params *params) {
+    return params->index_bytes + 4 * params->n +
+           (2 * params->d - 1) *
+               ((params->tree_height + 1) * params->n + 4 + params->tree_height + 1 + params->tree_height * params->n +
+                (params->tree_height >> 1) * params->n + (params->tree_height - params->bds_k) * (7 + params->n) +
+                ((1 << params->bds_k) - params->bds_k - 1) * params->n + 4) +
+           (params->d - 1) * params->wots_sig_bytes;
+}
+
 #ifdef DEBUG
 static int starts_with(const char *str, const char *prefix) { return strncmp(str, prefix, strlen(prefix)) == 0; }
 
@@ -110,7 +126,10 @@ static void print_xmss_params(const char *_impl, xmss_params *p, uint32_t oid) {
     print_param(f, "XMSS_SIG_BYTES", p->sig_bytes);
     print_param(f, "XMSS_PK_BYTES", p->pk_bytes);
     print_param(f, "XMSS_SK_BYTES", p->sk_bytes);
+
+    // FAST
     print_param(f, "XMSS_BDS_K", p->bds_k);
+    print_param(f, "XMSS_FAST_SK_BYTES", xmss_fast_core_sk_bytes(p));
 
     fclose(f);
 }

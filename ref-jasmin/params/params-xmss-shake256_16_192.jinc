@@ -28,3 +28,4 @@ param int XMSS_SIG_BYTES = 1636;
 param int XMSS_PK_BYTES = 48;
 param int XMSS_SK_BYTES = 100;
 param int XMSS_BDS_K = 0;
+param int XMSS_FAST_SK_BYTES = 1605;
