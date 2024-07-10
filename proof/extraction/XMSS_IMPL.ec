@@ -335,106 +335,6 @@ module M(SC:Syscall_t) = {
     return (out);
   }
   
-  proc _blocks_0_ref_128 (_H:W32.t Array8.t, in_0:W8.t Array128.t) : 
-  W32.t Array8.t * W64.t = {
-    var aux: int;
-    
-    var offset:W64.t;
-    var inlen:W64.t;
-    var kp:W32.t Array64.t;
-    var hp:W32.t Array8.t;
-    var h:W32.t Array8.t;
-    var t:int;
-    var v:W32.t;
-    var w:W32.t Array64.t;
-    var a:W32.t;
-    var b:W32.t;
-    var c:W32.t;
-    var d:W32.t;
-    var e:W32.t;
-    var f:W32.t;
-    var g:W32.t;
-    var h_0:W32.t;
-    var tr:W64.t;
-    var t1:W32.t;
-    var r:W32.t;
-    var t2:W32.t;
-    h <- witness;
-    hp <- witness;
-    kp <- witness;
-    w <- witness;
-    offset <- (W64.of_int 0);
-    inlen <- (W64.of_int 128);
-    kp <- sHA256_K;
-    hp <- _H;
-    h <- hp;
-    if ((64 <= 128)) {
-      
-      while (((W64.of_int 64) \ule inlen)) {
-        (* Erased call to spill *)
-        t <- 0;
-        while (t < 16) {
-          v <-
-          (get32_direct (WArray128.init8 (fun i => (in_0).[i]))
-          (W64.to_uint (offset + (W64.of_int (4 * t)))));
-          v <- BSWAP_32 v;
-          w.[t] <- v;
-          t <- t + 1;
-        }
-        (* Erased call to spill *)
-        t <- 16;
-        while (t < 64) {
-          w <@ __Wt_ref (w, t);
-          t <- t + 1;
-        }
-        (a, b, c, d, e, f, g, h_0, h) <@ __load_H_ref (h);
-        hp <- h;
-        tr <- (W64.of_int 0);
-        
-        while ((tr \ult (W64.of_int 64))) {
-          t1 <- h_0;
-          r <@ __BSIG1_ref (e);
-          t1 <- (t1 + r);
-          r <@ __CH_ref (e, f, g);
-          t1 <- (t1 + r);
-          t1 <- (t1 + kp.[(W64.to_uint tr)]);
-          t1 <- (t1 + w.[(W64.to_uint tr)]);
-          t2 <@ __BSIG0_ref (a);
-          r <@ __MAJ_ref (a, b, c);
-          t2 <- (t2 + r);
-          h_0 <- g;
-          g <- f;
-          f <- e;
-          e <- d;
-          e <- (e + t1);
-          d <- c;
-          c <- b;
-          b <- a;
-          a <- t1;
-          a <- (a + t2);
-          tr <- (tr + (W64.of_int 1));
-        }
-        h <- hp;
-        a <- (a + h.[0]);
-        b <- (b + h.[1]);
-        c <- (c + h.[2]);
-        d <- (d + h.[3]);
-        e <- (e + h.[4]);
-        f <- (f + h.[5]);
-        g <- (g + h.[6]);
-        h_0 <- (h_0 + h.[7]);
-        h <@ __store_H_ref (h, a, b, c, d, e, f, g, h_0);
-        (* Erased call to unspill *)
-        offset <- (offset + (W64.of_int 64));
-        inlen <- (inlen - (W64.of_int 64));
-      }
-    } else {
-      
-    }
-    _H <- h;
-    return (_H, offset);
-  }
-  
   proc _blocks_0_ref_96 (_H:W32.t Array8.t, in_0:W8.t Array96.t) : W32.t Array8.t *
                                                                    W64.t = {
     var aux: int;
@@ -535,55 +435,104 @@ module M(SC:Syscall_t) = {
     return (_H, offset);
   }
   
-  proc __lastblocks_ref_128 (in_0:W8.t Array128.t, inlen:W64.t, offset:W64.t,
-                             bits:W64.t) : W32.t Array32.t * W64.t = {
+  proc _blocks_0_ref_128 (_H:W32.t Array8.t, in_0:W8.t Array128.t) : 
+  W32.t Array8.t * W64.t = {
     var aux: int;
     
-    var sblocks:W32.t Array32.t;
-    var nblocks:W64.t;
-    var i:W64.t;
-    var k:int;
-    var index:W64.t;
-    var v:W8.t;
-    var j:W64.t;
-    sblocks <- witness;
-    i <- (W64.of_int 0);
-    k <- 0;
-    while (k < 32) {
-      sblocks.[k] <- (truncateu32 i);
-      k <- k + 1;
-    }
-    
-    while ((i \ult inlen)) {
-      index <- offset;
-      index <- (index + i);
-      v <- in_0.[(W64.to_uint index)];
-      sblocks <-
-      Array32.init
-      (WArray128.get32 (WArray128.set8 (WArray128.init32 (fun i_0 => (sblocks).[i_0])) (W64.to_uint i) (v)));
-      i <- (i + (W64.of_int 1));
-    }
-    sblocks <-
-    Array32.init
-    (WArray128.get32 (WArray128.set8 (WArray128.init32 (fun i_0 => (sblocks).[i_0])) (W64.to_uint i) ((W8.of_int 128))));
-    if ((inlen \ult (W64.of_int 56))) {
-      j <- (W64.of_int (64 - 8));
-      nblocks <- (W64.of_int 1);
-      i <- (W64.of_int 63);
+    var offset:W64.t;
+    var inlen:W64.t;
+    var kp:W32.t Array64.t;
+    var hp:W32.t Array8.t;
+    var h:W32.t Array8.t;
+    var t:int;
+    var v:W32.t;
+    var w:W32.t Array64.t;
+    var a:W32.t;
+    var b:W32.t;
+    var c:W32.t;
+    var d:W32.t;
+    var e:W32.t;
+    var f:W32.t;
+    var g:W32.t;
+    var h_0:W32.t;
+    var tr:W64.t;
+    var t1:W32.t;
+    var r:W32.t;
+    var t2:W32.t;
+    h <- witness;
+    hp <- witness;
+    kp <- witness;
+    w <- witness;
+    offset <- (W64.of_int 0);
+    inlen <- (W64.of_int 128);
+    kp <- sHA256_K;
+    hp <- _H;
+    h <- hp;
+    if ((64 <= 128)) {
+      
+      while (((W64.of_int 64) \ule inlen)) {
+        (* Erased call to spill *)
+        t <- 0;
+        while (t < 16) {
+          v <-
+          (get32_direct (WArray128.init8 (fun i => (in_0).[i]))
+          (W64.to_uint (offset + (W64.of_int (4 * t)))));
+          v <- BSWAP_32 v;
+          w.[t] <- v;
+          t <- t + 1;
+        }
+        (* Erased call to spill *)
+        t <- 16;
+        while (t < 64) {
+          w <@ __Wt_ref (w, t);
+          t <- t + 1;
+        }
+        (a, b, c, d, e, f, g, h_0, h) <@ __load_H_ref (h);
+        hp <- h;
+        tr <- (W64.of_int 0);
+        
+        while ((tr \ult (W64.of_int 64))) {
+          t1 <- h_0;
+          r <@ __BSIG1_ref (e);
+          t1 <- (t1 + r);
+          r <@ __CH_ref (e, f, g);
+          t1 <- (t1 + r);
+          t1 <- (t1 + kp.[(W64.to_uint tr)]);
+          t1 <- (t1 + w.[(W64.to_uint tr)]);
+          t2 <@ __BSIG0_ref (a);
+          r <@ __MAJ_ref (a, b, c);
+          t2 <- (t2 + r);
+          h_0 <- g;
+          g <- f;
+          f <- e;
+          e <- d;
+          e <- (e + t1);
+          d <- c;
+          c <- b;
+          b <- a;
+          a <- t1;
+          a <- (a + t2);
+          tr <- (tr + (W64.of_int 1));
+        }
+        h <- hp;
+        a <- (a + h.[0]);
+        b <- (b + h.[1]);
+        c <- (c + h.[2]);
+        d <- (d + h.[3]);
+        e <- (e + h.[4]);
+        f <- (f + h.[5]);
+        g <- (g + h.[6]);
+        h_0 <- (h_0 + h.[7]);
+        h <@ __store_H_ref (h, a, b, c, d, e, f, g, h_0);
+        (* Erased call to unspill *)
+        offset <- (offset + (W64.of_int 64));
+        inlen <- (inlen - (W64.of_int 64));
+      }
     } else {
-      j <- (W64.of_int (128 - 8));
-      nblocks <- (W64.of_int 2);
-      i <- (W64.of_int 127);
+      
     }
-    
-    while ((j \ule i)) {
-      sblocks <-
-      Array32.init
-      (WArray128.get32 (WArray128.set8 (WArray128.init32 (fun i_0 => (sblocks).[i_0])) (W64.to_uint i) ((truncateu8 bits))));
-      bits <- (bits `>>` (W8.of_int 8));
-      i <- (i - (W64.of_int 1));
-    }
-    return (sblocks, nblocks);
+    _H <- h;
+    return (_H, offset);
   }
   
   proc __lastblocks_ref_96 (in_0:W8.t Array96.t, inlen:W64.t, offset:W64.t,
@@ -637,39 +586,55 @@ module M(SC:Syscall_t) = {
     return (sblocks, nblocks);
   }
   
-  proc __sha256_128 (out:W8.t Array32.t, in_0:W8.t Array128.t) : W8.t Array32.t = {
+  proc __lastblocks_ref_128 (in_0:W8.t Array128.t, inlen:W64.t, offset:W64.t,
+                             bits:W64.t) : W32.t Array32.t * W64.t = {
+    var aux: int;
     
-    var bits:W64.t;
-    var h:W32.t Array8.t;
-    var hp:W32.t Array8.t;
-    var offset:W64.t;
-    var inlen:W64.t;
     var sblocks:W32.t Array32.t;
     var nblocks:W64.t;
-    var sblocksp:W32.t Array32.t;
-    var  _0:W32.t Array32.t;
-     _0 <- witness;
-    h <- witness;
-    hp <- witness;
+    var i:W64.t;
+    var k:int;
+    var index:W64.t;
+    var v:W8.t;
+    var j:W64.t;
     sblocks <- witness;
-    sblocksp <- witness;
-    (* Erased call to spill *)
-    bits <- (W64.of_int 128);
-    bits <- (bits `<<` (W8.of_int 3));
-    (* Erased call to spill *)
-    h <@ __initH_ref ();
-    (* Erased call to spill *)
-    hp <- h;
-    (hp, offset) <@ _blocks_0_ref_128 (hp, in_0);
-    (* Erased call to unspill *)
-    inlen <- (W64.of_int (128 %% 64));
-    (sblocks, nblocks) <@ __lastblocks_ref_128 (in_0, inlen, offset, bits);
-    sblocksp <- sblocks;
-    (hp,  _0) <@ _blocks_1_ref (hp, sblocksp, nblocks);
-    (* Erased call to unspill *)
-    h <- hp;
-    out <@ __store_ref_array (out, h);
-    return (out);
+    i <- (W64.of_int 0);
+    k <- 0;
+    while (k < 32) {
+      sblocks.[k] <- (truncateu32 i);
+      k <- k + 1;
+    }
+    
+    while ((i \ult inlen)) {
+      index <- offset;
+      index <- (index + i);
+      v <- in_0.[(W64.to_uint index)];
+      sblocks <-
+      Array32.init
+      (WArray128.get32 (WArray128.set8 (WArray128.init32 (fun i_0 => (sblocks).[i_0])) (W64.to_uint i) (v)));
+      i <- (i + (W64.of_int 1));
+    }
+    sblocks <-
+    Array32.init
+    (WArray128.get32 (WArray128.set8 (WArray128.init32 (fun i_0 => (sblocks).[i_0])) (W64.to_uint i) ((W8.of_int 128))));
+    if ((inlen \ult (W64.of_int 56))) {
+      j <- (W64.of_int (64 - 8));
+      nblocks <- (W64.of_int 1);
+      i <- (W64.of_int 63);
+    } else {
+      j <- (W64.of_int (128 - 8));
+      nblocks <- (W64.of_int 2);
+      i <- (W64.of_int 127);
+    }
+    
+    while ((j \ule i)) {
+      sblocks <-
+      Array32.init
+      (WArray128.get32 (WArray128.set8 (WArray128.init32 (fun i_0 => (sblocks).[i_0])) (W64.to_uint i) ((truncateu8 bits))));
+      bits <- (bits `>>` (W8.of_int 8));
+      i <- (i - (W64.of_int 1));
+    }
+    return (sblocks, nblocks);
   }
   
   proc __sha256_96 (out:W8.t Array32.t, in_0:W8.t Array96.t) : W8.t Array32.t = {
@@ -699,6 +664,41 @@ module M(SC:Syscall_t) = {
     (* Erased call to unspill *)
     inlen <- (W64.of_int (96 %% 64));
     (sblocks, nblocks) <@ __lastblocks_ref_96 (in_0, inlen, offset, bits);
+    sblocksp <- sblocks;
+    (hp,  _0) <@ _blocks_1_ref (hp, sblocksp, nblocks);
+    (* Erased call to unspill *)
+    h <- hp;
+    out <@ __store_ref_array (out, h);
+    return (out);
+  }
+  
+  proc __sha256_128 (out:W8.t Array32.t, in_0:W8.t Array128.t) : W8.t Array32.t = {
+    
+    var bits:W64.t;
+    var h:W32.t Array8.t;
+    var hp:W32.t Array8.t;
+    var offset:W64.t;
+    var inlen:W64.t;
+    var sblocks:W32.t Array32.t;
+    var nblocks:W64.t;
+    var sblocksp:W32.t Array32.t;
+    var  _0:W32.t Array32.t;
+     _0 <- witness;
+    h <- witness;
+    hp <- witness;
+    sblocks <- witness;
+    sblocksp <- witness;
+    (* Erased call to spill *)
+    bits <- (W64.of_int 128);
+    bits <- (bits `<<` (W8.of_int 3));
+    (* Erased call to spill *)
+    h <@ __initH_ref ();
+    (* Erased call to spill *)
+    hp <- h;
+    (hp, offset) <@ _blocks_0_ref_128 (hp, in_0);
+    (* Erased call to unspill *)
+    inlen <- (W64.of_int (128 %% 64));
+    (sblocks, nblocks) <@ __lastblocks_ref_128 (in_0, inlen, offset, bits);
     sblocksp <- sblocks;
     (hp,  _0) <@ _blocks_1_ref (hp, sblocksp, nblocks);
     (* Erased call to unspill *)
@@ -909,6 +909,17 @@ module M(SC:Syscall_t) = {
     return (out);
   }
   
+  proc __core_hash__96 (out:W8.t Array32.t, in_0:W8.t Array96.t) : W8.t Array32.t = {
+    
+    
+    
+    in_0 <- in_0;
+    out <- out;
+    out <@ _core_hash_96 (out, in_0);
+    out <- out;
+    return (out);
+  }
+  
   proc __core_hash__128 (out:W8.t Array32.t, in_0:W8.t Array128.t) : 
   W8.t Array32.t = {
     
@@ -917,17 +928,6 @@ module M(SC:Syscall_t) = {
     in_0 <- in_0;
     out <- out;
     out <@ _core_hash_128 (out, in_0);
-    out <- out;
-    return (out);
-  }
-  
-  proc __core_hash__96 (out:W8.t Array32.t, in_0:W8.t Array96.t) : W8.t Array32.t = {
-    
-    
-    
-    in_0 <- in_0;
-    out <- out;
-    out <@ _core_hash_96 (out, in_0);
     out <- out;
     return (out);
   }
@@ -973,21 +973,6 @@ module M(SC:Syscall_t) = {
     return (out);
   }
   
-  proc __ull_to_bytes_2 (out:W8.t Array2.t, in_0:W64.t) : W8.t Array2.t = {
-    var aux: int;
-    
-    var i:int;
-    
-    aux <- (- 1);
-    i <- (2 - 1);
-    while (aux < i) {
-      out.[i] <- (truncateu8 in_0);
-      in_0 <- (in_0 `>>` (W8.of_int 8));
-      i <- i - 1;
-    }
-    return (out);
-  }
-  
   proc __ull_to_bytes_32 (out:W8.t Array32.t, in_0:W64.t) : W8.t Array32.t = {
     var aux: int;
     
@@ -1010,6 +995,21 @@ module M(SC:Syscall_t) = {
     
     aux <- (- 1);
     i <- (4 - 1);
+    while (aux < i) {
+      out.[i] <- (truncateu8 in_0);
+      in_0 <- (in_0 `>>` (W8.of_int 8));
+      i <- i - 1;
+    }
+    return (out);
+  }
+  
+  proc __ull_to_bytes_2 (out:W8.t Array2.t, in_0:W64.t) : W8.t Array2.t = {
+    var aux: int;
+    
+    var i:int;
+    
+    aux <- (- 1);
+    i <- (2 - 1);
     while (aux < i) {
       out.[i] <- (truncateu8 in_0);
       in_0 <- (in_0 `>>` (W8.of_int 8));
@@ -2141,23 +2141,13 @@ module M(SC:Syscall_t) = {
     return (output);
   }
   
-  proc __wots_checksum (csum_base_w:W32.t Array3.t,
-                        msg_base_w:W32.t Array67.t) : W32.t Array3.t = {
+  proc __csum (msg_base_w:W32.t Array67.t) : W64.t = {
     
     var csum:W64.t;
     var i:W64.t;
     var t:W64.t;
     var u:W64.t;
-    var k:int;
-    var _of_:bool;
-    var _cf_:bool;
-    var _sf_:bool;
-    var _zf_:bool;
-    var csum_bytes:W8.t Array2.t;
-    var csum_bytes_p:W8.t Array2.t;
-    var  _0:bool;
-    csum_bytes <- witness;
-    csum_bytes_p <- witness;
+    
     csum <- (W64.of_int 0);
     i <- (W64.of_int 0);
     
@@ -2168,6 +2158,25 @@ module M(SC:Syscall_t) = {
       csum <- (csum + t);
       i <- (i + (W64.of_int 1));
     }
+    return (csum);
+  }
+  
+  proc __wots_checksum (csum_base_w:W32.t Array3.t,
+                        msg_base_w:W32.t Array67.t) : W32.t Array3.t = {
+    
+    var csum:W64.t;
+    var k:int;
+    var u:W64.t;
+    var _of_:bool;
+    var _cf_:bool;
+    var _sf_:bool;
+    var _zf_:bool;
+    var csum_bytes:W8.t Array2.t;
+    var csum_bytes_p:W8.t Array2.t;
+    var  _0:bool;
+    csum_bytes <- witness;
+    csum_bytes_p <- witness;
+    csum <@ __csum (msg_base_w);
     k <- ((3 * 4) %% 8);
     u <- (W64.of_int 8);
     u <- (u - (W64.of_int k));

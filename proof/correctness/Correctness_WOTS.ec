@@ -9,78 +9,65 @@ require import XMSS_IMPL XMSS_IMPL_PP.
 require import Array3 Array8 Array32 Array67 Array2144.
 
 require import Utils. (* valid ptr predicate *)
-require import Correctness_Hash.
+(* require import Correctness_Hash. *)
 
-  lemma base_w_correctness_67 (_out : W32.t Array67.t, _in_ : W8.t Array32.t) :
-      floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
-      w = XMSS_WOTS_W => 
+lemma base_w_correctness_67 ( _in_ : W8.t Array32.t) :
+    floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
+    w = XMSS_WOTS_W => 
       equiv[M(Syscall).__base_w_67_32 ~ BaseW.base_w :
-        arg{1} = (_out, _in_) /\
+        arg{1}.`2 = _in_ /\
         arg{2} = (to_list _in_, 67) ==>
-          res{2} = mkseq (fun i => to_uint res{1}.[i]) 67].
-  proof.
-  rewrite /XMSS_WOTS_LOG_W /XMSS_WOTS_W ; move => [logw_val w_val].
-  proc.
+         forall (k : int), 0 <= k < 67 => (to_uint res{1}.[k] = nth witness res{2} k)].
+proof.
+rewrite /XMSS_WOTS_LOG_W /XMSS_WOTS_W ; move => [logw_val w_val].
+proc.
+seq 4 6: (#pre /\
+          in_0{1} = W64.zero /\ _in{2} = 0 /\ _in{2} = to_uint in_0{1} /\
+          out{1} = W64.zero /\ out{2} = 0 /\ out{2} = to_uint out{1} /\
+          consumed{1} = W64.zero /\ consumed{2} = 0 /\ consumed{2} = to_uint consumed{1} /\
+          bits{1} = W64.zero /\ bits{2} = 0 /\ bits{2} = to_uint bits{1} /\
+          size base_w{2} = 67 /\
+          X{2} = to_list input{1}
+          ); first by auto => /> ; rewrite size_nseq.
 while (
-  outlen{2} = 67 /\
-  _in{2} = to_uint in_0{1} /\ 
-  0 <= to_uint in_0{1} <= 34 /\
-  to_uint total{1} = to_uint total{2} /\ 
-  0 <= to_uint total{1} <= W8.max_uint /\
-  bits{2} = to_uint bits{1} /\  
-  0 <= to_uint bits{1} <= 4 /\
-  consumed{2} = to_uint i{1} /\
-  0 <= to_uint i{1} <= 67 /\
-  X{2} = to_list input{1} /\
-  (forall (k : int), 0 <= k < to_uint i{1} => nth witness base_w{2} k = to_uint output{1}.[k])
-) ; auto => /> ; last first.
-- move => &2 * ; split.
-    + smt(). 
-    + move => ???????????????? H0 H1 H2. admit. (* FIXME: use H0 H1 & H2 to prove this *)
-- progress. 
-    + rewrite to_uintD /#.
-    + rewrite to_uintD /#.
-    + admit.
-    + admit.
-    + admit.
-    + admit.
-    + by rewrite logw_val.
-    + rewrite to_uintD /#.
-    + rewrite to_uintD /#.
-    + admit.
-    + rewrite logw_val w_val /=. admit.
-    + smt(@W64).
-    + rewrite ultE to_uintD /#.
-    + admit.
-    + admit.
-    + admit.
-    + admit.
-    + rewrite logw_val to_uintD to_uintN /=. admit.
-    + rewrite to_uintD /#.
-    + smt(@W64).
-    + rewrite to_uintD /#.
-    + rewrite to_uintD /#.
-    + smt(@W64).
-    + admit.
-    + smt(@W64).
-    + rewrite ultE to_uintD /#.
-    + admit.
-    + admit.
-    + admit.
-    + rewrite logw_val. admit. 
-    + rewrite to_uintD /#.
-    + admit.
-    + rewrite to_uintD /#.
-    + rewrite to_uintD /#.
-    + smt(@W64).
-    + admit.
-    + smt(@W64).
-    + rewrite ultE to_uintD /#.
+            consumed{2} = to_uint consumed{1} /\ 0 <= to_uint consumed{1} <= 67 /\
+            outlen{2} = 67 /\
+            X{2} = to_list input{1} /\
+            out{2} = to_uint out{1} /\ 0 <= to_uint out{1} <= 67 /\
+            bits{2} = to_uint bits{1} /\ 0 <= to_uint bits{1} <= 8 /\
+            0 <= to_uint total{1} <= 15 /\ (* 15 = w - 1 *)
+            (forall (k : int), 0 <= k < to_uint out{1} => (to_uint output{1}.[k]) = nth witness base_w{2} k)
+); last first.
+    + skip => /> *; do split.
+         * admit.
+         * admit.
+         * smt(@W64 pow2_64).
+         * progress. admit.
+    + if.
+         * move => &1 &2 * ; smt(@W64).
+         * admit.
+         * seq 1 1: (#pre). auto => /> &1 &2 *; do split.
+             - rewrite logw_val. admit.
+             - smt(@W64). 
+             - admit.
+             -  admit. 
+         * seq 3 1: (#pre /\ to_uint total_32{1} = v{2}).
+             - auto => /> &1 &2 *. rewrite w_val //=. admit.
+         * auto => /> &1 &2 *;  do split.
+             - smt(@W64 pow2_64).
+             - smt(@W64 pow2_64).
+             - smt(@W64 pow2_64).
+             - smt(@W64 pow2_64).
+             - smt(@W64 pow2_64).
+             - admit.
+             - move => *. admit.
+             - smt(@W64 pow2_64).
+             - smt(@W64 pow2_64).
 qed.
 
 lemma wots_checksum_correctness (msg : W32.t Array67.t) :
     len1 = XMSS_WOTS_LEN1 /\  w = XMSS_WOTS_W =>
-    equiv [Mp(Syscall).__csum ~ WOTS.checksum :
+    equiv [M(Syscall).__csum ~ WOTS.checksum :
       (forall (k : int), 0 <= k < 67 => 0 <= to_uint msg.[k] <= (w - 1)) /\
       arg{1} = msg /\ arg{2} = mkseq (fun i => to_uint msg.[i]) 67  ==> to_uint res{1} = res{2}].
 proof.
@@ -88,19 +75,15 @@ rewrite /XMSS_WOTS_LEN1 /XMSS_WOTS_W ; move => [len1_val w_val].
 proc => /=.
 while (
   #pre /\
-  to_uint csum{1} = checksum{2} /\
+  to_uint csum{1} = checksum{2} /\ 0 <= to_uint csum{1} < W32.modulus /\
   i{2} = to_uint i{1} /\   m{2} = mkseq (fun i => to_uint msg_base_w{1}.[i]) 67 /\
   0 <= i{2} <= len1
 ); last by auto => /> * ; rewrite len1_val.
-auto => />  &1 &2 * ; do split.
-    + rewrite w_val /=.
-      have E: nth witness (mkseq (fun (i0 : int) => to_uint msg.[i0]) 67) (to_uint i{1}) = to_uint (JWord.W2u32.zeroextu64 msg.[to_uint i{1}]) by rewrite nth_mkseq ; smt. (* NOTE: TODO: FIXME:  smt(@JWord) should work but doesnt *)
-      rewrite E to_uintD of_uintK. admit. (* From the spec we know that len1 * (w - 1) * 2^8 *)
-    + rewrite to_uintD /#.
-    + smt().
-    + rewrite len1_val /#.
-    + rewrite ultE of_uintK to_uintD /#.
-    + rewrite len1_val ultE of_uintK to_uintD /#.
+auto => />  &1 &2 * ; do split; 2,4,5,6,7,8:smt(@W64 pow2_64).
+    + have E: nth witness (mkseq (fun (i0 : int) => to_uint msg.[i0]) 67) (to_uint i{1}) = to_uint (JWord.W2u32.zeroextu64 msg.[to_uint i{1}]).
+        * admit. (* smt. / smt(@JWord) used to work but now it doesnt *)
+      rewrite w_val E //=. admit.
+    + move => *. admit.
 qed.
 
 lemma expand_seed_correct :

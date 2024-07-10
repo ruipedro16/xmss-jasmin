@@ -286,6 +286,26 @@ inline fn __base_w_<OUTLEN, INLEN>(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// Just computes the checksum
+inline fn __csum(reg ptr u32[XMSS_WOTS_LEN] msg_base_w) -> reg u64
+{
+    reg u64 csum i t u;
+
+    csum = 0;
+
+    // for (i = 0; i < params->wots_len1; i++) { csum += params->wots_w - 1 - msg_base_w[i]; }
+    i = 0;
+    while (i < XMSS_WOTS_LEN1) {
+      t = XMSS_WOTS_W - 1;
+      u = (64u) msg_base_w[i];
+      t -= u; 
+      csum += t;
+      i += 1;
+    }
+
+    return csum;
+}
+
 // NOTE: This is different from the Sphincs+ implementation
 inline fn __wots_checksum(
     reg ptr u32[XMSS_WOTS_LEN2] csum_base_w,
@@ -300,18 +320,7 @@ inline fn __wots_checksum(
 
     inline int k;
 
-    csum = 0;
-
-    // for (i = 0; i < params->wots_len1; i++) { csum += params->wots_w - 1 - msg_base_w[i]; }
-    i = 0;
-    while (i < XMSS_WOTS_LEN1) 
-    {
-      t = XMSS_WOTS_W - 1;
-      u = (64u) msg_base_w[i];
-      t -= u; 
-      csum += t;
-      i += 1;
-    }
+    csum = __csum(msg_base_w); // Compute the checksum
 
     // csum = csum << (8 - ((params->wots_len2 * params->wots_log_w) % 8));
     k = (XMSS_WOTS_LEN2 * XMSS_WOTS_LOG_W) % 8;

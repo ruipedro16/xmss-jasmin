@@ -40,21 +40,6 @@ module Mp(SC:SCall_t) = {
     return (out);
   }
 
-  proc __ull_to_bytes_2 (out:W8.t Array2.t, in_0:W64.t) : W8.t Array2.t = {
-    var aux: int;
-
-    var i:int;
-
-    aux <- (- 1);
-    i <- (2 - 1);
-    while (aux < i) {
-      out.[i] <- (truncateu8 in_0);
-      in_0 <- (in_0 `>>` (W8.of_int 8));
-      i <- i - 1;
-    }
-    return (out);
-  }
-
   proc __ull_to_bytes_32 (out:W8.t Array32.t, in_0:W64.t) : W8.t Array32.t = {
     var aux: int;
 
@@ -77,6 +62,21 @@ module Mp(SC:SCall_t) = {
 
     aux <- (- 1);
     i <- (4 - 1);
+    while (aux < i) {
+      out.[i] <- (truncateu8 in_0);
+      in_0 <- (in_0 `>>` (W8.of_int 8));
+      i <- i - 1;
+    }
+    return (out);
+  }
+
+  proc __ull_to_bytes_2 (out:W8.t Array2.t, in_0:W64.t) : W8.t Array2.t = {
+    var aux: int;
+
+    var i:int;
+
+    aux <- (- 1);
+    i <- (2 - 1);
     while (aux < i) {
       out.[i] <- (truncateu8 in_0);
       in_0 <- (in_0 `>>` (W8.of_int 8));
@@ -1031,23 +1031,13 @@ module Mp(SC:SCall_t) = {
     return (output);
   }
 
-  proc __wots_checksum (csum_base_w:W32.t Array3.t,
-                        msg_base_w:W32.t Array67.t) : W32.t Array3.t = {
+  proc __csum (msg_base_w:W32.t Array67.t) : W64.t = {
 
     var csum:W64.t;
     var i:W64.t;
     var t:W64.t;
     var u:W64.t;
-    var k:int;
-    var _of_:bool;
-    var _cf_:bool;
-    var _sf_:bool;
-    var _zf_:bool;
-    var csum_bytes:W8.t Array2.t;
-    var csum_bytes_p:W8.t Array2.t;
-    var  _0:bool;
-    csum_bytes <- witness;
-    csum_bytes_p <- witness;
+
     csum <- (W64.of_int 0);
     i <- (W64.of_int 0);
 
@@ -1058,6 +1048,25 @@ module Mp(SC:SCall_t) = {
       csum <- (csum + t);
       i <- (i + (W64.of_int 1));
     }
+    return (csum);
+  }
+
+  proc __wots_checksum (csum_base_w:W32.t Array3.t,
+                        msg_base_w:W32.t Array67.t) : W32.t Array3.t = {
+
+    var csum:W64.t;
+    var k:int;
+    var u:W64.t;
+    var _of_:bool;
+    var _cf_:bool;
+    var _sf_:bool;
+    var _zf_:bool;
+    var csum_bytes:W8.t Array2.t;
+    var csum_bytes_p:W8.t Array2.t;
+    var  _0:bool;
+    csum_bytes <- witness;
+    csum_bytes_p <- witness;
+    csum <@ __csum (msg_base_w);
     k <- ((3 * 4) %% 8);
     u <- (W64.of_int 8);
     u <- (u - (W64.of_int k));
