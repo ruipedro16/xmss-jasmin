@@ -110,7 +110,7 @@ static void print_xmss_params(const char *_impl, xmss_params *p, uint32_t oid) {
     print_param(f, "XMSS_SIG_BYTES", p->sig_bytes);
     print_param(f, "XMSS_PK_BYTES", p->pk_bytes);
     print_param(f, "XMSS_SK_BYTES", p->sk_bytes);
-    // print_param(f, "XMSS_BDS_K", p->bds_k);
+    print_param(f, "XMSS_BDS_K", p->bds_k);
 
     fclose(f);
 }
