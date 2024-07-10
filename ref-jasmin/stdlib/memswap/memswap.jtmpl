@@ -1,11 +1,12 @@
+from Stdlib require "memcpy/memcpy.jtmpl"
+
 inline fn __memswap<LEN>(
     reg ptr u8[LEN] a b t
 ) -> reg ptr u8[LEN], reg ptr u8[LEN], reg ptr u8[LEN] 
 {
-    inline int i;
-
-    for i=0 to LEN { t[i] = a[i]; a[i] = b[i]; b[i] = t[i]; }
-
+    t = _x_memcpy_u8u8<LEN, LEN>(t, a);
+    a = _x_memcpy_u8u8<LEN, LEN>(a, b);
+    b = _x_memcpy_u8u8<LEN, LEN>(b, t);
     return a, b, t;
 }//<>
 

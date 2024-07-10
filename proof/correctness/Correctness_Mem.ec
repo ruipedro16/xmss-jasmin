@@ -183,3 +183,19 @@ while (
     + smt(@W64).
     + move => ???. rewrite get_setE. split ; 1:smt(). move => ?. admit. admit.
 qed.
+
+
+(******************************************************************************)
+(******************               MEMSWAP                         *************)
+(******************************************************************************)
+
+lemma memswap_post (x y z : W8.t Array32.t) :
+    hoare[M(Syscall).__memswap_32 :
+      arg=(x, y, z) ==> res.`1=y /\ res.`2=x /\ res.`3=x].
+proof.
+proc.
+seq 1: (a=x /\ b=y /\ t=x); first by ecall (_x_memcpy_u8u8_post a). 
+seq 1: (a=y /\ b=y /\ t=x); first by ecall (_x_memcpy_u8u8_post b); skip => />.
+seq 1: (a=y /\ b=x /\ t=x); first by ecall (_x_memcpy_u8u8_post t); skip => />.
+trivial. 
+qed.
