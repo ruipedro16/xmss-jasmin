@@ -225,16 +225,17 @@ inline fn __base_w<OUTLEN, INLEN>(
     reg u64 in out;
     reg u8 total;
     reg u32 total_32;
-    reg u64 bits consumed;
+    reg u64 bits;
+
+    inline int consumed;
 
     in = 0;
     out  = 0;
     bits = 0;
+    total = 0;
 
     // for (consumed = 0; consumed < out_len; consumed++) 
-    consumed = 0;
-    while (consumed < OUTLEN)
-    {
+    for consumed=0 to OUTLEN {
         // if (bits == 0) { total = input[in]; in++; bits += 8; }
         if (bits == 0) 
         {
@@ -254,7 +255,6 @@ inline fn __base_w<OUTLEN, INLEN>(
 
       // out++;
       out += 1;
-      consumed += 1;
     }
 
     return output;
@@ -438,37 +438,6 @@ inline fn __wots_pkgen(
     }
 
     () = #unspill(pk);
-
-    return pk, addr;
-}
-
-fn _wots_pkgen(
-    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk,
-    reg ptr u8[XMSS_N] seed,
-    reg ptr u8[XMSS_N] pub_seed,
-    reg ptr u32[8] addr
-) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]
-{
-    pk, addr = __wots_pkgen(pk, seed, pub_seed, addr);
-    return pk, addr;
-}
-
-inline fn __wots_pkgen_(
-    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk,
-    reg ptr u8[XMSS_N] seed,
-    reg ptr u8[XMSS_N] pub_seed,
-    reg ptr u32[8] addr
-) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]
-{
-    pk = pk;
-    seed = seed;
-    pub_seed = pub_seed;
-    addr = addr;
-
-    pk, addr = _wots_pkgen(pk, seed, pub_seed, addr);
-    
-    pk = pk;
-    addr = addr;
 
     return pk, addr;
 }
