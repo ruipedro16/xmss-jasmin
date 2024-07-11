@@ -23,8 +23,8 @@ while (
   value = v /\
   (forall (k : int), 0 <= k < to_uint i => (a.[k] = value))
 ); auto => /> *.
-- do split ; 1,2: by smt(@W64). move => ???. rewrite get_setE ; smt(@W64).
-- progress ; [ smt(@W64) | smt ].
+- do split; 1,2: by smt(@W64). move => ???. rewrite get_setE ; smt(@W64).
+- split; 1:smt(). move => *. smt.
 qed.
 
 lemma memset_128_post (input : W8.t Array128.t, v : W8.t) :
@@ -38,7 +38,7 @@ while (
   (forall (k : int), 0 <= k < to_uint i => (a.[k] = value))
 ); auto => /> *.
 - do split ; 1,2: by smt(@W64). move => ???. rewrite get_setE ; smt(@W64).
-- progress ; [ smt(@W64) | smt ].
+- split; 1:smt(). move => *. smt.
 qed.
 
 lemma memset_zero_post (x : W8.t Array4.t) :
@@ -50,7 +50,7 @@ while (
   (forall (k : int), 0 <= k < to_uint i => (a.[k] = W8.zero))
 ); auto => /> *.
 - do split ; 1,2: by smt(@W64). move => ???. rewrite get_setE ; smt(@W64).
-- progress ; [ smt(@W64) | smt ].
+- split; 1:smt(). move => *. smt.
 qed.
 
 lemma load_store  (mem : global_mem_t) (ptr : W64.t) (v : W8.t) :
@@ -77,9 +77,7 @@ while (
     + rewrite to_uintD /#.
     + smt(@W64).
     + move => k ??. rewrite /loadW8 /storeW8 get_setE //=. admit.
-- move => &hr * ; do split.
-    + smt().
-    + move => mem ????? k *. rewrite /loadW8. admit.
+- move => &hr * ; do split; 1:smt(). move => mem ????? k *. rewrite /loadW8. admit.
 qed.
 
 (******************************************************************************)
@@ -113,7 +111,7 @@ while (
   0 <= to_uint i <= 32 /\
   (forall (k : int), 0 <= k < to_uint i => (out.[k] = in_0.[k]))
 ); last first.
-- auto => /> *. split ; 1:smt(). progress. rewrite tP. move => *. smt.
+- auto => /> *. split ; 1:smt(). move => *. rewrite tP. move => *. smt.
 - auto => /> &hr *. do split; 1,2:smt(@W64). move => k *. rewrite get_setE. smt(@W64). case (k = to_uint i{hr}).
     + move => E0 ; by rewrite E0.
     + move => E0. smt.
@@ -140,6 +138,21 @@ proc ; auto => /> *.
 while(0 <= to_uint i <= 32 /\  a = b /\  acc = W8.zero) ; auto => /> *; smt(@W64).
 qed.
 
+(* Adapted From Libjade Poly1305 *)
+lemma or_zero(w0 w1 : W64.t) : 
+    (w0 `|` w1 = W64.zero) <=> (w0 = W64.zero /\ w1 = W64.zero).
+proof.
+split; last first.
+  + move => [-> ->].
+    by rewrite or0w.
+  + rewrite !wordP => H.
+    case (w0 = W64.zero).
+      * move => -> /= k kb. move : (H k kb) => /= /#. 
+      * move => *. have Hk : exists k, 0 <= k < 64 /\ w0.[k]. 
+         - move : (W64.wordP w0 W64.zero); smt(W64.zerowE W64.get_out).
+        elim Hk => k [kb kval]. move : (H k kb). by rewrite orwE kval.
+qed.
+
 lemma memcmp_false (x y : W8.t Array32.t) :
     x <> y => 
         hoare[M(Syscall).__memcmp : arg = (x, y) ==> res = W64.of_int (-1)].
@@ -150,9 +163,7 @@ seq 6: (!zf /\ r = W64.of_int (-1)) ; last by auto => />.
 wp ; sp.
 while (
   0 <= to_uint i <= 32 /\ a <> b
-(*  (acc = W8.zero => (forall (j : int), 0 <= j < to_uint i => a.[j] = b.[j])) *)
-) ; auto => /> *.
-- smt(@W64).
+); auto => /> *; first by smt(@W64).
 - admit.
 qed.
 

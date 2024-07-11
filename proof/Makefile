@@ -23,7 +23,7 @@ JQ_EXISTS := $(shell which jq)
 
 default: extract typecheck_spec typecheck_proofs typecheck_extraction
 all: clean distclean extract typecheck_spec typecheck_proofs typecheck_extraction
-extract: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
+extract: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_HOP1.ec
 
 # --------------------------------------------------------------------------------------------------
 
@@ -36,7 +36,7 @@ extraction/XMSS_IMPL.ec: | extraction/ common/
 	$(RM) extraction/XMSS_IMPL.jazz
 
 
-extraction/XMSS_IMPL_PP.ec: extraction/XMSS_IMPL.ec | extraction/
+extraction/XMSS_IMPL_HOP1.ec: extraction/XMSS_IMPL.ec | extraction/
 	$(MAKE) -C $(TEST_SRC)/xmss/ clean bin/test_xmss_xmss-sha2_10_256.jpp
 	cp $(TEST_SRC)/xmss/bin/test_xmss_xmss-sha2_10_256.jpp extraction/tmp.jpp
 	$(PREPROCESSOR) -in extraction/tmp.jpp --print_tasks | ./scripts/remove_sha256.py -in $< -out $@
@@ -59,7 +59,7 @@ endif
 # --------------------------------------------------------------------------------------------------
 
 .PHONY: typecheck_spec typecheck_proofs typecheck_extraction
-typecheck_spec: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
+typecheck_spec: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_HOP1.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Params.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Address.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Notation.ec
@@ -70,12 +70,12 @@ typecheck_spec: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Properties.ec
 
 
-typecheck_extraction: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
+typecheck_extraction: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_HOP1.ec
 	$(EASYCRYPT) $(EC_INCLUDE) extraction/XMSS_IMPL.ec
-	$(EASYCRYPT) $(EC_INCLUDE) extraction/XMSS_IMPL_PP.ec
+	$(EASYCRYPT) $(EC_INCLUDE) extraction/XMSS_IMPL_HOP1.ec
 
 
-typecheck_proofs: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_PP.ec
+typecheck_proofs: extraction/XMSS_IMPL.ec extraction/XMSS_IMPL_HOP1.ec
 	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Repr.ec
 	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Termination.ec
 	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Correctness_Utils.ec
