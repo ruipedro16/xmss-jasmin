@@ -4,7 +4,7 @@ require import AllCore List RealExp IntDiv.
 from Jasmin require import JModel JArray.
 
 require import Params Parameters Address Notation Primitives Wots Generic.
-require import XMSS_IMPL XMSS_IMPL_PP.
+require import XMSS_IMPL.
 
 require import Array3 Array8 Array32 Array67 Array2144.
 
@@ -17,52 +17,45 @@ lemma base_w_correctness_67 ( _in_ : W8.t Array32.t) :
       equiv[M(Syscall).__base_w_67_32 ~ BaseW.base_w :
         arg{1}.`2 = _in_ /\
         arg{2} = (to_list _in_, 67) ==>
-         forall (k : int), 0 <= k < 67 => (to_uint res{1}.[k] = nth witness res{2} k)].
+         res{2} = map (W32.to_uint) (to_list res{1})].
 proof.
 rewrite /XMSS_WOTS_LOG_W /XMSS_WOTS_W ; move => [logw_val w_val].
 proc.
-seq 4 6: (#pre /\
-          in_0{1} = W64.zero /\ _in{2} = 0 /\ _in{2} = to_uint in_0{1} /\
-          out{1} = W64.zero /\ out{2} = 0 /\ out{2} = to_uint out{1} /\
-          consumed{1} = W64.zero /\ consumed{2} = 0 /\ consumed{2} = to_uint consumed{1} /\
-          bits{1} = W64.zero /\ bits{2} = 0 /\ bits{2} = to_uint bits{1} /\
-          size base_w{2} = 67 /\
-          X{2} = to_list input{1}
-          ); first by auto => /> ; rewrite size_nseq.
-while (
-            consumed{2} = to_uint consumed{1} /\ 0 <= to_uint consumed{1} <= 67 /\
+conseq (: _ ==> size base_w{2} = 67 /\ forall (k:int), 0 <= k < 67 => to_uint output{1}.[k] = nth witness base_w{2} k ).
+  + move => &1 &2 /> *. apply (eq_from_nth witness). rewrite size_map size_to_list /#. 
+    move => *. rewrite  (nth_map witness). smt(Array67.size_to_list). rewrite get_to_list /#.  
+sp.
+unroll {1} 1 ; unroll {2} 1. 
+if; 1:smt().
+rcondt {1} 1; auto.
+rcondt {2} 1; auto.
+seq 10 8 :  (
+            ={consumed} /\ 0 <= consumed{1} <= 67 /\
+            size base_w{2} = 67 /\
             outlen{2} = 67 /\
             X{2} = to_list input{1} /\
             out{2} = to_uint out{1} /\ 0 <= to_uint out{1} <= 67 /\
-            bits{2} = to_uint bits{1} /\ 0 <= to_uint bits{1} <= 8 /\
-            0 <= to_uint total{1} <= 15 /\ (* 15 = w - 1 *)
-            (forall (k : int), 0 <= k < to_uint out{1} => (to_uint output{1}.[k]) = nth witness base_w{2} k)
-); last first.
-    + skip => /> *; do split.
-         * admit.
-         * admit.
-         * smt(@W64 pow2_64).
-         * progress. admit.
-    + if.
-         * move => &1 &2 * ; smt(@W64).
-         * admit.
-         * seq 1 1: (#pre). auto => /> &1 &2 *; do split.
-             - rewrite logw_val. admit.
-             - smt(@W64). 
-             - admit.
-             -  admit. 
-         * seq 3 1: (#pre /\ to_uint total_32{1} = v{2}).
-             - auto => /> &1 &2 *. rewrite w_val //=. admit.
-         * auto => /> &1 &2 *;  do split.
-             - smt(@W64 pow2_64).
-             - smt(@W64 pow2_64).
-             - smt(@W64 pow2_64).
-             - smt(@W64 pow2_64).
-             - smt(@W64 pow2_64).
-             - admit.
-             - move => *. admit.
-             - smt(@W64 pow2_64).
-             - smt(@W64 pow2_64).
+            bits{2} = to_uint bits{1} /\ 0 < to_uint bits{1} <= 8 /\
+            (forall (j : int), 0 <= j < to_uint out{1} => (to_uint output{1}.[j]) = nth witness base_w{2} j)).
+auto => /> &1 ; split.
+              + rewrite logw_val //=.
+              + rewrite size_put size_nseq //.
+              + split; first by rewrite logw_val. move => j *. have -> : j=0 by smt(). rewrite get_setE 1:/# //= nth_put ; 1:smt(size_nseq).
+                simplify. rewrite logw_val w_val /=. have -> : 15 = 2 ^ 4 - 1 by smt().
+                rewrite and_mod // and_mod // shr_div shr_div //=. have -> : 31 = 2 ^ 5 - 1 by smt().
+                rewrite and_mod //= to_uint_truncateu8 to_uint_zeroextu32 //=. 
+                smt(@W64 @W8 @W32 pow2_32 pow2_64 pow2_8 @IntDiv).
+while (#pre).
+rcondt {1} 1; auto.
+              + move => &hr *. admit.
+              + move => &1 &2 * //=. rewrite ifF 1:/#. do split; admit. (* 1..7,10:smt(@W64 pow2_64 @IntDiv).  admit. admit. admit.
+              + smt(@W64 pow2_64 @IntDiv).
+              + smt(@W64 pow2_64 @IntDiv).
+*)
+skip => /> &1 &2 *. admit.
+while (#pre).
+if;  auto => />.
+skip => />.
 qed.
 
 lemma wots_checksum_correctness (msg : W32.t Array67.t) :
@@ -75,15 +68,15 @@ rewrite /XMSS_WOTS_LEN1 /XMSS_WOTS_W ; move => [len1_val w_val].
 proc => /=.
 while (
   #pre /\
-  to_uint csum{1} = checksum{2} /\ 0 <= to_uint csum{1} < W32.modulus /\
-  i{2} = to_uint i{1} /\   m{2} = mkseq (fun i => to_uint msg_base_w{1}.[i]) 67 /\
+  to_uint csum{1} = checksum{2} /\ 0 <= to_uint csum{1} < (len1 * (w - 1) * 2^8) /\
+  i{2} = to_uint i{1} /\ m{2} = mkseq (fun i => to_uint msg_base_w{1}.[i]) 67 /\
   0 <= i{2} <= len1
-); last by auto => /> * ; rewrite len1_val.
-auto => />  &1 &2 * ; do split; 2,4,5,6,7,8:smt(@W64 pow2_64).
-    + have E: nth witness (mkseq (fun (i0 : int) => to_uint msg.[i0]) 67) (to_uint i{1}) = to_uint (JWord.W2u32.zeroextu64 msg.[to_uint i{1}]).
+); last by auto => /> /#.
+auto => /> &1 &2 * ; do split; 2,4,5,6,7,8: smt(@W64 pow2_64).
+    + have E: nth witness (mkseq (fun (i0 : int) => to_uint msg.[i0]) 67) (to_uint i{1}) = to_uint (JWord.W2u32.zeroextu64 msg.[to_uint i{1}]). print mkseq.
         * admit. (* smt. / smt(@JWord) used to work but now it doesnt *)
       rewrite w_val E //=. admit.
-    + move => *. admit.
+    + move => *. rewrite len1_val w_val //=. admit.
 qed.
 
 lemma expand_seed_correct :
