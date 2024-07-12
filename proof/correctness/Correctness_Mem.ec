@@ -5,8 +5,7 @@ require import AllCore List RealExp IntDiv.
 from Jasmin require import JModel.
 
 require import Array4 Array32 Array128 Array2144.
-require import XMSS_IMPL (* XMSS_IMPL_PP *).
-
+require import XMSS_IMPL.
 require import Utils. (* valid_ptr predicate *)
 
 (******************************************************************************)
@@ -153,6 +152,23 @@ split; last first.
         elim Hk => k [kb kval]. move : (H k kb). by rewrite orwE kval.
 qed.
 
+
+lemma and_t (w0 : W8.t) :
+    w0 <> W8.zero => ! (AND_8 w0 w0).`5.
+proof.
+move => ?.
+rewrite /AND_8 /rflags_of_bwop_w /flags_w /rflags_of_bwop //.
+qed.
+
+lemma and_zero (w0 : W8.t) :
+    w0 = W8.zero => (AND_8 w0 w0).`5.
+move => ->.
+rewrite /AND_8 //.
+qed.
+
+lemma and_neq (w0 : W8.t) : w0 <> W8.zero => ! (AND_8 w0 w0).`5
+    by move => ? ; rewrite /AND_8 /rflags_of_bwop_w /flags_w /rflags_of_bowp //.
+
 lemma memcmp_false (x y : W8.t Array32.t) :
     x <> y => 
         hoare[M(Syscall).__memcmp : arg = (x, y) ==> res = W64.of_int (-1)].
@@ -160,11 +176,25 @@ proof.
 move => xy_neq.
 proc.
 seq 6: (!zf /\ r = W64.of_int (-1)) ; last by auto => />.
+
 wp ; sp.
 while (
-  0 <= to_uint i <= 32 /\ a <> b
-); auto => /> *; first by smt(@W64).
-- admit.
+  r = W64.of_int (-1) /\
+  0 <= to_uint i <= 32 /\ 
+  a <> b /\
+  acc = W8.zero <=> (forall (k : int), 0 <= k < to_uint i => (a.[k] = b.[k]))
+); last first.
+    + skip => />. split; 1:smt(). progress.
+      have E: acc0 <> W8.zero by admit.
+      smt(and_t).
+auto => /> &hr *.
+progress.
+    + admit.
+    + admit.
+    + smt(@W64).
+    + smt(@W64 @IntDiv pow2_64).
+    + admit.
+    + admit.
 qed.
 
 (* INLEN = 32 /\ OUTLEN = 2144 *)

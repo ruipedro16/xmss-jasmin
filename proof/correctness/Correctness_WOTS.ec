@@ -25,37 +25,99 @@ conseq (: _ ==> size base_w{2} = 67 /\ forall (k:int), 0 <= k < 67 => to_uint ou
   + move => &1 &2 /> *. apply (eq_from_nth witness). rewrite size_map size_to_list /#. 
     move => *. rewrite  (nth_map witness). smt(Array67.size_to_list). rewrite get_to_list /#.  
 sp.
-unroll {1} 1 ; unroll {2} 1. 
+(* unroll {1} 1 ; unroll {2} 1. 
 if; 1:smt().
 rcondt {1} 1; auto.
 rcondt {2} 1; auto.
 seq 10 8 :  (
-            ={consumed} /\ 0 <= consumed{1} <= 67 /\
+            ={total, consumed} /\ 0 <= consumed{1} <= 67 /\
             size base_w{2} = 67 /\
             outlen{2} = 67 /\
+            out{2} = to_uint out{1} /\
+            out{2} = consumed{1} /\
             X{2} = to_list input{1} /\
             out{2} = to_uint out{1} /\ 0 <= to_uint out{1} <= 67 /\
-            bits{2} = to_uint bits{1} /\ 0 < to_uint bits{1} <= 8 /\
+            bits{2} = to_uint bits{1} /\ 
+            bits{2} = consumed{2} %% 2 * 4 /\
+            _in{2} = to_uint in_0{1} /\ _in{2} = (consumed{2} + 1) %/ 2 /\
             (forall (j : int), 0 <= j < to_uint out{1} => (to_uint output{1}.[j]) = nth witness base_w{2} j)).
-auto => /> &1 ; split.
-              + rewrite logw_val //=.
+auto => /> &1 * ; split.
               + rewrite size_put size_nseq //.
-              + split; first by rewrite logw_val. move => j *. have -> : j=0 by smt(). rewrite get_setE 1:/# //= nth_put ; 1:smt(size_nseq).
+              + split; first by rewrite logw_val. split. smt(). 
+move => j *. have -> : j=0 by smt(). rewrite get_setE 1:/# //= nth_put ; 1:smt(size_nseq).
                 simplify. rewrite logw_val w_val /=. have -> : 15 = 2 ^ 4 - 1 by smt().
                 rewrite and_mod // and_mod // shr_div shr_div //=. have -> : 31 = 2 ^ 5 - 1 by smt().
                 rewrite and_mod //= to_uint_truncateu8 to_uint_zeroextu32 //=. 
                 smt(@W64 @W8 @W32 pow2_32 pow2_64 pow2_8 @IntDiv).
-while (#pre).
-rcondt {1} 1; auto.
-              + move => &hr *. admit.
-              + move => &1 &2 * //=. rewrite ifF 1:/#. do split; admit. (* 1..7,10:smt(@W64 pow2_64 @IntDiv).  admit. admit. admit.
-              + smt(@W64 pow2_64 @IntDiv).
-              + smt(@W64 pow2_64 @IntDiv).
 *)
-skip => /> &1 &2 *. admit.
-while (#pre).
-if;  auto => />.
-skip => />.
+while (
+={total, consumed} /\ 0 <= consumed{1} <= 67 /\
+            size base_w{2} = 67 /\
+            outlen{2} = 67 /\
+            out{2} = to_uint out{1} /\
+            out{2} = consumed{1} /\
+            X{2} = to_list input{1} /\
+            out{2} = to_uint out{1} /\ 0 <= to_uint out{1} <= 67 /\
+            bits{2} = to_uint bits{1} /\ 
+            bits{2} = consumed{2} %% 2 * 4 /\
+            _in{2} = to_uint in_0{1} /\ _in{2} = (consumed{2} + 1) %/ 2 /\
+            (forall (j : int), 0 <= j < to_uint out{1} => (to_uint output{1}.[j]) = nth witness base_w{2} j)
+).
+if. 
+auto => /> &1 &2 *; smt(@W64).
+auto => /> &1 &2 *. do split.
+smt(@W64).
+          smt(@W64 pow2_64).
+          smt(size_put).
+smt(@W64 pow2_64).
+          smt(@W64 pow2_64).
+          smt(@W64 pow2_64).
+          smt(@W64 pow2_64).
+          smt(@W64 pow2_64).
+          rewrite logw_val //. smt(@W64 pow2_64 @IntDiv).
+            smt(@W64 pow2_64).
+          smt(@W64 pow2_64 @IntDiv).
+move => j Hj *. 
+rewrite get_setE 1:/# //= nth_put ; 1:smt(size_nseq).
+case (j = to_uint out{1}); last first. move => *.
+rewrite ifF. smt().
+smt(@W64).
+move => -> //=.
+rewrite logw_val w_val /=. have -> : 15 = 2 ^ 4 - 1 by smt().
+                rewrite and_mod // and_mod // shr_div shr_div //=. have -> : 31 = 2 ^ 5 - 1 by smt().
+                rewrite and_mod //= to_uint_truncateu8 to_uint_zeroextu32 //=. 
+                smt(@W64 @W8 @W32 pow2_32 pow2_64 pow2_8 @IntDiv).
+auto => /> &1 &2 *. do split.
+smt(@W64).
+          smt(@W64 pow2_64).
+          smt(size_put).
+smt(@W64 pow2_64).
+          smt(@W64 pow2_64).
+          smt(@W64 pow2_64).
+          smt(@W64 pow2_64).
+          rewrite logw_val //= to_uintB.  smt(@W64).
+       smt(@W64 pow2_64).
+          rewrite logw_val //. smt(@W64 pow2_64 @IntDiv).
+          
+          smt(@W64 pow2_64 @IntDiv).
+move => j Hj *. 
+rewrite get_setE 1:/# //= nth_put ; 1:smt(size_nseq).
+case (j = to_uint out{1}); last first. move => *.
+rewrite ifF. smt().
+smt(@W64).
+move => -> //=.
+rewrite logw_val w_val /=. have -> : 15 = 2 ^ 4 - 1 by smt().
+                rewrite and_mod // and_mod // shr_div shr_div //=. have -> : 31 = 2 ^ 5 - 1 by smt().
+                rewrite and_mod //= to_uint_truncateu8 to_uint_zeroextu32 //=. 
+rewrite to_uintB.
+smt(@W64).
+simplify.
+
+smt(@W64 @W8 @W32 pow2_32 pow2_64 pow2_8 @IntDiv).
+skip => /> &1. do split.
+smt (size_nseq).
+smt(@W64 pow2_64).
+smt(@W64 pow2_64).
 qed.
 
 lemma wots_checksum_correctness (msg : W32.t Array67.t) :

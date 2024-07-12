@@ -9,15 +9,29 @@ require import XMSS_IMPL XMSS_IMPL_HOP1.
 
 from Jasmin require import JModel.
 
-require import Array32 Array64.
+require import Array32 Array64 Array96 Array128.
 
 (*** AXIOMS ***)
 
-axiom prf_keygen_hop1 (out : W8.t Array32.t, _in : W8.t Array64.t, key : W8.t Array32.t) :
-hoare[M(Syscall).__prf_keygen_ : arg=(out, _in, key) ==> to_list res = _PRF_KEYGEN_ (to_list _in) (to_list key)].
+lemma prf_keygen_hop1 (out : W8.t Array32.t, _in : W8.t Array64.t, key : W8.t Array32.t) :
+    phoare[M(Syscall).__prf_keygen_ : 
+      arg=(out, _in, key) ==> 
+        to_list res = _PRF_KEYGEN_ (to_list _in) (to_list key)] = 1%r.
+proof.
+proc.
+inline M(Syscall)._prf_keygen M(Syscall).__prf_keygen.
+wp ; sp.
+admit.
+qed.
 
-axiom prf_hop1 (out : W8.t Array32.t, _in : W8.t Array32.t, key : W8.t Array32.t):
-hoare[M(Syscall).__prf_ : arg=(out, _in, key) ==> res = _PRF_ out _in key].
+lemma  prf_hop1 (out : W8.t Array32.t, _in : W8.t Array32.t, key : W8.t Array32.t):
+    phoare[M(Syscall).__prf_ : arg=(out, _in, key) ==> res = _PRF_ out _in key] = 1%r.
+proof.
+proc.
+inline M(Syscall)._prf M(Syscall).__prf.
+wp ; sp.
+admit.
+qed.
 
 (*** STDLIB ***)
 
@@ -85,23 +99,29 @@ seq 1 1 : (
    bitmask{1} = witness /\ 
    ={out, pub_seed, addr, aux, buf, addr, addr_as_bytes}
 ); 1:call addr_to_bytes_hop1;auto.
-seq 1 1 : (#pre /\ ={aux}). admit. (* error: Cannot infer all placedholders when call prf_hop1 *)
+seq 1 1 : (#pre /\ ={aux}). 
+exists * (init (fun (i_0 : int) => (buf{1}.[32 + i_0])))%Array32 , addr_as_bytes{1},  pub_seed{1}.
+elim * => _P1 _P2 _P3.
+call {1} (prf_hop1 _P1 _P2 _P3).
+auto => />.
 seq 1 1 : (#pre /\ ={buf}); 1:auto.
 seq 1 1 : (#pre); 1:inline;auto.
 seq 1 1 : (#pre); 1:call addr_to_bytes_hop1;auto.
 seq 1 1 : (
   ={out, pub_seed, addr, aux, buf, addr, addr_as_bytes, bitmask}
-); 1: admit. (* ecall {1} (prf_hop1 bitmask{1} addr_as_bytes{1} pub_seed{1}). *)
-admit.
-qed.
+).
+ecall {1} (prf_hop1 bitmask{1} addr_as_bytes{1} pub_seed{1}).
+auto.
+sp.
+seq 1 1 : (={out, buf}); last by admit.
+while (
+  ={out, pub_seed, addr, aux, buf, addr, addr_as_bytes, bitmask, i} /\
+  0 <= to_uint i{1} <= 32
+); last first.
+auto => />.
 
-lemma _thash_f_hop1 : 
-    equiv [M(Syscall).__thash_f_ ~ Mp(SCall).__thash_f_ : ={arg} ==> ={res}].
-proof.
-proc.
-inline M(Syscall)._thash_f Mp(SCall)._thash_f.
-wp ; sp.
-call thash_f_hop1 ; auto.
+admit.
+
 qed.
 
 lemma _thash_h_hop1 : 
@@ -112,8 +132,11 @@ sp.
 seq 1 1 : (={out, in_0, pub_seed, addr, buf, aux, addr_as_bytes, bitmask}); 1:call ull_to_bytes_32_hop1;auto.
 seq 2 2 : (#pre); 1:inline*;auto.
 seq 1 1 : (#pre); 1:call addr_to_bytes_hop1;auto.
-seq 1 1 : (#pre). admit. (* call prf_hop1. *)
-seq 2 2 : (#pre); 1:inline*;auto.
+seq 1 1 : (#pre). 
+  + exists * (init (fun (i_0 : int) => (buf{1}.[32 + i_0])))%Array32 , addr_as_bytes{1},  pub_seed{1}.
+elim * => _P1 _P2 _P3.
+call {1} (prf_hop1 _P1 _P2 _P3).      
+seq 2 2 : (={out, in_0, pub_seed, addr, buf, aux, addr_as_bytes, bitmask}); 1:inline*;auto.
 seq 1 1 : (#pre); 1:call addr_to_bytes_hop1;auto.
 seq 1 1 : (#pre).
   + admit. (* call to prf_hop1 *)
