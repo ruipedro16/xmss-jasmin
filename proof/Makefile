@@ -39,7 +39,8 @@ extraction/XMSS_IMPL.ec: | extraction/ common/
 extraction/XMSS_IMPL_HOP1.ec: extraction/XMSS_IMPL.ec | extraction/
 	$(MAKE) -C $(TEST_SRC)/xmss/ clean bin/test_xmss_xmss-sha2_10_256.jpp
 	cp $(TEST_SRC)/xmss/bin/test_xmss_xmss-sha2_10_256.jpp extraction/tmp.jpp
-	$(PREPROCESSOR) -in extraction/tmp.jpp --print_tasks | ./scripts/remove_sha256.py -in $< -out $@
+	$(PREPROCESSOR) -in extraction/tmp.jpp --print_tasks | ./scripts/hop1.py -in $< -out $@
+	./scripts/random_bytes.py $< extraction/RandomBytes.ec
 	$(RM) extraction/tmp.jpp
 
 

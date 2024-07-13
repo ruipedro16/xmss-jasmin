@@ -2,24 +2,14 @@ require import AllCore IntDiv CoreMap List Distr.
 from Jasmin require import JModel_x86.
 import SLH64.
 
+require import RandomBytes.
+
 require import Array2 Array3 Array4 Array8 Array11 Array32 Array64 Array67
                Array68 Array96 Array128 Array132 Array136 Array320 Array352
                Array2144.
 require import WArray2 WArray4 WArray12 WArray32 WArray44 WArray64 WArray68
                WArray96 WArray128 WArray132 WArray136 WArray256 WArray268
                WArray320 WArray352 WArray2144.
-
-module type SCall_t = {
-  proc randombytes_96(_:W8.t Array96.t) : W8.t Array96.t
-}.
-
-module SCall : SCall_t = {
-  proc randombytes_96(a:W8.t Array96.t) : W8.t Array96.t = {
-    a <$ dmap WArray96.darray
-         (fun a => Array96.init (fun i => WArray96.get8 a i));
-    return a;
-  }
-}.
 
 require import XMSS_IMPL Generic.
 
@@ -30,7 +20,7 @@ op _PRF_ : W8.t Array32.t -> W8.t Array32.t -> W8.t Array32.t -> W8.t Array32.t.
 
 op _PRF_KEYGEN_ : W8.t list -> W8.t list -> W8.t list.
 
-module Mp(SC:SCall_t) = {
+module M_Hop1(SC:Syscall_t) = {
   proc __u32_to_bytes (out:W8.t Array4.t, in_0:W32.t) : W8.t Array4.t = {
 
     in_0 <- BSWAP_32 in_0;
@@ -235,20 +225,6 @@ module Mp(SC:SCall_t) = {
     return (out);
   }
 
-  proc __memcpy_u8u8_32_32 (out:W8.t Array32.t, in_0:W8.t Array32.t) : 
-  W8.t Array32.t = {
-
-    var i:W64.t;
-
-    i <- (W64.of_int 0);
-
-    while ((i \ult (W64.of_int 32))) {
-      out.[(W64.to_uint i)] <- in_0.[(W64.to_uint i)];
-      i <- (i + (W64.of_int 1));
-    }
-    return (out);
-  }
-
   proc __memcpy_u8u8_64_64 (out:W8.t Array64.t, in_0:W8.t Array64.t) : 
   W8.t Array64.t = {
 
@@ -257,6 +233,20 @@ module Mp(SC:SCall_t) = {
     i <- (W64.of_int 0);
 
     while ((i \ult (W64.of_int 64))) {
+      out.[(W64.to_uint i)] <- in_0.[(W64.to_uint i)];
+      i <- (i + (W64.of_int 1));
+    }
+    return (out);
+  }
+
+  proc __memcpy_u8u8_32_32 (out:W8.t Array32.t, in_0:W8.t Array32.t) : 
+  W8.t Array32.t = {
+
+    var i:W64.t;
+
+    i <- (W64.of_int 0);
+
+    while ((i \ult (W64.of_int 32))) {
       out.[(W64.to_uint i)] <- in_0.[(W64.to_uint i)];
       i <- (i + (W64.of_int 1));
     }
@@ -277,17 +267,17 @@ module Mp(SC:SCall_t) = {
     return (out);
   }
 
-  proc _memcpy_u8u8_32_32 (out:W8.t Array32.t, in_0:W8.t Array32.t) : 
-  W8.t Array32.t = {
-
-    out <@ __memcpy_u8u8_32_32 (out, in_0);
-    return (out);
-  }
-
   proc _memcpy_u8u8_64_64 (out:W8.t Array64.t, in_0:W8.t Array64.t) : 
   W8.t Array64.t = {
 
     out <@ __memcpy_u8u8_64_64 (out, in_0);
+    return (out);
+  }
+
+  proc _memcpy_u8u8_32_32 (out:W8.t Array32.t, in_0:W8.t Array32.t) : 
+  W8.t Array32.t = {
+
+    out <@ __memcpy_u8u8_32_32 (out, in_0);
     return (out);
   }
 
@@ -298,22 +288,22 @@ module Mp(SC:SCall_t) = {
     return (out);
   }
 
-  proc _x_memcpy_u8u8_32_32 (out:W8.t Array32.t, in_0:W8.t Array32.t) : 
-  W8.t Array32.t = {
-
-    out <- out;
-    in_0 <- in_0;
-    out <@ _memcpy_u8u8_32_32 (out, in_0);
-    out <- out;
-    return (out);
-  }
-
   proc _x_memcpy_u8u8_64_64 (out:W8.t Array64.t, in_0:W8.t Array64.t) : 
   W8.t Array64.t = {
 
     out <- out;
     in_0 <- in_0;
     out <@ _memcpy_u8u8_64_64 (out, in_0);
+    out <- out;
+    return (out);
+  }
+
+  proc _x_memcpy_u8u8_32_32 (out:W8.t Array32.t, in_0:W8.t Array32.t) : 
+  W8.t Array32.t = {
+
+    out <- out;
+    in_0 <- in_0;
+    out <@ _memcpy_u8u8_32_32 (out, in_0);
     out <- out;
     return (out);
   }
