@@ -5,7 +5,7 @@ require import AllCore List RealExp IntDiv.
 from Jasmin require import JModel.
 
 require import Array4 Array32 Array128 Array2144.
-require import XMSS_IMPL.
+require import RandomBytes XMSS_IMPL.
 require import Utils. (* valid_ptr predicate *)
 
 (******************************************************************************)
@@ -102,31 +102,27 @@ while (
   move => E0 ; congr. rewrite E0 to_uintD of_uintK //=. admit. (* overflow *)
 qed.
 
-lemma  memcpy_post (x : W8.t Array32.t) :
-    hoare [M(Syscall).__memcpy_u8u8_32_32 : arg.`2 = x ==> res = x].
-proof.
-proc.
-while (
-  0 <= to_uint i <= 32 /\
-  (forall (k : int), 0 <= k < to_uint i => (out.[k] = in_0.[k]))
-); last first.
-- auto => /> *. split ; 1:smt(). move => *. rewrite tP. move => *. smt.
-- auto => /> &hr *. do split; 1,2:smt(@W64). move => k *. rewrite get_setE. smt(@W64). case (k = to_uint i{hr}).
-    + move => E0 ; by rewrite E0.
-    + move => E0. smt.
-qed.
-
 lemma _x_memcpy_u8u8_post (x : W8.t Array32.t) :
     phoare [M(Syscall)._x_memcpy_u8u8_32_32 : arg.`2 = x ==> res = x] = 1%r.
 proof.
-(* 
-proc ; inline M(Syscall)._memcpy_u8u8_32_32.
-wp ; sp ; ecall (memcpy_post in_00) ; skip => />.
-*)
-proc; inline*.
-sp ; wp.
-admit.
+proc ; inline*.
+wp ; sp.
+while (* while invariante variante *)
+(0 <= to_uint i <= 32 /\ (forall (k : int), 0 <= k < to_uint i => (out1.[k] = in_01.[k]))) 
+(32 - to_uint i).
+  + auto => /> &hr i *; do split.
+      - smt(@W64).
+      - smt(@W64 pow2_64).
+      - move => k *. rewrite get_setE; 1:smt(@W64). case (k = to_uint i{hr}).
+           * move => * /#. 
+           * move => *. smt.
+      - smt(@W64 pow2_64).
+  + skip => /> &hr *. split; 1:smt(). progress.
+      - smt(@W64).
+      - rewrite tP. smt.
 qed.
+ 
+
 
 (******************************************************************************)
 (******************               MEMCMP                          *************)
