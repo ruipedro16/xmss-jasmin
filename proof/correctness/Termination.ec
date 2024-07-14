@@ -1,11 +1,92 @@
 pragma Goals : printall.
 
 require import AllCore List RealExp IntDiv.
-require import XMSS_IMPL XMSS_IMPL_PP Generic Parameters.
+require import RandomBytes XMSS_IMPL XMSS_IMPL_HOP1 Generic Parameters.
 
 from Jasmin require import JModel.
 
-lemma bytes_to_ull_ptr_ll : islossless Mp(Syscall).__bytes_to_ull_ptr.
+require import Array67.
+
+lemma ull_to_bytes_32_ll : islossless M(Syscall).__ull_to_bytes_32 
+    by proc ; while (true) (i - aux) ; by auto => /> /#.
+
+lemma _x_memcpy_u8u8_32_32_ll : islossless M(Syscall)._x_memcpy_u8u8_32_32.
+proof.
+proc; inline*.
+auto => />.
+while (0 <= to_uint i <= 32) (32 - to_uint i).
+  + auto => /> &hr *; do split; smt(@W64 pow2_64).
+  + auto => />; smt(@W64).
+qed.
+
+lemma _x_memcpy_u8u8_64_64_ll : islossless M(Syscall)._x_memcpy_u8u8_64_64.
+proof.
+proc; inline*.
+wp.
+while (0 <= to_uint i <= 64) (64 - to_uint i); auto => /> *; smt(@W64 pow2_64).
+qed.
+
+lemma _x_memcpy_u8u8_64_32_ll: islossless M(Syscall)._x_memcpy_u8u8_64_32.
+proof.
+proc; inline*.
+wp.
+while (0 <= to_uint i <= 32) (32 - to_uint i); auto => /> *; smt(@W64 pow2_64).
+qed.
+
+(*** ***)
+
+lemma sha256_96_ll : islossless M(Syscall).__sha256_96.
+proof.
+proc.
+admit.
+qed.
+
+lemma sha256_128_ll : islossless M(Syscall).__sha256_128.
+proof.
+proc.
+admit.
+qed.
+
+lemma sha256_in_ptr_ll : islossless M(Syscall).__sha256_in_ptr.
+proof.
+proc.
+admit.
+qed.
+
+lemma core_hash_96_ll : islossless M(Syscall).__core_hash__96.
+proof.
+admit.
+qed.
+
+lemma core_hash_128_ll : islossless M(Syscall).__core_hash_128 by proc ; call sha256_128_ll.
+
+lemma prf_ll : islossless M(Syscall).__prf.
+proof.
+proc.
+inline M(Syscall).__core_hash_96; wp.
+call sha256_96_ll; wp.
+call _x_memcpy_u8u8_32_32_ll; wp.
+call _x_memcpy_u8u8_32_32_ll; wp.
+call ull_to_bytes_32_ll.
+by auto.
+qed.
+
+lemma prf_keygen_ll : islossless M(Syscall).__prf_keygen.
+proof.
+proc.
+inline M(Syscall).__core_hash__128 M(Syscall)._core_hash_128; wp.
+call core_hash_128_ll; wp.
+call _x_memcpy_u8u8_64_64_ll; wp.
+call _x_memcpy_u8u8_32_32_ll; wp.
+call ull_to_bytes_32_ll.
+by auto.
+qed.
+
+lemma core_hash_ptr_ll : islossless M(Syscall).__core_hash_in_ptr by proc ; call sha256_in_ptr_ll.
+
+(*** ***)
+
+lemma bytes_to_ull_ptr_ll : islossless M(Syscall).__bytes_to_ull_ptr.
 proof.
 proc.
 while (0 <= to_uint i <= 4) (4 - to_uint i) ; auto => /> * ; last by smt(@W64).
@@ -15,7 +96,7 @@ do split.
   + rewrite to_uintD ; smt(@W64).
 qed.
 
-lemma bytes_to_ull_ll : islossless Mp(Syscall).__bytes_to_ull.
+lemma bytes_to_ull_ll : islossless M(Syscall).__bytes_to_ull.
 proof.
 proc.
 while (0 <= to_uint i <= 4) (4 - to_uint i); auto => /> *; last by smt(@W64).
@@ -25,31 +106,20 @@ do split.
   + rewrite to_uintD ; smt(@W64).
 qed.
 
-lemma ull_to_bytes_2_ll  : islossless Mp(Syscall).__ull_to_bytes_2 
+lemma ull_to_bytes_2_ll  : islossless M(Syscall).__ull_to_bytes_2 
     by proc ; while (true) (i - aux) ; by auto => /> /#.
 
-lemma ull_to_bytes_32_ll : islossless Mp(Syscall).__ull_to_bytes_32 
-    by proc ; while (true) (i - aux) ; by auto => /> /#.
-
-lemma addr_to_bytes_ll : islossless Mp(Syscall).__addr_to_bytes.
+lemma addr_to_bytes_ll : islossless M(Syscall).__addr_to_bytes.
 proc.
 while (true) (8 - i); last by auto => /> /#.
 auto => />.
 inline; by auto => /> /#.
 qed.
 
-lemma zero_addr_ll : islossless Mp(Syscall).__zero_address_
+lemma zero_addr_ll : islossless M(Syscall).__zero_address_
     by proc ; inline ; wp ; while (true) (8 - i) ; auto => /> /#.
 
-lemma memcpy_ptr_32_ll : islossless Mp(Syscall).__memcpy_u8u8p_32.
-proof.
-proc.
-while (0 <= to_uint i <= 32) (32 - to_uint i) ; auto => /> *.
-- do split ; 1,3: by rewrite to_uintD_small /#. smt(@W64).
-- smt(@W64).
-qed.
-
-lemma memcpy_32_ptr_ll : islossless Mp(Syscall).__memcpy_u8pu8_32.
+lemma memcpy_32_ptr_ll : islossless M(Syscall).__memcpy_u8pu8_32.
 proof.
 proc.
 while (0 <= to_uint i <= 32) (32 - to_uint i) ; auto => /> *.
@@ -60,7 +130,13 @@ while (0 <= to_uint i <= 32) (32 - to_uint i) ; auto => /> *.
 - smt(@W64).
 qed.
 
-lemma memcpy_ptr_ptr_ll : islossless Mp(Syscall).__memcpy_u8pu8p.
+lemma memcpy_ptr_ll : islossless M(Syscall).__memcpy_u8u8p.
+proof.
+proc.
+while (0 <= i <= 32) (32 - i); auto => /> /#.
+qed.
+
+lemma memcpy_ptr_ptr_ll : islossless M(Syscall).__memcpy_u8pu8p.
 proof.
 proc.
 while (0 <= to_uint i <= to_uint bytes) ((to_uint bytes) - (to_uint i)) ; auto => /> *.
@@ -71,38 +147,39 @@ while (0 <= to_uint i <= to_uint bytes) ((to_uint bytes) - (to_uint i)) ; auto =
 - smt(@W64).
 qed.
 
-lemma memset_zero_ll : islossless Mp(Syscall).__memset_zero_u8.
+lemma memset_zero_ll : islossless M(Syscall).__memset_zero_u8.
 proof.
 proc.
 while (0 <= to_uint i <= 4) (4 - to_uint i) ; auto => /> *.
 do split.
   + rewrite to_uintD_small /#.
   + smt(@W64).
-  + rewrite to_uintD_small ; smt(@W64).
+   + rewrite to_uintD_small ; smt(@W64).
 - smt(@W64).
 qed.
 
-lemma memset_u8_ptr_ll : phoare [Mp(Syscall).__memset_u8_ptr : 0 <= to_uint inlen < W64.modulus ==> true] = 1%r.
+lemma memset_u8_ptr_ll : phoare [M(Syscall).__memset_u8_ptr : 
+    0 <= to_uint inlen < W64.modulus ==> true] = 1%r.
 proof.
 proc.
 while (0 <= to_uint i <= to_uint inlen) ((to_uint inlen) - (to_uint i)) ; auto => /> ; progress ; smt(@W64).
 qed.
 
-lemma memset_4_ll : islossless Mp(Syscall).__memset_u8_4.
+lemma memset_4_ll : islossless M(Syscall).__memset_u8_4.
 proof.
 proc.
 while (0 <= to_uint i <= 4) (4 - to_uint i); auto => /> *; last by smt(@W64).
 do split ; [rewrite to_uintD /# | smt(@W64) | rewrite to_uintD ; smt(@W64)].
 qed.
 
-lemma memset_128_ll : islossless Mp(Syscall).__memset_u8_128.
+lemma memset_128_ll : islossless M(Syscall).__memset_u8_128.
 proof.
 proc.
 while (0 <= to_uint i <= 128) (128 - to_uint i); auto => /> *; last by smt(@W64).
 do split ; [rewrite to_uintD /# | smt(@W64) | rewrite to_uintD ; smt(@W64)].
 qed.
 
-lemma memcmp_ll : islossless Mp(Syscall).__memcmp.
+lemma memcmp_ll : islossless M(Syscall).__memcmp.
 proof.
 proc.
 sp ; wp.
@@ -114,34 +191,49 @@ while (0 <= to_uint i <= 32) (32 - to_uint i) ; auto => />.
 - progress ; smt(@W64).
 qed.
 
-lemma thash_f_ll : islossless Mp(Syscall).__thash_f.
+lemma thash_f_ll : islossless M(Syscall).__thash_f.
 proof.
 proc.
 auto => />.
+wp ; sp.
+call core_hash_96_ll.
 while (0 <= to_uint i <= 32) (32 - to_uint i) ; auto => />.
   - auto => /> *. do split ; 1,2: by smt(@W64). rewrite to_uintD_small => /#.
   - auto => /> *. split ; [ progress ; rewrite ultE => /# | auto ].
-  - call addr_to_bytes_ll. inline Mp(Syscall).__set_key_and_mask ; auto => />. 
-    call addr_to_bytes_ll ; auto => />. 
+  - inline M(Syscall).__prf_  M(Syscall)._prf; wp. call prf_ll; wp.
+    call addr_to_bytes_ll. inline M(Syscall).__set_key_and_mask ; auto => />. 
+    inline M(Syscall).__prf_  M(Syscall)._prf; wp. call prf_ll; wp.
+call addr_to_bytes_ll ; auto => />. 
     call ull_to_bytes_32_ll. auto => /> *. rewrite ultE => /#.
 qed.
 
-lemma thash_h_ll : islossless Mp(Syscall).__thash_h.
+lemma thash_h_ll : islossless M(Syscall).__thash_h.
 proof.
 proc.
-inline  Mp(Syscall).__set_key_and_mask ; wp.
+wp.
+inline M(Syscall)._core_hash_128; wp; call core_hash_128_ll; wp.
 while (0 <= to_uint i <= 2 * 32) ((2*32) - (to_uint i)).
 - auto => />. progress.
   + rewrite to_uintD_small /#.
   + smt(@W64).
   + rewrite to_uintD_small ; [smt() | smt(@W64)].
-- wp. do (call addr_to_bytes_ll ; wp). call ull_to_bytes_32_ll. auto => /> *. smt(@W64).
+- wp. inline M(Syscall).__prf_ M(Syscall)._prf; wp; call prf_ll; wp.
+  do (call addr_to_bytes_ll ; wp). 
+  inline M(Syscall).__set_key_and_mask; wp.
+  call prf_ll; wp.
+  call addr_to_bytes_ll; wp; call prf_ll; wp.
+  call addr_to_bytes_ll; wp; call ull_to_bytes_32_ll. 
+  auto => /> *. 
+  smt(@W64).
 qed.
 
-lemma hash_msg_ll : islossless Mp(Syscall).__hash_message.
+
+
+lemma hash_msg_ll : islossless M(Syscall).__hash_message.
 proof.
 proc.
-inline Mp(Syscall)._x_memcpy_u8pu8_32 Mp(Syscall)._memcpy_u8pu8_32 ; wp.
+inline M(Syscall).__core_hash_in_ptr_ M(Syscall)._core_hash_in_ptr; wp; call core_hash_ptr_ll; wp.
+inline M(Syscall)._x_memcpy_u8pu8_32 M(Syscall)._memcpy_u8pu8_32 ; wp.
 call memcpy_32_ptr_ll ; wp. call ull_to_bytes_32_ll ; wp.
 do (call memcpy_32_ptr_ll ; wp). call ull_to_bytes_32_ll ; wp.
 by skip.
@@ -167,7 +259,19 @@ while (#pre /\ 0 <= to_uint i <= size output) ((size output) - (to_uint i)) ; au
   + move => * ; rewrite ultE of_uintK /#.
 qed.
 
-lemma csum_ll : islossless Mp(Syscall).__csum.
+lemma base_w_3_2_ll : islossless M(Syscall).__base_w_3_2.
+proof.
+proc; wp.
+while (0 <= consumed <= 3) (3 - consumed); auto => /> /#.
+qed.
+
+lemma base_w_67_32_ll : islossless M(Syscall).__base_w_67_32.
+proof.
+proc; wp.
+while (0 <= consumed <= 67) (67 - consumed); auto => /> /#.
+qed.
+
+lemma csum_ll : islossless M(Syscall).__csum.
 proof.
 proc.
 while (0 <= to_uint i <= 64) (64 - to_uint i); auto => />.
@@ -175,29 +279,28 @@ while (0 <= to_uint i <= 64) (64 - to_uint i); auto => />.
   - move => ?. rewrite ultE => /= /#. 
 qed.
 
-lemma checksum_ll : islossless Mp(Syscall).__wots_checksum.
+lemma checksum_ll : islossless M(Syscall).__wots_checksum.
 proof.
 proc.
 auto => />.
-call (base_w_ll).
+call (base_w_3_2_ll).
 call (ull_to_bytes_2_ll).
 auto => />.
 call (csum_ll).
 auto => /> *.
-by rewrite /to_list size_mkseq.
 qed.
 
-lemma gen_chain_inplace_ll : phoare[Mp(Syscall).__gen_chain_inplace : 
+lemma gen_chain_inplace_ll : phoare[M(Syscall).__gen_chain_inplace : 
     0 <= to_uint steps <= XMSS_WOTS_W ==> true] = 1%r.
 proof.
 proc.
 while (#pre /\ 0 <= to_uint i <= to_uint  steps) ((to_uint steps) - (to_uint i)) ; auto => />.
-- inline Mp(Syscall).__thash_f_ Mp(Syscall)._thash_f  Mp(Syscall).__set_hash_addr. wp. call thash_f_ll. 
+- inline M(Syscall).__thash_f_ M(Syscall)._thash_f  M(Syscall).__set_hash_addr. wp. call thash_f_ll. 
   auto => /> * ; do split ; by rewrite to_uintD_small /#.
 - smt(@W64).
 qed.
 
-lemma gen_chain_ll : phoare [Mp(Syscall).__gen_chain :
+lemma gen_chain_ll : phoare [M(Syscall).__gen_chain :
     0 <= to_uint start <= XMSS_WOTS_W - 1 /\
     0 <= to_uint steps <= XMSS_WOTS_W - 1 /\
     0 <= to_uint (start + steps) <= XMSS_WOTS_W - 1 ==>
@@ -206,19 +309,18 @@ proc.
 auto => /> *.
 while (#pre /\ 0 <= to_uint i <= to_uint (start + steps) /\ t = start + steps)
       ((to_uint t) - (to_uint i)) ; auto => /> ; 2: by smt(@W32).
-- inline Mp(Syscall).__set_hash_addr. call thash_f_ll.
+- inline M(Syscall).__set_hash_addr. call thash_f_ll.
   auto => /> * ; do split ; smt(@W32).
-- inline Mp(Syscall)._x_memcpy_u8u8p_32 Mp(Syscall)._memcpy_u8u8p_32. wp.
-  call memcpy_ptr_32_ll. auto => />. progress ; [ rewrite to_uintD_small /# | smt(@W64) ].
+- inline M(Syscall)._x_memcpy_u8u8p M(Syscall)._memcpy_u8u8p. wp.
+  call memcpy_ptr_ll. auto => />. progress ; [ rewrite to_uintD_small /# | smt(@W64) ].
 qed.
 
-lemma chain_lengths_ll : islossless Mp(Syscall).__chain_lengths.
+lemma chain_lengths_ll : islossless M(Syscall).__chain_lengths.
 proof.
 proc ; wp.
 call checksum_ll ; wp.
-call base_w_ll ; wp.
+call base_w_67_32_ll ; wp.
 skip => /> *.
-by rewrite /to_list size_mkseq.
 qed.
 
 lemma memcpy_ll : phoare [ Memcpy._x_memcpy_u8u8 : size in_0 <= 64 ==> true ] = 1%r.
@@ -232,53 +334,51 @@ while (#pre /\ 0 <= to_uint i <= size in_0) ((size in_0) - (to_uint i)) ; auto =
   - progress ; [ apply size_ge0 | smt(@W64) ].
 qed.
 
-lemma expand_seed_ll : islossless Mp(Syscall).__expand_seed.
+lemma expand_seed_ll : islossless M(Syscall).__expand_seed.
 proof.
 proc.
 while (true) (67 - i) ; auto => />.
-- call (addr_to_bytes_ll). inline. auto => /> /#.
-- call memcpy_ll. auto => />. inline*. auto => /> *. split.
-  + by rewrite /to_list size_mkseq.
-  + smt().
+  - inline M(Syscall).__prf_keygen_ M(Syscall)._prf_keygen; wp.
+    call prf_keygen_ll; wp.
+    call (addr_to_bytes_ll). inline. auto => /> /#.
+  - call _x_memcpy_u8u8_32_32_ll. inline*; auto => /> /#. 
 qed.
 
-lemma pkgen_ll : islossless Mp(Syscall).__wots_pkgen.
+lemma pkgen_ll : islossless M(Syscall).__wots_pkgen.
 proof.
 proc.
 while (true) (67 - i).
-  - auto => />. inline Mp(Syscall).__gen_chain_inplace_ ; inline Mp(Syscall)._gen_chain_inplace ; auto => />.
+  - auto => />. inline M(Syscall).__gen_chain_inplace_ ; inline M(Syscall)._gen_chain_inplace ; auto => />.
     call gen_chain_inplace_ll. inline. auto => /> /#.
-  - inline Mp(Syscall).__expand_seed_ Mp(Syscall)._expand_seed ; auto => />.
+  - inline M(Syscall).__expand_seed_ M(Syscall)._expand_seed ; auto => />.
     call expand_seed_ll ; by auto => /> /#.
 qed.
 
-require import Array67.
-
 (* TODO: replace with lemma *)
-axiom chain_lengths_post : hoare [Mp(Syscall).__chain_lengths : true ==> 
-  forall (k : int), 0 <= k < 67 => (0 <= (to_uint res.[k]) <= 16) ].    
+axiom chain_lengths_post : phoare [M(Syscall).__chain_lengths : true ==> 
+  forall (k : int), 0 <= k < 67 => (0 <= (to_uint res.[k]) <= 16) ] = 1%r.    
 
-lemma wots_sign_ll : islossless Mp(Syscall).__wots_sign.
+lemma wots_sign_ll : islossless M(Syscall).__wots_sign.
 proof.
 proc.
 sp ; wp.
 while (true) (67 - i).
-- auto => />. inline Mp(Syscall).__set_chain_addr ; call gen_chain_inplace_ll. auto => /> *. 
+- auto => />. inline M(Syscall).__set_chain_addr ; call gen_chain_inplace_ll. auto => /> &hr i. 
   rewrite /XMSS_WOTS_W ; do split.
   + smt(@Array67 @W32).
   + move => ?.  admit.
   + move => ?? /#.
-- inline Mp(Syscall).__expand_seed_ Mp(Syscall)._expand_seed ;  wp ; call expand_seed_ll.
-  inline Mp(Syscall).__chain_lengths_ Mp(Syscall)._chain_lengths ; wp ; call chain_lengths_ll.
+- inline M(Syscall).__expand_seed_ M(Syscall)._expand_seed ;  wp ; call expand_seed_ll.
+  inline M(Syscall).__chain_lengths_ M(Syscall)._chain_lengths ; wp ; call chain_lengths_ll.
   auto => /> /#.
 qed.
 
 
-lemma wots_pk_from_sig_ll : islossless Mp(Syscall).__wots_pk_from_sig.
+lemma wots_pk_from_sig_ll : islossless M(Syscall).__wots_pk_from_sig.
 proof.
 proc => //=.
 while (true) (67 - i).
-- auto => />. inline Mp(Syscall).__gen_chain_ ; inline Mp(Syscall)._gen_chain Mp(Syscall).__set_chain_addr ; auto => />.
+- auto => />. inline M(Syscall).__gen_chain_ ; inline M(Syscall)._gen_chain M(Syscall).__set_chain_addr ; auto => />.
   call gen_chain_ll. auto => /> *. rewrite /XMSS_WOTS_W //=. do split.
   + smt(@Array67 @W32).
   + move => ?. admit. (* apply chain_lengths_post *)
@@ -287,17 +387,17 @@ while (true) (67 - i).
   + smt (@Array67 @W32).
   + move => ?. admit.
   + progress => /#.
-- inline Mp(Syscall).__chain_lengths_ ; inline Mp(Syscall)._chain_lengths ; auto => />.
+- inline M(Syscall).__chain_lengths_ ; inline M(Syscall)._chain_lengths ; auto => />.
   call chain_lengths_ll ; by auto => /> /#.
 qed.
 
 (* XMSS *)
 
-lemma ltree_ll : islossless Mp(Syscall).__l_tree.
+lemma ltree_ll : islossless M(Syscall).__l_tree.
 proof.
 proc.
-inline Mp(Syscall).__set_tree_height.
-wp ; sp ; call memcpy_ll.
+inline M(Syscall).__set_tree_height.
+wp ; sp ; call _x_memcpy_u8u8_32_32_ll.
 while (1 <= to_uint l <= 67) (to_uint l - 1).
 - auto. wp ; sp. seq 1 : true;  1,2: by admit.
 (*3*)  + sp. if.
@@ -305,16 +405,16 @@ while (1 <= to_uint l <= 67) (to_uint l - 1).
        * auto ; progress ; by admit. 
 (*4*)  + admit.
 (*5*)  + auto.
-- skip => /> ; progress ; [ smt(@W64) | by rewrite /to_list size_mkseq ]. 
+- skip => />. smt(@W64). 
 qed.
 
-lemma treehash_array_ll : islossless Mp(Syscall).__treehash_array.
+lemma treehash_array_ll : islossless M(Syscall).__treehash_array.
 proof.
 proc.
-inline Mp(Syscall).__copy_subtree_addr Mp(Syscall).__set_type Mp(Syscall).__set_ltree_addr Mp(Syscall).__set_ots_addr.
+inline M(Syscall).__copy_subtree_addr M(Syscall).__set_type M(Syscall).__set_ltree_addr M(Syscall).__set_ots_addr.
 wp ; sp.
 while (0 <= j <= 32) (32 - j) ; first by auto => /> /#.
-inline Mp(Syscall).__cond_u64_geq_u64_u32_eq_u32. wp.
+inline M(Syscall).__cond_u64_geq_u64_u32_eq_u32. wp.
 while (0 <= j <= 32) (32 - j).
 - admit.
 - auto => />; first by progress ; 1,3:smt(@W32) ; smt(). do call zero_addr_ll.
@@ -324,95 +424,84 @@ while (0 <= j <= 32) (32 - j).
   + move => *. split ; last by smt(). rewrite ultE. move => ???. rewrite of_uintK. admit. (* TODO: no info about idx *)
 qed.
 
-lemma gen_leaf_ll : islossless Mp(Syscall).__gen_leaf_wots.
+lemma gen_leaf_ll : islossless M(Syscall).__gen_leaf_wots.
 proof.
 proc.
-inline Mp(Syscall).__l_tree_ Mp(Syscall)._l_tree ; wp ; call ltree_ll.
+inline M(Syscall).__l_tree_ M(Syscall)._l_tree ; wp ; call ltree_ll.
 wp ; call pkgen_ll ; wp. 
 by skip.
 qed.
 
-lemma compute_root_ll : islossless Mp(Syscall).__compute_root.
+lemma compute_root_ll : islossless M(Syscall).__compute_root.
 proof.
 proc.
-inline Mp(Syscall).__set_tree_height Mp(Syscall).__set_tree_index.
+inline M(Syscall).__set_tree_height M(Syscall).__set_tree_index.
 call thash_h_ll. wp.
 while (0 <= to_uint i <= (10 - 1)) ((10 - 1) - (to_uint  i)).
-- progress.  wp. inline Mp(Syscall)._x_memcpy_u8u8p_32 Mp(Syscall)._memcpy_u8u8p_32. sp ; if.
-  + wp ; call memcpy_ptr_32_ll. wp ; call thash_h_ll. auto => /> *. do split.
-    * rewrite to_uintD_small /#.
-    * smt(@W64).
-    * rewrite to_uintD_small ; smt(@W64).
-  + wp ; call memcpy_ptr_32_ll. wp ; call thash_h_ll. auto => /> *. do split.
-    * rewrite to_uintD_small /#.
-    * smt(@W64).
-    * rewrite to_uintD_small ; smt(@W64).
-- wp ; sp. if.
-  + inline Mp(Syscall)._x_memcpy_u8u8p_32 Mp(Syscall)._memcpy_u8u8p_32 ;wp ; call memcpy_ptr_32_ll.
-    wp. call memcpy_ll. skip => />. progress.
-     * by rewrite /to_list size_mkseq.
-     * smt(@W64).
-  + inline Mp(Syscall)._x_memcpy_u8u8p_32 Mp(Syscall)._memcpy_u8u8p_32 ; wp ; call memcpy_ptr_32_ll. 
-    wp ; call memcpy_ll. skip => /> *. split.
-     * by rewrite /to_list size_mkseq.
-     * smt (@W64).
+- auto => />. wp; sp. if.
+  + wp. inline M(Syscall)._x_memcpy_u8u8p M(Syscall)._memcpy_u8u8p.
+    wp. call memcpy_ptr_ll. wp ; call thash_h_ll. auto => /> *. smt(@W64 pow2_64). 
+  + wp ; inline M(Syscall)._x_memcpy_u8u8p M(Syscall)._memcpy_u8u8p.
+    wp; call memcpy_ptr_ll. wp ; call thash_h_ll. auto => /> *. smt(@W64 pow2_64). 
+- wp; sp. if.
+  + wp. inline M(Syscall)._x_memcpy_u8u8p M(Syscall)._memcpy_u8u8p. wp. call memcpy_ptr_ll.
+    wp. call _x_memcpy_u8u8_32_32_ll. skip => /> *. smt(@W64).
+  + wp. inline M(Syscall)._x_memcpy_u8u8p M(Syscall)._memcpy_u8u8p; wp; call memcpy_ptr_ll.
+    wp. call _x_memcpy_u8u8_64_32_ll. skip => /> *. smt(@W64).
 qed.
 
-lemma keypair_seed_ll : islossless Mp(Syscall).__xmssmt_core_seed_keypair.
+lemma keypair_seed_ll : islossless M(Syscall).__xmssmt_core_seed_keypair.
 proof.
 proc.
 while (0 <= i <= 32) (32 - i) ; first by auto => /> /#.
 wp.
 while (0 <= i <= 32) (32 - i) ; first by auto => /> /#.
-inline Mp(Syscall).__treehash_array_ Mp(Syscall)._treehash_array.
+inline M(Syscall).__treehash_array_ M(Syscall)._treehash_array.
 wp ; call treehash_array_ll.
-do (wp ; call memcpy_ll).
-wp. call memset_zero_ll.
-inline Mp(Syscall).__set_layer_addr.
+do (wp ; call _x_memcpy_u8u8_32_32_ll).
+wp. call _x_memcpy_u8u8_64_64_ll.
+wp. call memset_zero_ll. 
+inline M(Syscall).__set_layer_addr.
 wp ; sp. call zero_addr_ll.
 skip ; progress; by smt(@List @Array96 @Array64 @Array32).
 qed.
 
-lemma randombytes_ll : islossless Syscall.randombytes_96
-    by proc ; islossless ; smt.
+lemma randombytes_ll : islossless Syscall.randombytes_96 by proc ; islossless; smt(@W8 @Distr @DList).
 
-lemma keypair_ll : islossless Mp(Syscall).__xmssmt_core_keypair.
+lemma keypair_ll : islossless M(Syscall).__xmssmt_core_keypair.
 proof.
 proc.
 call keypair_seed_ll ; call randombytes_ll.
 by auto.
 qed.
 
-lemma set_result_ll : phoare [Mp(Syscall).__set_result :
+lemma set_result_ll : phoare [M(Syscall).__set_result :
       0 <= to_uint (loadW64 Glob.mem (to_uint mlen_ptr)) < W64.max_uint ==> true] = 1%r.
 proof.
 proc.
 if.
 - wp; call memset_u8_ptr_ll. auto => /> /#.
-- inline Mp(Syscall)._x__memcpy_u8pu8p Mp(Syscall)._memcpy_u8pu8p ; wp.
+- inline M(Syscall)._x__memcpy_u8pu8p M(Syscall)._memcpy_u8pu8p ; wp.
   call memcpy_ptr_ptr_ll. wp ; skip => /> *.
 qed.
 
-lemma sign_open_ll : phoare [Mp(Syscall).__xmssmt_core_sign_open :
+lemma sign_open_ll : phoare [M(Syscall).__xmssmt_core_sign_open :
     0 <= to_uint (loadW64 Glob.mem (to_uint mlen_ptr)) < W64.max_uint ==>
     true] = 1%r.
 proof.
 proc.
 wp ; sp.
-inline Mp(Syscall).__set_type Mp(Syscall).__set_layer_addr  Mp(Syscall).__set_tree_addr Mp(Syscall).__set_ots_addr 
-       Mp(Syscall).__set_ltree_addr.
+inline M(Syscall).__set_type M(Syscall).__set_layer_addr M(Syscall).__set_tree_addr 
+       M(Syscall).__set_ots_addr M(Syscall).__set_ltree_addr.
 sp ; wp.
 call set_result_ll. call memcmp_ll.
 while (0 <= to_uint i <= 1) (1 - to_uint i); auto => />.
-  + inline Mp(Syscall).__compute_root_ Mp(Syscall)._compute_root ; wp ; call compute_root_ll ; wp.
-    inline Mp(Syscall).__l_tree_ Mp(Syscall)._l_tree ; wp ; call ltree_ll ; wp.
-    inline Mp(Syscall).__wots_pk_from_sig_ ; wp ; call wots_pk_from_sig_ll ; wp. skip => /> * ; do split.
-    * rewrite to_uintD_small /#.
-    * smt(@W32).
-    * smt(@W32).
+  + inline M(Syscall).__compute_root_ M(Syscall)._compute_root ; wp ; call compute_root_ll ; wp.
+    inline M(Syscall).__l_tree_ M(Syscall)._l_tree ; wp ; call ltree_ll ; wp.
+    inline M(Syscall).__wots_pk_from_sig_ ; wp ; call wots_pk_from_sig_ll ; wp. skip => /> *. smt(@W32 pow2_32).
   + progress ; smt(@W32). 
-  + call hash_msg_ll ; inline Mp(Syscall)._x_memcpy_u8u8p_32 Mp(Syscall)._memcpy_u8u8p_32 ; wp.
-    call memcpy_ptr_32_ll ; wp. inline Mp(Syscall)._x__memcpy_u8pu8p Mp(Syscall)._memcpy_u8pu8p ; wp. 
+  + call hash_msg_ll. inline M(Syscall)._x_memcpy_u8u8p M(Syscall)._memcpy_u8u8p ; wp.
+    call memcpy_ptr_ll ; wp. inline M(Syscall)._x__memcpy_u8pu8p M (Syscall)._memcpy_u8pu8p ; wp. 
     call memcpy_ptr_ptr_ll ; wp. call bytes_to_ull_ptr_ll ; wp. do 3! call zero_addr_ll. 
     skip => /> *. progress.
     * smt(@W32).
@@ -420,7 +509,7 @@ while (0 <= to_uint i <= 1) (1 - to_uint i); auto => />.
     * admit.
 qed.
 
-lemma sign_ll : islossless Mp(Syscall).__xmssmt_core_sign.
+lemma sign_ll : islossless M(Syscall).__xmssmt_core_sign.
 proof.
 proc.
 wp ; sp.
@@ -430,9 +519,9 @@ qed.
 
 
 (******************************* exported functions **********************************)
-lemma kg_ll : islossless Mp(Syscall).xmss_keypair_jazz.
+lemma kg_ll : islossless M(Syscall).xmss_keypair_jazz.
 proof.
 proc.
-inline Mp(Syscall).__xmss_keypair Mp(Syscall).__xmssmt_core_keypair_ Mp(Syscall)._xmssmt_core_keypair.
+inline M(Syscall).__xmss_keypair M(Syscall).__xmssmt_core_keypair_ M(Syscall)._xmssmt_core_keypair.
 wp ; sp. call keypair_ll. by skip.
 qed.
