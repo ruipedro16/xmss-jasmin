@@ -1,0 +1,98 @@
+param int TREEHASH_SIZE = 1 + 4 + 1 + 1 + XMSS_N;
+param int TREEHASH_ARRAY_SIZE = (XMSS_TREE_HEIGHT - XMSS_BDS_K) * TREEHASH_SIZE;
+param int STATE_LEN = ((XMSS_TREE_HEIGHT + 1) * XMSS_N) + 4 + (XMSS_TREE_HEIGHT + 1) + (XMSS_TREE_HEIGHT * XMSS_N) + 
+                      ((XMSS_TREE_HEIGHT >> 1) * XMSS_N) + TREEHASH_ARRAY_SIZE + 
+                      (((1 << XMSS_BDS_K) - XMSS_BDS_K - 1) * XMSS_N) + 4;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////// Serialize
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __xmssmt_serialize_state(
+    reg ptr u8[STATE_LEN] state,
+    reg ptr u8[XMSS_FAST_SK_BYTES] sk
+) -> reg ptr u8[STATE_LEN]
+{
+    inline int i j;
+
+    for i=0 to 2 * XMSS_D - 1 {
+        for j=0 to XMSS_TREE_HEIGHT - XMSS_BDS_K {
+
+        }
+    }
+
+    return state;
+}
+
+fn _xmssmt_serialize_state(
+    reg ptr u8[STATE_LEN] state,
+    reg ptr u8[XMSS_FAST_SK_BYTES] sk
+) -> reg ptr u8[STATE_LEN]
+{
+    state = __xmssmt_serialize_state(state, sk);
+    return state;
+}
+
+inline fn __xmssmt_serialize_state_(
+    reg ptr u8[STATE_LEN] state,
+    reg ptr u8[XMSS_FAST_SK_BYTES] sk
+) -> reg ptr u8[STATE_LEN]
+{
+    state = state; sk = sk;
+
+    state = __xmssmt_serialize_state(state, sk);
+
+    state = state;
+
+    return state;
+}
+
+inline fn __xmss_serialize_state_(
+    reg ptr u8[STATE_LEN] state,
+    reg ptr u8[XMSS_FAST_SK_BYTES] sk
+) -> reg ptr u8[STATE_LEN]
+{
+    state = state; sk = sk;
+
+    state = __xmssmt_serialize_state_(state, sk);
+
+    state = state;
+
+    return state;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////// Deserialize
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// inline fn __xmssmt_deserialize_state(
+//     reg ptr u8[STATE_LEN * (2*XMSS_D - 1)] states, // Array of states
+// )
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////// Treehash Min Height on Stack
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __treehash_minheight_on_stack(
+    reg ptr u8[STATE_LEN] state,
+    reg ptr u8[TREEHASH_SIZE] treehash
+) -> reg u64/32
+{
+    reg u32 r;
+    reg u64 i stack_usage t;
+
+    r = XMSS_TREE_HEIGHT;
+
+
+    // stack_usage = treehash->stackusage
+
+    i=0;
+    while (i < limit) {
+        // t = state->stacklevels[state->stackoffset - i - 1];
+        if (t < r) { r = t; }
+        i += 1;
+    }
+
+    return r;
+}

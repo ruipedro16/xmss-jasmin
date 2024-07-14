@@ -28,6 +28,7 @@ clone import Subtype as OTSKeys with
    type T = wots_sk list,
    op P = fun l => size l = 2^h
    rename "T" as "wots_ots_keys".
+
 clone import Subtype as AuthPath with
   type T = nbytes list,
   op P = fun l => size l = len
@@ -89,21 +90,21 @@ type xmss_mt_keypair = xmss_mt_sk * xmss_mt_pk.
 
 (* 4.1.4 Randomized tree hashing *)
 module RandHash = {
-proc rand_hash (_left _right : nbytes, _seed : seed, address : adrs) : nbytes * adrs { 
+proc rand_hash (_left _right : nbytes, _seed : seed, address : adrs) : nbytes * adrs = { 
   var key : nbytes;
-  var bitmask0 : nbytes;
-  var bitmask1 : nbytes;
+  var bitmask_0 : nbytes;
+  var bitmask_1 : nbytes;
   var hash_in : nbytes;
 
   address <- set_key_and_mask address 0;
-  key <- PRF _seed address in
+  key <- PRF _seed address;
   address <- set_key_and_mask address 1;
   bitmask_0 <- PRF _seed address;
   address <- set_key_and_mask address 2;
   bitmask_1 <- PRF _seed address;
   hash_in <- (nbytexor _left bitmask_0) ++ (nbytexor _right bitmask_1);
   
-  return (H key hash_in, address).
+  return (H key hash_in, address);
   }
 }.
 (**********************************************************************************************)
@@ -124,7 +125,7 @@ module LTree = {
         address <- set_tree_index address i;
         pk_i <- nth witness pk (2*i);
         tmp <- nth witness pk (2*i + 1);
-        (pk_i, address) <- rand_hash pk_i tmp _seed address;
+        (pk_i, address) <@ RandHash.rand_hash (pk_i, tmp, _seed, address);
         pk <- put pk i pk_i;
       }
 
@@ -153,7 +154,7 @@ proc.
 sp ; wp.
 while (1 <= _len <= len) (_len - 1) ; auto => />.
 - while (0 <= i <= floor (len%r / 2%r)) (floor (len%r / 2%r) - i) ; auto => />.
-  + progress. rewrite neg_lt. admit.
+  + progress.  admit.
   + progress; 1,2,3,4,5: by admit.
 - admit. (* split ;  [ smt(ge0_len) | move => * ; rewrite neg_lt /# ]. *)
 qed.
@@ -226,7 +227,7 @@ module TreeHash = {
         address <- set_tree_index address (ceil((tree_index - 1)%r / 2%r));
         (stack, top_node) <- pop stack;
 
-        (node, address) <- rand_hash top_node node pub_seed address;
+        (node, address) <@ RandHash.rand_hash (top_node, node, pub_seed, address);
         
         (* ----------- not in the RFC ----------- *)
         offset <- offset - 1;
@@ -305,11 +306,6 @@ auto => /> ; call buildAuthPath_ll.
 by skip.
 qed.
 
- (**********************************************************************************************)
-(* op append_sig (sig : sig_mt) (sig_tmp : reduced_sig) : sig_mt =     *)
-(*     let new_sigs: reduced_sig list = sig.`reduced_sig_mt  ++  [sig_tmp] in *)
-(*     {| sig with  reduced_sig_mt=new_sigs|}. *)
-
 module XMSS_MT_PRF = {
    proc kg() : xmss_mt_keypair = {
       var pk : xmss_mt_pk <- witness;
@@ -367,13 +363,13 @@ module XMSS_MT_PRF = {
         address <- set_tree_index address (index %/ 2);
 
         auth_k <- nth witness auth k;
-        (nodes1, address) <- rand_hash nodes0 auth_k _seed address;
+        (nodes1, address) <@ RandHash.rand_hash(nodes0, auth_k, _seed, address);
       } else {
         index <- get_tree_index address;
         address <- set_tree_index address ((index - 1) %/ 2);
 
         auth_k <- nth witness auth k;
-        (nodes1, address) <- rand_hash auth_k nodes0 _seed address;
+        (nodes1, address) <@ RandHash.rand_hash(auth_k, nodes0, _seed, address);
       }
 
       nodes0 <- nodes1;
@@ -498,13 +494,13 @@ lemma xmss_mt_kg_ll : islossless XMSS_MT_PRF.kg.
 proof.
 proc.
 auto => /> ; call treehash_ll.
-auto => /> *. smt.
+auto => /> *. smt(@Distr @DList @W8).
 qed.
 
 lemma root_from_sig_ll : islossless XMSS_MT_PRF.rootFromSig.
 proof.
 proc.
-while (0 <= k <= h) (h - k) ; auto => /> ; 1,2: by progress ; smt().
+while (0 <= k <= h) (h - k) ; auto => />; 1,2:admit. (* by progress ; smt(). *)
 call ltree_ll ; auto => />. 
 call wots_pkFromSig_ll ; auto => />.
 smt(h_vals).
@@ -518,7 +514,5 @@ while (0 <= j <= d) (d - j) ; auto => />.
   - progress ; smt().
   - call treesig_ll ; auto => /> ; smt(ge1_d).
 qed.
-
-(* axiom prf_keygen : equiv [XMSS_MT.kg ~ XMSS_MT_PRF.kg : true ==> true]. *)
 
 

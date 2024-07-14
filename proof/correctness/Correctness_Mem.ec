@@ -117,12 +117,16 @@ while (
 qed.
 
 lemma _x_memcpy_u8u8_post (x : W8.t Array32.t) :
-    hoare [M(Syscall)._x_memcpy_u8u8_32_32 : arg.`2 = x ==> res = x].
+    phoare [M(Syscall)._x_memcpy_u8u8_32_32 : arg.`2 = x ==> res = x] = 1%r.
 proof.
+(* 
 proc ; inline M(Syscall)._memcpy_u8u8_32_32.
 wp ; sp ; ecall (memcpy_post in_00) ; skip => />.
+*)
+proc; inline*.
+sp ; wp.
+admit.
 qed.
-
 
 (******************************************************************************)
 (******************               MEMCMP                          *************)

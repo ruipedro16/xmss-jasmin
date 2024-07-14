@@ -1,0 +1,78 @@
+/*
+
+typedef struct{
+    unsigned char h;
+    unsigned long next_idx;
+    unsigned char stackusage;
+    unsigned char completed;
+    unsigned char *node;
+} treehash_inst;
+
+typedef struct {
+    unsigned char *stack;
+    unsigned int stackoffset;
+    unsigned char *stacklevels;
+    unsigned char *auth;
+    unsigned char *keep;
+    treehash_inst *treehash;
+    unsigned char *retain;
+    unsigned int next_leaf;
+} bds_state;
+
+*/
+
+inline fn __set_stack(
+    reg ptr u8[STATE_LEN] state,
+    reg ptr u8[(XMSS_TREE_HEIGHT + 1) * XMSS_N] _stack
+) -> reg ptr u8[STATE_LEN] state 
+{
+    state[0 : (XMSS_TREE_HEIGHT + 1) * XMSS_N] = _stack;
+    return state;
+}
+
+inline fn __get_stack(
+    reg ptr u8[(XMSS_TREE_HEIGHT + 1) * XMSS_N] _stack,
+    reg ptr u8[STATE_LEN] state
+) -> reg ptr u8[(XMSS_TREE_HEIGHT + 1) * XMSS_N] state 
+{
+    _stack  = state[0 : (XMSS_TREE_HEIGHT + 1) * XMSS_N]
+    return _stack;
+}
+
+inline fn __set_stack_offset(
+    reg ptr u8[STATE_LEN] state,
+    reg u32 stack_offset
+) -> reg ptr u8[STATE_LEN] state
+{
+    state.[u32 (XMSS_TREE_HEIGHT + 1) * XMSS_N] = stack_offset;
+    return state;
+}
+
+inline fn __get_stack_offset(
+    reg ptr u8[STATE_LEN] state,
+) -> reg u32
+{
+    reg u32 stack_offset;
+
+    stack_offset = state.[u32 (XMSS_TREE_HEIGHT + 1) * XMSS_N];
+    
+    return stack_offset;
+}
+
+
+inline fn __get_stack_usage(
+    reg ptr u8[TREEHASH_SIZE] treehash
+) -> reg u64
+{
+    reg u64 r;
+    r = 0;
+    return r;
+}
+
+inline fn __set_stack_usage(
+    reg ptr u8[TREEHASH_SIZE] treehash,
+    reg u64 stack_usage
+) -> reg ptr u8[TREEHASH_SIZE] treehash
+{
+    return treehash;
+}

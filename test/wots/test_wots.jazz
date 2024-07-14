@@ -49,7 +49,7 @@ export fn wots_pkgen_jazz(
     reg ptr u8[XMSS_N] pub_seed
 ) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8] 
 {
-    pk, addr = __wots_pkgen_(pk, seed, pub_seed, addr);
+    pk, addr = __wots_pkgen(pk, seed, pub_seed, addr);
     return pk, addr;
 } 
 

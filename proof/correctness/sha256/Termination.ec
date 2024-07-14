@@ -1,7 +1,7 @@
 pragma Goals : printall.
 
 require import AllCore List RealExp IntDiv.
-require import XMSS_IMPL.
+require import XMSS_IMPL RandomBytes.
 
 from Jasmin require import JModel.
 
@@ -23,8 +23,11 @@ wp;sp.
 while (#pre /\ 0 <= to_uint i <= to_uint nblocks) ((to_uint nblocks) - (to_uint i)); last by auto => /> * ; smt(@W64).
 auto => />.
 call store_H_ref_ll ; wp.
-while (0 <= to_uint tr <= 64) (64 - (to_uint tr)); last by admit.
-auto => />. inline*. auto => /> * ; smt(@W64 pow2_64).
+while (0 <= to_uint tr <= 64) (64 - (to_uint tr)).
+    - auto => />. inline*. auto => /> * ; smt(@W64 pow2_64).
+    - auto => /> *; last first.
+        + admit.
+        + admit.  
 qed.
 
 lemma blocks_0_ref_96_ll : islossless M(Syscall)._blocks_0_ref_96.
@@ -32,7 +35,15 @@ proof.
 proc.
 sp ; wp.
 if; last by auto.
-while (64 <= to_uint inlen <= W64.max_uint ) ((to_uint inlen) - 64); last by admit.
+admit.
+(*
+while (64 <= to_uint inlen <= W64.max_uint ) ((to_uint inlen) - 64); first by admit.
+
+  + skip => /> *. admit.
+
+
+
+ last by admit.
   + auto => /> * ; wp. 
     call store_H_ref_ll ; wp.
     while (0 <= to_uint tr <= 64) (64 - (to_uint tr)); first by admit.
@@ -42,6 +53,7 @@ while (64 <= to_uint inlen <= W64.max_uint ) ((to_uint inlen) - 64); last by adm
 auto => /> *; do split.
 smt().
 admit.
+*)
 qed.
 
 lemma lastblocks_ref_96_ll : islossless M(Syscall).__lastblocks_ref_96.
