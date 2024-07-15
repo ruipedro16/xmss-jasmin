@@ -36,7 +36,8 @@ inline fn __l_tree(
     while (l > 1) {
         // parent_nodes = l >> 1;
         parent_nodes = l;
-        ?{}, parent_nodes = #SHR(parent_nodes, 1);
+        // ?{}, parent_nodes = #SHR(parent_nodes, 1);
+        parent_nodes >>= (1 & 63);
 
         () = #spill(l);
 
@@ -88,11 +89,11 @@ inline fn __l_tree(
             () = #spill(wots_pk);
 
             // l = (l >> 1) + 1;
-            ?{}, l = #SHR(l, 1);
+            l >>= (1 & 63); // ?{}, l = #SHR(l, 1);
             l += 1;
         } else {
             // l = l >> 1;
-            ?{}, l = #SHR(l, 1);
+            l >>= (1 & 63); // ?{}, l = #SHR(l, 1);
         }
 
         // height++;
@@ -210,7 +211,7 @@ inline fn __compute_root(
         // set_tree_index(addr, leafidx);
         () = #unspill(leaf_idx);
 
-        ?{}, leaf_idx = #SHR_32(leaf_idx, 1);
+        leaf_idx >>= (1 & 31); // ?{}, leaf_idx = #SHR_32(leaf_idx, 1);
         addr = __set_tree_index(addr, leaf_idx);
 
         () = #spill(addr, leaf_idx);
@@ -249,7 +250,7 @@ inline fn __compute_root(
     addr = __set_tree_height(addr, XMSS_TREE_HEIGHT - 1);
 
     // leafidx >>= 1;
-    ?{}, leaf_idx = #SHR_32(leaf_idx, 1);
+    leaf_idx >>= (1 & 31); // ?{}, leaf_idx = #SHR_32(leaf_idx, 1);
 
     // set_tree_index(addr, leafidx);
     addr = __set_tree_index(addr, leaf_idx);
@@ -366,7 +367,8 @@ inline fn __gen_leaf_wots_(
 
 // Simplifies proof
 inline fn __set_result (
-    reg u64 are_equal m_ptr mlen_ptr sm_ptr,
+    reg u8 are_equal,
+    reg u64 m_ptr mlen_ptr sm_ptr,
     stack u64 sm_offset
 ) -> reg u64
 {
@@ -407,7 +409,7 @@ inline fn __xmssmt_core_sign_open(
     reg u32 idx_leaf;
     reg u64 idx idx_hash;
     reg u64 t64 offset_in offset_out bytes;
-    reg u64 are_equal;
+    reg u8 are_equal;
     reg u64 res;
 
     reg u32 i;

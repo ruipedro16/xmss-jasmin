@@ -5,7 +5,7 @@ require import AllCore List RealExp IntDiv.
 from Jasmin require import JModel.
 
 require import Array4 Array32 Array128 Array2144.
-require import RandomBytes XMSS_IMPL.
+require import RandomBytes XMSS_IMPL XMSS_IMPL_HOP1.
 require import Utils. (* valid_ptr predicate *)
 
 (******************************************************************************)
@@ -45,11 +45,11 @@ lemma memset_zero_post (x : W8.t Array4.t) :
 proof.
 proc.
 while (
-  0 <= to_uint i <= 4 /\ 
-  (forall (k : int), 0 <= k < to_uint i => (a.[k] = W8.zero))
+  0 <= to_uint i <= 4 /\   (forall (k : int), 0 <= k < to_uint i => (a.[k] = W8.zero))
 ); auto => /> *.
 - do split ; 1,2: by smt(@W64). move => ???. rewrite get_setE ; smt(@W64).
-- split; 1:smt(). move => *. smt.
+- split; 1:smt(). move => *. 
+smt.
 qed.
 
 lemma load_store  (mem : global_mem_t) (ptr : W64.t) (v : W8.t) :
@@ -121,6 +121,26 @@ while (* while invariante variante *)
       - smt(@W64).
       - rewrite tP. smt.
 qed.
+
+lemma _x_memcpy_u8u8_post_hop1 (x : W8.t Array32.t) :
+    phoare [M_Hop1(Syscall)._x_memcpy_u8u8_32_32 : arg.`2 = x ==> res = x] = 1%r.
+proof.
+proc ; inline*.
+wp ; sp.
+while (* while invariante variante *)
+(0 <= to_uint i <= 32 /\ (forall (k : int), 0 <= k < to_uint i => (out1.[k] = in_01.[k]))) 
+(32 - to_uint i).
+  + auto => /> &hr i *; do split.
+      - smt(@W64).
+      - smt(@W64 pow2_64).
+      - move => k *. rewrite get_setE; 1:smt(@W64). case (k = to_uint i{hr}).
+           * move => * /#. 
+           * move => *. smt.
+      - smt(@W64 pow2_64).
+  + skip => /> &hr *. split; 1:smt(). progress.
+      - smt(@W64).
+      - rewrite tP. smt.
+qed.
  
 
 
@@ -130,7 +150,7 @@ qed.
 
 lemma memcmp_true (x y : W8.t Array32.t) :
     x = y => 
-        hoare[M(Syscall).__memcmp : arg = (x, y) ==> res = W64.zero].
+        hoare[M(Syscall).__memcmp : arg = (x, y) ==> res = W8.zero].
 proof.
 move => xy_eq.
 proc ; auto => /> *.
@@ -171,30 +191,21 @@ lemma and_neq (w0 : W8.t) : w0 <> W8.zero => ! (AND_8 w0 w0).`5
 
 lemma memcmp_false (x y : W8.t Array32.t) :
     x <> y => 
-        hoare[M(Syscall).__memcmp : arg = (x, y) ==> res = W64.of_int (-1)].
+        hoare[M(Syscall).__memcmp : arg = (x, y) ==> res <> W8.zero].
 proof.
 move => xy_neq.
 proc.
-seq 6: (!zf /\ r = W64.of_int (-1)) ; last by auto => />.
-
-wp ; sp.
 while (
-  r = W64.of_int (-1) /\
   0 <= to_uint i <= 32 /\ 
-  a <> b /\
-  acc = W8.zero <=> (forall (k : int), 0 <= k < to_uint i => (a.[k] = b.[k]))
-); last first.
-    + skip => />. split; 1:smt(). progress.
-      have E: acc0 <> W8.zero by admit.
-      smt(and_t).
-auto => /> &hr *.
-progress.
-    + admit.
-    + admit.
-    + smt(@W64).
-    + smt(@W64 @IntDiv pow2_64).
-    + admit.
-    + admit.
+  (acc = W8.zero => (forall (k : int), 0 <= k < to_uint i => (a.[k] = b.[k]))) /\
+  ((forall (k : int), 0 <= k < to_uint i => (a.[k] = b.[k])) => acc = W8.zero)
+).
+    + auto => /> &hr *; do split.
+        - smt(@W64).
+        - smt(@W64).
+        - move => *. admit.
+        - move => *. admit.
+    + auto => /> *. split; 1:smt(). move => acc ???? H0 H1. admit.
 qed.
 
 (* INLEN = 32 /\ OUTLEN = 2144 *)

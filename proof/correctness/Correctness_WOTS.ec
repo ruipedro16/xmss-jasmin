@@ -9,7 +9,20 @@ require import RandomBytes XMSS_IMPL XMSS_IMPL_HOP1.
 require import Array2 Array3 Array8 Array32 Array67 Array2144.
 
 require import Utils. (* valid ptr predicate *)
+require import Correctness_Mem. (* memcpy results *)
+(*---*) import NBytes.
+
+type adrs = W32.t Array8.t.
+
 (* require import Correctness_Hash. *)
+
+
+lemma addr_to_bytes_post (x : W32.t Array8.t) :
+    hoare [M_Hop1(Syscall).__addr_to_bytes : arg.`2 = x ==> to_list res = toByte (W32.of_int 1) 32].
+proof.
+proc.
+admit.
+qed.
 
 lemma base_w_correctness_67 ( _in_ : W8.t Array32.t) :
     floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
@@ -177,26 +190,20 @@ while (
       by rewrite !to_uint_zeroextu64 to_uintD_small /= /#.
 qed.
 
-
-
-
-
 (************************************************************************************)
 
-
-
-
+(*
 
 op decode_wots_sk (sk_spec : wots_sk) : W8.t Array2144.t =
   Array2144.of_list witness (flatten sk_spec).
 
-(* Preciso do Encode / Decode do PRF *)
-(* Preciso do Encode / Decode do PRF_KEYGEN *)
+pred first_nth_equal (a : W8.t Array2144.t) (b : W8.t list) (n : int) =
+take n (to_list a) = take n b.
 
 lemma expand_seed_correct (_in_seed : W8.t Array32.t,
                            _pub_seed : W8.t Array32.t, _addr : W32.t Array8.t):
     len = XMSS_WOTS_LEN =>
-    equiv [Mp(Syscall).__expand_seed ~ WOTS.pseudorandom_genSK :
+    equiv [M_Hop1(Syscall).__expand_seed ~ WOTS.pseudorandom_genSK :
       arg{1}.`2 = _in_seed /\ 
       arg{1}.`3 = _pub_seed /\
       arg{1}.`4 = _addr /\
@@ -214,24 +221,116 @@ seq 2 2 : (
   addr{1} = address{2} /\ 
   seed{2} = to_list _pub_seed
 ).
-  + inline. auto => />.
-seq 2 0 : (#pre /\ aux{1} = pub_seed{1}).
-    + admit.
+  + inline; auto => />.
+seq 1 0 : (#pre /\ aux{1} = pub_seed{1}).
+    + ecall {1} (_x_memcpy_u8u8_post_hop1 pub_seed{1}); auto => />.
 while (
   len{2} = 67 /\
-  ={i} /\ addr{1} = address{2} /\
-  sk_i{2} = to_list ith_seed{1} (* /\
-  out are equal on both side up to the ith seed 
-  *)
-).
-(* First subgoal of while *)
-    + seq 1 1 : (#pre); 1:inline;auto => />.
-      admit.
-(* Second subgoal of while *)
-    + auto => /> &1 &2 *; do split;2:smt().
+  ={i} /\ 0 <= i{1} <= 67 /\
+  addr{1} = address{2} /\
+  seed{2} = to_list _pub_seed /\
+  first_nth_equal outseeds{1}(flatten sk{2}) (i{1} * 32) (* Same as i*N *)
+); last first.
+    + auto => /> &1 &2 *. do split.
       * admit.
-      * move => *. admit.
+      * by rewrite len_val.
+      * move => *. rewrite /decode_wots_sk. admit.
+    + seq 1 1 : (#pre); 1:inline;auto.
+      * auto => />. admit.
+      (* auto => /> &1 &2 *; do split; 1,2,4,5:smt(). admit. *)
 qed.
+*)
+
+(*---*) import NBytes.
+
+op address_to_bytes (x : adrs) : W8.t list. (* TODO: Specify this and prove equivalence *)
+
+lemma addr_to_bytes__post (x : W32.t Array8.t) :
+    phoare[M_Hop1(Syscall).__addr_to_bytes : arg.`2 = x ==> to_list res = address_to_bytes x] = 1%r.
+proof.
+proc.
+admit.
+qed.
+
+module HopA = {
+  proc pseudorandom_genSK(sk_seed : nbytes, seed : nbytes, address : adrs) : W8.t list * adrs= {
+    var sk : W8.t list <- nseq 2144 witness;
+    var sk_i : nbytes;
+    var key : nbytes;
+    var i : int;
+    
+    address <- set_hash_addr address 0;
+    address <- set_key_and_mask address 0;
+
+    i <- 0;
+    while (i < len) {
+      address <- set_chain_addr address i;
+      key <- address_to_bytes address;
+      sk_i <- PRF_KEYGEN sk_seed address key;
+      sk <- mkseq (fun i_0 => if 32 <= i_0 < 32 + 32 then nth witness sk_i i_0 else nth witness sk i_0) 2144;
+      i <- i + 1;
+    }
+
+    return (sk, address);
+  }
+}.
+
+lemma expand_seed_correct_hopA (_in_seed : W8.t Array32.t,
+                           _pub_seed : W8.t Array32.t, _addr : W32.t Array8.t):
+    len = XMSS_WOTS_LEN =>
+    equiv [M_Hop1(Syscall).__expand_seed ~ HopA.pseudorandom_genSK :
+      arg{1}.`2 = _in_seed /\ 
+      arg{1}.`3 = _pub_seed /\
+      arg{1}.`4 = _addr /\
+      arg{2} = (to_list _in_seed, to_list _pub_seed, _addr) ==>
+      res{2}.`1 = to_list res{1}.`1 /\ 
+      res{2}.`2 = res{1}.`2].
+proof.
+rewrite /XMSS_WOTS_LEN => len_val.
+proc.
+seq 2 1 : (#pre); 1:auto => />.
+seq 2 2 : (
+  seed{2} = to_list pub_seed{1} /\
+  sk_seed{2} = to_list inseed{1} /\
+  address{2} = addr{1}
+); 1:inline; auto => />; rewrite /set_hash_addr /set_key_and_mask. 
+seq 1 0 : (#pre /\ aux{1} = pub_seed{1}).
+    + ecall {1} (_x_memcpy_u8u8_post_hop1 pub_seed{1}); auto => />.
+while (
+  len{2} = 67 /\
+  ={i} /\ 0 <= i{1} <= 67 /\
+  addr{1} = address{2} /\
+  seed{2} = to_list pub_seed{1} /\
+  (forall (k : int), 0 <= k < i{2} * 32 => (nth witness sk{2} k) = outseeds{1}.[k])
+). (* 2144 = 67 * 32 = len1 * n *)
+(* First subgoal of while *)
+    + auto => />. move => &1 &2 *; do split.
+        * smt().
+        * smt().
+        * smt().
+        * smt().
+        * smt().
+        * smt().
+        * auto => /> k *. rewrite nth_mkseq 1:/#. auto => />. case (32 <= k && k < 64).
+             - move => *. admit. (* Need lemma about PRF_KEYGEN *)
+             - move => *. admit.
+        * smt().
+        * smt().
+        * inline M_Hop1(Syscall).__set_chain_addr. sp.
+          seq 1 1 : (#pre /\ to_list aux{1} = address_to_bytes addr{1}).
+             + ecall {1} (addr_to_bytes__post addr{1}); auto => />.
+          skip => /> &1 &2 *. do split.
+             + smt().
+             + smt().
+             + move => *. rewrite nth_mkseq 1:/#. admit.
+             + smt().
+             + smt().
+(* Second subgoal of while *)
+    + auto => /> &1 &2 *. do split. smt(). smt().
+      move => out_L i out_R ?? _ ?? k. 
+      admit.
+qed.
+
 
 op load_mem_w8_array32 (mem : global_mem_t) (ptr : W64.t) : W8.t Array32.t = 
   Array32.init (fun i => loadW8 mem (to_uint ptr + i)).
@@ -239,57 +338,27 @@ op load_mem_w8_array32 (mem : global_mem_t) (ptr : W64.t) : W8.t Array32.t =
 op load_mem_w8_list32 (mem : global_mem_t) (ptr : W64.t) : W8.t list =
   mkseq (fun i => loadW8 mem (to_uint ptr + i)) 32.
 
-lemma gen_chain_correct mem (_out_ : W8.t Array32.t, _in_ptr_ : W64.t, _start_ _steps_ :W32.t, 
-                             _pub_seed_ :W8.t Array32.t, _addr_ : W32.t Array8.t) :
-    len = XMSS_WOTS_LEN /\ w = XMSS_WOTS_W => 
-      equiv [M(Syscall).__gen_chain ~ Chain.chain :
-       arg{1} = (_out_, _in_ptr_, _start_, _steps_, _pub_seed_, _addr_) /\
-       arg{2} = (load_mem_w8_list32 mem _in_ptr_, 
-                 to_uint _start_, to_uint _steps_, to_list _pub_seed_, _addr_) /\ 
-       0 <= to_uint _start_ <= XMSS_WOTS_W - 1 /\ 
-       0 <= to_uint _steps_ <= XMSS_WOTS_W - 1 /\ 
-       0 <= to_uint (_start_ + _steps_) <= XMSS_WOTS_W - 1 /\
-       valid_ptr _in_ptr_ (W64.of_int 32) ==> 
-          res{2}.`1 = to_list res{1}.`1 /\ res{1}.`2 = res{2}.`2].
-proof.
-rewrite /XMSS_WOTS_LEN /XMSS_WOTS_W; move => [len_val w_val].
-proc.
-auto => />.
-seq {1} 1 0 : (out{1} = load_mem_w8_array32 mem in_ptr{1}).
-  + admit.
-while (
-  #pre /\
-  0 <= to_uint i{1} <= to_uint t{1} /\ chain_count{2} = to_uint i{1} /\
-  t{1} = start{1} + steps{1} /\
-  addr{1} = address{2} /\
-  t{2} = to_list out{1}
-) ; auto => /> ; last first.
-- progress.
-    + smt(@W32).
-    + rewrite to_uintD. admit. (* smt(@W32). *)
-    + admit.
-    + admit.
-    + admit.
-    + admit.
-    + rewrite ultE to_uintD. admit.
-admit.
-(*
-- call (thash_f_correct out{1} addr{1}). (* out = t /\ addr = address *)
-  call set_hash_addr_correct i.
-*)
-qed.
-
-lemma gen_chain_inplace_correct (_steps_ : W32.t, _addr_ : W32.t Array8.t, _pub_seed_ : W8.t Array32.t, r : W8.t Array32.t) :
+lemma gen_chain_inplace_correct (buf : W8.t Array32.t, _start_ _steps_ : W32.t, _addr_ : W32.t Array8.t, _pub_seed_ : W8.t Array32.t) :
     w = XMSS_WOTS_W /\ len = XMSS_WOTS_LEN =>
-    equiv [Mp(Syscall).__gen_chain_inplace ~ Chain.chain : 
-      arg{1} = (r, _steps_, _pub_seed_, _addr_) /\
-      arg{2} = (to_list r, 0, to_uint _steps_, to_list _pub_seed_, _addr_) /\
-      0 <= to_uint _steps_ <= XMSS_WOTS_W - 1  ==> 
+    equiv [M_Hop1(Syscall).__gen_chain_inplace ~ Chain.chain : 
+      arg{1}= (buf, _start_, _steps_, _pub_seed_, _addr_) /\
+      arg{2} = (to_list buf, to_uint _start_, to_uint _steps_, to_list _pub_seed_, _addr_) /\
+      0 <= to_uint _start_ /\
+      0 <= to_uint _steps_ /\
+      0 <= to_uint (_start_ + _steps_) <= XMSS_WOTS_W - 1  ==> 
         res{2}.`1 = to_list res{1}.`1 /\ res{1}.`2 = res{2}.`2].
 proof.
-rewrite /XMSS_WOTS_W /XMSS_WOTS_LEN.
-move => [w_val len_val].
+rewrite /XMSS_WOTS_W /XMSS_WOTS_LEN; move => [w_val len_val].
 proc; auto => />.
+while (
+  0 <= to_uint _start_ /\
+  0 <= to_uint _steps_ /\
+  0 <= to_uint (_start_ + _steps_) && to_uint (_start_ + _steps_) <= 15 /\
+  start{2} = to_uint start{1} /\ t{2} = to_list out{1}
+).
+
+
+
 while(
   #pre /\
   _seed{2} = to_list pub_seed{1} /\

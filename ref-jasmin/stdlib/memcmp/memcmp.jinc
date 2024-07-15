@@ -1,14 +1,9 @@
 // Returns 0 if a and b are equal
 // Returns -1 otherwise
-inline fn __memcmp(reg ptr u8[XMSS_N] a b) -> reg u64 {
-    reg u64 i r;
-    reg u64 are_equal;
+inline fn __memcmp(reg ptr u8[XMSS_N] a b) -> reg u8 {
+    reg u64 i;
     reg u8 t acc;
-    reg bool zf;
 
-    r = -1;
-
-    are_equal = 0;
     acc = 0;
   
     i = 0;
@@ -19,8 +14,5 @@ inline fn __memcmp(reg ptr u8[XMSS_N] a b) -> reg u64 {
         i += 1;
     }
 
-    ?{ zf }, _ = #AND_8(acc, acc);
-    r = are_equal if zf;
-
-    return r;
+    return acc;
 }
