@@ -25,6 +25,8 @@ export fn memset_u8_jazz<INLEN>(reg ptr u8[INLEN] a, reg u8 value) -> reg ptr u8
 
 export fn memcmp_jazz(reg ptr u8[XMSS_N] a b) -> reg u64 {
     reg u64 r;
-    r = __memcmp(a, b);
+    reg u8 t;
+    t = __memcmp(a, b);
+    r = (64u) t;
     return r;
 }

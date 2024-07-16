@@ -115,7 +115,7 @@ void test_memcmp(void) {
 
         res = memcmp_jazz(a, b);
 
-        assert((memcmp(a, b, p.n * sizeof(uint8_t)) == 0) ? (res == 0) : (res == -1));
+        assert((memcmp(a, b, p.n * sizeof(uint8_t)) == 0) ? (res == 0) : (res != 0));
     }
 
     // a and b are equal
@@ -129,7 +129,7 @@ void test_memcmp(void) {
 
         res = memcmp_jazz(a, b);
 
-        assert((memcmp(a, b, p.n * sizeof(uint8_t)) == 0) ? (res == 0) : (res == -1));
+        assert((memcmp(a, b, p.n * sizeof(uint8_t)) == 0) ? (res == 0) : (res != 0));
         assert(res == 0);
     }
 
@@ -146,8 +146,7 @@ void test_memcmp(void) {
 
         res = memcmp_jazz(a, b);
 
-        assert((memcmp(a, b, p.n * sizeof(uint8_t)) == 0) ? (res == 0) : (res == -1));
-        assert(res == -1);
+        assert((memcmp(a, b, p.n * sizeof(uint8_t)) == 0) ? (res == 0) : (res != 0));
     }
 }
 

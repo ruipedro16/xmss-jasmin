@@ -488,7 +488,7 @@ inline fn __xmssmt_core_sign_open(
         idx_leaf &= idx;   
 
         // idx = idx >> params->tree_height;
-        ?{}, idx = #SHR_64(idx,  XMSS_TREE_HEIGHT); // This doesnt work
+        idx >>= (XMSS_TREE_HEIGHT & 63); // ?{}, idx = #SHR_64(idx,  XMSS_TREE_HEIGHT);
         () = #spill(idx, idx_leaf);
 
         // set_layer_addr(ots_addr, i);

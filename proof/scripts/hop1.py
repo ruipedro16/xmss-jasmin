@@ -130,7 +130,7 @@ op Hash_ptr : W64.t -> W64.t -> W8.t Array32.t.
 
 op _PRF_ : W8.t Array32.t -> W8.t Array32.t -> W8.t Array32.t -> W8.t Array32.t.
 
-op _PRF_KEYGEN_ : W8.t list -> W8.t list -> W8.t list.
+op _PRF_KEYGEN_ : W8.t Array64.t -> W8.t Array32.t -> W8.t Array32.t.
 """
 
     t = text.rfind("module")
@@ -252,8 +252,7 @@ def replace_calls(text: str) -> str:
 
     text = text.replace('ith_seed <@ __prf_keygen_ (ith_seed, buf, inseed);', 
 '''
-    aux_list <- _PRF_KEYGEN_ (to_list buf) (to_list inseed);
-    ith_seed <- Array32.of_list witness aux_list;
+    ith_seed <- _PRF_KEYGEN_ buf inseed;
 ''')
 
     text = text.replace('buf <@ __prf_ (buf, idx_bytes, sk_prf);', 'buf <- _PRF_ buf idx_bytes sk_prf;')

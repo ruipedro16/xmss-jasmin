@@ -36,6 +36,8 @@ inline fn __treehash_array(
     stack u8[XMSS_N] buf;
     stack u8[2 * XMSS_N] buf2;
 
+    u = 0; // dummy value to simplify proof
+
     // unsigned int offset = 0;
     offset = 0;
 
@@ -345,6 +347,8 @@ inline fn __xmssmt_core_sign(
     reg u64 res;
 
     () = #spill(mlen, sk);
+
+    exit = 0;
 
     // uint32_t ots_addr[8] = {0};
     ots_addr = __zero_address_(ots_addr);

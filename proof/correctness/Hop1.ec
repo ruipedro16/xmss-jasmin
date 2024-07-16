@@ -46,10 +46,9 @@ op encode_prf (in_0  key : W8.t Array32.t) : W8.t Array96.t =
 op encode_prf_keygen (in_0 : W8.t Array64.t, key : W8.t Array32.t) : W8.t Array128.t =
   Array128.of_list witness (prf_keygen_padding_bytes ++ to_list in_0 ++ to_list key).
 
-lemma prf_keygen_hop1 (out : W8.t Array32.t, _in : W8.t Array64.t, key : W8.t Array32.t) :
+lemma prf_keygen_hop1 (_in: W8.t Array64.t, key : W8.t Array32.t) :
     phoare[M(Syscall).__prf_keygen_ : 
-      arg=(out, _in, key) ==> 
-        to_list res = _PRF_KEYGEN_ (to_list _in) (to_list key)] = 1%r.
+      arg.`2=_in /\ arg.`3=key ==> res = _PRF_KEYGEN_  _in key] = 1%r.
 proof.
 proc.
 inline M(Syscall)._prf_keygen M(Syscall).__prf_keygen.
@@ -100,12 +99,12 @@ proof. proc ; inline ; sim. qed.
 
 lemma _x_memcpy_u8pu8_4_hop1 :
     equiv [M(Syscall)._x_memcpy_u8pu8_4 ~ M_Hop1(Syscall)._x_memcpy_u8pu8_4 :
-      ={arg,Glob.mem} ==> ={res}].
+      ={arg,Glob.mem} ==> ={res, Glob.mem}].
 proof. proc; inline*; sim. qed.
 
 lemma _x_memcpy_u8pu8_32_hop1 :
     equiv [M(Syscall)._x_memcpy_u8pu8_32 ~ M_Hop1(Syscall)._x_memcpy_u8pu8_32 :
-      ={arg,Glob.mem} ==> ={res}].
+      ={arg,Glob.mem} ==> ={res, Glob.mem}].
 proof. proc; inline*; sim. qed.
 
 
@@ -144,6 +143,14 @@ lemma ull_to_bytes_32_hop1 :
 proof.
 proc ; sim => />.
 qed.
+
+lemma ull_to_bytes_4_hop1 :
+    equiv [M(Syscall).__ull_to_bytes_4 ~ M_Hop1(Syscall).__ull_to_bytes_4 :
+      ={arg} ==> ={res}].
+proof.
+proc ; sim => />.
+qed.
+
 
 lemma addr_to_bytes_hop1 :
     equiv [M(Syscall).__addr_to_bytes ~ M_Hop1(Syscall).__addr_to_bytes : ={arg} ==> ={res}].  
@@ -231,7 +238,7 @@ qed.
 
 lemma hash_message_hop1 : 
     equiv[M(Syscall).__hash_message ~ M_Hop1(Syscall).__hash_message :
-        ={arg, Glob.mem} ==> ={res}].
+        ={arg, Glob.mem} ==> ={res, Glob.mem}].
 proof.
 proc.
 seq 2 2 : (={Glob.mem, mhash, r, root, idx, m_with_prefix_ptr, mlen, buf, buf_n}); 1:auto.
@@ -254,18 +261,14 @@ seq 1 1 : (#pre /\ ={aux}); 1:call (_x_memcpy_u8u8_32_32_hop1);auto.
 seq 1 1 : (#pre /\ ={buf}); 1:auto.
 while (
   0 <= i{1} <= 67 /\ 
-  ={i, ith_seed, addr, outseeds, buf}
+  ={i, ith_seed, addr, outseeds, buf, inseed}
 ); last by auto => />.
-seq 1 1 : (#pre); 1:inline;auto.
-seq 1 1 : (#pre); 1:call addr_to_bytes_hop1;auto => />.
+seq 4 4 : (#pre); last first.
+    + seq 1 1 : (#pre /\ ={ith_seed, inseed}); last by auto => /> /#.
+      ecall {1} (prf_keygen_hop1 buf{1} inseed{1}); auto => />.
+seq 1 1 : (#pre); 1:inline;auto=>/>.
+call addr_to_bytes_hop1.
 auto => />.
-ecall {1} (prf_keygen_hop1 ith_seed{1} buf{1} inseed{1}).
-auto => /> &1 &2 *. do split.
-smt().
-smt().
-admit.
-admit.
-admit.
 qed.
 
 lemma base_w_3_2_hop1 :
@@ -406,117 +409,63 @@ seq 1 1 : (#post);last first. (* isto isola o while [que vai ser o segundo subgo
   + call _x_memcpy_u8u8_32_32_hop1; auto =>/>.
 while (
   ={buf0, buf1, l, height, leaf, wots_pk, pub_seed, addr, Glob.mem}
-); last first.
-    + skip => /> *. 
-    + seq 2 2 : (#pre /\ ={parent_nodes}); 1:auto.
-      seq 2 2 : (={buf0, buf1, l, height, leaf, wots_pk, pub_seed, addr, Glob.mem}). (* Isto isola o primeiro while *)
-        * while (#pre /\ ={i}); last by auto => />.
-          seq 1 1 : (#pre /\ ={tree_index}); 1:auto=>/>.
-          seq 1 1 : (#pre); 1:inline;auto=>/>.
-          seq 2 2 : (#pre /\ ={offset_in, bytes}); 1:auto=>/>.
-          seq 1 1 : (#pre /\ ={buf0}); 1:call memcpy_u8u8_2_1_hop1; auto => />.
-          seq 3 3 : (#pre /\ ={bytes}); 1:auto => />.
-          seq 1 1 : (#pre /\ ={buf1}); 1:call memcpy_u8u8_2_2_hop1; auto => />.
-          seq 1 1 : (#pre); 1:call _thash_h_hop1; auto => />.
-          seq 1 1 : (#pre /\ ={offset_out}); 1:auto => />.
-          call memcpy_offset_hop1. auto => />.
-        * seq 2 2 : (#pre /\ ={t}); 1:auto=> />.
-          if; first by auto => />.
-              (* first subgoal of if *)
-              - seq 6 6 : (#pre /\ ={offset_out, offset_in}); 1:auto=> />.
-                seq 2 2 : (#pre). (* isto isola o while *)
-                    * while (={j, wots_pk, offset_in, offset_out}); last by auto => />. auto => />.
-                    * seq 3 3 : (#pre); 1:auto => />.
-                      inline; auto => />.
-              (* second subgoal of if *) 
-              - seq 2 2 : (#pre); 1: auto => /> *. 
-                inline ; auto => />.
+); last by auto => />. 
+seq 2 2 : (#pre /\ ={parent_nodes}); 1:auto.
+seq 2 2 : (={buf0, buf1, l, height, leaf, wots_pk, pub_seed, addr, Glob.mem}). (* Isto isola o primeiro while *)
+    + while (#pre /\ ={i}); last by auto => />.
+      seq 1 1 : (#pre /\ ={tree_index}); 1:auto=>/>.
+      seq 1 1 : (#pre); 1:inline;auto=>/>.
+      seq 2 2 : (#pre /\ ={offset_in, bytes}); 1:auto=>/>.
+      seq 1 1 : (#pre /\ ={buf0}); 1:call memcpy_u8u8_2_1_hop1; auto => />.
+      seq 3 3 : (#pre /\ ={bytes}); 1:auto => />.
+      seq 1 1 : (#pre /\ ={buf1}); 1:call memcpy_u8u8_2_2_hop1; auto => />.
+      seq 1 1 : (#pre); 1:call _thash_h_hop1; auto => />.
+      seq 1 1 : (#pre /\ ={offset_out}); 1:auto => />.
+      call memcpy_offset_hop1. auto => />.
+    + seq 2 2 : (#pre /\ ={t}); 1:auto=> />.
+      if; first by auto => />.
+          (* first subgoal of if *)
+          - seq 6 6 : (#pre /\ ={offset_out, offset_in}); 1:auto=> />.
+            seq 2 2 : (#pre). (* isto isola o while *)
+               * while (={j, wots_pk, offset_in, offset_out}); last by auto => />. auto => />.
+            seq 3 3 : (#pre); 1:auto => />.
+            inline; auto => />.
+          (* second subgoal of if *) 
+          - seq 2 2 : (#pre); 1: auto => /> *. 
+            inline ; auto => />.
 qed.
 
 lemma compute_root_hop1 :
   equiv [M(Syscall).__compute_root ~ M_Hop1(Syscall).__compute_root :
-      ={arg,Glob.mem} ==> ={res}].
+      ={arg,Glob.mem} ==> ={res, Glob.mem}].
 proof.
 proc.
-(*
-seq 5 5 : (={root, leaf, leaf_idx, _auth_path_ptr, pub_seed, addr, buffer, thash_in, auth_path_ptr, t32, Glob.mem}).
-  + auto.
-if; first by auto.
-  + seq 1 1 : (#pre /\ ={aux}); 1:call _x_memcpy_u8u8_32_32_hop1; auto => />.
-    seq 1 1 : (#pre); 1:auto => />.
-    seq 1 1 : (#pre); 1:call _x_memcpy_u8u8p_hop1; auto => />.
-    seq 2 2 : (#pre); 1:auto => />.
-    seq 1 1 : (#pre /\ ={i}); 1:auto.
-    seq 1 1 : (#pre /\ ={i}); 1:auto. (* isolates the while loop *)
-      * while ( (* This subgoal corresponds to the while loop *)
-          #pre
-        ).
-          (* first subgoal of while *)
-          + seq 1 1 : (#pre /\ ={tree_height}); 1:auto.
-            seq 3 3 : (#pre); 1:inline;auto=> />.
-            seq 3 3 : (#pre). (* isolates the if *)
-                - seq 2 2 : (={root, leaf, leaf_idx, _auth_path_ptr, pub_seed, addr, buffer, 
-                               thash_in, auth_path_ptr, t32, Glob.mem, t32, aux, i, tree_height} /\
-                               (i{1} \ult (of_int 9)%W64) /\ (i{2} \ult (of_int 9)%W64)); 1:auto => />.
-                  if; 1:auto => />.
-                     (* First subgoal of if *)
-                     * seq 1 1 : (#pre); 1:auto => />.
-                       seq 1 1 : (#pre /\ ={aux, aux_0}); 1:call _thash_h_hop1; auto => />.
-                       seq 2 2 : (#pre); 1:auto => />.
-                       call _x_memcpy_u8u8p_hop1. auto => />.
-                     (* Second subgoal of if : We have that t32 = W32.zero*)
-                     * seq 1 1 : (#pre /\ t32{1}=W32.zero); 1:auto => />.
-                       seq 1 1 : (#pre /\ ={aux, aux_0}).
-                          - call _thash_h_hop1; auto => />.
-                       seq 2 2 : (#pre); 1:auto => />.
-                       seq 1 1 : (#pre); 1:call _x_memcpy_u8u8p_hop1; auto => />.
-                       auto => /> &1 &2 *.  admit. (* FIXME *)
-                - skip => />.
-          (* last subgoal of while *)
-          + skip => />.
-      * seq 1 1 : (#pre); 1:inline;auto => />.
-        seq 1 1 : (#pre); 1:auto.
-        seq 1 1 : (#pre); 1:inline;auto=>/>.
-        call _thash_h_hop1. auto => />.      
-  + seq 1 1 : (#pre); 1:call _x_memcpy_u8u8_64_32_hop1; auto => />.
-    seq 1 1 : (#pre /\ ={aux}); 1:call _x_memcpy_u8u8p_hop1; auto => />.
-    seq 1 1 : (#pre); 1:auto => />.
-    seq 1 1 : (#pre /\ ={auth_path_ptr}); 1:auto => />.
-    seq 1 1 : (#pre /\ ={i}); 1:auto.
-    seq 1 1 : (#pre). (* isolates the while loop *)
-      * while ( (* This subgoal corresponds to the while loop *)
-          #pre
-        ).
-          (* first subgoal of while *)
-          + seq 1 1 : (#pre /\ ={tree_height}); 1:auto.
-            seq 3 3 : (#pre); 1:inline;auto=> />.
-            seq 3 3 : (#pre). (* isolates the if *)
-                - seq 2 2 : (={root, leaf, leaf_idx, _auth_path_ptr, pub_seed, addr, buffer, 
-                               thash_in, auth_path_ptr, t32, Glob.mem, t32, aux, i, tree_height} /\
-                               (i{1} \ult (of_int 9)%W64) /\ (i{2} \ult (of_int 9)%W64)); 1:auto => />.
-                  if; 1:auto => />.
-                     (* First subgoal of if *)
-                     * seq 1 1 : (#pre); 1:auto => />.
-                       seq 1 1 : (#pre /\ ={aux, aux_0}).
-                           + call _thash_h_hop1; auto => />.
-                       seq 2 2 : (#pre); 1:auto => />.
-                       seq 1 1 : (#pre). 
-                           + call _x_memcpy_u8u8p_hop1. auto => />.
-                       auto => /> *. admit.
-                     (* Second subgoal of if : We have that t32 = W32.zero*)
-                     * seq 1 1 : (#pre /\ t32{1}=W32.zero); 1:auto => />.
-                       seq 1 1 : (#pre /\ ={aux, aux_0}).
-                          - call _thash_h_hop1; auto => />.
-                       seq 2 2 : (#pre); 1:auto => />.
-                       seq 1 1 : (#pre); 1:call _x_memcpy_u8u8p_hop1; auto => />.
-                       auto => /> &1 &2 *.  admit. (* FIXME *)
-                - skip => />.
-          (* last subgoal of while *)
-          + skip => />.
-      * admit. (* This subgoal corresponds to the while loop *)
-      * seq 1 1 : (#pre); 1:inline;auto => />.
-        seq 1 1 : (#pre); 1:auto.
-        seq 1 1 : (#pre); 1:inline;auto=>/>.
+seq 5 5 : (={root, leaf, leaf_idx, _auth_path_ptr, pub_seed, addr, buffer, thash_in, auth_path_ptr, t32, Glob.mem}); 1:auto=>/>.
+seq 1 1 : (#pre /\ ={buffer, aux}). (* Isola o primeiro if *)
+  + if; first by auto => />.
+      (* Second subgoal of if *)
+       seq 1 1 : (#pre /\ ={aux}); 1:call _x_memcpy_u8u8_32_32_hop1; auto => />.
+       seq 1 1 : (#pre); 1:auto => />.
+       call _x_memcpy_u8u8p_hop1. auto => />.
+      (* Last subgoal of if *)
+      - seq 1 1 : (#pre); 1:call _x_memcpy_u8u8_64_32_hop1; auto => />.
+        seq 1 1 : (#pre /\ ={aux}); 1:call _x_memcpy_u8u8p_hop1; auto => />.
+  + seq 1 1 : (#pre); 1:auto => />.
+    seq 2 2 : (#pre). (* Isola o while *)
+      - while (#pre /\ ={i}); last by auto => />.
+        seq 1 1 : (#pre /\ ={tree_height}); 1:auto.
+        seq 5 5 : (#pre); 1:inline;auto=>/>.
+        if; first by auto => />. 
+            * seq 1 1 : (#pre); 1:auto.
+              seq 1 1 : (#pre /\ ={aux, aux_0}); 1:call _thash_h_hop1; auto => />.
+              seq 2 2 : (#pre); 1:auto.
+              call _x_memcpy_u8u8p_hop1. auto => />.
+            (* Last subgoal of if *)
+            * seq 1 1 : (#pre); 1:auto.
+              seq 1 1 : (#pre /\ ={aux, aux_0}); 1:call _thash_h_hop1; auto => />.
+              seq 2 2 : (#pre); 1:auto.
+              call _x_memcpy_u8u8p_hop1. auto => />.
+      - seq 3 3 : (#pre); 1:inline; auto => />.
         call _thash_h_hop1. auto => />.
 qed.
 
@@ -532,8 +481,18 @@ seq 1 1 : (#pre).
            M_Hop1(Syscall).__l_tree_ M_Hop1(Syscall)._l_tree. wp ; sp.
     call ltree_hop1;auto.
 auto.
-*)
-admit.
+qed.
+
+lemma gen_leaf_wots__hop1 :
+    equiv[M(Syscall).__gen_leaf_wots_ ~ M_Hop1(Syscall).__gen_leaf_wots_ :
+      ={arg,Glob.mem} ==> ={res}].
+proof.
+proc.
+inline M(Syscall).__gen_leaf_wots_ M_Hop1(Syscall).__gen_leaf_wots_.
+inline M(Syscall)._gen_leaf_wots M_Hop1(Syscall)._gen_leaf_wots.
+wp; sp.
+call gen_leaf_wots_hop1.
+auto => />.
 qed.
 
 lemma set_result_hop1 : 
@@ -546,7 +505,7 @@ lemma xmssmt_core_sign_open :
       ={arg, Glob.mem} ==> ={res, Glob.mem}].
 proof.
 proc.
-seq 13 13 : (={buf, leaf, ltree_addr, node_addr, root, wots_pk, sm_offset, pub_root,
+seq 13 13 : (={buf, leaf, ltree_addr, node_addr, ots_addr, root, wots_pk, sm_offset, pub_root,
          pub_seed, idx, Glob.mem, smlen, mlen_ptr, buf, sm_ptr, m_ptr, pk}); 1:auto.
 seq 6 6 : (#pre); 1:inline* ; sim => />.
 seq 3 3 : (#pre /\ ={t64}); 1:auto.
@@ -555,27 +514,98 @@ seq 1 1 : (#pre); 1:call _x_memcpy_u8u8p_hop1;auto.
 seq 4 4 : (#pre /\ ={idx_hash}); 1:auto.
 seq 1 1 : (#pre).
   + call hash_message_hop1. skip => /> *.   
-admit.
-seq 3 3 : (#pre /\ ={sm_offset, i}); 1:auto.
-admit.
+seq 2 2 : (#pre); 1:auto.
+while (#pre /\ ={i}); last by auto => />.
+seq 4 4: (#pre /\ ={idx_leaf}).
+  + inline; auto => />.
+seq 6 6 : (#pre); 1:inline; auto => />.
+seq 3 3 : (#pre); 1:auto => />.
+seq 1 1 : (#pre).
+  + inline M(Syscall).__wots_pk_from_sig_ M_Hop1(Syscall).__wots_pk_from_sig_. wp; sp.
+    call wots_pk_from_sig_hop1. auto => />.
+seq 4 4 : (#pre); 1:inline; auto => />.
+seq 1 1 : (#pre).
+  + inline M(Syscall).__l_tree_ M(Syscall)._l_tree M_Hop1(Syscall).__l_tree_ M_Hop1(Syscall)._l_tree.
+     wp; sp. call ltree_hop1. auto => />.
+seq 4 4 : (#pre); 1:auto.
+inline M(Syscall).__compute_root_ M(Syscall)._compute_root M_Hop1(Syscall).__compute_root_ M_Hop1(Syscall)._compute_root.
+wp; sp. call compute_root_hop1. auto => />.
 qed.
 
 (*** XMSS CORE ***)
-
-(* TODO: Remove the _array suffix *)
+ 
 lemma treehash_array_hop1 :
     equiv[M(Syscall).__treehash_array ~ M_Hop1(Syscall).__treehash_array : 
-        ={Glob.mem, arg} ==> ={res}].
+        ={Glob.mem, arg} ==> ={res, Glob.mem}].
 proof.
 proc.
-seq 18 18 : (={Glob.mem, root, auth_path, sk_seed, pub_seed, leaf_idx, subtree_addr,
-             _stack, buf, buf2, heights, ltree_addr, node_addr, ots_addr, offset, idx}).
-  + inline*; sim.
-while (
-  #pre /\ ={j} /\
-  0 <= to_uint idx{1} <= (1 `<<` 10)
-); first by auto.
-admit.
+seq 19 19 : (={Glob.mem, root, auth_path, sk_seed, pub_seed, leaf_idx, subtree_addr,
+             _stack, buf, buf2, heights, ltree_addr, node_addr, ots_addr, offset, idx, u}); 1:inline; sim.
+while (#pre); last by auto => />.
+seq 2 2 : (
+  ={Glob.mem, root, auth_path, sk_seed, pub_seed, leaf_idx, subtree_addr,
+      _stack, buf, buf2, heights, ltree_addr, node_addr, ots_addr, offset,
+      idx, u}
+); 1:inline;auto=>/>.
+seq 2 2 : (#pre). (* isola o while *)
+  + while (#pre /\ ={j}); auto => />.
+seq 1 1 : (#pre).
+  + inline M(Syscall).__gen_leaf_wots_ M(Syscall)._gen_leaf_wots M_Hop1(Syscall).__gen_leaf_wots_ M_Hop1(Syscall)._gen_leaf_wots.
+    wp ; sp. call gen_leaf_wots_hop1. auto => />.
+seq 2 2 : ( ={Glob.mem, root, auth_path, sk_seed, pub_seed, leaf_idx, subtree_addr,
+      _stack, buf, buf2, heights, ltree_addr, node_addr, ots_addr, offset,
+      idx, u}). (* isola o while e remove a parte que nao interessa da #pre *)
+  + while (#pre /\ ={j}); auto => />.
+seq 6 6 : (#pre /\ ={index, t}); 1:auto=>/>.
+seq 1 1 : (#pre). (* Isola o if *)
+  + if; 1,3:auto => />.
+    - while (#pre /\ ={j}); auto => />.
+seq 2 2 : (#pre /\ ={a,b}); 1:auto => />.
+seq 1 1 : (#pre /\ ={cond}); 1:inline; auto => />. 
+while (#pre /\ ={cond}); last by auto => />.
+seq 12 12 : (#pre /\ ={tree_idx}); 1:inline; auto => />.
+seq 3 3 : (#pre). (* isola o while *)
+  + while (#pre /\ ={j, aux, buf2}); auto => />.
+seq 1 1 : (#pre).
+  + inline M(Syscall).__thash_h_ M(Syscall)._thash_h M_Hop1(Syscall).__thash_h_ M_Hop1(Syscall)._thash_h. 
+    wp; sp. call _thash_h_hop1. auto => />.
+seq 3 3 : (#pre); 1:auto=> />.
+seq 2 2 : (#pre); first by while (#pre /\ ={j}); auto => />.
+seq 12 12 : (#pre); 1:auto => />.
+seq 1 1 : (#pre); last by inline;auto=>/>.
+if.
+  + auto => />.
+  + seq 5 5 : (#pre /\ ={t64}); 1:auto => />.
+    while (#pre /\ ={j}); auto => />.     
+  + auto => />.
+qed.
+
+
+lemma xmssmt_core_sign_open_hop1 :
+    equiv [M(Syscall).__xmssmt_core_sign_open ~ M_Hop1(Syscall).__xmssmt_core_sign_open :
+      ={arg, Glob.mem} ==> ={res, Glob.mem}].
+proof.
+proc.
+seq 13 13 : (={m_ptr, mlen_ptr, sm_ptr, smlen, pk, buf, leaf, ltree_addr, node_addr, ots_addr, pub_root,
+               pub_seed, root, wots_pk, sm_offset, pub_root, idx, Glob.mem}); 1:auto => />.
+seq 6 6 : (#pre /\ ={ots_addr, ltree_addr, node_addr}); 1:inline; sim => />.
+seq 7 7 : (#pre /\ ={t64, idx, offset_out, offset_in, bytes}); 1:sim => />.
+seq 8 8 : (#pre /\ ={idx_hash}); 1:sim => />.
+seq 1 1 : (#pre). call hash_message_hop1. auto => />. 
+seq 2 2 : (#pre); 1:auto.
+while (#pre /\ ={i}); last first.
+  + auto => />.
+  + seq 13 13 : (#pre /\ ={idx_leaf}); 1:inline; auto => />.
+    seq 1 1 : (#pre /\ ={wots_pk}).
+     * inline M(Syscall).__wots_pk_from_sig_ M_Hop1(Syscall).__wots_pk_from_sig_. 
+       wp; sp. call wots_pk_from_sig_hop1. auto => />.
+    seq 4 4 : (#pre); 1:inline; auto => />.
+    seq 1 1 : (#pre).
+     * inline M(Syscall).__l_tree_ M(Syscall)._l_tree M_Hop1(Syscall).__l_tree_ M_Hop1(Syscall)._l_tree.
+       wp; sp. call ltree_hop1. auto => />.
+    seq 4 4 : (#pre); 1:auto.
+    inline M(Syscall).__compute_root_ M(Syscall)._compute_root M_Hop1(Syscall).__compute_root_ M_Hop1(Syscall)._compute_root.
+    wp; sp. call compute_root_hop1. auto => />.
 qed.
 
 lemma xmssmt_core_seed_keypair_hop1 :
@@ -611,26 +641,59 @@ qed.
 
 lemma xmssmt_core_sign_hop1 :
     equiv [M(Syscall).__xmssmt_core_sign ~ M_Hop1(Syscall).__xmssmt_core_sign :
-      ={Glob.mem, arg} ==> ={res}].
+      ={Glob.mem, arg} ==> ={res, Glob.mem}].
 proof.
 proc.
-seq 10 10 : (={Glob.mem, sk, sm_ptr, smlen_ptr, m_ptr, mlen, auth_path, buf, idx_bytes,
-               ots_addr, pub_root, pub_seed, root, sig, sk_prf, sk_seed}); 1:sim.
-seq 3 3 : (#pre); 1:inline*;sim.
-seq 4 4 : (#pre /\ ={idx}); 1:sim.
-if; first by auto. 
-(* First subgoal of first if *)
-  + seq 1 1 : (#pre /\ ={aux}); 1:call memset_u8_4_hop1; auto.
+seq 18 18 : (={Glob.mem, sk, sm_ptr, smlen_ptr, m_ptr, mlen, auth_path, buf, idx_bytes,
+               ots_addr, pub_root, pub_seed, root, sig, sk_prf, sk_seed, t64, idx, exit_0}). 
+  + inline; sim => />.
+seq 1 1 : (={Glob.mem, sk, sm_ptr, smlen_ptr, m_ptr, mlen, auth_path, buf, idx_bytes,
+      ots_addr, pub_root, pub_seed, root, sig, sk_prf, sk_seed, t64, idx, 
+      exit_0}). (* isola o if *)
+  + if; 1,3: by auto => />.
+    seq 1 1 : (#pre /\ ={aux}).
+      * call memset_u8_4_hop1; auto => />.
     seq 1 1 : (#pre); 1:auto.
-    seq 1 1 : (#pre /\ ={aux_0}); 1:call memset_u8_128_hop1; auto.
-    seq 1 1 : (#pre); 1:auto. 
-    if; first by auto => />.
-    * admit. (* First subgoal of the second if *) 
-    * admit. (* Second subgoal of the second if *)
-(* Last subgoal of the first if *)
-  + if. auto => /> &1 &2 *. admit.
-    * admit.
-    * auto => /> &2. admit.
+    seq 1 1 : (#pre /\ ={aux_0}); 1:call memset_u8_128_hop1; auto => />.
+seq 1 1 : (#pre); last by if; auto => />. 
+if; 1,3 : by auto => />.
+seq 1 1 : (#pre).
+  + call _x_memcpy_u8pu8_4_hop1. auto => />.
+seq 2 2 : (#pre); 1: auto => />.
+seq 1 1 : (#pre /\ ={aux}).
+  + call ull_to_bytes_4_hop1. auto => />.
+seq 1 1 : (#pre); 1:auto=>/>.
+seq 1 1 : (#pre).
+  + call ull_to_bytes_32_hop1. auto => />.
+seq 1 1 : (#pre); 1: auto => />.
+seq 1 1 : (#pre). 
+  + ecall {1} (prf_hop1 buf{1} idx_bytes{1} sk_prf{1}). auto => />.
+seq 1 1 : (#pre).
+  + call _x_memcpy_u8pu8_32_hop1. auto => />.
+seq 1 1 : (#pre); 1:auto=>/>.
+seq 2 2 : (#pre).
+  + while (#pre /\ ={j});auto=>/>.
+seq 3 3 : (#pre /\ ={idx_hash}); 1:auto.
+seq 1 1 : (#pre /\ ={aux_2}).
+  + inline M(Syscall).__hash_message_ M(Syscall)._hash_message M_Hop1(Syscall).__hash_message_ M_Hop1(Syscall)._hash_message. wp; sp.
+    call hash_message_hop1. auto => />.
+seq 3 3 : (#pre).
+  + inline. auto => />.
+while (#pre /\ ={i}); last by auto => />.
+seq 9 9 : (#pre /\ ={idx_leaf}); 1:inline; auto => />.
+seq 1 1 : (#pre).
+  + inline M(Syscall).__wots_sign_  M(Syscall)._wots_sign M_Hop1(Syscall).__wots_sign_  M_Hop1(Syscall)._wots_sign. wp; sp.
+    call wots_sign_hop1. auto => />.
+seq 1 1 : (#pre /\ ={aux_1}); 1:auto=>/>.
+seq 2 2 : (#pre).
+  + while (#pre /\ ={j}); auto => />.
+seq 4 4 : (#pre); 1: auto => />.
+seq 2 2 : (#pre).
+  + while (#pre /\ ={j}); auto => />.
+seq 1 1 : (#pre).
+  + inline M(Syscall).__treehash_array_ M(Syscall)._treehash_array M_Hop1(Syscall).__treehash_array_ M_Hop1(Syscall)._treehash_array. wp; sp.
+    call treehash_array_hop1. auto => />.
+while (#pre /\ ={j}); auto => />.
 qed.
 
 (*** XMSS ***)
@@ -650,10 +713,10 @@ qed.
 
 lemma xmss_sign_hop1 :
     equiv[M(Syscall).__xmss_sign ~ M_Hop1(Syscall).__xmss_sign :
-      ={arg, Glob.mem} ==> ={res}].
+      ={arg, Glob.mem} ==> ={res, Glob.mem}].
 proof.
 proc.
-seq 1 1 : (={sk, sm_ptr, smlen_ptr, m_ptr, mlen, Glob.mem, aux, aux_0}).
-  + wp ; sp. call xmssmt_core_sign_hop1. auto => />. admit. (* memL = memR ??? *)
-sim.
+seq 1 1 : (={sk, sm_ptr, smlen_ptr, m_ptr, mlen, aux, aux_0, Glob.mem}).
+  + wp ; sp. call xmssmt_core_sign_hop1. auto => />. 
+sim => />.
 qed.
