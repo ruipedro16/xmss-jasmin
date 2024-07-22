@@ -8,10 +8,12 @@ require import RandomBytes XMSS_IMPL XMSS_IMPL_HOP1.
 
 require import Array2 Array3 Array8 Array32 Array67 Array2144.
 
-require import Utils. (* valid ptr predicate *)
+require import Utils. (* valid ptr predicate & addr_to_bytes *)
 require import Correctness_Mem. (* memcpy results *)
 (*---*) import NBytes.
 require import Termination.
+
+require import Hop2.
 
 type adrs = W32.t Array8.t.
 
@@ -175,117 +177,6 @@ qed.
 
 (*** ***)
 
-op addr_to_bytes (a : W32.t Array8.t) : W8.t list. (* TODO: *)
-
-lemma addr_to_bytes_correct (x : W32.t Array8.t) : 
-    hoare[M_Hop1(Syscall).__addr_to_bytes :
-      arg.`2 = x ==> res = Array32.of_list witness (addr_to_bytes x)].
-proof.
-admit.
-qed.
-
-lemma addr_to_bytes_hop1_ll : phoare [ M_Hop1(Syscall).__addr_to_bytes : true ==> true] = 1%r.
-proof.
-proc.
-inline M_Hop1(Syscall).__u32_to_bytes.
-while (true) (8 - i); auto => /> /#.
-qed.
-
-lemma addr_to_bytes_correctness (x : W32.t Array8.t) : 
-    phoare[M_Hop1(Syscall).__addr_to_bytes :
-      arg.`2 = x ==> res = Array32.of_list witness (addr_to_bytes x)] = 1%r.
-proof.
-conseq (addr_to_bytes_hop1_ll) (addr_to_bytes_correct x); auto => />.
-qed.
-
-
-op padding_len : int.
-op prf_padding_val : W8.t.
-
-
-module Hop2 = {
-  proc prf (addr_bytes : W8.t list, seed : nbytes) : nbytes = {
-    var r : nbytes;
-
-    r <- nseq n W8.zero;
-
-    return r;
-  }
-  
-  proc thash_f (out : nbytes, seed : nbytes, address : adrs) : nbytes * adrs = {
-    var padding : W8.t list;
-    var addr_bytes : W8.t list;
-    var u : nbytes;
-    var bitmask : nbytes;
-    var buf : W8.t list;
-    var i : int;
-    var t : W8.t;
-    
-    padding <- nseq padding_len prf_padding_val;
-    addr_bytes <- addr_to_bytes address;
-    u <@ prf (addr_bytes, seed);
-
-    address <- set_key_and_mask address 1;
-    addr_bytes <- addr_to_bytes address;
-    
-    bitmask <@ prf (addr_bytes, seed);
-
-    buf <- padding ++ u ++ bitmask;
-
-    i <- 0;
-    while (i < n) {
-      t <- nth witness out i;
-      t <- (t `^` (nth witness bitmask i));
-      buf <- put buf ((32 + 32) + i) t;
-      i <- i + 1;
-    }
-
-    out <- Hash buf;
-
-    return (out, address);
-  } 
-
-  proc chain(X : nbytes, i s : int, _seed : seed, address : adrs) : nbytes * adrs = {
-    var t : nbytes <- X;
-    var chain_count : int <- 0;
-    var _key : key;
-    var bitmask : nbytes;
-    var addr_bytes : nbytes; (* if n = 32 *)
-
-    (* case i + s <= w-1 is precondition *)
-    while (chain_count < s) {
-     address <- set_hash_addr address (i + chain_count);
-     address <- set_key_and_mask address 0;
-
-     _key <- PRF _seed address;
-     address <- set_key_and_mask address 1;
-
-     addr_bytes <- addr_to_bytes address;
-
-     bitmask <@ prf(_seed, addr_bytes);
-
-     (t, address) <@ thash_f (t, _seed, address);
-     
-     chain_count <- chain_count + 1;
-    }
-    
-    return (t, address);
-   }
-}.
-
-
-lemma prf_hop2 (a b : W8.t Array32.t) :
-    equiv [
-    M(Syscall).__prf ~ Hop2.prf : 
-    arg{1}.`2 = a /\ arg{1}.`2 = b /\ arg{2} = (to_list a, to_list b) 
-    ==>
-    res{2} = to_list res{1}
-    ].
-proof.
-proc.
-admit.
-qed.
-
 lemma thash_f_hop2 (t seed : nbytes, address : W32.t Array8.t) :
     n = XMSS_N => 
     padding_len = XMSS_PADDING_LEN =>
@@ -304,19 +195,9 @@ seq 0 1 : (size padding{2} = 32).
   + auto => />. by rewrite size_nseq padding_len_val.
 seq 3 0 : (#pre); 1:auto.
 seq 1 1 : (#pre /\ addr_bytes{2} = to_list addr_as_bytes{1}).
-  + ecall {1} (addr_to_bytes_correctness addr{1}). auto => /> *. rewrite of_listK; [admit | admit].
-
-
-
-
-
-
-
-
-
-
-
-
+  + admit.
+admit.
+qed.
 
 lemma gen_chain_inplace_correct (buf : W8.t Array32.t, _start_ _steps_ : W32.t, _addr_ : W32.t Array8.t, _pub_seed_ : W8.t Array32.t) :
     w = XMSS_WOTS_W /\ len = XMSS_WOTS_LEN =>
@@ -360,14 +241,6 @@ qed.
 
 (************************************************************************************)
 
-(*
-
-op decode_wots_sk (sk_spec : wots_sk) : W8.t Array2144.t =
-  Array2144.of_list witness (flatten sk_spec).
-
-pred first_nth_equal (a : W8.t Array2144.t) (b : W8.t list) (n : int) =
-take n (to_list a) = take n b.
-
 lemma expand_seed_correct (_in_seed : W8.t Array32.t,
                            _pub_seed : W8.t Array32.t, _addr : W32.t Array8.t):
     len = XMSS_WOTS_LEN =>
@@ -408,17 +281,6 @@ while (
       (* auto => /> &1 &2 *; do split; 1,2,4,5:smt(). admit. *)
 qed.
 *)
-
-(*---*) import NBytes.
-
-op address_to_bytes (x : adrs) : W8.t list. (* TODO: Specify this and prove equivalence *)
-
-lemma addr_to_bytes__post (x : W32.t Array8.t) :
-    phoare[M_Hop1(Syscall).__addr_to_bytes : arg.`2 = x ==> to_list res = address_to_bytes x] = 1%r.
-proof.
-proc.
-admit.
-qed.
 
 module HopA = {
   proc pseudorandom_genSK(sk_seed : nbytes, seed : nbytes, address : adrs) : W8.t list * adrs= {

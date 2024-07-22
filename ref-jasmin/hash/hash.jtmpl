@@ -27,7 +27,6 @@ inline fn __prf(
     reg ptr u8[XMSS_N] key
 ) -> reg ptr u8[XMSS_N]
 {
-    reg u64 offset;
     stack u8[XMSS_PADDING_LEN + XMSS_N + 32] buf; // buf = padding || key || in
     reg ptr u8[XMSS_PADDING_LEN] padding_buf;
     
@@ -37,14 +36,13 @@ inline fn __prf(
     buf[0:XMSS_PADDING_LEN] = padding_buf;
 
     // memcpy(buf + params->padding_len, key, params->n);
-    offset = XMSS_PADDING_LEN;
     buf[XMSS_PADDING_LEN : XMSS_N] = _x_memcpy_u8u8<XMSS_N, XMSS_N>(buf[XMSS_PADDING_LEN : XMSS_N], key);
 
     // memcpy(buf + params->padding_len + params->n, in, 32);
     buf[XMSS_PADDING_LEN + XMSS_N : 32] = _x_memcpy_u8u8<32, 32>(buf[XMSS_PADDING_LEN + XMSS_N : 32], in);
 
     // out = __core_hash_ <OUTLEN, XMSS_PADDING_LEN + XMSS_N + 32>(out, buf_p);
-    out = __core_hash<XMSS_PADDING_LEN + XMSS_N + 32>(out, buf);
+    out = __core_hash_<XMSS_PADDING_LEN + XMSS_N + 32>(out, buf);
 
     return out;
 }//<>
