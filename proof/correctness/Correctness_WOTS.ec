@@ -11,11 +11,11 @@ require import Array2 Array3 Array8 Array32 Array67 Array2144.
 require import Utils. (* valid ptr predicate *)
 require import Correctness_Mem. (* memcpy results *)
 (*---*) import NBytes.
+require import Termination.
 
 type adrs = W32.t Array8.t.
 
 (* require import Correctness_Hash. *)
-
 
 lemma addr_to_bytes_post (x : W32.t Array8.t) :
     hoare [M_Hop1(Syscall).__addr_to_bytes : arg.`2 = x ==> to_list res = toByte (W32.of_int 1) 32].
@@ -54,54 +54,34 @@ while (
 (* First subgoal of while *)
     + if.
         * auto => /> &1 &2 *; smt(@W64).
-        * auto => /> &1 &2 *; do split.
-            - smt(@W64).
-            - smt(@W64 pow2_64).
-            - smt(size_put).
-            - smt(@W64 pow2_64).
-            - smt(@W64 pow2_64).
-            - smt(@W64 pow2_64).
-            - smt(@W64 pow2_64).
-            - smt(@W64 pow2_64).
-            - rewrite logw_val //. smt(@W64 pow2_64 @IntDiv).
-            - smt(@W64 pow2_64).
-            - smt(@W64 pow2_64 @IntDiv).
+        * auto => /> &1 &2 *; do split;1..11:smt(@W64 @IntDiv pow2_64 size_put).
             - move => j Hj *. rewrite get_setE 1:/# //= nth_put ; 1:smt(size_nseq).
               case (j = to_uint out{1}); last first.
-                + move => *. rewrite ifF. smt(). smt(@W64).
+                + move => *. rewrite ifF 1:/#. smt(@W64).
                 + move => -> //=. rewrite logw_val w_val /=. 
                   have -> : 15 = 2 ^ 4 - 1 by smt().
                   rewrite and_mod // and_mod // shr_div shr_div //=. 
                   have -> : 31 = 2 ^ 5 - 1 by smt().
                   rewrite and_mod //= to_uint_truncateu8 to_uint_zeroextu32 //=. 
                   smt(@W64 @W8 @W32 pow2_32 pow2_64 pow2_8 @IntDiv).
-        * auto => /> &1 &2 *; do split.
-            - smt(@W64).
-            - smt(@W64 pow2_64).
-            - smt(size_put).
-            - smt(@W64 pow2_64).
-            - smt(@W64 pow2_64).
-            - smt(@W64 pow2_64).
-            - smt(@W64 pow2_64).
-            - rewrite logw_val //= to_uintB. smt(@W64). smt(@W64 pow2_64).
+        * auto => /> &1 &2 *; do split;1..7:smt(@W64 pow2_64 size_put).
+            - rewrite logw_val //= to_uintB; smt(@W64 pow2_64).
             - rewrite logw_val //. smt(@W64 pow2_64 @IntDiv).
             - smt(@W64 pow2_64 @IntDiv).
             - move => j Hj *. rewrite get_setE 1:/# //= nth_put ; 1:smt(size_nseq).
               case (j = to_uint out{1}); last first. 
-                + move => *. rewrite ifF. smt(). smt(@W64).
+                + move => *. rewrite ifF 1:/#. smt(@W64).
                 + move => -> //=. rewrite logw_val w_val /=. 
                   have -> : 15 = 2 ^ 4 - 1 by smt().
                   rewrite and_mod // and_mod // shr_div shr_div //=. 
                   have -> : 31 = 2 ^ 5 - 1 by smt().
                   rewrite and_mod //= to_uint_truncateu8 to_uint_zeroextu32 //=. 
-                  rewrite to_uintB. smt(@W64). simplify. 
-                  smt(@W64 @W8 @W32 pow2_32 pow2_64 pow2_8 @IntDiv).
+                  rewrite to_uintB; 1:smt(@W64). simplify. 
+                  admit. (* smt(@W64 @W8 @W32 pow2_32 pow2_64 pow2_8 @IntDiv). *) (* This call to smt fails sometimes *)
 (* Last subgoal of while *)
-    + skip => /> *; do split.
-        * smt(size_nseq).
-        * smt(@W64 pow2_64).
-        * smt(@W64 pow2_64).
+    + skip => /> *; do split;2,3:smt(@W64 pow2_64). by rewrite size_nseq.
 qed.
+
 
 lemma base_w_correctness_3 ( _in_ : W8.t Array2.t) :
     floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
@@ -133,29 +113,32 @@ while (
 (* First subgoal of while *)
     + if.
         * auto => /> &1 &2 *; smt(@W64).
-        * auto => /> &1 &2 *; do split; 1..11:smt(@W64 @IntDiv pow2_64 size_put).
-          move => j *.  rewrite get_setE 1:/# //= nth_put ; 1:smt(size_nseq).
-          case (j = to_uint out{1}); last first. 
-            + move => *. rewrite ifF 1:/#. smt(@W64).
-            + move => -> //=. rewrite logw_val w_val /=. have -> : 15 = 2 ^ 4 - 1 by smt().
-              rewrite and_mod // and_mod // shr_div shr_div //=. 
-              have -> : 31 = 2 ^ 5 - 1 by smt().
-              rewrite and_mod //= to_uint_truncateu8 to_uint_zeroextu32 //=. 
-              smt(@W64 @W8 @W32 pow2_32 pow2_64 pow2_8 @IntDiv).
-        * auto => /> &1 &2 *; do split; 1..7,9,10:smt(@W64 @IntDiv pow2_64 size_put).
-            + rewrite logw_val //= to_uintB; smt(@W64 pow2_64).
-            + move => j Hj *. rewrite get_setE 1:/# //= nth_put ; 1:smt(size_nseq).
-              case (j = to_uint out{1}); last first. 
-                - move => *. rewrite ifF 1:/#. smt(@W64).
-                - move => -> //=. rewrite logw_val w_val /=. 
+        * auto => /> &1 &2 *; do split;1..11:smt(@W64 @IntDiv pow2_64 size_put).
+            - move => j Hj *. rewrite get_setE 1:/# //= nth_put ; 1:smt(size_nseq).
+              case (j = to_uint out{1}); last first.
+                + move => *. rewrite ifF 1:/#. smt(@W64).
+                + move => -> //=. rewrite logw_val w_val /=. 
                   have -> : 15 = 2 ^ 4 - 1 by smt().
                   rewrite and_mod // and_mod // shr_div shr_div //=. 
                   have -> : 31 = 2 ^ 5 - 1 by smt().
                   rewrite and_mod //= to_uint_truncateu8 to_uint_zeroextu32 //=. 
-                  rewrite to_uintB; 1:smt(@W64). simplify.
                   smt(@W64 @W8 @W32 pow2_32 pow2_64 pow2_8 @IntDiv).
-(* Second subgoal of while *)
-    + skip => /> &1. do split; 2,3:smt(@W64 pow2_64). smt(size_nseq).
+        * auto => /> &1 &2 *; do split;1..7:smt(@W64 pow2_64 size_put).
+            - rewrite logw_val //= to_uintB; smt(@W64 pow2_64).
+            - rewrite logw_val //. smt(@W64 pow2_64 @IntDiv).
+            - smt(@W64 pow2_64 @IntDiv).
+            - move => j Hj *. rewrite get_setE 1:/# //= nth_put ; 1:smt(size_nseq).
+              case (j = to_uint out{1}); last first. 
+                + move => *. rewrite ifF 1:/#. smt(@W64).
+                + move => -> //=. rewrite logw_val w_val /=. 
+                  have -> : 15 = 2 ^ 4 - 1 by smt().
+                  rewrite and_mod // and_mod // shr_div shr_div //=. 
+                  have -> : 31 = 2 ^ 5 - 1 by smt().
+                  rewrite and_mod //= to_uint_truncateu8 to_uint_zeroextu32 //=. 
+                  rewrite to_uintB; 1:smt(@W64). simplify. 
+                  admit. (* smt(@W64 @W8 @W32 pow2_32 pow2_64 pow2_8 @IntDiv). *) (* this call to smt fails sometimes *)
+(* Last subgoal of while *)
+    + skip => /> *; do split;2,3:smt(@W64 pow2_64). by rewrite size_nseq.
 qed.
 
 
@@ -176,19 +159,204 @@ while (
   0 <= to_uint csum{1} <= (i{2} * (w - 1) * 2^8) /\
   i{2} = to_uint i{1} /\ 0 <= i{2} <= len1 /\
   m{2} = map (W32.to_uint) (to_list msg{1})
-); last first.
-    + by auto => /> /#.
+); last by auto => /> /#.
     + auto => /> &1 Hmsg Hcsum0 Hcsum1 Hi0 _. 
       rewrite /(\ult) of_uintK /= => Hlt Hi1.
       rewrite to_uintD to_uintB.
         * by rewrite /(\ule) /= to_uint_zeroextu64 1:/#.
       rewrite !of_uintK /= modz_small 1:/# modz_small 1:/#.
-      have -> : nth witness (map W32.to_uint (to_list msg)) (to_uint i{1}) = to_uint (zeroextu64 msg.[to_uint i{1}]).
+      have -> : nth witness (map W32.to_uint (to_list msg)) (to_uint i{1}) = 
+                to_uint (zeroextu64 msg.[to_uint i{1}]).
         * rewrite to_uint_zeroextu64 (nth_map witness).
             -  by rewrite size_to_list /#.
             -  smt().
       by rewrite !to_uint_zeroextu64 to_uintD_small /= /#.
 qed.
+
+(*** ***)
+
+op addr_to_bytes (a : W32.t Array8.t) : W8.t list. (* TODO: *)
+
+lemma addr_to_bytes_correct (x : W32.t Array8.t) : 
+    hoare[M_Hop1(Syscall).__addr_to_bytes :
+      arg.`2 = x ==> res = Array32.of_list witness (addr_to_bytes x)].
+proof.
+admit.
+qed.
+
+lemma addr_to_bytes_hop1_ll : phoare [ M_Hop1(Syscall).__addr_to_bytes : true ==> true] = 1%r.
+proof.
+proc.
+inline M_Hop1(Syscall).__u32_to_bytes.
+while (true) (8 - i); auto => /> /#.
+qed.
+
+lemma addr_to_bytes_correctness (x : W32.t Array8.t) : 
+    phoare[M_Hop1(Syscall).__addr_to_bytes :
+      arg.`2 = x ==> res = Array32.of_list witness (addr_to_bytes x)] = 1%r.
+proof.
+conseq (addr_to_bytes_hop1_ll) (addr_to_bytes_correct x); auto => />.
+qed.
+
+
+op padding_len : int.
+op prf_padding_val : W8.t.
+
+
+module Hop2 = {
+  proc prf (addr_bytes : W8.t list, seed : nbytes) : nbytes = {
+    var r : nbytes;
+
+    r <- nseq n W8.zero;
+
+    return r;
+  }
+  
+  proc thash_f (out : nbytes, seed : nbytes, address : adrs) : nbytes * adrs = {
+    var padding : W8.t list;
+    var addr_bytes : W8.t list;
+    var u : nbytes;
+    var bitmask : nbytes;
+    var buf : W8.t list;
+    var i : int;
+    var t : W8.t;
+    
+    padding <- nseq padding_len prf_padding_val;
+    addr_bytes <- addr_to_bytes address;
+    u <@ prf (addr_bytes, seed);
+
+    address <- set_key_and_mask address 1;
+    addr_bytes <- addr_to_bytes address;
+    
+    bitmask <@ prf (addr_bytes, seed);
+
+    buf <- padding ++ u ++ bitmask;
+
+    i <- 0;
+    while (i < n) {
+      t <- nth witness out i;
+      t <- (t `^` (nth witness bitmask i));
+      buf <- put buf ((32 + 32) + i) t;
+      i <- i + 1;
+    }
+
+    out <- Hash buf;
+
+    return (out, address);
+  } 
+
+  proc chain(X : nbytes, i s : int, _seed : seed, address : adrs) : nbytes * adrs = {
+    var t : nbytes <- X;
+    var chain_count : int <- 0;
+    var _key : key;
+    var bitmask : nbytes;
+    var addr_bytes : nbytes; (* if n = 32 *)
+
+    (* case i + s <= w-1 is precondition *)
+    while (chain_count < s) {
+     address <- set_hash_addr address (i + chain_count);
+     address <- set_key_and_mask address 0;
+
+     _key <- PRF _seed address;
+     address <- set_key_and_mask address 1;
+
+     addr_bytes <- addr_to_bytes address;
+
+     bitmask <@ prf(_seed, addr_bytes);
+
+     (t, address) <@ thash_f (t, _seed, address);
+     
+     chain_count <- chain_count + 1;
+    }
+    
+    return (t, address);
+   }
+}.
+
+
+lemma prf_hop2 (a b : W8.t Array32.t) :
+    equiv [
+    M(Syscall).__prf ~ Hop2.prf : 
+    arg{1}.`2 = a /\ arg{1}.`2 = b /\ arg{2} = (to_list a, to_list b) 
+    ==>
+    res{2} = to_list res{1}
+    ].
+proof.
+proc.
+admit.
+qed.
+
+lemma thash_f_hop2 (t seed : nbytes, address : W32.t Array8.t) :
+    n = XMSS_N => 
+    padding_len = XMSS_PADDING_LEN =>
+    prf_padding_val = XMSS_HASH_PADDING_F =>
+    equiv [
+      M_Hop1(Syscall).__thash_f ~ Hop2.thash_f :
+      true
+      ==>
+      res{2}.`1 = to_list res{1}.`1
+    ].
+proof.
+rewrite /XMSS_N /XMSS_PADDING_LEN /XMSS_HASH_PADDING_F.
+move => n_val padding_len_val padding_val.
+proc.
+seq 0 1 : (size padding{2} = 32).
+  + auto => />. by rewrite size_nseq padding_len_val.
+seq 3 0 : (#pre); 1:auto.
+seq 1 1 : (#pre /\ addr_bytes{2} = to_list addr_as_bytes{1}).
+  + ecall {1} (addr_to_bytes_correctness addr{1}). auto => /> *. rewrite of_listK; [admit | admit].
+
+
+
+
+
+
+
+
+
+
+
+
+
+lemma gen_chain_inplace_correct (buf : W8.t Array32.t, _start_ _steps_ : W32.t, _addr_ : W32.t Array8.t, _pub_seed_ : W8.t Array32.t) :
+    w = XMSS_WOTS_W /\ len = XMSS_WOTS_LEN =>
+    equiv [M_Hop1(Syscall).__gen_chain_inplace ~ Chain.chain : 
+      arg{1}= (buf, _start_, _steps_, _pub_seed_, _addr_) /\
+      arg{2} = (to_list buf, to_uint _start_, to_uint _steps_, to_list _pub_seed_, _addr_) /\
+      0 <= to_uint _start_ <= XMSS_WOTS_W - 1/\
+      0 <= to_uint _steps_ <= XMSS_WOTS_W - 1 /\
+      0 <= to_uint (_start_ + _steps_) <= XMSS_WOTS_W - 1  ==> 
+        res{2}.`1 = to_list res{1}.`1 /\ res{1}.`2 = res{2}.`2].
+proof.
+rewrite /XMSS_WOTS_W /XMSS_WOTS_LEN; move => [w_val len_val].
+proc; auto => />.
+swap {1} 1 2.
+seq 2 1 : (#pre /\ t{2} = X{2} /\ t{1} = start{1} + steps{1}); 1:auto => />.
+while (
+  0 <= to_uint _start_ <= 15 /\
+  0 <= to_uint _steps_ <= 15 /\
+  0 <= to_uint (_start_ + _steps_) /\ to_uint (_start_ + _steps_) <= 15 /\
+  
+  to_uint i{1} = (i{2} + chain_count{2}) /\
+  start{1} = _start_ /\ steps{1} = _steps_ /\
+  s{2} = to_uint steps{1} /\ 
+  t{2} = to_list out{1} /\
+  _seed{2} = to_list pub_seed{1} /\
+   t{1} = start{1} + steps{1} /\
+
+  0 <= to_uint i{1} <= to_uint t{1} /\
+  0 <= chain_count{2} <= s{2} /\
+ 
+  #post
+); last by auto => />; smt(@W32 pow2_32). 
+(* inline {1} M_Hop1(Syscall).__thash_f_ M_Hop1(Syscall)._thash_f M_Hop1(Syscall).__thash_f. *)
+seq 2 2 : (#pre).
+    + inline M_Hop1(Syscall).__set_hash_addr M_Hop1(Syscall).__set_key_and_mask.
+      auto => /> &1 &2 *. rewrite /set_hash_addr /set_key_and_mask. 
+      by have -> :  (of_int (i{2} + chain_count{2}))%W32 = i{1} by smt(@W32 pow2_32).
+admit. (* This is be a call to thash_f after the second hop and then an auto => /> with some smt(@W64 @W32) *)
+qed.
+
 
 (************************************************************************************)
 
@@ -288,21 +456,46 @@ lemma expand_seed_correct_hopA (_in_seed : W8.t Array32.t,
 proof.
 rewrite /XMSS_WOTS_LEN => len_val.
 proc.
-seq 2 1 : (#pre); 1:auto => />.
+auto => />. (* simplifies #pre *)
+conseq (: _ ==> size sk{2} = 2144 /\ addr{1} = address{2} /\ (forall (k : int), 0 <= k < 2144 => (nth witness sk{2} k) = outseeds{1}.[k])).
+  + auto => /> outL skR Hsize k. apply /(eq_from_nth witness); smt(size_to_list). 
+seq 2 1 : (#pre /\ size sk{2} = 2144).
+  + by auto => />; rewrite size_nseq.
 seq 2 2 : (
-  seed{2} = to_list pub_seed{1} /\
-  sk_seed{2} = to_list inseed{1} /\
-  address{2} = addr{1}
-); 1:inline; auto => />; rewrite /set_hash_addr /set_key_and_mask. 
+  inseed{1} = _in_seed /\
+  pub_seed{1} = _pub_seed /\
+  sk_seed{2} = to_list _in_seed /\
+  seed{2} = to_list _pub_seed /\ 
+  addr{1} = address{2} /\
+  size sk{2} = 2144
+).  
+    + inline; auto => />.
 seq 1 0 : (#pre /\ aux{1} = pub_seed{1}).
     + ecall {1} (_x_memcpy_u8u8_post_hop1 pub_seed{1}); auto => />.
 while (
+  #pre /\
   len{2} = 67 /\
   ={i} /\ 0 <= i{1} <= 67 /\
-  addr{1} = address{2} /\
-  seed{2} = to_list pub_seed{1} /\
-  (forall (k : int), 0 <= k < i{2} * 32 => (nth witness sk{2} k) = outseeds{1}.[k])
-). (* 2144 = 67 * 32 = len1 * n *)
+   (forall (k : int), 0 <= k < i{2} * 32 => (nth witness sk{2} k) = outseeds{1}.[k])
+); last first.  (* 2144 = 67 * 32 = len1 * n *)
+    + auto => /> &1 &2 *. progress.
+      + smt().
+      + smt().
+      + smt(@List @Array2144).
+seq 1 1 : (#pre).
+    + inline; auto => />.
+seq 1 1 : (#pre /\ key{2} = to_list aux{1}).
+    + ecall {1} (addr_to_bytes__post addr{1}). auto => /> &1 &2 ???? k ?? address ?. split.
+      - admit. 
+      - admit. (* These subgoals make no sense so #pre is probably wrong *)
+admit.
+(*
+seq 3 1 : (#pre /\ buf{1} = prf_encode cenas).
+    + call encodde de cenas
+*)
+
+
+
 (* First subgoal of while *)
     + auto => />. move => &1 &2 *; do split.
         * smt().
@@ -338,47 +531,6 @@ op load_mem_w8_array32 (mem : global_mem_t) (ptr : W64.t) : W8.t Array32.t =
 op load_mem_w8_list32 (mem : global_mem_t) (ptr : W64.t) : W8.t list =
   mkseq (fun i => loadW8 mem (to_uint ptr + i)) 32.
 
-lemma gen_chain_inplace_correct (buf : W8.t Array32.t, _start_ _steps_ : W32.t, _addr_ : W32.t Array8.t, _pub_seed_ : W8.t Array32.t) :
-    w = XMSS_WOTS_W /\ len = XMSS_WOTS_LEN =>
-    equiv [M_Hop1(Syscall).__gen_chain_inplace ~ Chain.chain : 
-      arg{1}= (buf, _start_, _steps_, _pub_seed_, _addr_) /\
-      arg{2} = (to_list buf, to_uint _start_, to_uint _steps_, to_list _pub_seed_, _addr_) /\
-      0 <= to_uint _start_ /\
-      0 <= to_uint _steps_ /\
-      0 <= to_uint (_start_ + _steps_) <= XMSS_WOTS_W - 1  ==> 
-        res{2}.`1 = to_list res{1}.`1 /\ res{1}.`2 = res{2}.`2].
-proof.
-rewrite /XMSS_WOTS_W /XMSS_WOTS_LEN; move => [w_val len_val].
-proc; auto => />.
-while (
-  0 <= to_uint _start_ /\
-  0 <= to_uint _steps_ /\
-  0 <= to_uint (_start_ + _steps_) && to_uint (_start_ + _steps_) <= 15 /\
-  start{2} = to_uint start{1} /\ t{2} = to_list out{1}
-).
-
-
-
-while(
-  #pre /\
-  _seed{2} = to_list pub_seed{1} /\
-  X{2} = to_list r{1} /\
-  i{2} = to_uint i{1} /\ 0 <= to_uint i{1} <= to_uint steps{1} /\
-  chain_count{2} = to_uint i{1} /\
-  s{2} = to_uint steps{1} /\
-  t{2} = to_list out{1} /\
-  addr{1} = address{2}
-); last first.
-- auto => /> &1 &2 *; do split; smt(@W32).
-- auto => />. auto => /> &1 &2 *; do split. (* thash_f_ precisa de ser inlined ou de no codigo trocar o sitio onde atualizo o address pela segunda vez pq facilita a prova *)
-    + admit. (* preciso de out no invariante *)
-    + admit. (* Tenho de tirar o ={addr} da #pre *)
-    + admit. (* problema do addr *)
-    + admit. (* Preciso do encoding do F *)
-    + admit. (* Problema do addr *)
-    + admit. (* Nao sei *)
-qed.
-
 pred eq_wots_pk (pk_spec : wots_pk) (pk_impl : W8.t Array2144.t) = flatten pk_spec = (to_list pk_impl).
 
 lemma pkgen_correctness (_pk_ : W8.t Array2144.t, _seed_ : W8.t Array32.t,
@@ -411,3 +563,5 @@ while (
 *) 
 admit.
 qed.
+
+(* Falta o wots sign asqui *)

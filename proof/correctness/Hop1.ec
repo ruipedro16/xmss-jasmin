@@ -75,60 +75,40 @@ lemma memset_u8_128_hop1 :
 
 lemma memset_u8_ptr_hop1 :
     equiv [M(Syscall).__memset_u8_ptr ~ M_Hop1(Syscall).__memset_u8_ptr : 
-      ={arg, Glob.mem} ==> ={res,Glob.mem}].
-proof.
-proc.
-sim => />.
-qed.
+      ={arg, Glob.mem} ==> ={res,Glob.mem}] by proc; sim => />.
 
 lemma _x_memcpy_u8u8_32_32_hop1 :
     equiv [M(Syscall)._x_memcpy_u8u8_32_32 ~ M_Hop1(Syscall)._x_memcpy_u8u8_32_32 :
-      ={arg} ==> ={res}].
-proof. proc ; inline ; sim. qed.
+      ={arg} ==> ={res}] by proc ; inline ; sim.
 
 lemma _x_memcpy_u8u8_64_64_hop1 :
     equiv [M(Syscall)._x_memcpy_u8u8_64_64 ~ M_Hop1(Syscall)._x_memcpy_u8u8_64_64 :
-      ={arg} ==> ={res}].
-proof. proc ; inline ; sim. qed.
-
+      ={arg} ==> ={res}] by proc ; inline ; sim.
 
 lemma _x_memcpy_u8u8_64_32_hop1 :
     equiv [M(Syscall)._x_memcpy_u8u8_64_32 ~ M_Hop1(Syscall)._x_memcpy_u8u8_64_32 :
-      ={arg} ==> ={res}].
-proof. proc ; inline ; sim. qed.
+      ={arg} ==> ={res}] by proc ; inline ; sim.
 
 lemma _x_memcpy_u8pu8_4_hop1 :
     equiv [M(Syscall)._x_memcpy_u8pu8_4 ~ M_Hop1(Syscall)._x_memcpy_u8pu8_4 :
-      ={arg,Glob.mem} ==> ={res, Glob.mem}].
-proof. proc; inline*; sim. qed.
+      ={arg,Glob.mem} ==> ={res, Glob.mem}] by proc; inline*; sim.
 
 lemma _x_memcpy_u8pu8_32_hop1 :
     equiv [M(Syscall)._x_memcpy_u8pu8_32 ~ M_Hop1(Syscall)._x_memcpy_u8pu8_32 :
-      ={arg,Glob.mem} ==> ={res, Glob.mem}].
-proof. proc; inline*; sim. qed.
-
+      ={arg,Glob.mem} ==> ={res, Glob.mem}] by proc; inline*; sim.
 
 lemma _x_memcpy_u8u8p_hop1 :
     equiv [M(Syscall)._x_memcpy_u8u8p ~ M_Hop1(Syscall)._x_memcpy_u8u8p : 
-      ={arg,Glob.mem} ==> ={res}].
-proof. proc; inline*; sim => />. qed.
+      ={arg,Glob.mem} ==> ={res}] by proc; inline*; sim => />. 
 
 lemma memcpy_u8u8_2_1_hop1 :
     equiv [M(Syscall).__memcpy_u8u8_2_32_2144 ~ M_Hop1(Syscall).__memcpy_u8u8_2_32_2144 :
-      ={arg} ==> ={res}].
-proof.
-proc.
-sim => />.
-qed.
+      ={arg} ==> ={res}] by proc; sim => />.
 
 lemma memcpy_u8u8_2_2_hop1 :
     equiv [M(Syscall).__memcpy_u8u8_2_64_2144 ~ M_Hop1(Syscall).__memcpy_u8u8_2_64_2144 :
-      ={arg} ==> ={res}].
-proof.
-proc.
-sim => />.
-qed.
-
+      ={arg} ==> ={res}] by proc ;sim => />.
+  
 lemma memcpy_offset_hop1 :
     equiv[M(Syscall).__memcpy_u8u8_offset ~ M_Hop1(Syscall).__memcpy_u8u8_offset :
        ={arg} ==> ={res}].

@@ -58,6 +58,7 @@ export fn thash_f_jazz(
     reg ptr u8[XMSS_N] pub_seed
 ) -> reg ptr u8[XMSS_N], reg ptr u32[8] 
 {
+    addr = __set_key_and_mask(addr, 0);
     out, addr = __thash_f_(out, pub_seed, addr);
     return out, addr;
 }

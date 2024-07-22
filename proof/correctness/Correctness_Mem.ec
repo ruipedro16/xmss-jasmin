@@ -7,6 +7,7 @@ from Jasmin require import JModel.
 require import Array4 Array32 Array128 Array2144.
 require import RandomBytes XMSS_IMPL XMSS_IMPL_HOP1.
 require import Utils. (* valid_ptr predicate *)
+require import Termination.
 
 (******************************************************************************)
 (******************               MEMSET                          *************)
@@ -26,6 +27,14 @@ while (
 - split; 1:smt(). move => *. smt.
 qed.
 
+lemma p_memset_4_post (input : W8.t Array4.t, v : W8.t) :
+    phoare [M(Syscall).__memset_u8_4 : arg=(input, v) ==> 
+     (forall (k : int), 0 <= k < 4 => (res.[k] = v))] = 1%r.
+proof.
+conseq memset_4_ll (memset_4_post input v).
+by auto => />.
+qed.
+
 lemma memset_128_post (input : W8.t Array128.t, v : W8.t) :
     hoare [M(Syscall).__memset_u8_128 : arg=(input, v) ==> 
      (forall (k : int), 0 <= k < 128 => (res.[k] = v))].
@@ -40,7 +49,15 @@ while (
 - split; 1:smt(). move => *. smt.
 qed.
 
-lemma memset_zero_post (x : W8.t Array4.t) :
+lemma p_memset_128_post (input : W8.t Array128.t, v : W8.t) :
+    phoare [M(Syscall).__memset_u8_128 : arg=(input, v) ==> 
+     (forall (k : int), 0 <= k < 128 => (res.[k] = v))] = 1%r.
+proof.
+conseq memset_128_ll (memset_128_post input v).
+auto => />.
+qed.
+
+lemma memset_zero_post :
     hoare [M(Syscall).__memset_zero_u8 : true ==> forall (k : int), 0 <= k < 4 => (res.[k] = W8.zero)].
 proof.
 proc.
@@ -50,6 +67,13 @@ while (
 - do split ; 1,2: by smt(@W64). move => ???. rewrite get_setE ; smt(@W64).
 - split; 1:smt(). move => *. 
 smt.
+qed.
+
+lemma p_memset_zero_post (x : W8.t Array4.t) :
+    phoare[M(Syscall).__memset_zero_u8 : true ==> forall (k : int), 0 <= k < 4 => (res.[k] = W8.zero)] = 1%r.
+proof.
+conseq memset_zero_ll memset_zero_post.
+auto => />.
 qed.
 
 lemma load_store  (mem : global_mem_t) (ptr : W64.t) (v : W8.t) :
@@ -78,6 +102,7 @@ while (
     + move => k ??. rewrite /loadW8 /storeW8 get_setE //=. admit.
 - move => &hr * ; do split; 1:smt(). move => mem ????? k *. rewrite /loadW8. admit.
 qed.
+
 
 (******************************************************************************)
 (******************               MEMCPY                          *************)
@@ -157,37 +182,22 @@ proc ; auto => /> *.
 while(0 <= to_uint i <= 32 /\  a = b /\  acc = W8.zero) ; auto => /> *; smt(@W64).
 qed.
 
-(* Adapted From Libjade Poly1305 *)
-lemma or_zero(w0 w1 : W64.t) : 
-    (w0 `|` w1 = W64.zero) <=> (w0 = W64.zero /\ w1 = W64.zero).
+lemma or_zero(w0 w1 : W8.t) : 
+    (w0 `|` w1 = W8.zero) <=> (w0 = W8.zero /\ w1 = W8.zero).
 proof.
 split; last first.
   + move => [-> ->].
     by rewrite or0w.
   + rewrite !wordP => H.
-    case (w0 = W64.zero).
+    case (w0 = W8.zero).
       * move => -> /= k kb. move : (H k kb) => /= /#. 
-      * move => *. have Hk : exists k, 0 <= k < 64 /\ w0.[k]. 
-         - move : (W64.wordP w0 W64.zero); smt(W64.zerowE W64.get_out).
+      * move => *. have Hk : exists k, 0 <= k < 8 /\ w0.[k]. 
+         - move : (W8.wordP w0 W8.zero); smt(W8.zerowE W8.get_out).
         elim Hk => k [kb kval]. move : (H k kb). by rewrite orwE kval.
 qed.
 
 
-lemma and_t (w0 : W8.t) :
-    w0 <> W8.zero => ! (AND_8 w0 w0).`5.
-proof.
-move => ?.
-rewrite /AND_8 /rflags_of_bwop_w /flags_w /rflags_of_bwop //.
-qed.
-
-lemma and_zero (w0 : W8.t) :
-    w0 = W8.zero => (AND_8 w0 w0).`5.
-move => ->.
-rewrite /AND_8 //.
-qed.
-
-lemma and_neq (w0 : W8.t) : w0 <> W8.zero => ! (AND_8 w0 w0).`5
-    by move => ? ; rewrite /AND_8 /rflags_of_bwop_w /flags_w /rflags_of_bowp //.
+lemma foo p q : p => q = !q => !p by smt().
 
 lemma memcmp_false (x y : W8.t Array32.t) :
     x <> y => 
@@ -195,17 +205,18 @@ lemma memcmp_false (x y : W8.t Array32.t) :
 proof.
 move => xy_neq.
 proc.
+auto => />.
+have E0 : exists (z : int), 0 <= z < 32 => x.[z] <> y.[z] by smt(@Array67).
 while (
+  #pre /\
   0 <= to_uint i <= 32 /\ 
-  (acc = W8.zero => (forall (k : int), 0 <= k < to_uint i => (a.[k] = b.[k]))) /\
-  ((forall (k : int), 0 <= k < to_uint i => (a.[k] = b.[k])) => acc = W8.zero)
-).
-    + auto => /> &hr *; do split.
-        - smt(@W64).
-        - smt(@W64).
-        - move => *. admit.
-        - move => *. admit.
-    + auto => /> *. split; 1:smt(). move => acc ???? H0 H1. admit.
+  (exists (k : int), 0 <= k < to_uint i => (a.[k] = b.[k]) => acc <> W8.zero)
+); last first.
+    + auto => />. split; 1:smt(). move => acc i. rewrite /(\ult) of_uintK => ???.
+      have -> : to_uint i = 32 by smt(@W64 pow2_64). move => k ?. admit.
+
+    + auto => /> &r. rewrite !/(\ult) !to_uintD !of_uintK //=. progress;1,2:smt(@W64 pow2_64).
+admit.
 qed.
 
 (* INLEN = 32 /\ OUTLEN = 2144 *)

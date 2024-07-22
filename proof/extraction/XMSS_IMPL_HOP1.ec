@@ -45,13 +45,13 @@ module M_Hop1(SC:Syscall_t) = {
     return (out);
   }
 
-  proc __ull_to_bytes_2 (out:W8.t Array2.t, in_0:W64.t) : W8.t Array2.t = {
+  proc __ull_to_bytes_4 (out:W8.t Array4.t, in_0:W64.t) : W8.t Array4.t = {
     var aux: int;
 
     var i:int;
 
     aux <- (- 1);
-    i <- (2 - 1);
+    i <- (4 - 1);
     while (aux < i) {
       out.[i] <- (truncateu8 in_0);
       in_0 <- (in_0 `>>` (W8.of_int 8));
@@ -60,13 +60,13 @@ module M_Hop1(SC:Syscall_t) = {
     return (out);
   }
 
-  proc __ull_to_bytes_4 (out:W8.t Array4.t, in_0:W64.t) : W8.t Array4.t = {
+  proc __ull_to_bytes_2 (out:W8.t Array2.t, in_0:W64.t) : W8.t Array2.t = {
     var aux: int;
 
     var i:int;
 
     aux <- (- 1);
-    i <- (4 - 1);
+    i <- (2 - 1);
     while (aux < i) {
       out.[i] <- (truncateu8 in_0);
       in_0 <- (in_0 `>>` (W8.of_int 8));
@@ -239,8 +239,8 @@ module M_Hop1(SC:Syscall_t) = {
     return (out);
   }
 
-  proc __memcpy_u8u8_64_32 (out:W8.t Array64.t, in_0:W8.t Array32.t) : 
-  W8.t Array64.t = {
+  proc __memcpy_u8u8_32_32 (out:W8.t Array32.t, in_0:W8.t Array32.t) : 
+  W8.t Array32.t = {
 
     var i:W64.t;
 
@@ -253,8 +253,8 @@ module M_Hop1(SC:Syscall_t) = {
     return (out);
   }
 
-  proc __memcpy_u8u8_32_32 (out:W8.t Array32.t, in_0:W8.t Array32.t) : 
-  W8.t Array32.t = {
+  proc __memcpy_u8u8_64_32 (out:W8.t Array64.t, in_0:W8.t Array32.t) : 
+  W8.t Array64.t = {
 
     var i:W64.t;
 
@@ -274,17 +274,17 @@ module M_Hop1(SC:Syscall_t) = {
     return (out);
   }
 
-  proc _memcpy_u8u8_64_32 (out:W8.t Array64.t, in_0:W8.t Array32.t) : 
-  W8.t Array64.t = {
-
-    out <@ __memcpy_u8u8_64_32 (out, in_0);
-    return (out);
-  }
-
   proc _memcpy_u8u8_32_32 (out:W8.t Array32.t, in_0:W8.t Array32.t) : 
   W8.t Array32.t = {
 
     out <@ __memcpy_u8u8_32_32 (out, in_0);
+    return (out);
+  }
+
+  proc _memcpy_u8u8_64_32 (out:W8.t Array64.t, in_0:W8.t Array32.t) : 
+  W8.t Array64.t = {
+
+    out <@ __memcpy_u8u8_64_32 (out, in_0);
     return (out);
   }
 
@@ -298,22 +298,22 @@ module M_Hop1(SC:Syscall_t) = {
     return (out);
   }
 
-  proc _x_memcpy_u8u8_64_32 (out:W8.t Array64.t, in_0:W8.t Array32.t) : 
-  W8.t Array64.t = {
-
-    out <- out;
-    in_0 <- in_0;
-    out <@ _memcpy_u8u8_64_32 (out, in_0);
-    out <- out;
-    return (out);
-  }
-
   proc _x_memcpy_u8u8_32_32 (out:W8.t Array32.t, in_0:W8.t Array32.t) : 
   W8.t Array32.t = {
 
     out <- out;
     in_0 <- in_0;
     out <@ _memcpy_u8u8_32_32 (out, in_0);
+    out <- out;
+    return (out);
+  }
+
+  proc _x_memcpy_u8u8_64_32 (out:W8.t Array64.t, in_0:W8.t Array32.t) : 
+  W8.t Array64.t = {
+
+    out <- out;
+    in_0 <- in_0;
+    out <@ _memcpy_u8u8_64_32 (out, in_0);
     out <- out;
     return (out);
   }
@@ -742,20 +742,19 @@ module M_Hop1(SC:Syscall_t) = {
     var aux: W8.t Array32.t;
     var out_list : W8.t list;
 
-    var buf:W8.t Array96.t;
     var addr_as_bytes:W8.t Array32.t;
+    var buf:W8.t Array96.t;
     var bitmask:W8.t Array32.t;
     var i:W64.t;
     var t:W8.t;
     addr_as_bytes <- witness;
     bitmask <- witness;
     buf <- witness;
+    addr_as_bytes <@ __addr_to_bytes (addr_as_bytes, addr);
     aux <@ __ull_to_bytes_32 ((Array32.init (fun i_0 => buf.[0 + i_0])),
     (W64.of_int 0));
     buf <- Array96.init
            (fun i_0 => if 0 <= i_0 < 0 + 32 then aux.[i_0-0] else buf.[i_0]);
-    addr <@ __set_key_and_mask (addr, (W32.of_int 0));
-    addr_as_bytes <@ __addr_to_bytes (addr_as_bytes, addr);
 
     aux <- _PRF_ (Array32.init (fun i_0 => buf.[32 + i_0])) addr_as_bytes pub_seed; 
    buf <- Array96.init
@@ -880,6 +879,7 @@ module M_Hop1(SC:Syscall_t) = {
     while ((i \ult t)) {
 
       addr <@ __set_hash_addr (addr, i);
+      addr <@ __set_key_and_mask (addr, (W32.of_int 0));
 
       (out, addr) <@ __thash_f_ (out, pub_seed, addr);
 
@@ -912,38 +912,6 @@ module M_Hop1(SC:Syscall_t) = {
     return (out, addr);
   }
 
-  proc __base_w_3_2 (output:W32.t Array3.t, input:W8.t Array2.t) : W32.t Array3.t = {
-    var aux: int;
-
-    var in_0:W64.t;
-    var out:W64.t;
-    var bits:W64.t;
-    var total:W8.t;
-    var total_32:W32.t;
-    var consumed:int;
-
-    in_0 <- (W64.of_int 0);
-    out <- (W64.of_int 0);
-    bits <- (W64.of_int 0);
-    total <- (W8.of_int 0);
-    consumed <- 0;
-    while (consumed < 3) {
-      if ((bits = (W64.of_int 0))) {
-        total <- input.[(W64.to_uint in_0)];
-        in_0 <- (in_0 + (W64.of_int 1));
-        bits <- (bits + (W64.of_int 8));
-      } 
-      bits <- (bits - (W64.of_int 4));
-      total_32 <- (zeroextu32 total);
-      total_32 <- (total_32 `>>` (truncateu8 (bits `&` (W64.of_int 31))));
-      total_32 <- (total_32 `&` (W32.of_int (16 - 1)));
-      output.[(W64.to_uint out)] <- total_32;
-      out <- (out + (W64.of_int 1));
-      consumed <- consumed + 1;
-    }
-    return (output);
-  }
-
   proc __base_w_67_32 (output:W32.t Array67.t, input:W8.t Array32.t) : 
   W32.t Array67.t = {
     var aux: int;
@@ -961,6 +929,38 @@ module M_Hop1(SC:Syscall_t) = {
     total <- (W8.of_int 0);
     consumed <- 0;
     while (consumed < 67) {
+      if ((bits = (W64.of_int 0))) {
+        total <- input.[(W64.to_uint in_0)];
+        in_0 <- (in_0 + (W64.of_int 1));
+        bits <- (bits + (W64.of_int 8));
+      } 
+      bits <- (bits - (W64.of_int 4));
+      total_32 <- (zeroextu32 total);
+      total_32 <- (total_32 `>>` (truncateu8 (bits `&` (W64.of_int 31))));
+      total_32 <- (total_32 `&` (W32.of_int (16 - 1)));
+      output.[(W64.to_uint out)] <- total_32;
+      out <- (out + (W64.of_int 1));
+      consumed <- consumed + 1;
+    }
+    return (output);
+  }
+
+  proc __base_w_3_2 (output:W32.t Array3.t, input:W8.t Array2.t) : W32.t Array3.t = {
+    var aux: int;
+
+    var in_0:W64.t;
+    var out:W64.t;
+    var bits:W64.t;
+    var total:W8.t;
+    var total_32:W32.t;
+    var consumed:int;
+
+    in_0 <- (W64.of_int 0);
+    out <- (W64.of_int 0);
+    bits <- (W64.of_int 0);
+    total <- (W8.of_int 0);
+    consumed <- 0;
+    while (consumed < 3) {
       if ((bits = (W64.of_int 0))) {
         total <- input.[(W64.to_uint in_0)];
         in_0 <- (in_0 + (W64.of_int 1));

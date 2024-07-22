@@ -100,6 +100,9 @@ inline fn __gen_chain_inplace(
         // set_hash_addr(addr, i);
         () = #unspill(addr);
         addr = __set_hash_addr(addr, i);
+
+        // NOTE: This line was inside __thash_f_ but having it here simplifies the proof
+        addr = __set_key_and_mask(addr, 0);
         
         () = #unspill(pub_seed, out);
         out, addr  = __thash_f_(out, pub_seed, addr);

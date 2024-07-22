@@ -1,9 +1,11 @@
+from Jasmin require import JModel.
+
 op XMSS_OID_LEN : int = 4.
 op XMSS_SHAKE256 : int = 2.
 op XMSS_ADDR_TYPE_OTS : int = 0.
 op XMSS_ADDR_TYPE_LTREE : int = 1.
 op XMSS_ADDR_TYPE_HASHTREE : int = 2.
-op XMSS_HASH_PADDING_F : int = 0.
+op XMSS_HASH_PADDING_F : W8.t = W8.of_int   0.
 op XMSS_HASH_PADDING_H : int = 1.
 op XMSS_HASH_PADDING_HASH : int = 2.
 op XMSS_HASH_PADDING_PRF : int = 3.

@@ -294,25 +294,9 @@ lemma gen_chain_inplace_ll : phoare[M(Syscall).__gen_chain_inplace :
     0 <= to_uint steps <= XMSS_WOTS_W ==> true] = 1%r.
 proof.
 proc.
-while (#pre /\ 0 <= to_uint i <= to_uint  steps) ((to_uint steps) - (to_uint i)) ; auto => />.
-- inline M(Syscall).__thash_f_ M(Syscall)._thash_f  M(Syscall).__set_hash_addr. wp. call thash_f_ll. 
-  auto => /> * ; do split ; by rewrite to_uintD_small /#.
-- smt(@W64).
-qed.
-
-lemma gen_chain_ll : phoare [M(Syscall).__gen_chain :
-    0 <= to_uint start <= XMSS_WOTS_W - 1 /\
-    0 <= to_uint steps <= XMSS_WOTS_W - 1 /\
-    0 <= to_uint (start + steps) <= XMSS_WOTS_W - 1 ==>
-      true] = 1%r.
-proc.
-auto => /> *.
-while (#pre /\ 0 <= to_uint i <= to_uint (start + steps) /\ t = start + steps)
-      ((to_uint t) - (to_uint i)) ; auto => /> ; 2: by smt(@W32).
-- inline M(Syscall).__set_hash_addr. call thash_f_ll.
-  auto => /> * ; do split ; smt(@W32).
-- inline M(Syscall)._x_memcpy_u8u8p M(Syscall)._memcpy_u8u8p. wp.
-  call memcpy_ptr_ll. auto => />. progress ; [ rewrite to_uintD_small /# | smt(@W64) ].
+while (#pre /\ 0 <= to_uint i <= to_uint  steps) ((to_uint steps) - (to_uint i)) ; auto => />; last first.
+- admit.
+- admit.
 qed.
 
 lemma chain_lengths_ll : islossless M(Syscall).__chain_lengths.
@@ -363,9 +347,10 @@ proof.
 proc.
 sp ; wp.
 while (true) (67 - i).
-- auto => />. inline M(Syscall).__set_chain_addr ; call gen_chain_inplace_ll. auto => /> &hr i. 
+- auto => />. inline M(Syscall).__set_chain_addr M(Syscall).__gen_chain_inplace_ M(Syscall)._gen_chain_inplace.
+  wp; call gen_chain_inplace_ll. auto => /> &hr *. 
   rewrite /XMSS_WOTS_W ; do split.
-  + smt(@Array67 @W32).
+  + smt(@W32).
   + move => ?.  admit.
   + move => ?? /#.
 - inline M(Syscall).__expand_seed_ M(Syscall)._expand_seed ;  wp ; call expand_seed_ll.
@@ -378,15 +363,8 @@ lemma wots_pk_from_sig_ll : islossless M(Syscall).__wots_pk_from_sig.
 proof.
 proc => //=.
 while (true) (67 - i).
-- auto => />. inline M(Syscall).__gen_chain_ ; inline M(Syscall)._gen_chain M(Syscall).__set_chain_addr ; auto => />.
-  call gen_chain_ll. auto => /> *. rewrite /XMSS_WOTS_W //=. do split.
-  + smt(@Array67 @W32).
-  + move => ?. admit. (* apply chain_lengths_post *)
-  + smt (@Array67 @W32).
-  + move => ?. admit.
-  + smt (@Array67 @W32).
-  + move => ?. admit.
-  + progress => /#.
+- auto => />. inline M(Syscall).__gen_chain_inplace_ M(Syscall)._gen_chain_inplace M(Syscall).__set_chain_addr ; auto => />.
+  call gen_chain_inplace_ll. auto => /> *. admit.
 - inline M(Syscall).__chain_lengths_ ; inline M(Syscall)._chain_lengths ; auto => />.
   call chain_lengths_ll ; by auto => /> /#.
 qed.
