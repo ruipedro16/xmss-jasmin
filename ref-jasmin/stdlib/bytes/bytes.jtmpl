@@ -18,6 +18,14 @@ inline fn __ull_to_bytes<OUTLEN>(
   //   out[u64 3] = 0; 
   // }
 
+
+  /* https://stackoverflow.com/questions/3784263/converting-an-int-into-a-4-byte-char-array-c
+  buffer[0] = (value >> 24) & 0xFF;
+  buffer[1] = (value >> 16) & 0xFF;
+  buffer[2] = (value >> 8) & 0xFF;
+  buffer[3] = value & 0xFF;
+  */
+
   inline int i;
 
   for i=OUTLEN-1 downto -1 {

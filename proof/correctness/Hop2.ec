@@ -91,27 +91,20 @@ module Hop2 = {
     return (out, address);
   } 
 
-  proc chain(X : nbytes, i s : int, _seed : seed, address : adrs) : nbytes * adrs = {
+  proc chain(X : nbytes, start steps : int, _seed : seed, address : adrs) : nbytes * adrs = {
     var t : nbytes <- X;
-    var chain_count : int <- 0;
-    var _key : key;
-    var bitmask : nbytes;
     var addr_bytes : W8.t list;
+    var i : int;
 
-    while (chain_count < s) {
-      address <- set_hash_addr address (i + chain_count);
+    i <- start;
+
+    while (i < start + steps) {
+      address <- set_hash_addr address i;
       address <- set_key_and_mask address 0;
 
-      _key <- PRF _seed address;
-      address <- set_key_and_mask address 1;
-      
-      addr_bytes <- addr_to_bytes address;
-      
-      bitmask <@ prf(_seed, addr_bytes);
-      
       (t, address) <@ thash_f (t, _seed, address);
       
-      chain_count <- chain_count + 1;
+      i <- i + 1;
     }
     
     return (t, address);
@@ -258,6 +251,95 @@ seq 1 0 : (
     + auto => /> *; do split; smt(@Array128 @List).
     + auto => /> *; rewrite !/to_list !/mkseq -!iotaredE => /> /#. 
 qed.
+
+
+lemma thash_f_hop2_correct (o : W8.t Array32.t, ps : W8.t Array32.t, a : W32.t Array8.t) :
+    equiv [
+      M(Syscall).__thash_f ~ Hop2.thash_f :
+      arg{1} = (o, ps, a) /\
+      arg{2} = (to_list o, to_list ps, a)
+      ==>
+      res{2}.`1 = to_list res{1}.`1 /\
+      res{2}.`2 = res{1}.`2
+      ].
+proof.
+proc => //=.
+admit.
+qed.
+
+lemma gen_chain_correct (_in : W8.t Array32.t, _start_ _steps_ : W32.t, 
+                         _pub_seed_ : W8.t Array32.t, _addr_ : W32.t Array8.t) :
+    equiv [
+      M(Syscall).__gen_chain_inplace ~ Hop2.chain : 
+      arg{1} = (_in, _start_, _steps_, _pub_seed_, _addr_) /\
+      arg{2} = (to_list _in, to_uint _start_, to_uint _steps_, to_list _pub_seed_, _addr_) /\
+      0 <= to_uint _start_ <= 15 /\
+      0 <= to_uint _steps_ <= 15 /\
+      0 <= to_uint (_start_ + _steps_) <= 15
+      ==> 
+      res{2}.`1 = to_list res{1}.`1 /\ 
+      res{2}.`2 = res{1}.`2
+    ].
+proof.
+proc => //=.
+seq 3 2 : (
+  #pre /\ 
+  i{1} = start{1} /\ 
+  t{1} = start{1} + steps{1} /\ 
+  t{2} = X{2} /\
+  i{2} = start{2} /\
+  i{2} = to_uint i{1}
+); 1:auto.
+while (
+    0 <= to_uint start{1} <= 15 /\
+    0 <= to_uint steps{1} <= 15 /\
+    0 <= to_uint (start{1} + steps{1}) <= 15 /\
+  
+    t{1} = start{1} + steps{1} /\
+  
+    0 <= to_uint i{1} <= 15 /\
+    _seed{2} = to_list pub_seed{1} /\
+    address{2} = addr{1} /\
+    t{2} = to_list out{1} /\
+    i{2} = to_uint i{1} /\
+    start{2} = to_uint start{1} /\
+    steps{2} = to_uint steps{1}
+); last first.
+    + auto => /> *; smt(@W32 pow2_32). 
+    + seq 2 2 : (#pre); first by inline {1}; auto => />. 
+      inline M(Syscall).__thash_f_ M(Syscall)._thash_f; wp; sp.
+      ecall (thash_f_hop2_correct out{1} pub_seed{1} addr{1}).
+      auto => /> &1 &2 *. smt(@W32 pow2_32).
+qed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 (*** ***)
 

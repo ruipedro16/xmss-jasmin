@@ -10,14 +10,35 @@ require import RandomBytes XMSS_IMPL XMSS_IMPL_HOP1.
 
 require import Array8 Array32.
 
+require import Params Parameters Address Notation Primitives Wots.
+(*---*) import NBytes.
+
+lemma size_nbytes (x : nbytes) : size x = n.
+proof.
+admit.
+qed.
+
+lemma size_wots_sk (sk : wots_sk) : size sk = len.
+proof.
+admit.
+qed.
+
+
+lemma size_flatten_wots_sk (sk : wots_sk) : size (flatten sk) = len * n.
+proof.
+rewrite size_flatten.
+admit.
+qed.
+
+(*** ***)
+
 pred valid_ptr (p o : W64.t) = 
   0 <= to_uint o => 
     0 <= to_uint p /\ to_uint (p + o) < W64.modulus.
 
 op BytesToBits (bytes : W8.t list) : bool list = flatten (map W8.w2bits bytes).
 op BitsToBytes (bits : bool list) : W8.t list = map W8.bits2w (chunk W8.size bits).
-
-(*** ***)                                        
+op W64ToBytes (w : W64.t, outlen : int) : W8.t list. (* = BitsToBytes (W64.w2bits w). *)
 
 op addr_to_bytes (a : W32.t Array8.t) : W8.t list = 
   let addr_bits : bool list = flatten (mkseq (fun (i : int) => W32.w2bits a.[i]) 8) in
@@ -25,7 +46,7 @@ op addr_to_bytes (a : W32.t Array8.t) : W8.t list =
 
 
 lemma addr_to_bytes_correctness (x : W32.t Array8.t) : 
-    hoare[M(Syscall).__addr_to_bytes : arg.`2 = x ==> to_list res = addr_to_bytes x].
+    phoare[M(Syscall).__addr_to_bytes : arg.`2 = x ==> to_list res = addr_to_bytes x] = 1%r.
 proof.
 proc.
 auto => />. 

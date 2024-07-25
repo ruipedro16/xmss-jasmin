@@ -11,6 +11,8 @@ inline fn __expand_seed(
 ) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]
 {  
     reg ptr u8[XMSS_N] ith_seed;
+    reg ptr u8[32] addr_bytes;
+
     // NOTE: BUF = pub_seed || addr_as_bytes
     stack u8[XMSS_N + 32] buf;
     inline int i;
@@ -32,7 +34,9 @@ inline fn __expand_seed(
         () = #spill(addr);
 
         // addr_to_bytes(buf + params->n, addr);
-        buf[XMSS_N : 32] = __addr_to_bytes(buf[XMSS_N : 32], addr);
+        addr_bytes = buf[XMSS_N : 32];
+        addr_bytes = __addr_to_bytes(addr_bytes, addr);
+        buf[XMSS_N : 32] = addr_bytes;
 
         () = #unspill(outseeds, inseed);
         ith_seed = outseeds[i * XMSS_N : XMSS_N];
