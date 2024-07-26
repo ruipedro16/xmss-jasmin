@@ -316,17 +316,21 @@ inline fn __thash_f(
     stack u8[XMSS_N] bitmask;
     stack u8[32] addr_as_bytes;
 
+    reg ptr u8[XMSS_PADDING_LEN] padding;
+
     reg u8 t;
     reg u64 i;
 
-    // buf = XMSS_HASH_PADDING_F || PRF (addr_as_bytes) || bitmask
+    // buf = XMSS_HASH_PADDING_F || PRF (addr_as_bytes)
 
     // Note: Having this before __ull_to_bytes simplifies the proof.
     // addr_to_bytes(addr_as_bytes, addr);
     addr_as_bytes = __addr_to_bytes(addr_as_bytes, addr);
 
     // ull_to_bytes(buf, params->padding_len, XMSS_HASH_PADDING_F);
-    buf[0:XMSS_PADDING_LEN] = __ull_to_bytes<XMSS_PADDING_LEN>(buf[0:XMSS_PADDING_LEN], XMSS_HASH_PADDING_F);
+    padding = buf[0:XMSS_PADDING_LEN];
+    padding = __ull_to_bytes<XMSS_PADDING_LEN>(padding, XMSS_HASH_PADDING_F);
+    buf[0:XMSS_PADDING_LEN] = padding;
 
     // set_key_and_mask(addr, 0);
     // addr = __set_key_and_mask(addr, 0);

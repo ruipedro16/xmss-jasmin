@@ -76,7 +76,7 @@ module Hop2 = {
     
     bitmask <@ prf (addr_bytes, seed);
 
-    buf <- padding ++ u ++ bitmask;
+    buf <- padding ++ u;
 
     i <- 0;
     while (i < n) {
@@ -205,6 +205,13 @@ proc ; inline*.
 admit.
 qed.
 
+lemma addr_to_bytes_correct (x : W32.t Array8.t) :
+    phoare [M(Syscall).__addr_to_bytes : arg.`2 = x ==> to_list res = addr_to_bytes x] = 1%r.
+proof.
+proc.
+admit.
+qed.
+
 lemma prf_keygen_hop2 (a : W8.t Array64.t, b : W8.t Array32.t) :
     padding_val = XMSS_HASH_PADDING_PRF_KEYGEN /\ padding_len = XMSS_PADDING_LEN =>
     equiv [
@@ -253,7 +260,24 @@ seq 1 0 : (
 qed.
 
 
+
+lemma prf__hop2 (a b : W8.t Array32.t) :
+    padding_val = XMSS_HASH_PADDING_PRF /\ padding_len = XMSS_PADDING_LEN =>
+    equiv [
+    M(Syscall).__prf_ ~ Hop2.prf : 
+    arg{1}.`2 = a /\ arg{1}.`3 = b /\ arg{2} = (to_list a, to_list b) 
+    ==>
+    res{2} = to_list res{1}
+    ].
+proof.
+admit.
+qed.
+
+
 lemma thash_f_hop2_correct (o : W8.t Array32.t, ps : W8.t Array32.t, a : W32.t Array8.t) :
+    n = XMSS_N /\
+    padding_len = XMSS_PADDING_LEN /\ 
+    padding_val = XMSS_HASH_PADDING_F =>
     equiv [
       M(Syscall).__thash_f ~ Hop2.thash_f :
       arg{1} = (o, ps, a) /\
@@ -263,11 +287,60 @@ lemma thash_f_hop2_correct (o : W8.t Array32.t, ps : W8.t Array32.t, a : W32.t A
       res{2}.`2 = res{1}.`2
       ].
 proof.
+rewrite /XMSS_N /XMSS_PADDING_LEN /XMSS_HASH_PADDING_F => [#] nval plen pval.
 proc => //=.
-admit.
+seq 15 9 : (buf{2} = to_list buf{1} /\ address{2} = addr{1}); last first.
+ + inline M(Syscall).__core_hash__96 M(Syscall)._core_hash_96; wp; sp; ecall {1} (hash_96 in_00{1}); auto => /> /#.
+seq 4 0 : (#pre); 1:auto.
+swap {2} 1 1.
+seq 1 1 : (#pre /\ addr_bytes{2} = to_list addr_as_bytes{1}).
+  + ecall {1} (addr_to_bytes_correct addr{1}); auto => /> /#. 
+seq 1 0 : (#pre); 1:auto.
+seq 1 1 : (#pre /\ to_list padding{1} = padding{2}).
+  + call (ull_to_bytes_correct W64.zero); auto => />.  
+seq 1 0 : (
+  #pre /\
+  forall (k : int), 0 <= k < 32 => buf{1}.[k] = padding{1}.[k]
+); first by auto => />; smt(@Array96).
+seq 1 1 : (
+  out{2} = to_list out{1} /\
+  seed{2} = to_list pub_seed{1} /\
+  address{2} = addr{1} /\
+
+  addr_bytes{2} = to_list addr_as_bytes{1} /\
+  padding{2} = to_list padding{1} /\
+  (forall (k : int), 0 <= k && k < 32 => buf{1}.[k] = padding{1}.[k]) /\
+
+  u{2} = to_list aux{1}
+).
+    + exists * addr_as_bytes{1}, pub_seed{1}; elim * => _P1 _P2. call {1} (prf__hop2 _P1 _P2); [admit | auto => /> ]. (* o primeiro admit e pq na spec nao ha distincao entre padding para prf e para prf kg => TODO: Mudar isto *)
+seq 1 0 : (
+    #pre /\
+    forall (k : int), 32 <= k < 64 => buf{1}.[k] = aux{1}.[k - 32]
+); first by auto => /> &1 *; smt(@Array96). 
+seq 1 1 : (#pre); first by inline {1} ; auto.
+seq 1 1 : (#pre); first by ecall {1} (addr_to_bytes_correctness addr{1}); auto => /> /#.
+seq 1 1 : (#pre /\ bitmask{2} = to_list bitmask{1}).
+    + exists * addr_as_bytes{1}, pub_seed{1}; elim * => _P1 _P2. call {1} (prf__hop2 _P1 _P2); [admit | auto => /> ]. (* o primeiro admit e pq na spec nao ha distincao entre padding para prf e para prf kg => TODO: Mudar isto *)
+seq 0 1 : (
+  #pre /\
+  forall (k : int), 0 <= k < 64 => buf{1}.[k] = nth witness buf{2} k
+); first by auto => /> &1 *; rewrite !/to_list !/mkseq -!iotaredE => /> /#.
+while (
+  #pre /\
+  0 <= to_uint i{1} <= 32 /\
+  i{2} = to_uint i{1} /\
+  forall (k : int), 0 <= k < i{2} => buf{1}.[64 + k] = nth witness buf{2} (64 + k)
+).
+    + auto => /> &1 &2 *. do split; 4..6,8,9:smt(@W64 pow2_64).
+      * admit.
+      * admit.
+      * admit.
+      * admit.
+    + auto => /> &1 &2 *. do split; 1,2:smt(). move => *. admit.
 qed.
 
-lemma gen_chain_correct (_in : W8.t Array32.t, _start_ _steps_ : W32.t, 
+lemma gen_chain_hop2 (_in : W8.t Array32.t, _start_ _steps_ : W32.t, 
                          _pub_seed_ : W8.t Array32.t, _addr_ : W32.t Array8.t) :
     equiv [
       M(Syscall).__gen_chain_inplace ~ Hop2.chain : 
@@ -308,15 +381,36 @@ while (
     + auto => /> *; smt(@W32 pow2_32). 
     + seq 2 2 : (#pre); first by inline {1}; auto => />. 
       inline M(Syscall).__thash_f_ M(Syscall)._thash_f; wp; sp.
-      ecall (thash_f_hop2_correct out{1} pub_seed{1} addr{1}).
-      auto => /> &1 &2 *. smt(@W32 pow2_32).
+      exists * out1{1}, pub_seed1{1}, addr1{1}. elim * => _P1 _P2 _P3.
+      call {1} (thash_f_hop2_correct _P1 _P2 _P3). admit. (* todo: rename parameters so they dont have the same name *)
+      auto => /> &1 &2 *; smt(@W32 pow2_32).
+qed.
+
+lemma chain_hop2_spec (_in : W8.t list, start steps : int, _pub_seed : W8.t list, _addr_ : W32.t Array8.t) :
+    equiv [ Hop2.chain ~ Chain.chain : ={arg} ==> ={res} ].
+proof.
+proc => //=.
+admit.
 qed.
 
 
-
-
-
-
+lemma chain_correct (_in : W8.t Array32.t, _start_ _steps_ : W32.t, 
+                         _pub_seed_ : W8.t Array32.t, _addr_ : W32.t Array8.t) :
+    equiv [
+      M(Syscall).__gen_chain_inplace ~ Chain.chain : 
+      arg{1} = (_in, _start_, _steps_, _pub_seed_, _addr_) /\
+      arg{2} = (to_list _in, to_uint _start_, to_uint _steps_, to_list _pub_seed_, _addr_) /\
+      0 <= to_uint _start_ <= 15 /\
+      0 <= to_uint _steps_ <= 15 /\
+      0 <= to_uint (_start_ + _steps_) <= 15
+      ==> 
+      res{2}.`1 = to_list res{1}.`1 /\ 
+      res{2}.`2 = res{1}.`2
+    ].
+proof.
+(* transitivity . *)
+admit.
+qed.
 
 
 
