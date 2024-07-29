@@ -3,10 +3,10 @@ pragma Goals : printall.
 require import AllCore List RealExp IntDiv.
 from Jasmin require import JModel JArray.
 
-require import Params Parameters Address Notation Primitives Hash Wots.
+require import Params Parameters Address Notation Primitives Hash Wots Util.
 require import RandomBytes XMSS_IMPL XMSS_IMPL_HOP1.
 
-require import Array2 Array3 Array8 Array32 Array67 Array2144.
+require import Array2 Array3 Array8 Array32 Array67 Array96 Array2144.
 
 require import Utils. (* valid ptr predicate & addr_to_bytes *)
 require import Correctness_Mem Correctness_Hash. 
@@ -177,9 +177,6 @@ qed.
 
 (*** ***)
 
-require import Util.
-require import Array96.
-
 lemma thash_f_hop2 (o s : W8.t Array32.t, ad : W32.t Array8.t) :
     n = XMSS_N /\
     padding_len = XMSS_PADDING_LEN /\
@@ -196,6 +193,8 @@ lemma thash_f_hop2 (o s : W8.t Array32.t, ad : W32.t Array8.t) :
 proof.
 move => [#] ????. 
 proc.
+seq 0 1 : (#pre /\ size buf{2} = 96).
+  + by auto => />; rewrite size_nseq.
 seq 4 0 : (#pre); 1:auto.
 swap {2} 1 1.
 seq 1 1 : (#pre /\ to_list addr_as_bytes{1} = addr_bytes{2}).
@@ -210,6 +209,7 @@ seq 1 1 : (#pre /\ u{2} = to_list aux{1}).
 seq 1 0 : (#pre /\ forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = aux{1}.[k]).
   + auto => />; smt(@Array96).
 seq 2 2 : (
+  size buf{2} = 96 /\
   to_list pub_seed{1} = seed{2} /\
   addr{1} = address{2} /\
   to_list out{1} = out{2} /\
@@ -219,7 +219,7 @@ seq 2 2 : (
   (forall (k : int), 0 <= k && k < 32 => buf{1}.[k] = padding{1}.[k]) /\
   (forall (k : int), 0 <= k && k < 32 => buf{1}.[32 + k] = aux{1}.[k])  
 ).
-    + inline {1} M(Syscall).__set_key_and_mask. sp 4 1; ecall {1} (addr_to_bytes_correctness addr{1}); auto => />.
+    + inline {1} M(Syscall).__set_key_and_mask; sp 4 1; ecall {1} (addr_to_bytes_correctness addr{1}); auto => />.
 seq 1 1 : (#pre /\ bitmask{2} = to_list bitmask{1}).      
     + inline {1} M(Syscall).__prf_  M(Syscall)._prf; wp; sp.
       exists * in_00{1}, key0{1}; elim * => _P1 _P2; call (prf_correctness _P1 _P2); skip => />.
@@ -227,11 +227,12 @@ seq 0 1 : (
   #pre /\ 
   forall (k : int), 0 <= k < 64 => buf{1}.[k] = nth witness buf{2} k
 ).
-    + auto => /> &1 *. rewrite /to_list /mkseq -iotaredE => /> /#. 
+    + auto => /> &1 *.  admit. (* TODO: This needs to be fixed in Hop2 rewrite /to_list /mkseq -iotaredE => />. *)
 seq 2 2 : (buf{2} = to_list buf{1} /\ address{2} = addr{1}); last first.
     + inline {1} M(Syscall).__core_hash__96 M(Syscall)._core_hash_96; wp; sp. 
       ecall {1} (hash_96 in_00{1}); auto => /> /#. 
 while (
+  size buf{2} = 96 /\ 
   address{2} = addr{1} /\
   n{2} = 32 /\
   i{2} = to_uint i{1} /\ 
@@ -241,13 +242,12 @@ while (
   forall (k : int), 0 <= k < i{2} => nth witness buf{2} (64 + k) = buf{1}.[64 + k]
 ); last first.
     + auto => /> *. do split;1,2:smt(). auto => /> *. apply (eq_from_nth witness). 
-      rewrite size_to_list. admit. (* no information about the size of buf, which should be 96 = 3.n *)
-      move => *. admit.
-    + auto => /> &1 &2 *. do split;1..3,5,6:smt(@W64 pow2_64). move => k *. have ?: size (buf{2}) = 96 by admit. (* this needs to be in the invariant *)
-      rewrite nth_put 1:/#. 
-      case (64 + to_uint i{1} = 64 + k).
-         * move => *. rewrite get_setE; 1:smt(@W64 pow2_64). by rewrite ifT; 1:smt(@W64 pow2_64). 
-         * move => *. rewrite get_setE; 1:smt(@W64 pow2_64). rewrite ifF; 1:smt(@W64 pow2_64). smt().
+      rewrite size_to_list /#. move => *. admit.
+    + auto => /> &1 &2 *. do split;2..4,6,7:smt(@W64 pow2_64). 
+        * by rewrite size_put. 
+        * move => k *. rewrite nth_put 1:/#. case (64 + to_uint i{1} = 64 + k).
+           - move => *. rewrite get_setE; 1:smt(@W64 pow2_64). by rewrite ifT; 1:smt(@W64 pow2_64). 
+           - move => *. rewrite get_setE; 1:smt(@W64 pow2_64). rewrite ifF; 1:smt(@W64 pow2_64). smt().
 qed. 
 
 lemma gen_chain_inplace_correct (buf : W8.t Array32.t, _start_ _steps_ : W32.t, _addr_ : W32.t Array8.t, _pub_seed_ : W8.t Array32.t) :

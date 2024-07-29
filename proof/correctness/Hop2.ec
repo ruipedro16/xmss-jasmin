@@ -4,7 +4,7 @@ pragma Goals : printall.
 require import AllCore List RealExp IntDiv.
 from Jasmin require import JModel JArray.
 
-require import Params Parameters Address Notation Hash Primitives Wots Generic Util.
+require import Params Parameters Address Notation Hash Primitives Wots Util.
 require import RandomBytes XMSS_IMPL.
 
 require import Array2 Array3 Array8 Array32 Array64 Array67 Array96 Array128 Array2144.
@@ -29,6 +29,8 @@ module Hop2 = {
     var buf : W8.t list;
     var i : int;
     var t : W8.t;
+
+    buf <- nseq 96 witness;
     
     padding <@ Util.w64_to_bytes (thash_f_padding_val, padding_len);
     addr_bytes <- addr_to_bytes address;
@@ -39,7 +41,7 @@ module Hop2 = {
     
     bitmask <@ Hash.prf (addr_bytes, seed);
 
-    buf <- padding ++ u;
+    (* buf <- padding ++ u; *)
 
     i <- 0;
     while (i < n) {

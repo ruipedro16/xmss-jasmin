@@ -1,2 +1,5 @@
 .vscode
 venv
+
+flake.nix
+flake.lock

@@ -4,7 +4,7 @@ require import AllCore List RealExp IntDiv.
 require (*  *) Subtype. 
 from Jasmin require import JModel.
 
-require import Params Notation Address.
+require import Params Notation Address Hash.
 require import Array8.
 
 clone import Subtype as NBytes with 
