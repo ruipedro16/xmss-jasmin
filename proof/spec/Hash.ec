@@ -6,7 +6,7 @@ require import BitEncoding.
 
 from Jasmin require import JModel.
 
-require import Primitives.
+require import Primitives Util.
 
 (*---*) import NBytes.
 
@@ -17,20 +17,12 @@ op prf_kg_padding_val : W64.t.
 op padding_len : int.
 
 module Hash = {
-  proc w64_to_bytes (x :W64.t, outlen : int) : W8.t list = { (* TODO: Move to Utils *)
-    var r : W8.t list;
-
-    r <- nseq outlen W8.zero;
-
-    return r;
-  }
-
   proc prf (in_0 : W8.t list, key : nbytes) : nbytes = {
     var r : nbytes;
     var padding : W8.t list;
     var buf : W8.t list;
 
-    padding <@ w64_to_bytes (prf_padding_val, padding_len);
+    padding <@ Util.w64_to_bytes (prf_padding_val, padding_len);
     buf <- padding ++ key ++ in_0;
 
     r <- Hash buf;
@@ -44,7 +36,7 @@ module Hash = {
     var padding : W8.t list;
     var buf : W8.t list;
 
-    padding <@ w64_to_bytes (prf_kg_padding_val, padding_len);
+    padding <@ Util.w64_to_bytes (prf_kg_padding_val, padding_len);
     buf <- padding ++ key ++ in_0;
 
     r <- Hash buf;
@@ -53,3 +45,12 @@ module Hash = {
 
   }
 }.
+
+
+(*---------------------------------------------------------------------------------------------------------*)
+
+lemma prf_ll : islossless Hash.prf
+    by proc; wp; call w64_to_bytes_ll.
+
+lemma prf_kg_ll : islossless Hash.prf_keygen
+    by proc; wp ; call w64_to_bytes_ll.

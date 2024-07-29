@@ -6,7 +6,7 @@ require import BitEncoding.
 
 from Jasmin require import JModel.
 
-module Utils = {
+module Util = {
   proc w64_to_bytes (x : W64.t, outlen : int) = {
     var r : W8.t list;
     
@@ -16,3 +16,8 @@ module Utils = {
     return r;
   } 
 }.
+
+lemma w64_to_bytes_ll : islossless Util.w64_to_bytes.
+proof.
+admit.
+qed.

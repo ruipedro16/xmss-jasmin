@@ -1,14 +1,16 @@
 pragma Goals : printall.
 
 require import AllCore List Distr RealExp IntDiv.
-require (*  *) Subtype.
+require (*--*) Subtype.
 
 from Jasmin require import JModel.
 
-require import Params Notation Address Primitives Params.
+require import Params Notation Address Primitives Hash Params Utils.
 
 import DList.
 import NBytes.
+
+require import Array8.
 
 (**********************************************************************************************************************)
 
@@ -35,11 +37,6 @@ type wots_signature = len_n_bytes.
 type wots_pk = len_n_bytes.
 type wots_sk = len_n_bytes.
 type wots_keypair = wots_pk * wots_sk.
-
-(**********************************************************************************************************************)
-
-(* For pseudorandomly generate a WOTS private key from a secret seed *)
-op PRF_KEYGEN (sk_seed : nbytes, address : adrs, seed : nbytes) : nbytes.
 
 (**********************************************************************************************************************)
 
@@ -76,7 +73,8 @@ module WOTS = {
   proc pseudorandom_genSK(sk_seed : nbytes, seed : nbytes, address : adrs) : wots_sk * adrs= {
     var sk : wots_sk <- nseq len (nseq n witness);
     var sk_i : nbytes;
-    var key : nbytes;
+    var addr_bytes : W8.t list;
+    var buf : W8.t list;
     var i : int;
     
     address <- set_hash_addr address 0;
@@ -85,8 +83,9 @@ module WOTS = {
     i <- 0;
     while (i < len) {
       address <- set_chain_addr address i;
-      key <- toByte (W32.of_int i) 32;
-      sk_i <- PRF_KEYGEN sk_seed address key;
+      addr_bytes <- addr_to_bytes address;
+      buf <- seed ++ addr_bytes;
+      sk_i <@ Hash.prf_keygen (buf, sk_seed);
       sk <- put sk i sk_i;
       i <- i + 1;
     }
@@ -183,9 +182,11 @@ module WOTS = {
     var len_2_bytes : int;
     var csum_bytes : W8.t list;
     var csum_base_w : int list;
-    var sig : wots_signature <- witness;
+    var sig : wots_signature;
     var sig_i : nbytes;
     var i : int;
+
+    sig <- nseq len (nseq n W8.zero);
 
     (* Convert message to base w *)
     msg <@ BaseW.base_w(M, len1);
@@ -226,9 +227,11 @@ module WOTS = {
     var len_2_bytes : int;
     var csum_bytes : W8.t list;
     var csum_base_w : int list;
-    var sig : wots_signature <- witness;
+    var sig : wots_signature;
     var sig_i : nbytes;
     var i : int;
+
+    sig <- nseq len (nseq n W8.zero);
 
     (* Generate sk from the secret seed *)
     (wots_skey, address) <@ pseudorandom_genSK(sk_seed, pub_seed, address); 
@@ -324,18 +327,14 @@ axiom checksum_W32 : hoare[WOTS.checksum : true ==> res <= W32.max_uint].
 
 (********************************************************************************************************************)
 
-lemma wots_genSK_ll : islossless WOTS.genSK.
-proof.
-proc.
-while (true) (len - i) ; auto => />.
-  - move => &hr ?. smt.
-  - move => i. rewrite -lezNgt /#.
-qed.
+lemma wots_genSK_ll : islossless WOTS.genSK
+    by proc; while (true) (len - i) ; auto => />; [ smt(@Distr @DList @W8) | smt() ].
+
 
 lemma wots_genSK_prf_ll : islossless WOTS.pseudorandom_genSK.
 proof.
-proc ; islossless.
-while (true) (len - i) ; by auto => /> /#.
+proc; wp; sp.
+while (true) (len - i) ; auto => />; [ sp; call prf_kg_ll; skip => /> /# | smt() ]. 
 qed.
 
 (* TODO: Remove chain_ll lemma from this file => it is already in Properties *)
