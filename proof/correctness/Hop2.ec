@@ -4,8 +4,8 @@ pragma Goals : printall.
 require import AllCore List RealExp IntDiv.
 from Jasmin require import JModel JArray.
 
-require import Params Parameters Address Notation Primitives Wots Generic.
-require import RandomBytes XMSS_IMPL XMSS_IMPL_HOP1.
+require import Params Parameters Address Notation Hash Primitives Wots Generic.
+require import RandomBytes XMSS_IMPL.
 
 require import Array2 Array3 Array8 Array32 Array64 Array67 Array96 Array128 Array2144.
 
@@ -13,51 +13,14 @@ require import Utils. (* valid ptr predicate & W64ToBytes & addr_to_bytes *)
 require import Correctness_Mem. (* memcpy results *)
 (*---*) import NBytes.
 require import Termination.
+require import Repr.
 
 require import BitEncoding.
 (*---*) import BitChunking.
 
-
-op padding_len : int.
-op padding_val : W64.t.
+op thash_f_padding_val : W64.t.
 
 module Hop2 = {
-  proc w64_to_bytes (x : W64.t, outlen : int) = {
-    var r : W8.t list;
-    
-    (* TODO: FIX THIS *)
-    r <- nseq outlen W8.zero;
-  
-    return r;
-  } 
-
-  proc prf (in_0 : W8.t list, key : nbytes) : nbytes = {
-    var r : nbytes;
-    var padding : W8.t list;
-    var buf : W8.t list;
-
-    padding <@ w64_to_bytes (padding_val, padding_len);
-    buf <- padding ++ key ++ in_0;
-
-    r <- Hash buf;
-
-    return r;
-  }
-
-  proc prf_keygen (in_0 : W8.t list, key : nbytes) : nbytes = {
-    var r : nbytes;
-    var padding : W8.t list;
-    var buf : W8.t list;
-
-    padding <@ w64_to_bytes (padding_val, padding_len);
-    buf <- padding ++ key ++ in_0;
-
-    r <- Hash buf;
-    
-    return r;
-
-  }
-  
   proc thash_f (out : nbytes, seed : nbytes, address : adrs) : nbytes * adrs = {
     var padding : W8.t list;
     var addr_bytes : W8.t list;
@@ -67,14 +30,14 @@ module Hop2 = {
     var i : int;
     var t : W8.t;
     
-    padding <@ w64_to_bytes (padding_val, padding_len);
+    padding <@ Hash.w64_to_bytes (thash_f_padding_val, padding_len);
     addr_bytes <- addr_to_bytes address;
-    u <@ prf (addr_bytes, seed);
+    u <@ Hash.prf (addr_bytes, seed);
 
     address <- set_key_and_mask address 1;
     addr_bytes <- addr_to_bytes address;
     
-    bitmask <@ prf (addr_bytes, seed);
+    bitmask <@ Hash.prf (addr_bytes, seed);
 
     buf <- padding ++ u;
 
@@ -123,7 +86,7 @@ module Hop2 = {
        while (i < len) {
        address <- set_chain_addr address i;
        addr_bytes <- addr_to_bytes address;
-       sk_i <@ prf_keygen ((seed ++ addr_bytes), sk_seed);
+       sk_i <@ Hash.prf_keygen ((seed ++ addr_bytes), sk_seed);
        sk <- put sk i sk_i;
        i <- i + 1;
      }
@@ -136,7 +99,7 @@ module Hop2 = {
 (*** ***)
 
 lemma ull_to_bytes_correct (x : W64.t) : 
-    equiv [M(Syscall).__ull_to_bytes_32 ~ Hop2.w64_to_bytes :
+    equiv [M(Syscall).__ull_to_bytes_32 ~ Hash.w64_to_bytes :
       arg{1}.`2 = x /\ arg{2} = (x, 32)  ==> res{2} = to_list res{1}].
 proof.
 proc.
@@ -152,9 +115,9 @@ axiom hash_128 (x : W8.t Array128.t) :
 
 
 lemma prf_hop2 (a b : W8.t Array32.t) :
-    padding_val = XMSS_HASH_PADDING_PRF /\ padding_len = XMSS_PADDING_LEN =>
+    prf_padding_val = XMSS_HASH_PADDING_PRF /\ padding_len = XMSS_PADDING_LEN =>
     equiv [
-    M(Syscall).__prf ~ Hop2.prf : 
+    M(Syscall).__prf ~ Hash.prf : 
     arg{1}.`2 = a /\ arg{1}.`3 = b /\ arg{2} = (to_list a, to_list b) 
     ==>
     res{2} = to_list res{1}
@@ -198,12 +161,25 @@ seq 1 0 : (
     + auto => /> *; rewrite !/to_list !/mkseq -!iotaredE => /> /#. 
 qed.
 
-lemma _x_memcpy_u8u8_64_post (x : W8.t Array64.t) :
-    phoare [M(Syscall)._x_memcpy_u8u8_64_64 : arg.`2 = x ==> res = x] = 1%r.
+
+lemma _x_memcpy_u8u8_64_ (x : W8.t Array64.t) :
+    hoare [M(Syscall)._x_memcpy_u8u8_64_64 : arg.`2 = x ==> res = x].
 proof.
-proc ; inline*.
-admit.
+proc. simplify.
+inline; wp; sp. 
+while (
+  in_01 = x /\
+  0 <= to_uint i <= 64 /\
+  (forall (k : int), 0 <= k < to_uint i => (out1.[k] = x.[k]))
+).
+    + auto => /> &hr *; do split; 1,2:smt(@W64); move => k *. rewrite get_setE; first by smt(@W64). admit. (* case (k = to_uint i{hr}) ; first by smt(). *)
+    + auto => /> &hr; split; [ smt() | move => *; rewrite tP; smt(@W64 pow2_64) ].
 qed.
+
+
+lemma _x_memcpy_u8u8_64_post (x : W8.t Array64.t) :
+    phoare [M(Syscall)._x_memcpy_u8u8_64_64 : arg.`2 = x ==> res = x] = 1%r
+      by conseq _x_memcpy_u8u8_64_64_ll (_x_memcpy_u8u8_64_ x).
 
 lemma addr_to_bytes_correct (x : W32.t Array8.t) :
     phoare [M(Syscall).__addr_to_bytes : arg.`2 = x ==> to_list res = addr_to_bytes x] = 1%r.
@@ -213,15 +189,17 @@ admit.
 qed.
 
 lemma prf_keygen_hop2 (a : W8.t Array64.t, b : W8.t Array32.t) :
-    padding_val = XMSS_HASH_PADDING_PRF_KEYGEN /\ padding_len = XMSS_PADDING_LEN =>
+    prf_padding_val = XMSS_HASH_PADDING_PRF /\
+    prf_kg_padding_val = XMSS_HASH_PADDING_PRF_KEYGEN /\ 
+    padding_len = XMSS_PADDING_LEN =>
     equiv [
-    M(Syscall).__prf_keygen ~ Hop2.prf : 
+    M(Syscall).__prf_keygen ~ Hash.prf_keygen : 
     arg{1}.`2 = a /\ arg{1}.`3 = b /\ arg{2} = (to_list a, to_list b) 
     ==>
     res{2} = to_list res{1}
     ].
 proof.
-rewrite /XMSS_HASH_PADDING_PRF_KEYGEN /XMSS_PADDING_LEN => [#] ??.
+rewrite /XMSS_HASH_PADDING_PRF_KEYGEN /XMSS_PADDING_LEN => [#] ???.
 proc => //=.
 seq 9 2 : (buf{2} = to_list buf{1}); last first.
   + inline M(Syscall).__core_hash__128 M(Syscall)._core_hash_128; wp; sp.
@@ -260,24 +238,10 @@ seq 1 0 : (
 qed.
 
 
-
-lemma prf__hop2 (a b : W8.t Array32.t) :
-    padding_val = XMSS_HASH_PADDING_PRF /\ padding_len = XMSS_PADDING_LEN =>
-    equiv [
-    M(Syscall).__prf_ ~ Hop2.prf : 
-    arg{1}.`2 = a /\ arg{1}.`3 = b /\ arg{2} = (to_list a, to_list b) 
-    ==>
-    res{2} = to_list res{1}
-    ].
-proof.
-admit.
-qed.
-
-
 lemma thash_f_hop2_correct (o : W8.t Array32.t, ps : W8.t Array32.t, a : W32.t Array8.t) :
     n = XMSS_N /\
     padding_len = XMSS_PADDING_LEN /\ 
-    padding_val = XMSS_HASH_PADDING_F =>
+    prf_padding_val = XMSS_HASH_PADDING_F =>
     equiv [
       M(Syscall).__thash_f ~ Hop2.thash_f :
       arg{1} = (o, ps, a) /\
@@ -287,6 +251,7 @@ lemma thash_f_hop2_correct (o : W8.t Array32.t, ps : W8.t Array32.t, a : W32.t A
       res{2}.`2 = res{1}.`2
       ].
 proof.
+(*
 rewrite /XMSS_N /XMSS_PADDING_LEN /XMSS_HASH_PADDING_F => [#] nval plen pval.
 proc => //=.
 seq 15 9 : (buf{2} = to_list buf{1} /\ address{2} = addr{1}); last first.
@@ -338,10 +303,16 @@ while (
       * admit.
       * admit.
     + auto => /> &1 &2 *. do split; 1,2:smt(). move => *. admit.
+*)
+admit.
 qed.
+
 
 lemma gen_chain_hop2 (_in : W8.t Array32.t, _start_ _steps_ : W32.t, 
                          _pub_seed_ : W8.t Array32.t, _addr_ : W32.t Array8.t) :
+    n = XMSS_N /\
+    padding_len = XMSS_PADDING_LEN /\ 
+    prf_padding_val = XMSS_HASH_PADDING_F =>
     equiv [
       M(Syscall).__gen_chain_inplace ~ Hop2.chain : 
       arg{1} = (_in, _start_, _steps_, _pub_seed_, _addr_) /\
@@ -354,6 +325,7 @@ lemma gen_chain_hop2 (_in : W8.t Array32.t, _start_ _steps_ : W32.t,
       res{2}.`2 = res{1}.`2
     ].
 proof.
+move => [#] ???.
 proc => //=.
 seq 3 2 : (
   #pre /\ 
@@ -381,15 +353,20 @@ while (
     + auto => /> *; smt(@W32 pow2_32). 
     + seq 2 2 : (#pre); first by inline {1}; auto => />. 
       inline M(Syscall).__thash_f_ M(Syscall)._thash_f; wp; sp.
-      exists * out1{1}, pub_seed1{1}, addr1{1}. elim * => _P1 _P2 _P3.
-      call {1} (thash_f_hop2_correct _P1 _P2 _P3). admit. (* todo: rename parameters so they dont have the same name *)
+      exists * out1{1}, pub_seed1{1}, addr1{1}; elim * => _P1 _P2 _P3; call {1} (thash_f_hop2_correct _P1 _P2 _P3). 
       auto => /> &1 &2 *; smt(@W32 pow2_32).
 qed.
 
-lemma chain_hop2_spec (_in : W8.t list, start steps : int, _pub_seed : W8.t list, _addr_ : W32.t Array8.t) :
-    equiv [ Hop2.chain ~ Chain.chain : ={arg} ==> ={res} ].
+lemma chain_hop2_spec : equiv [ Hop2.chain ~ Chain.chain : ={arg} ==> ={res} ].
 proof.
 proc => //=.
+while (
+  #pre /\
+  ={address, t} /\
+  i{1} = i{2} + chain_count{2}
+); last by auto => /> /#. 
+    + seq 2 2 : (#pre); first by auto.
+      inline Hop2.thash_f. sp 3 0.
 admit.
 qed.
 
@@ -412,11 +389,19 @@ proof.
 admit.
 qed.
 
+op load_wots_signature (mem : global_mem_t) (ptr : W64.t) : W8.t list = mkseq (fun (i : int) => loadW8 mem (to_uint ptr + i)) 2144.
 
+(*
+lemma pk_from_sig_hop2  (mem : global_mem_t) (_sig_ptr_ : W64.t, _msg_ : W8.t Array32.t, 
+                                              _pub_seed_ : W8.t Array32.t, _addr_ : W32.t Array8.t):
+    equiv[ M(Syscall).__wots_pk_from_sig ~ WOTS.pkFromSig :
+      arg{1} = (_pk_, _sig_ptr_, _msg_, _pub_seed_, _addr_) /\
+      arg{2} = (to_list _msg_, load_wots_signature mem _sig_ptr_, to_list _pub_seed_, _addr_)
+      ==>
+      true
+    ].
 
-
-
-
+*)
 
 
 

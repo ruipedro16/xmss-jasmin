@@ -34,29 +34,3 @@ axiom hash_F_equiv (a : key, b : nbytes) : F a b = Hash (a ++ b).
 
 
 search Array64.init.
-
-op thash_encode (_left _right : W8.t Array32.t) : W8.t Array64.t = 
-    Array64.init (fun (i : int) => if 0 <= i < 32 then _left.[i] else _right.[i-32]).
-
-
-
-lemma thash_rand_hash ( _left _right : W8.t Array32.t, _seed : W8.t Array32.t, _addr : W32.t Array8.t) :
-    equiv[ 
-      M_Hop1(Syscall).__thash_h ~ RandHash.rand_hash : 
-      arg{1}.`2 = (thash_encode _left _right) /\ 
-      arg{1}.`3 = _seed /\ 
-      arg{1}.`4 = _addr /\
-      arg{2} = (to_list _left, to_list _right, to_list _seed, _addr)
-      ==> 
-      res{2}.`1 = to_list res{1}.`1 /\ res{1}.`2 = res{2}.`2
-    ].
-proof.
-proc.
-auto => />. move => &1 &2. 
-auto => />. (* simplify before moving to the context *)
-move => addrL bufL *. do split.
-  + admit.
-  + admit.
-admit.
-qed.
-
