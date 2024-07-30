@@ -217,7 +217,7 @@ module WOTS = {
     return (sig, address);
   }
 
-  proc sign_seed (M : wots_message, sk_seed : seed, pub_seed : seed, address : adrs) : wots_signature * adrs = {
+  proc sign_seed (M : W8.t list, sk_seed : seed, pub_seed : seed, address : adrs) : wots_signature * adrs = {
     var wots_skey : wots_sk;
     var csum_32 : W32.t;
     var csum : int;
@@ -342,7 +342,6 @@ lemma chain_ll : islossless Chain.chain
   by proc; while (true) (s - chain_count); by auto => /#.
 
 (* TODO: Move this to Generic.ec *)
-require import Generic.
 
 lemma spec_base_w_ll : islossless BaseW.base_w.
 proof.

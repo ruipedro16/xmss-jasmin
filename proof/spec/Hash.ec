@@ -6,9 +6,14 @@ require import BitEncoding.
 
 from Jasmin require import JModel.
 
-require import Primitives Util.
+require import Params Util.
 
-(*---*) import NBytes.
+clone import Subtype as NBytes with 
+   type T = W8.t list,
+   op P = fun l => size l = n
+   rename "T" as "nbytes"
+   proof inhabited by (exists (nseq n W8.zero);smt(size_nseq ge0_n))
+   proof *.
 
 op Hash : W8.t list -> W8.t list.
 

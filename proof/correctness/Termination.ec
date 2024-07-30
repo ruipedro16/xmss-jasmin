@@ -1,7 +1,7 @@
 pragma Goals : printall.
 
 require import AllCore List RealExp IntDiv.
-require import RandomBytes XMSS_IMPL XMSS_IMPL_HOP1 Parameters.
+require import RandomBytes XMSS_IMPL Parameters.
 
 from Jasmin require import JModel.
 
@@ -239,26 +239,6 @@ do (call memcpy_32_ptr_ll ; wp). call ull_to_bytes_32_ll ; wp.
 by skip.
 qed.
 
-lemma base_w_ll : phoare [BaseWGeneric.__base_w : size output <= 67 ==> true] = 1%r.
-proof.
-proc.
-wp.
-while (#pre /\ 0 <= to_uint i <= size output) ((size output) - (to_uint i)) ; auto => /> *.
-- do split.
-  + rewrite size_put /#.
-  + rewrite to_uintD_small /#.
-  + rewrite size_put ; smt(@W64).
-  + rewrite size_put to_uintD_small ; smt(@W64).
-  + move => ? ; do split.
-    * rewrite size_put /#.
-    * rewrite to_uintD_small /#.
-    * move => ? ; rewrite size_put ; smt(@W64).
-    * rewrite size_put to_uintD_small /#.
-- split.
-  + apply size_ge0.
-  + move => * ; rewrite ultE of_uintK /#.
-qed.
-
 lemma base_w_3_2_ll : islossless M(Syscall).__base_w_3_2.
 proof.
 proc; wp.
@@ -305,17 +285,6 @@ proc ; wp.
 call checksum_ll ; wp.
 call base_w_67_32_ll ; wp.
 skip => /> *.
-qed.
-
-lemma memcpy_ll : phoare [ Memcpy._x_memcpy_u8u8 : size in_0 <= 64 ==> true ] = 1%r.
-proof.
-proc.
-while (#pre /\ 0 <= to_uint i <= size in_0) ((size in_0) - (to_uint i)) ; auto => />.
-  - move => &hr *. do split.
-    + smt(@W64).
-    + rewrite to_uintD_small // ; smt(@W64).
-    + rewrite to_uintD_small // ; smt(@W64).
-  - progress ; [ apply size_ge0 | smt(@W64) ].
 qed.
 
 lemma expand_seed_ll : islossless M(Syscall).__expand_seed.

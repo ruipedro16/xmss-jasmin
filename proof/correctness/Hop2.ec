@@ -10,7 +10,7 @@ require import RandomBytes XMSS_IMPL.
 require import Array2 Array3 Array8 Array32 Array64 Array67 Array96 Array128 Array2144.
 
 require import Utils. (* valid ptr predicate & W64ToBytes & addr_to_bytes *)
-require import Correctness_Mem. (* memcpy results *)
+require import Correctness_Mem Correctness_Hash. (* memcpy results *)
 (*---*) import NBytes.
 require import Termination.
 require import Repr.
@@ -19,6 +19,8 @@ require import BitEncoding.
 (*---*) import BitChunking.
 
 op thash_f_padding_val : W64.t.
+
+print mkseq.
 
 module Hop2 = {
   proc thash_f (out : nbytes, seed : nbytes, address : adrs) : nbytes * adrs = {
@@ -42,6 +44,8 @@ module Hop2 = {
     bitmask <@ Hash.prf (addr_bytes, seed);
 
     (* buf <- padding ++ u; *)
+    buf <- mkseq (fun (i : int) => if (0 <= i < 32) then nth witness padding i else nth witness buf i) 96;
+    buf <- mkseq (fun (i : int) => if (32 <= i < 64) then nth witness u (i - 32) else nth witness buf i) 96;
 
     i <- 0;
     while (i < n) {
@@ -113,6 +117,7 @@ module Hop2 = {
 
 
 (** ----------------------------------------------------------------------------------- **)
+(* This is proved in WOTS *)
 lemma base_w_correctness_67 ( _in_ : W8.t Array32.t) :
     floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
     w = XMSS_WOTS_W => 
@@ -123,13 +128,15 @@ lemma base_w_correctness_67 ( _in_ : W8.t Array32.t) :
 proof.
 admit.
 qed.
+
 (** ----------------------------------------------------------------------------------- **)
 
-lemma sign_correct (_msg_ _seed_ _pub_seed_ : W8.t Array32.t, _addr_ : W32.t Array8.t) :
+lemma sign_seed_correct (_msg_ _seed_ _pub_seed_ : W8.t Array32.t, _addr_ : W32.t Array8.t) :
     n = XMSS_N /\
     len = XMSS_WOTS_LEN /\
     floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
-    w = XMSS_WOTS_W => 
+    w = XMSS_WOTS_W /\
+    len1 = XMSS_WOTS_LEN1 => 
     equiv [
       M(Syscall).__wots_sign ~ WOTS.sign_seed : 
       arg{1}.`2 = _msg_ /\
@@ -141,7 +148,7 @@ lemma sign_correct (_msg_ _seed_ _pub_seed_ : W8.t Array32.t, _addr_ : W32.t Arr
       res{1}.`1 = DecodeWotsSignature res{2}.`1 /\ res{1}.`2 = res{2}.`2
     ].
 proof.
-move => [#] ????.
+rewrite /XMSS_WOTS_LEN1 => [#] ???? len1_val.
 proc => //=.
 seq 1 1 : (#pre /\ size (flatten sig{2}) = 2144); first by auto => />; smt(@List).
 swap {1} 1 1.
@@ -156,7 +163,7 @@ seq 1 1 : (
     #pre /\ 
     msg{2} = map (W32.to_uint) (to_list lengths2{1})
 ).
-    + admit. (* ecall {1} (base_w_correctness_67 msg2{1}). : Invalid goal shape *)
+    + exists * msg2{1}; elim * => _P1; call {1} (base_w_correctness_67 _P1); auto => /> *. rewrite len1_val //=. admit. (* TODO: perceber de onde vem este subgoal *)
 seq 7 7 : (#pre); 1:admit.
 while (
   len{2} = 67 /\ 
@@ -164,36 +171,18 @@ while (
   address{2} = addr{1} /\
   sig{1} = DecodeWotsSignature sig{2}
 ); last first.
-    + auto => /> &1 &2 *. split; last by smt(). rewrite /DecodeWotsSignature. admit.
+    + auto => /> &1 &2 ? H. split; last by smt(). rewrite /DecodeWotsSignature tP. move => i ?. rewrite get_of_list 1:/#. admit.
 seq 2 2 : (#pre); first by inline; auto.
 seq 3 3 : (#post); last by auto => /> /#. 
 admit.
 qed.
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 lemma thash_f_hop2_correct (o : W8.t Array32.t, ps : W8.t Array32.t, a : W32.t Array8.t) :
     n = XMSS_N /\
     padding_len = XMSS_PADDING_LEN /\ 
-    prf_padding_val = XMSS_HASH_PADDING_F =>
+    prf_padding_val = XMSS_HASH_PADDING_PRF /\ 
+    thash_f_padding_val = XMSS_HASH_PADDING_F =>
     equiv [
       M(Syscall).__thash_f ~ Hop2.thash_f :
       arg{1} = (o, ps, a) /\
@@ -203,17 +192,33 @@ lemma thash_f_hop2_correct (o : W8.t Array32.t, ps : W8.t Array32.t, a : W32.t A
       res{2}.`2 = res{1}.`2
       ].
 proof.
-(*
-rewrite /XMSS_N /XMSS_PADDING_LEN /XMSS_HASH_PADDING_F => [#] nval plen pval.
+rewrite /XMSS_N /XMSS_PADDING_LEN /XMSS_HASH_PADDING_PRF /XMSS_HASH_PADDING_F => [#] n_val ???.
 proc => //=.
-seq 15 9 : (buf{2} = to_list buf{1} /\ address{2} = addr{1}); last first.
- + inline M(Syscall).__core_hash__96 M(Syscall)._core_hash_96; wp; sp; ecall {1} (hash_96 in_00{1}); auto => /> /#.
-seq 4 0 : (#pre); 1:auto.
+seq 15 11 : (buf{2} = to_list buf{1} /\ address{2} = addr{1}); last first.
+  + inline M(Syscall).__core_hash__96 M(Syscall)._core_hash_96; wp; sp; ecall {1} (hash_96 buf{1}); auto => /> /#.
+seq 4 0 : (#pre); first by auto.
+seq 9 9 : (
+  (forall (k : int), 0 <= k < 64 => buf{1}.[k] = nth witness buf{2} k) /\
+  bitmask{2} = to_list bitmask{1} /\
+  out{2} = to_list out{1} /\
+  address{2} = addr{1} /\
+  size buf{2} = 96
+); last first.
+    + while (#pre /\ 0 <= i{2} <= 32 /\ i{2} = to_uint i{1} /\ 
+             (forall (k : int), 0 <= k < i{2} => buf{1}.[64 + k] = nth witness buf{2} (64 + k))); last first.
+        * auto => /> &1 &2 *; do split; 1,2:smt(); move => ???*; apply (eq_from_nth witness); first by rewrite size_to_list; assumption.
+          move => i *. admit.
+        * auto => /> &1 &2 *. do split; 2..5,7,8:smt(@W64 pow2_64 size_put).
+           - move => *. rewrite nth_put 1:/# get_setE; first by smt(@W64 pow2_64). do 2! (rewrite ifF; first by smt(@W64 pow2_64)). smt().
+           - move => k *. rewrite nth_put 1:/# get_setE; first by smt(@W64 pow2_64). 
+             case (64 + k = to_uint ((of_int 64)%W64 + i{1})).
+               + move => *; by rewrite ifT; smt(@W64 pow2_64). 
+               + move => *; by rewrite ifF; smt(@W64 pow2_64). 
+seq 0 1 : (#pre /\ size buf{2} = 96); first by auto => />; rewrite size_nseq.
 swap {2} 1 1.
 seq 1 1 : (#pre /\ addr_bytes{2} = to_list addr_as_bytes{1}).
-  + ecall {1} (addr_to_bytes_correct addr{1}); auto => /> /#. 
-seq 1 0 : (#pre); 1:auto.
-seq 1 1 : (#pre /\ to_list padding{1} = padding{2}).
+  + ecall {1} (addr_to_bytes_correctness addr{1});auto => /> /#. 
+seq 2 1 : (#pre /\ to_list padding{1} = padding{2}).
   + call (ull_to_bytes_correct W64.zero); auto => />.  
 seq 1 0 : (
   #pre /\
@@ -230,7 +235,8 @@ seq 1 1 : (
 
   u{2} = to_list aux{1}
 ).
-    + exists * addr_as_bytes{1}, pub_seed{1}; elim * => _P1 _P2. call {1} (prf__hop2 _P1 _P2); [admit | auto => /> ]. (* o primeiro admit e pq na spec nao ha distincao entre padding para prf e para prf kg => TODO: Mudar isto *)
+    + inline M(Syscall).__prf_ M(Syscall)._prf; wp; sp;
+      exists * in_00{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_correctness _P1 _P2); [smt() | skip => />].
 seq 1 0 : (
     #pre /\
     forall (k : int), 32 <= k < 64 => buf{1}.[k] = aux{1}.[k - 32]
@@ -238,27 +244,11 @@ seq 1 0 : (
 seq 1 1 : (#pre); first by inline {1} ; auto.
 seq 1 1 : (#pre); first by ecall {1} (addr_to_bytes_correctness addr{1}); auto => /> /#.
 seq 1 1 : (#pre /\ bitmask{2} = to_list bitmask{1}).
-    + exists * addr_as_bytes{1}, pub_seed{1}; elim * => _P1 _P2. call {1} (prf__hop2 _P1 _P2); [admit | auto => /> ]. (* o primeiro admit e pq na spec nao ha distincao entre padding para prf e para prf kg => TODO: Mudar isto *)
-seq 0 1 : (
-  #pre /\
-  forall (k : int), 0 <= k < 64 => buf{1}.[k] = nth witness buf{2} k
-); first by auto => /> &1 *; rewrite !/to_list !/mkseq -!iotaredE => /> /#.
-while (
-  #pre /\
-  0 <= to_uint i{1} <= 32 /\
-  i{2} = to_uint i{1} /\
-  forall (k : int), 0 <= k < i{2} => buf{1}.[64 + k] = nth witness buf{2} (64 + k)
-).
-    + auto => /> &1 &2 *. do split; 4..6,8,9:smt(@W64 pow2_64).
-      * admit.
-      * admit.
-      * admit.
-      * admit.
-    + auto => /> &1 &2 *. do split; 1,2:smt(). move => *. admit.
-*)
-admit.
+    + inline M(Syscall).__prf_ M(Syscall)._prf; wp; sp;
+      exists * in_00{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_correctness _P1 _P2); [smt() | skip => />].
+auto => /> &1 &2 *. split; last by rewrite size_mkseq.
+move => *. rewrite nth_mkseq 1:/# /mkseq -iotaredE => /> /#. 
 qed.
-
 
 lemma gen_chain_hop2 (_in : W8.t Array32.t, _start_ _steps_ : W32.t, 
                          _pub_seed_ : W8.t Array32.t, _addr_ : W32.t Array8.t) :

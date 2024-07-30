@@ -4,7 +4,7 @@ require import AllCore List RealExp IntDiv.
 from Jasmin require import JModel JArray.
 
 require import Params Parameters Address Notation Primitives Hash Wots Util.
-require import RandomBytes XMSS_IMPL XMSS_IMPL_HOP1.
+require import RandomBytes XMSS_IMPL.
 
 require import Array2 Array3 Array8 Array32 Array67 Array96 Array2144.
 
@@ -16,15 +16,6 @@ require import Termination.
 require import Hop2.
 
 type adrs = W32.t Array8.t.
-
-(* require import Correctness_Hash. *)
-
-lemma addr_to_bytes_post (x : W32.t Array8.t) :
-    hoare [M_Hop1(Syscall).__addr_to_bytes : arg.`2 = x ==> to_list res = toByte (W32.of_int 1) 32].
-proof.
-proc.
-admit.
-qed.
 
 lemma base_w_correctness_67 ( _in_ : W8.t Array32.t) :
     floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
@@ -169,13 +160,11 @@ while (
       rewrite !of_uintK /= modz_small 1:/# modz_small 1:/#.
       have -> : nth witness (map W32.to_uint (to_list msg)) (to_uint i{1}) = 
                 to_uint (zeroextu64 msg.[to_uint i{1}]).
-        * rewrite to_uint_zeroextu64 (nth_map witness).
-            -  by rewrite size_to_list /#.
-            -  smt().
+        * rewrite to_uint_zeroextu64 (nth_map witness); [ by rewrite size_to_list /# | smt() ].
       by rewrite !to_uint_zeroextu64 to_uintD_small /= /#.
 qed.
 
-(*** ***)
+(*** THASH F ***)
 
 lemma thash_f_hop2 (o s : W8.t Array32.t, ad : W32.t Array8.t) :
     n = XMSS_N /\
@@ -223,11 +212,14 @@ seq 2 2 : (
 seq 1 1 : (#pre /\ bitmask{2} = to_list bitmask{1}).      
     + inline {1} M(Syscall).__prf_  M(Syscall)._prf; wp; sp.
       exists * in_00{1}, key0{1}; elim * => _P1 _P2; call (prf_correctness _P1 _P2); skip => />.
-seq 0 1 : (
+seq 0 2 : (
   #pre /\ 
   forall (k : int), 0 <= k < 64 => buf{1}.[k] = nth witness buf{2} k
 ).
-    + auto => /> &1 *.  admit. (* TODO: This needs to be fixed in Hop2 rewrite /to_list /mkseq -iotaredE => />. *)
+    + auto => /> &1 &2 *. split; first by rewrite size_mkseq. move => k *. rewrite nth_mkseq 1:/#. 
+      simplify.  case (0 <= k && k < 32).
+      * move => *; rewrite ifF 1:/#; rewrite nth_mkseq 1:/#; smt(@Array96 @List).
+      * move => *; rewrite ifT 1:/#; smt(@Array96).
 seq 2 2 : (buf{2} = to_list buf{1} /\ address{2} = addr{1}); last first.
     + inline {1} M(Syscall).__core_hash__96 M(Syscall)._core_hash_96; wp; sp. 
       ecall {1} (hash_96 in_00{1}); auto => /> /#. 
@@ -239,20 +231,153 @@ while (
   0 <= i{2} <= 32 /\
   bitmask{2} = to_list bitmask{1} /\
   out{2} = to_list out{1} /\
-  forall (k : int), 0 <= k < i{2} => nth witness buf{2} (64 + k) = buf{1}.[64 + k]
+  (forall (k : int), 0 <= k < 64 => buf{1}.[k] = nth witness buf{2} k) /\
+  (forall (k : int), 0 <= k < i{2} => buf{1}.[64 + k] = nth witness buf{2} (64 + k))
 ); last first.
-    + auto => /> *. do split;1,2:smt(). auto => /> *. apply (eq_from_nth witness). 
-      rewrite size_to_list /#. move => *. admit.
-    + auto => /> &1 &2 *. do split;2..4,6,7:smt(@W64 pow2_64). 
+    + auto => /> *. do split;1,2:smt(). auto => /> *. apply (eq_from_nth witness); first by rewrite size_to_list /#.
+      move => *. admit.
+    + auto => /> &1 &2 *. do split;2..4,7,8:smt(@W64 pow2_64). 
         * by rewrite size_put. 
         * move => k *. rewrite nth_put 1:/#. case (64 + to_uint i{1} = 64 + k).
-           - move => *. rewrite get_setE; 1:smt(@W64 pow2_64). by rewrite ifT; 1:smt(@W64 pow2_64). 
+           - move => *. rewrite get_setE; 1:smt(@W64 pow2_64). admit. (* by rewrite ifT; 1:smt(@W64 pow2_64). *)
            - move => *. rewrite get_setE; 1:smt(@W64 pow2_64). rewrite ifF; 1:smt(@W64 pow2_64). smt().
+        * move => k *. rewrite nth_put 1:/#. rewrite get_setE; first by smt(@W64 pow2_64). case (64 + k = to_uint ((of_int 64)%W64 + i{1})).
+           - move => *. admit.
+           - move => *. admit.
 qed. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 lemma gen_chain_inplace_correct (buf : W8.t Array32.t, _start_ _steps_ : W32.t, _addr_ : W32.t Array8.t, _pub_seed_ : W8.t Array32.t) :
     w = XMSS_WOTS_W /\ len = XMSS_WOTS_LEN =>
-    equiv [M_Hop1(Syscall).__gen_chain_inplace ~ Chain.chain : 
+    equiv [M(Syscall).__gen_chain_inplace ~ Chain.chain : 
       arg{1}= (buf, _start_, _steps_, _pub_seed_, _addr_) /\
       arg{2} = (to_list buf, to_uint _start_, to_uint _steps_, to_list _pub_seed_, _addr_) /\
       0 <= to_uint _start_ <= XMSS_WOTS_W - 1/\
@@ -281,11 +406,11 @@ while (
  
   #post
 ); last by auto => />; smt(@W32 pow2_32). 
-(* inline {1} M_Hop1(Syscall).__thash_f_ M_Hop1(Syscall)._thash_f M_Hop1(Syscall).__thash_f. *)
 seq 2 2 : (#pre).
-    + inline M_Hop1(Syscall).__set_hash_addr M_Hop1(Syscall).__set_key_and_mask.
-      auto => /> &1 &2 *. rewrite /set_hash_addr /set_key_and_mask. 
+    + inline {1} M(Syscall).__set_hash_addr M(Syscall).__set_key_and_mask.
+      auto => /> &1 &2 *; rewrite /set_hash_addr /set_key_and_mask. 
       by have -> :  (of_int (i{2} + chain_count{2}))%W32 = i{1} by smt(@W32 pow2_32).
+inline {1} M(Syscall).__thash_f_ M(Syscall)._thash_f. sp 9 0. 
 admit. (* This is be a call to thash_f after the second hop and then an auto => /> with some smt(@W64 @W32) *)
 qed.
 
@@ -332,29 +457,6 @@ while (
       (* auto => /> &1 &2 *; do split; 1,2,4,5:smt(). admit. *)
 qed.
 *)
-
-module HopA = {
-  proc pseudorandom_genSK(sk_seed : nbytes, seed : nbytes, address : adrs) : W8.t list * adrs= {
-    var sk : W8.t list <- nseq 2144 witness;
-    var sk_i : nbytes;
-    var key : nbytes;
-    var i : int;
-    
-    address <- set_hash_addr address 0;
-    address <- set_key_and_mask address 0;
-
-    i <- 0;
-    while (i < len) {
-      address <- set_chain_addr address i;
-      key <- address_to_bytes address;
-      sk_i <- PRF_KEYGEN sk_seed address key;
-      sk <- mkseq (fun i_0 => if 32 <= i_0 < 32 + 32 then nth witness sk_i i_0 else nth witness sk i_0) 2144;
-      i <- i + 1;
-    }
-
-    return (sk, address);
-  }
-}.
 
 lemma expand_seed_correct_hopA (_in_seed : W8.t Array32.t,
                            _pub_seed : W8.t Array32.t, _addr : W32.t Array8.t):
