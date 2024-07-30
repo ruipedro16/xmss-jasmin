@@ -245,7 +245,6 @@ inline fn __csum(reg ptr u32[XMSS_WOTS_LEN] msg_base_w) -> reg u64
     return csum;
 }
 
-// NOTE: This is different from the Sphincs+ implementation
 inline fn __wots_checksum(
     reg ptr u32[XMSS_WOTS_LEN2] csum_base_w,
     reg ptr u32[XMSS_WOTS_LEN] msg_base_w
@@ -266,7 +265,7 @@ inline fn __wots_checksum(
 
     u = 8;
     u -= k; // u holds the value of (8 - ((params->wots_len2 * params->wots_log_w) % 8))
-    ?{}, csum = #SHL(csum, u);
+    csum <<= (u & 63); // ?{}, csum = #SHL(csum, u);
 
     // ull_to_bytes(csum_bytes, sizeof(csum_bytes), csum);
     csum_bytes_p = csum_bytes;

@@ -30,13 +30,13 @@ module M_Hop1(SC:Syscall_t) = {
     return (out);
   }
 
-  proc __ull_to_bytes_4 (out:W8.t Array4.t, in_0:W64.t) : W8.t Array4.t = {
+  proc __ull_to_bytes_32 (out:W8.t Array32.t, in_0:W64.t) : W8.t Array32.t = {
     var aux: int;
 
     var i:int;
 
     aux <- (- 1);
-    i <- (4 - 1);
+    i <- (32 - 1);
     while (aux < i) {
       out.[i] <- (truncateu8 in_0);
       in_0 <- (in_0 `>>` (W8.of_int 8));
@@ -45,13 +45,13 @@ module M_Hop1(SC:Syscall_t) = {
     return (out);
   }
 
-  proc __ull_to_bytes_32 (out:W8.t Array32.t, in_0:W64.t) : W8.t Array32.t = {
+  proc __ull_to_bytes_4 (out:W8.t Array4.t, in_0:W64.t) : W8.t Array4.t = {
     var aux: int;
 
     var i:int;
 
     aux <- (- 1);
-    i <- (32 - 1);
+    i <- (4 - 1);
     while (aux < i) {
       out.[i] <- (truncateu8 in_0);
       in_0 <- (in_0 `>>` (W8.of_int 8));
@@ -1008,20 +1008,15 @@ module M_Hop1(SC:Syscall_t) = {
     var csum:W64.t;
     var k:int;
     var u:W64.t;
-    var _of_:bool;
-    var _cf_:bool;
-    var _sf_:bool;
-    var _zf_:bool;
     var csum_bytes:W8.t Array2.t;
     var csum_bytes_p:W8.t Array2.t;
-    var  _0:bool;
     csum_bytes <- witness;
     csum_bytes_p <- witness;
     csum <@ __csum (msg_base_w);
     k <- ((3 * 4) %% 8);
     u <- (W64.of_int 8);
     u <- (u - (W64.of_int k));
-    (_of_, _cf_, _sf_,  _0, _zf_, csum) <- SHL_64 csum (truncateu8 u);
+    csum <- (csum `<<` (truncateu8 (u `&` (W64.of_int 63))));
     csum_bytes_p <- csum_bytes;
     csum_bytes_p <@ __ull_to_bytes_2 (csum_bytes_p, csum);
     csum_base_w <@ __base_w_3_2 (csum_base_w, csum_bytes_p);

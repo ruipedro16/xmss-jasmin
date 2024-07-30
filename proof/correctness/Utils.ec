@@ -10,8 +10,14 @@ require import RandomBytes XMSS_IMPL Util.
 
 require import Array8 Array32.
 
-require import Params Parameters Address Notation Primitives.
-(*---*) import NBytes.
+require import Params Parameters Address Notation.
+
+clone import Subtype as NBytes with 
+   type T = W8.t list,
+   op P = fun l => size l = n
+   rename "T" as "nbytes"
+   proof inhabited by (exists (nseq n W8.zero);smt(size_nseq ge0_n))
+   proof *.
 
 pred valid_ptr (p o : W64.t) = 
   0 <= to_uint o => 

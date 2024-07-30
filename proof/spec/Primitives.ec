@@ -4,7 +4,7 @@ require import AllCore List RealExp IntDiv.
 require (*  *) Subtype. 
 from Jasmin require import JModel.
 
-require import Params Notation Address Hash.
+require import Params Notation Address Hash Utils.
 require import Array8.
 
 clone import Subtype as NBytes with 
@@ -49,9 +49,9 @@ module Chain = {
      address <- set_hash_addr address (i + chain_count);
      address <- set_key_and_mask address 0;
 
-     _key <- PRF _seed address;
+     _key <@ Hash.prf(addr_to_bytes address, _seed);
      address <- set_key_and_mask address 1;
-     bitmask <- PRF _seed address;
+     bitmask <@ Hash.prf(addr_to_bytes address, _seed);
 
      t <- F _key (nbytexor t bitmask);
      
