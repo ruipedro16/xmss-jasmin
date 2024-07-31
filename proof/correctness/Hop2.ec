@@ -151,7 +151,7 @@ lemma expand_seed_correct_hop2 (_in_seed _pub_seed : W8.t Array32.t, _addr : W32
     prf_padding_val = XMSS_HASH_PADDING_PRF /\
     prf_kg_padding_val = XMSS_HASH_PADDING_PRF_KEYGEN /\
     padding_len = XMSS_PADDING_LEN =>
-    equiv [M(Syscall).__expand_seed ~ Hop2.pseudorandom_genSK :
+    equiv [M(Syscall).__expand_seed ~ WOTS.pseudorandom_genSK :
       arg{1}.`2 = _in_seed /\ 
       arg{1}.`3 = _pub_seed /\
       arg{1}.`4 = _addr /\
@@ -194,21 +194,6 @@ seq 2 1 : (#pre /\ sk_i{2} = to_list ith_seed{1}).
       exists * in_00{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_keygen_correctness _P1 _P2); auto => /> /#.
 auto => /> &1 &2 *. do split;1,2,4,5:smt(). move => *. admit.
 qed.
-
-
-lemma expand_seed_correct (_in_seed _pub_seed : W8.t Array32.t, _addr : W32.t Array8.t) :
-    len = XMSS_WOTS_LEN /\ n = XMSS_N =>
-    equiv [M(Syscall).__expand_seed ~ WOTS.pseudorandom_genSK :
-      arg{1}.`2 = _in_seed /\ 
-      arg{1}.`3 = _pub_seed /\
-      arg{1}.`4 = _addr /\
-      arg{2} = (to_list _in_seed, to_list _pub_seed, _addr) ==>
-      res{2}.`1 = EncodeWotsSk res{1}.`1 /\ 
-      res{2}.`2 = res{1}.`2].
-proof.
-admit.
-qed.
-
 
 lemma sign_seed_correct (_msg_ _seed_ _pub_seed_ : W8.t Array32.t, _addr_ : W32.t Array8.t) :
     n = XMSS_N /\

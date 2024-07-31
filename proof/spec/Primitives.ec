@@ -17,17 +17,6 @@ clone import Subtype as NBytes with
 type key = nbytes.
 type seed = nbytes.
 
-(* The WOTS+ algorithm uses a keyed cryptographic hash function F.  F
-   accepts and returns byte strings of length n using keys of length n.
-*)
-op F : key -> nbytes -> nbytes.
-
-(* WOTS+ uses a pseudorandom function PRF. PRF takes as input an n-byte
-   key and a 32-byte index and generates pseudorandom outputs of length
-   n.
-*)
-op PRF : seed -> adrs -> key.
-
 op nbytexor(a b : nbytes) : nbytes = 
     map (fun (ab : W8.t * W8.t) => ab.`1 `^` ab.`2) (zip a b).
 
@@ -53,7 +42,7 @@ module Chain = {
      address <- set_key_and_mask address 1;
      bitmask <@ Hash.prf(addr_to_bytes address, _seed);
 
-     t <- F _key (nbytexor t bitmask);
+     t <@ Hash._F (_key, (nbytexor t bitmask));
      
      chain_count <- chain_count + 1;
     }

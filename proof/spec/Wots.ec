@@ -84,8 +84,7 @@ module WOTS = {
     while (i < len) {
       address <- set_chain_addr address i;
       addr_bytes <- addr_to_bytes address;
-      buf <- seed ++ addr_bytes;
-      sk_i <@ Hash.prf_keygen (buf, sk_seed);
+      sk_i <@ Hash.prf_keygen (seed ++ addr_bytes, sk_seed);
       sk <- put sk i sk_i;
       i <- i + 1;
     }
