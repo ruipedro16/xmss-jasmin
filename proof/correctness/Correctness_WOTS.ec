@@ -11,9 +11,11 @@ require import Array2 Array3 Array8 Array32 Array67 Array96 Array2144.
 require import Utils. (* valid ptr predicate & addr_to_bytes *)
 require import Correctness_Mem Correctness_Hash. 
 (*---*) import NBytes.
-require import Termination.
+require import Termination Repr.
 
 type adrs = W32.t Array8.t.
+
+(*** BASE W : done ***)
 
 lemma base_w_correctness_67 ( _in_ : W8.t Array32.t) :
     floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
@@ -133,7 +135,7 @@ while (
 qed.
 
 
-(*** CHECKSUM ***)
+(*** CHECKSUM: done ***)
 
 lemma wots_checksum_correctness (msg : W32.t Array67.t) :
     len1 = XMSS_WOTS_LEN1 /\  w = XMSS_WOTS_W =>
@@ -162,93 +164,9 @@ while (
       by rewrite !to_uint_zeroextu64 to_uintD_small /= /#.
 qed.
 
-(*** THASH F ***)
 
-(*
-lemma thash_f_hop2 (o s : W8.t Array32.t, ad : W32.t Array8.t) :
-    n = XMSS_N /\
-    padding_len = XMSS_PADDING_LEN /\
-    prf_padding_val = XMSS_HASH_PADDING_PRF /\
-    equiv [
-      M(Syscall).__thash_f ~ Hop2.thash_f :
-      arg{1} = (o, s, ad) /\
-      arg{2} = (to_list o, to_list s, ad)
-      ==>
-      res{2}.`1 = to_list res{1}.`1 /\
-      res{2}.`2 = res{1}.`2
-    ].
-proof.
-move => [#] ????. 
-proc.
-seq 0 1 : (#pre /\ size buf{2} = 96).
-  + by auto => />; rewrite size_nseq.
-seq 4 0 : (#pre); 1:auto.
-swap {2} 1 1.
-seq 1 1 : (#pre /\ to_list addr_as_bytes{1} = addr_bytes{2}).
-  + ecall {1} (addr_to_bytes_correctness addr{1}); auto => />.
-seq 2 1 : (#pre /\ padding{2} = to_list padding{1}).
-  + call {1} (ull_to_bytes_correct W64.zero); auto => />.
-seq 1 0 : (#pre /\ forall (k : int), 0 <= k < 32 => buf{1}.[k] = padding{1}.[k]).
-  + auto => />; smt(@Array96).
-seq 1 1 : (#pre /\ u{2} = to_list aux{1}).
-  + auto => />; inline {1} M(Syscall).__prf_  M(Syscall)._prf; wp; sp.
-    exists * in_00{1}, key0{1}; elim * => _P1 _P2; call (prf_correctness _P1 _P2); skip => />.
-seq 1 0 : (#pre /\ forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = aux{1}.[k]).
-  + auto => />; smt(@Array96).
-seq 2 2 : (
-  size buf{2} = 96 /\
-  to_list pub_seed{1} = seed{2} /\
-  addr{1} = address{2} /\
-  to_list out{1} = out{2} /\
-  to_list addr_as_bytes{1} = addr_bytes{2} /\
-  padding{2} = to_list padding{1} /\
-  u{2} = to_list aux{1} /\
-  (forall (k : int), 0 <= k && k < 32 => buf{1}.[k] = padding{1}.[k]) /\
-  (forall (k : int), 0 <= k && k < 32 => buf{1}.[32 + k] = aux{1}.[k])  
-).
-    + inline {1} M(Syscall).__set_key_and_mask; sp 4 1; ecall {1} (addr_to_bytes_correctness addr{1}); auto => />.
-seq 1 1 : (#pre /\ bitmask{2} = to_list bitmask{1}).      
-    + inline {1} M(Syscall).__prf_  M(Syscall)._prf; wp; sp.
-      exists * in_00{1}, key0{1}; elim * => _P1 _P2; call (prf_correctness _P1 _P2); skip => />.
-seq 0 2 : (
-  #pre /\ 
-  forall (k : int), 0 <= k < 64 => buf{1}.[k] = nth witness buf{2} k
-).
-    + auto => /> &1 &2 *. split; first by rewrite size_mkseq. move => k *. rewrite nth_mkseq 1:/#. 
-      simplify.  case (0 <= k && k < 32).
-      * move => *; rewrite ifF 1:/#; rewrite nth_mkseq 1:/#; smt(@Array96 @List).
-      * move => *; rewrite ifT 1:/#; smt(@Array96).
-seq 2 2 : (buf{2} = to_list buf{1} /\ address{2} = addr{1}); last first.
-    + inline {1} M(Syscall).__core_hash__96 M(Syscall)._core_hash_96; wp; sp. 
-      ecall {1} (hash_96 in_00{1}); auto => /> /#. 
-while (
-  size buf{2} = 96 /\ 
-  address{2} = addr{1} /\
-  n{2} = 32 /\
-  i{2} = to_uint i{1} /\ 
-  0 <= i{2} <= 32 /\
-  bitmask{2} = to_list bitmask{1} /\
-  out{2} = to_list out{1} /\
-  (forall (k : int), 0 <= k < 64 => buf{1}.[k] = nth witness buf{2} k) /\
-  (forall (k : int), 0 <= k < i{2} => buf{1}.[64 + k] = nth witness buf{2} (64 + k))
-); last first.
-    + auto => /> *. do split;1,2:smt(). auto => /> *. apply (eq_from_nth witness); first by rewrite size_to_list /#.
-      move => *. admit.
-    + auto => /> &1 &2 *. do split;2..4,7,8:smt(@W64 pow2_64). 
-        * by rewrite size_put. 
-        * move => k *. rewrite nth_put 1:/#. case (64 + to_uint i{1} = 64 + k).
-           - move => *. rewrite get_setE; 1:smt(@W64 pow2_64). admit. (* by rewrite ifT; 1:smt(@W64 pow2_64). *)
-           - move => *. rewrite get_setE; 1:smt(@W64 pow2_64). rewrite ifF; 1:smt(@W64 pow2_64). smt().
-        * move => k *. rewrite nth_put 1:/#. rewrite get_setE; first by smt(@W64 pow2_64). case (64 + k = to_uint ((of_int 64)%W64 + i{1})).
-           - move => *. admit.
-           - move => *. admit.
-qed. 
-*)
+(*** CHAIN: last subgoal with admit ***)
 
-
-
-
-(*** ----------------- ***)
 
 lemma gen_chain_inplace_correct (_buf_ : W8.t Array32.t, _start_ _steps_ : W32.t, _addr_ : W32.t Array8.t, _pub_seed_ : W8.t Array32.t) :
     w = XMSS_WOTS_W /\ 
@@ -295,8 +213,6 @@ seq 2 2 : (#pre).
     + inline {1}; auto => /> &1 &2 *. 
       rewrite /set_hash_addr /set_key_and_mask; by have -> : (of_int (to_uint start{1} + chain_count{2}))%W32 = i{1} by smt(@W32 pow2_32).
 inline {1} M(Syscall).__thash_f_ M(Syscall)._thash_f M(Syscall).__thash_f; inline {2} Hash._F.
-
-
 seq 27 9 : (
   (* #pre but without address{2} = addr{1} because at some point updates to the address are made through addr2{1} and not addr{1} *)
   (0 <= to_uint start{1} && to_uint start{1} <= XMSS_WOTS_W - 1) /\
@@ -368,7 +284,7 @@ seq 1 1 : (#pre /\ bitmask{2} = to_list bitmask{1}).
     + inline {1} M(Syscall).__prf_ M(Syscall)._prf; wp; sp.
       exists * in_00{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_correctness _P1 _P2); skip => /> *. 
 auto => />.
-seq 2 0 : (#post); last first. skip => />.
+
 admit.
 (*
 while  ( 
@@ -378,6 +294,103 @@ while  (
 ).
 *)
 qed.
+
+
+(*** Expand Seed : some subgoals with admit ***)
+
+lemma expand_seed_correct_hop2 (_in_seed _pub_seed : W8.t Array32.t, _addr : W32.t Array8.t) :
+    len = XMSS_WOTS_LEN /\ 
+    n = XMSS_N /\ 
+    prf_padding_val = XMSS_HASH_PADDING_PRF /\
+    prf_kg_padding_val = XMSS_HASH_PADDING_PRF_KEYGEN /\
+    padding_len = XMSS_PADDING_LEN =>
+    equiv [M(Syscall).__expand_seed ~ WOTS.pseudorandom_genSK :
+      arg{1}.`2 = _in_seed /\ 
+      arg{1}.`3 = _pub_seed /\
+      arg{1}.`4 = _addr /\
+      arg{2} = (to_list _in_seed, to_list _pub_seed, _addr) ==>
+      res{2}.`1 = EncodeWotsSk res{1}.`1 /\ 
+      res{1}.`2 = res{2}.`2].
+proof.
+move => [#] ?????.
+proc => //=.
+conseq (: _ ==> addr{1} = address{2} /\ (forall (k : int), 0 <= k < 2144 => outseeds{1}.[k] = nth witness (flatten sk{2}) k)).
+  + auto => /> *. rewrite /EncodeWotsSk. admit.
+have ?: len * n = 2144 by smt().
+seq 5 3 : (
+  sk_seed{2} = to_list inseed{1} /\
+  seed{2} = to_list pub_seed{1} /\
+  address{2} = addr{1} /\
+  size sk{2} = len /\
+  size (flatten sk{2}) = len * n
+); first by inline{1}; auto => />; smt(@List).
+seq 1 0 : (#pre /\ aux{1} = pub_seed{1}).
+    + ecall {1} (_x_memcpy_u8u8_post pub_seed{1}); auto => />.
+seq 1 0 : (#pre /\ forall (k : int), 0 <= k < 32 => buf{1}.[k] = aux{1}.[k]); first by auto => />; smt(@Array64).
+while (
+  len{2} = 67 /\
+  ={i} /\ 0 <= i{2} <= 67 /\
+  address{2} = addr{1} /\
+  sk_seed{2} = to_list inseed{1} /\
+  (forall (k : int), 0 <= k < 32 * i{2} => outseeds{1}.[k] = nth witness (flatten sk{2}) k)
+); last by auto => />; smt(@Array2144 @List).
+seq 1 1 : (#pre); first by inline {1}; auto => />.
+seq 2 1 : (#pre /\ addr_bytes{2} = to_list addr_bytes{1}).
+    + ecall {1} (addr_to_bytes_correctness addr{1}); auto => /> /#. 
+seq 1 0 : (#pre /\ (forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = addr_bytes{1}.[k])); first by auto => /> ; smt(@Array64).
+
+seq 0 0 : (#pre /\ to_list buf{1} = (seed{2} ++ addr_bytes{2})).
+    + skip => /> &1 &2 *. admit.
+
+seq 2 1 : (#pre /\ sk_i{2} = to_list ith_seed{1}).
+    + inline {1} M(Syscall).__prf_keygen_ M(Syscall)._prf_keygen; wp; sp.
+      exists * in_00{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_keygen_correctness _P1 _P2); auto => /> /#.
+auto => /> &1 &2 *. do split;1,2,4,5:smt(). move => *. admit.
+qed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 (************************************************************************************)
