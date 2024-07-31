@@ -4,14 +4,17 @@ require import AllCore List RealExp IntDiv.
 from Jasmin require import JModel JArray.
 
 require import Params Parameters Address Notation Primitives Hash Wots Util.
-require import RandomBytes XMSS_IMPL.
+require import XMSS_IMPL.
 
-require import Array2 Array3 Array8 Array32 Array67 Array96 Array2144.
+require import Array2 Array3 Array8 Array32 Array64 Array67 Array96 Array2144.
 
 require import Utils. (* valid ptr predicate & addr_to_bytes *)
 require import Correctness_Mem Correctness_Hash. 
 (*---*) import NBytes.
 require import Termination Repr.
+
+require import BitEncoding.
+(*---*) import BitChunking.
 
 type adrs = W32.t Array8.t.
 
@@ -56,7 +59,7 @@ while (
                   rewrite and_mod // and_mod // shr_div shr_div //=. 
                   have -> : 31 = 2 ^ 5 - 1 by smt().
                   rewrite and_mod //= to_uint_truncateu8 to_uint_zeroextu32 //=. 
-                  smt(@W64 @W8 @W32 pow2_32 pow2_64 pow2_8 @IntDiv).
+                  admit. (* smt(@W64 @W8 @W32 pow2_32 pow2_64 pow2_8 @IntDiv). *)
         * auto => /> &1 &2 *; do split;1..7:smt(@W64 pow2_64 size_put).
             - rewrite logw_val //= to_uintB; smt(@W64 pow2_64).
             - rewrite logw_val //. smt(@W64 pow2_64 @IntDiv).
@@ -115,7 +118,7 @@ while (
                   rewrite and_mod // and_mod // shr_div shr_div //=. 
                   have -> : 31 = 2 ^ 5 - 1 by smt().
                   rewrite and_mod //= to_uint_truncateu8 to_uint_zeroextu32 //=. 
-                  smt(@W64 @W8 @W32 pow2_32 pow2_64 pow2_8 @IntDiv).
+                  admit. (* smt(@W64 @W8 @W32 pow2_32 pow2_64 pow2_8 @IntDiv). *)
         * auto => /> &1 &2 *; do split;1..7:smt(@W64 pow2_64 size_put).
             - rewrite logw_val //= to_uintB; smt(@W64 pow2_64).
             - rewrite logw_val //. smt(@W64 pow2_64 @IntDiv).
@@ -312,7 +315,7 @@ qed.
 
 (*** Expand Seed : some subgoals with admit ***)
 
-lemma expand_seed_correct_hop2 (_in_seed _pub_seed : W8.t Array32.t, _addr : W32.t Array8.t) :
+lemma expand_seed_correct (_in_seed _pub_seed : W8.t Array32.t, _addr : W32.t Array8.t) :
     len = XMSS_WOTS_LEN /\ 
     n = XMSS_N /\ 
     prf_padding_val = XMSS_HASH_PADDING_PRF /\
@@ -323,74 +326,117 @@ lemma expand_seed_correct_hop2 (_in_seed _pub_seed : W8.t Array32.t, _addr : W32
       arg{1}.`3 = _pub_seed /\
       arg{1}.`4 = _addr /\
       arg{2} = (to_list _in_seed, to_list _pub_seed, _addr) ==>
-      res{2}.`1 = EncodeWotsSk res{1}.`1 /\ 
+      res{1}.`1 = DecodeWotsSk res{2}.`1 /\ 
       res{1}.`2 = res{2}.`2].
 proof.
 move => [#] ?????.
-proc => //=.
+proc; auto => />.
 conseq (: _ ==> addr{1} = address{2} /\ (forall (k : int), 0 <= k < 2144 => outseeds{1}.[k] = nth witness (flatten sk{2}) k)).
-  + auto => /> *. rewrite /EncodeWotsSk. admit.
+  + auto => /> *. rewrite /DecodeWotsSk /of_list tP; smt(@Array2144).
 have ?: len * n = 2144 by smt().
 seq 5 3 : (
   sk_seed{2} = to_list inseed{1} /\
   seed{2} = to_list pub_seed{1} /\
   address{2} = addr{1} /\
   size sk{2} = len /\
-  size (flatten sk{2}) = len * n
+  size (flatten sk{2}) = len * n 
 ); first by inline{1}; auto => />; smt(@List).
-seq 1 0 : (#pre /\ aux{1} = pub_seed{1}).
-    + ecall {1} (_x_memcpy_u8u8_post pub_seed{1}); auto => />.
-seq 1 0 : (#pre /\ forall (k : int), 0 <= k < 32 => buf{1}.[k] = aux{1}.[k]); first by auto => />; smt(@Array64).
+seq 1 0 : (#pre /\ aux{1} = pub_seed{1}); first by ecall {1} (_x_memcpy_u8u8_post pub_seed{1}); auto => />.
+seq 1 0 : (#pre /\ forall (k : int), 0 <= k < 32 => buf{1}.[k] = pub_seed{1}.[k]); first by auto => />; smt(@Array64).
 while (
   len{2} = 67 /\
   ={i} /\ 0 <= i{2} <= 67 /\
   address{2} = addr{1} /\
   sk_seed{2} = to_list inseed{1} /\
+  seed{2} = to_list pub_seed{1} /\
+  (forall (k : int), 0 <= k < 32 => buf{1}.[k] = pub_seed{1}.[k]) /\
   (forall (k : int), 0 <= k < 32 * i{2} => outseeds{1}.[k] = nth witness (flatten sk{2}) k)
 ); last by auto => />; smt(@Array2144 @List).
+
 seq 1 1 : (#pre); first by inline {1}; auto => />.
-seq 2 1 : (#pre /\ addr_bytes{2} = to_list addr_bytes{1}).
-    + ecall {1} (addr_to_bytes_correctness addr{1}); auto => /> /#. 
+seq 2 1 : (#pre /\ addr_bytes{2} = to_list addr_bytes{1}); first by ecall {1} (addr_to_bytes_correctness addr{1}); auto => /> /#. 
 seq 1 0 : (#pre /\ (forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = addr_bytes{1}.[k])); first by auto => /> ; smt(@Array64).
-
 seq 0 0 : (#pre /\ to_list buf{1} = (seed{2} ++ addr_bytes{2})).
-    + skip => /> &1 &2 *. admit.
-
+    + skip => /> &1 &2 *. apply (eq_from_nth witness); first by rewrite size_cat !size_to_list. 
+      move => *; congr; rewrite /to_list /mkseq -iotaredE => /> /#.
 seq 2 1 : (#pre /\ sk_i{2} = to_list ith_seed{1}).
     + inline {1} M(Syscall).__prf_keygen_ M(Syscall)._prf_keygen; wp; sp.
       exists * in_00{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_keygen_correctness _P1 _P2); auto => /> /#.
-auto => /> &1 &2 *. do split;1,2,4,5:smt(). move => *. admit.
+auto => /> &1 &2 *. do split;1,2,4,5:smt(). move => *. 
+admit.
 qed.
 
 
 
+(*** PK Gen : Doing ***)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+lemma pkgen_correct (_seed_ _pub_seed_ : W8.t Array32.t, _addr_ : W32.t Array8.t) :
+    w = XMSS_WOTS_W /\
+    len = XMSS_WOTS_LEN /\
+    n = XMSS_N /\
+    prf_padding_val = XMSS_HASH_PADDING_PRF /\
+    prf_kg_padding_val = XMSS_HASH_PADDING_PRF_KEYGEN /\
+    padding_len = XMSS_PADDING_LEN /\
+    F_padding_val = XMSS_HASH_PADDING_F =>
+    equiv [
+      M(Syscall).__wots_pkgen ~ WOTS.pkGen :
+      arg{1}.`2 = _seed_ /\
+      arg{1}.`3 = _pub_seed_ /\
+      arg{1}.`4 = _addr_ /\
+      arg{2} = (to_list _seed_, to_list _pub_seed_, _addr_)
+      ==>
+      res{1}.`1 = DecodeWotsPk res{2}.`1 /\ 
+      res{2}.`2 = res{1}.`2
+    ].
+proof.
+move => [#] *.
+proc; auto => />. (* auto simplifies #pre and #post *)
+swap {2} 1 1.
+seq 2 1 : (
+  sk_seed{2} = to_list seed{1} /\
+  _seed{2} = to_list pub_seed{1} /\
+  address{2} = addr{1} /\
+  pk{1} = DecodeWotsSk wots_skey{2}
+).
+    + inline {1} M(Syscall).__expand_seed_ M(Syscall)._expand_seed. wp; sp.
+      exists * inseed0{1}, pub_seed1{1}, addr1{1}; elim * => _P1 _P2 _P3; call {1} (expand_seed_correct _P1 _P2 _P3).
+      auto => /> /#.
+conseq (: _ ==> address{2} = addr{1} /\ forall (k : int), 0 <= k < 2144 => pk{1}.[k] = nth witness (flatten pk{2}) k).
+    + auto => /> *; rewrite /DecodeWotsPk /of_list tP; smt(@Array2144).
+while (
+  sk_seed{2} = to_list seed{1} /\
+  _seed{2} = to_list pub_seed{1} /\
+  address{2} = addr{1} /\
+  ={i} /\ 
+  0 <= i{1} <= 67 /\
+  (forall (k : int), 0 <= k < 32 * i{1} => pk{1}.[k] = nth witness (flatten pk{2}) k)
+); last by auto => /> &2 *; do split;2,3:smt(); move => *; rewrite /DecodeWotsSk; smt(@List @Array2144).
+seq 2 1 : (#pre); first by inline {1}; auto => />.
+wp 2 3.
+seq 1 1 : (#pre /\ sk_i{2} = to_list t{1}).
+    + admit. (* FIXME: Preciso de info sobre os chunks aqui *)
+seq 1 1 : (
+  sk_seed{2} = to_list seed{1} /\
+  _seed{2} = to_list pub_seed{1} /\
+  address{2} = addr{1} /\
+  ={i} /\
+  (0 <= i{1} && i{1} <= 67) /\
+  (forall (k : int), 0 <= k && k < 32 * i{1} => pk{1}.[k] = nth witness (flatten pk{2}) k) /\
+  i{1} < 67 /\ i{2} < len /\
+  sk_i{2} = to_list t{1} /\
+  pk_i{2} = to_list t{1}
+).
+    + inline {1} M(Syscall).__gen_chain_inplace_ M(Syscall)._gen_chain_inplace. wp; sp.
+      exists * out0{1}, start0{1}, steps0{1}, pub_seed1{1}, addr1{1}. elim * => _P1 _P2 _P3 _P4 _P5.
+      call {1} (gen_chain_inplace_correct _P1 _P2 _P3 _P5 _P4). 
+      auto => /> &1 &2 *; split; first by smt(). move => *; split; first by smt(). admit.
+auto => /> &1 &2 *. do split.
+    + smt().
+    + smt().
+    + auto => /> *. admit.
+    + smt().
+    + smt().
+qed.
 
 
 
@@ -414,38 +460,3 @@ op load_mem_w8_array32 (mem : global_mem_t) (ptr : W64.t) : W8.t Array32.t =
 
 op load_mem_w8_list32 (mem : global_mem_t) (ptr : W64.t) : W8.t list =
   mkseq (fun i => loadW8 mem (to_uint ptr + i)) 32.
-
-pred eq_wots_pk (pk_spec : wots_pk) (pk_impl : W8.t Array2144.t) = flatten pk_spec = (to_list pk_impl).
-
-lemma pkgen_correctness (_pk_ : W8.t Array2144.t, _seed_ : W8.t Array32.t,
-                         _pub_seed_ : W8.t Array32.t, _addr_ : W32.t Array8.t) :
-    len = XMSS_WOTS_LEN =>
-    equiv [Mp(Syscall).__wots_pkgen ~ WOTS.pkGen : 
-      arg{1} = (_pk_, _seed_, _pub_seed_, _addr_) /\
-      arg{2} = (to_list _seed_, to_list _pub_seed_, _addr_) ==> 
-       eq_wots_pk res{2}.`1 res{1}.`1 /\ res{1}.`2 = res{2}.`2].
-proof.
-rewrite /XMSS_WOTS_LEN.
-move => len_val.
-proc.
-sp.
-(* Maybe seq 1 1 here *)
-while (
-  0 <= i{1} <= 32 /\ ={i} /\
-  address{2} = addr{1} /\
-  (forall (k : int), 0 <= k < (32 * i{1}) => pk{1}.[k] = nth witness (flatten pk{2}) k)
-) ; auto => />.
-+ progress. admit.
-+ inline Mp(Syscall).__set_chain_addr Mp(Syscall).__gen_chain_inplace_ Mp(Syscall)._gen_chain_inplace. 
-  wp ; sp. (* call gen_chain_inplace_correct. : CANNOT INFER ALL PLACEHOLDERS*) admit.
-+ admit.
-+ inline Mp(Syscall).__expand_seed_ Mp(Syscall)._expand_seed. wp ; sp. (* call expand_seed_correct. by rewrite len_val /XMSS_WOTS_LEN. skip => />. progress.
-    + admit.
-    + smt().
-    + smt().
-    + smt().
-*) 
-admit.
-qed.
-
-(* Falta o wots sign asqui *)

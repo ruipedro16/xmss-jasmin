@@ -6,7 +6,7 @@ require import BitEncoding.
 
 from Jasmin require import JModel.
 
-require import RandomBytes XMSS_IMPL Util.
+require import XMSS_IMPL Util.
 
 require import Array8 Array32.
 

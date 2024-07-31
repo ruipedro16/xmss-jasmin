@@ -3,7 +3,7 @@ pragma Goals : printall.
 require import AllCore List RealExp IntDiv.
 from Jasmin require import JModel.
 
-require import RandomBytes XMSS_IMPL.
+require import XMSS_IMPL.
 require import Address Notation Hash Primitives Params Parameters Utils Util.
 require import Correctness_Mem.
 

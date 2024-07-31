@@ -5,7 +5,7 @@ require import AllCore List RealExp IntDiv.
 from Jasmin require import JModel.
 
 require import Array4 Array32 Array64 Array128 Array2144.
-require import RandomBytes XMSS_IMPL.
+require import XMSS_IMPL.
 require import Utils. (* valid_ptr predicate *)
 require import Termination.
 

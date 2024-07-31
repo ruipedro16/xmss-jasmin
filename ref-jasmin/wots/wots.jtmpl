@@ -356,6 +356,7 @@ inline fn __wots_pkgen(
 {
     reg u32 chain;
     inline int i;
+    reg ptr u8[XMSS_N] t; // ith seed
 
     () = #spill(pub_seed);
 
@@ -370,7 +371,9 @@ inline fn __wots_pkgen(
         addr = __set_chain_addr(addr, chain);
 
         () = #unspill(pk, pub_seed);
-        pk[i*XMSS_N : XMSS_N], addr = __gen_chain_inplace_(pk[i*XMSS_N : XMSS_N], 0, XMSS_WOTS_W - 1, pub_seed, addr);
+        t = pk[i*XMSS_N : XMSS_N];
+        t, addr = __gen_chain_inplace_(t, 0, XMSS_WOTS_W - 1, pub_seed, addr);
+        pk[i*XMSS_N : XMSS_N]= t;
         
         () = #spill(pk);
     }

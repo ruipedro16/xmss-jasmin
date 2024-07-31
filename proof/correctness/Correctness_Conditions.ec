@@ -2,7 +2,7 @@ pragma Goals : printall.
 
 require import AllCore.
 from Jasmin require import JModel.
-require import RandomBytes XMSS_IMPL.
+require import XMSS_IMPL.
 
 (* CPU FLAGS : of, cf, sf, pf, zf *)
 

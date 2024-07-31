@@ -4,7 +4,7 @@ require import AllCore List RealExp IntDiv.
 from Jasmin require import JModel JArray.
 
 require import Params Parameters Address Notation Primitives Wots XMSS_MT_PRF.
-require import XMSS_IMPL XMSS_IMPL_HOP1 RandomBytes.
+require import XMSS_IMPL.
 
 require import Array8 Array32 Array64.
 

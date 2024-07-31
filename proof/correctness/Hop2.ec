@@ -5,7 +5,7 @@ require import AllCore List RealExp IntDiv.
 from Jasmin require import JModel JArray.
 
 require import Params Parameters Address Notation Hash Primitives Wots Util.
-require import RandomBytes XMSS_IMPL.
+require import XMSS_IMPL.
 
 require import Array2 Array3 Array8 Array32 Array64 Array67 Array96 Array128 Array2144.
 

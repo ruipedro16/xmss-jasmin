@@ -4,7 +4,7 @@ require import AllCore List.
 from Jasmin require import JModel.
 
 require import Address Notation Primitives Wots.
-require import RandomBytes XMSS_IMPL.
+require import XMSS_IMPL.
 
 require import Array32 Array64 Array2144.
 
