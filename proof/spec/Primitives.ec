@@ -32,15 +32,20 @@ module Chain = {
     var chain_count : int <- 0;
     var _key : key;
     var bitmask : nbytes;
+    var addr_bytes : W8.t list;
 
     (* case i + s <= w-1 is precondition *)
     while (chain_count < s) {
      address <- set_hash_addr address (i + chain_count);
      address <- set_key_and_mask address 0;
-
-     _key <@ Hash.prf(addr_to_bytes address, _seed);
+      
+      addr_bytes <- addr_to_bytes address;
+     _key <@ Hash.prf(addr_bytes, _seed);
+     
      address <- set_key_and_mask address 1;
-     bitmask <@ Hash.prf(addr_to_bytes address, _seed);
+      
+     addr_bytes <- addr_to_bytes address;
+     bitmask <@ Hash.prf(addr_bytes, _seed);
 
      t <@ Hash._F (_key, (nbytexor t bitmask));
      

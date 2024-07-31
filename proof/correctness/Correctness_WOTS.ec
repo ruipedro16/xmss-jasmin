@@ -13,8 +13,6 @@ require import Correctness_Mem Correctness_Hash.
 (*---*) import NBytes.
 require import Termination.
 
-require import Hop2.
-
 type adrs = W32.t Array8.t.
 
 lemma base_w_correctness_67 ( _in_ : W8.t Array32.t) :
@@ -166,11 +164,11 @@ qed.
 
 (*** THASH F ***)
 
+(*
 lemma thash_f_hop2 (o s : W8.t Array32.t, ad : W32.t Array8.t) :
     n = XMSS_N /\
     padding_len = XMSS_PADDING_LEN /\
     prf_padding_val = XMSS_HASH_PADDING_PRF /\
-    thash_f_padding_val = XMSS_HASH_PADDING_F =>
     equiv [
       M(Syscall).__thash_f ~ Hop2.thash_f :
       arg{1} = (o, s, ad) /\
@@ -245,64 +243,140 @@ while (
            - move => *. admit.
            - move => *. admit.
 qed. 
-
+*)
 
 
 
 
 (*** ----------------- ***)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-lemma gen_chain_inplace_correct (buf : W8.t Array32.t, _start_ _steps_ : W32.t, _addr_ : W32.t Array8.t, _pub_seed_ : W8.t Array32.t) :
-    w = XMSS_WOTS_W /\ len = XMSS_WOTS_LEN =>
-    equiv [M(Syscall).__gen_chain_inplace ~ Chain.chain : 
-      arg{1}= (buf, _start_, _steps_, _pub_seed_, _addr_) /\
-      arg{2} = (to_list buf, to_uint _start_, to_uint _steps_, to_list _pub_seed_, _addr_) /\
+lemma gen_chain_inplace_correct (_buf_ : W8.t Array32.t, _start_ _steps_ : W32.t, _addr_ : W32.t Array8.t, _pub_seed_ : W8.t Array32.t) :
+    w = XMSS_WOTS_W /\ 
+    len = XMSS_WOTS_LEN /\
+    prf_padding_val = XMSS_HASH_PADDING_PRF /\ 
+    padding_len = XMSS_PADDING_LEN /\ 
+    F_padding_val = XMSS_HASH_PADDING_F =>
+    equiv [
+      M(Syscall).__gen_chain_inplace ~ Chain.chain : 
+      arg{1}= (_buf_, _start_, _steps_, _pub_seed_, _addr_) /\
+      arg{2} = (to_list _buf_, to_uint _start_, to_uint _steps_, to_list _pub_seed_, _addr_) /\
       0 <= to_uint _start_ <= XMSS_WOTS_W - 1/\
       0 <= to_uint _steps_ <= XMSS_WOTS_W - 1 /\
-      0 <= to_uint (_start_ + _steps_) <= XMSS_WOTS_W - 1  ==> 
-        res{2}.`1 = to_list res{1}.`1 /\ res{1}.`2 = res{2}.`2].
+      0 <= to_uint (_start_ + _steps_) <= XMSS_WOTS_W - 1  
+      ==> 
+      res{2}.`1 = to_list res{1}.`1 /\ 
+      res{1}.`2 = res{2}.`2
+    ].
 proof.
-rewrite /XMSS_WOTS_W /XMSS_WOTS_LEN; move => [w_val len_val].
-proc; auto => />.
+move => [#] ?????. 
+proc => //=.
 swap {1} 1 2.
-seq 2 1 : (#pre /\ t{2} = X{2} /\ t{1} = start{1} + steps{1}); 1:auto => />.
-while (
-  0 <= to_uint _start_ <= 15 /\
-  0 <= to_uint _steps_ <= 15 /\
-  0 <= to_uint (_start_ + _steps_) /\ to_uint (_start_ + _steps_) <= 15 /\
-  
-  to_uint i{1} = (i{2} + chain_count{2}) /\
-  start{1} = _start_ /\ steps{1} = _steps_ /\
-  s{2} = to_uint steps{1} /\ 
-  t{2} = to_list out{1} /\
-  _seed{2} = to_list pub_seed{1} /\
-   t{1} = start{1} + steps{1} /\
+seq 2 1 : (
+  0 <= to_uint start{1} <= XMSS_WOTS_W - 1/\
+  0 <= to_uint steps{1} <= XMSS_WOTS_W - 1 /\
+  0 <= to_uint (start{1} + steps{1}) <= XMSS_WOTS_W - 1 /\
 
+  address{2} = addr{1} /\
+  t{2} = to_list out{1} /\
+  i{2} = to_uint start{1} /\
+  s{2} = to_uint steps{1} /\
+  _seed{2} = to_list pub_seed{1} /\
+  t{2} = to_list out{1} /\  
+  t{1} = start{1} + steps{1}
+); first by auto => />.
+while (
+  #pre /\ 
   0 <= to_uint i{1} <= to_uint t{1} /\
-  0 <= chain_count{2} <= s{2} /\
- 
-  #post
+  to_uint i{1} = (i{2} + chain_count{2}) /\
+  0 <= chain_count{2} <= s{2}
 ); last by auto => />; smt(@W32 pow2_32). 
-seq 2 2 : (#pre).
-    + inline {1} M(Syscall).__set_hash_addr M(Syscall).__set_key_and_mask.
-      auto => /> &1 &2 *; rewrite /set_hash_addr /set_key_and_mask. 
-      by have -> :  (of_int (i{2} + chain_count{2}))%W32 = i{1} by smt(@W32 pow2_32).
-inline {1} M(Syscall).__thash_f_ M(Syscall)._thash_f. sp 9 0. 
-admit. (* This is be a call to thash_f after the second hop and then an auto => /> with some smt(@W64 @W32) *)
+wp 3 8.
+seq 2 2 : (#pre). 
+    + inline {1}; auto => /> &1 &2 *. 
+      rewrite /set_hash_addr /set_key_and_mask; by have -> : (of_int (to_uint start{1} + chain_count{2}))%W32 = i{1} by smt(@W32 pow2_32).
+inline {1} M(Syscall).__thash_f_ M(Syscall)._thash_f M(Syscall).__thash_f; inline {2} Hash._F.
+
+
+seq 27 9 : (
+  (* #pre but without address{2} = addr{1} because at some point updates to the address are made through addr2{1} and not addr{1} *)
+  (0 <= to_uint start{1} && to_uint start{1} <= XMSS_WOTS_W - 1) /\
+  (0 <= to_uint steps{1} && to_uint steps{1} <= XMSS_WOTS_W - 1) /\
+  (0 <= to_uint (start{1} + steps{1}) && to_uint (start{1} + steps{1}) <= XMSS_WOTS_W - 1) /\
+  t{2} = to_list out{1} /\
+  i{2} = to_uint start{1} /\
+  s{2} = to_uint steps{1} /\
+  _seed{2} = to_list pub_seed{1} /\
+  t{2} = to_list out{1} /\ 
+  t{1} = start{1} + steps{1} /\
+  (0 <= to_uint i{1} && to_uint i{1} <= to_uint t{1}) /\
+  to_uint i{1} = i{2} + chain_count{2} /\
+  0 <= chain_count{2} && chain_count{2} <= s{2} /\
+  (i{1} \ult t{1}) /\ 
+  chain_count{2} < s{2} /\
+  
+  buf{2} = to_list buf{1} /\ 
+  addr2{1} = address{2}
+); last first.
+    + inline {1} M(Syscall).__core_hash__96 M(Syscall)._core_hash_96; wp; sp; ecall {1} (hash_96 in_00{1}); auto => /> *. 
+      do split; 3..5,8,9:smt(@W32 pow2_32); smt().
+auto => />.
+seq 17 1 : (
+  #pre /\ 
+  addr2{1} = addr{1} /\ 
+  addr_bytes{2} = to_list addr_as_bytes{1} /\
+  pub_seed2{1} = pub_seed{1}
+); first by ecall {1} (addr_to_bytes_correctness addr{1}); auto => /> /#. 
+swap {2} 7 -6.
+seq 2 1 : (#pre /\ padding{2} = to_list padding{1}); first by call {1} (ull_to_bytes_correct W64.zero); auto => />.
+seq 1 0 : (
+  #pre /\
+  (forall (k : int), 0 <= k < 32 => buf{1}.[k] = padding{1}.[k])
+); first by auto => /> *; smt(@Array96).
+seq 1 1 : (#pre /\ _key{2} = to_list aux{1}).
+    + inline {1} M(Syscall).__prf_ M(Syscall)._prf; wp; sp.
+      exists * in_00{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_correctness _P1 _P2); skip => /> *.
+auto => />.
+seq 1 0 : (
+  #pre /\
+  (forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = nth witness _key{2} k)
+); first by auto => /> *; smt(@Array96).
+seq 1 1 : (
+  (0 <= to_uint start{1} && to_uint start{1} <= XMSS_WOTS_W - 1) /\
+  (0 <= to_uint steps{1} && to_uint steps{1} <= XMSS_WOTS_W - 1) /\
+  (0 <= to_uint (start{1} + steps{1}) && to_uint (start{1} + steps{1}) <= XMSS_WOTS_W - 1) /\
+  t{2} = to_list out{1} /\
+  i{2} = to_uint start{1} /\
+  s{2} = to_uint steps{1} /\
+  _seed{2} = to_list pub_seed{1} /\
+  t{2} = to_list out{1} /\ 
+  t{1} = start{1} + steps{1} /\
+  (0 <= to_uint i{1} && to_uint i{1} <= to_uint t{1}) /\
+  to_uint i{1} = i{2} + chain_count{2} /\
+  (0 <= chain_count{2} && chain_count{2} <= s{2}) /\
+  (i{1} \ult t{1}) /\ 
+  chain_count{2} < s{2} /\
+  address{2} = addr2{1} /\
+  addr_bytes{2} = to_list addr_as_bytes{1} /\ 
+  pub_seed2{1} = pub_seed{1} /\
+  padding{2} = to_list padding{1} /\
+  (forall (k : int), 0 <= k && k < 32 => buf{1}.[k] = padding{1}.[k]) /\
+  (forall (k : int), 0 <= k && k < 32 => buf{1}.[32 + k] = nth witness _key{2} k) /\
+  _key{2} = to_list aux{1}
+); first by inline {1}; auto => />.
+seq 1 1 : (#pre); first by ecall {1} (addr_to_bytes_correctness addr2{1}); auto => /> /#. 
+seq 1 1 : (#pre /\ bitmask{2} = to_list bitmask{1}).
+    + inline {1} M(Syscall).__prf_ M(Syscall)._prf; wp; sp.
+      exists * in_00{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_correctness _P1 _P2); skip => /> *. 
+auto => />.
+seq 2 0 : (#post); last first. skip => />.
+admit.
+(*
+while  ( 
+  #pre /\
+  0 <= to_uint i0{1} <= 32 /\
+  (forall (k : int), 0 <= k < to_uint i0{1} => buf{1}.[64 + k] = out2{1}.[to_uint i0{1}] `^` bitmask{1}.[to_uint i0{1}])
+).
+*)
 qed.
 
 
