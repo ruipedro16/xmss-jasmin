@@ -112,7 +112,7 @@ module WOTS = {
 
   (* Generates the key from the seed *)
   proc pkGen(sk_seed : nbytes, _seed : seed, address : adrs) : wots_pk * adrs = {
-    var pk : wots_pk;
+    var pk : wots_pk <- nseq len (nseq n W8.zero);
     var wots_skey : wots_sk;
     var i : int <- 0;
     var pk_i, sk_i : nbytes;

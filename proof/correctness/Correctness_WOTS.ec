@@ -315,6 +315,14 @@ qed.
 
 (*** Expand Seed : some subgoals with admit ***)
 
+lemma size_nbytes : forall (x : nbytes), size x = n.
+proof.
+admit. (* smt(ge0_n). *)
+qed.
+
+lemma wots_sk_size (sk : wots_sk) : forall (x : W8.t list), x \in sk => size x = n by smt(size_nbytes).
+lemma wots_pk_size (pk : wots_pk) : forall (x : W8.t list), x \in pk => size x = n by smt(size_nbytes).
+
 lemma expand_seed_correct (_in_seed _pub_seed : W8.t Array32.t, _addr : W32.t Array8.t) :
     len = XMSS_WOTS_LEN /\ 
     n = XMSS_N /\ 
@@ -333,7 +341,7 @@ move => [#] ?????.
 proc; auto => />.
 conseq (: _ ==> addr{1} = address{2} /\ (forall (k : int), 0 <= k < 2144 => outseeds{1}.[k] = nth witness (flatten sk{2}) k)).
   + auto => /> *. rewrite /DecodeWotsSk /of_list tP; smt(@Array2144).
-have ?: len * n = 2144 by smt().
+(* have ?: len * n = 2144 by smt(). *)
 seq 5 3 : (
   sk_seed{2} = to_list inseed{1} /\
   seed{2} = to_list pub_seed{1} /\
@@ -345,14 +353,16 @@ seq 1 0 : (#pre /\ aux{1} = pub_seed{1}); first by ecall {1} (_x_memcpy_u8u8_pos
 seq 1 0 : (#pre /\ forall (k : int), 0 <= k < 32 => buf{1}.[k] = pub_seed{1}.[k]); first by auto => />; smt(@Array64).
 while (
   len{2} = 67 /\
+  size sk{2} = len /\
   ={i} /\ 0 <= i{2} <= 67 /\
   address{2} = addr{1} /\
   sk_seed{2} = to_list inseed{1} /\
   seed{2} = to_list pub_seed{1} /\
+  size sk_i{2} = n /\
   (forall (k : int), 0 <= k < 32 => buf{1}.[k] = pub_seed{1}.[k]) /\
-  (forall (k : int), 0 <= k < 32 * i{2} => outseeds{1}.[k] = nth witness (flatten sk{2}) k)
-); last by auto => />; smt(@Array2144 @List).
-
+  (forall (k : int), 0 <= k < 32 * i{2} => outseeds{1}.[k] = nth witness (flatten sk{2}) k) /\
+  (forall (x : nbytes), x \in sk{2} => size x = n)
+); last by auto => />; smt(@Array2144 @List size_nbytes).
 seq 1 1 : (#pre); first by inline {1}; auto => />.
 seq 2 1 : (#pre /\ addr_bytes{2} = to_list addr_bytes{1}); first by ecall {1} (addr_to_bytes_correctness addr{1}); auto => /> /#. 
 seq 1 0 : (#pre /\ (forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = addr_bytes{1}.[k])); first by auto => /> ; smt(@Array64).
@@ -361,9 +371,15 @@ seq 0 0 : (#pre /\ to_list buf{1} = (seed{2} ++ addr_bytes{2})).
       move => *; congr; rewrite /to_list /mkseq -iotaredE => /> /#.
 seq 2 1 : (#pre /\ sk_i{2} = to_list ith_seed{1}).
     + inline {1} M(Syscall).__prf_keygen_ M(Syscall)._prf_keygen; wp; sp.
-      exists * in_00{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_keygen_correctness _P1 _P2); auto => /> /#.
-auto => /> &1 &2 *. do split;1,2,4,5:smt(). move => *. 
-admit.
+      exists * in_00{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_keygen_correctness _P1 _P2); auto => /> *. split; [ smt() | move => *; rewrite size_to_list /# ]. 
+auto => /> &1 &2 *. do split;1..3,5..7:smt(size_put size_nbytes). move => k *. 
+rewrite initE ifT 1:/#; auto => />.
+rewrite (nth_flatten witness n); first by rewrite allP; smt(wots_sk_size size_put).
+    + case (i{2} * 32 <= k && k < i{2} * 32 + 32).
+        * move => *; rewrite nth_put 1:/#; smt(@List @Array2144).
+        * move => *; rewrite nth_put 1:/#. case (i{2} = k %/ n). 
+            - smt(@List @Array2144).
+            - move => *. admit.
 qed.
 
 
@@ -391,16 +407,16 @@ lemma pkgen_correct (_seed_ _pub_seed_ : W8.t Array32.t, _addr_ : W32.t Array8.t
 proof.
 move => [#] *.
 proc; auto => />. (* auto simplifies #pre and #post *)
-swap {2} 1 1.
-seq 2 1 : (
+swap {2} 2 1.
+seq 2 2 : (
   sk_seed{2} = to_list seed{1} /\
   _seed{2} = to_list pub_seed{1} /\
   address{2} = addr{1} /\
-  pk{1} = DecodeWotsSk wots_skey{2}
+  pk{1} = DecodeWotsSk wots_skey{2} /\
+  size pk{2} = len
 ).
-    + inline {1} M(Syscall).__expand_seed_ M(Syscall)._expand_seed. wp; sp.
-      exists * inseed0{1}, pub_seed1{1}, addr1{1}; elim * => _P1 _P2 _P3; call {1} (expand_seed_correct _P1 _P2 _P3).
-      auto => /> /#.
+    + inline {1} M(Syscall).__expand_seed_ M(Syscall)._expand_seed. wp; sp;
+      exists * inseed0{1}, pub_seed1{1}, addr1{1}; elim * => _P1 _P2 _P3; call {1} (expand_seed_correct _P1 _P2 _P3); auto => /> *; smt(size_nseq).
 conseq (: _ ==> address{2} = addr{1} /\ forall (k : int), 0 <= k < 2144 => pk{1}.[k] = nth witness (flatten pk{2}) k).
     + auto => /> *; rewrite /DecodeWotsPk /of_list tP; smt(@Array2144).
 while (
@@ -409,12 +425,13 @@ while (
   address{2} = addr{1} /\
   ={i} /\ 
   0 <= i{1} <= 67 /\
+  size pk{2} = len /\
   (forall (k : int), 0 <= k < 32 * i{1} => pk{1}.[k] = nth witness (flatten pk{2}) k)
 ); last by auto => /> &2 *; do split;2,3:smt(); move => *; rewrite /DecodeWotsSk; smt(@List @Array2144).
 seq 2 1 : (#pre); first by inline {1}; auto => />.
 wp 2 3.
 seq 1 1 : (#pre /\ sk_i{2} = to_list t{1}).
-    + admit. (* FIXME: Preciso de info sobre os chunks aqui *)
+    + auto => /> &1 &2 *. rewrite /to_list /mkseq -iotaredE => />. admit.
 seq 1 1 : (
   sk_seed{2} = to_list seed{1} /\
   _seed{2} = to_list pub_seed{1} /\
@@ -423,40 +440,16 @@ seq 1 1 : (
   (0 <= i{1} && i{1} <= 67) /\
   (forall (k : int), 0 <= k && k < 32 * i{1} => pk{1}.[k] = nth witness (flatten pk{2}) k) /\
   i{1} < 67 /\ i{2} < len /\
-  sk_i{2} = to_list t{1} /\
-  pk_i{2} = to_list t{1}
+  pk_i{2} = to_list t{1} /\
+  size pk{2} = len 
 ).
-    + inline {1} M(Syscall).__gen_chain_inplace_ M(Syscall)._gen_chain_inplace. wp; sp.
+    + inline {1} M(Syscall).__gen_chain_inplace_ M(Syscall)._gen_chain_inplace; wp; sp.
       exists * out0{1}, start0{1}, steps0{1}, pub_seed1{1}, addr1{1}. elim * => _P1 _P2 _P3 _P4 _P5.
-      call {1} (gen_chain_inplace_correct _P1 _P2 _P3 _P5 _P4). 
-      auto => /> &1 &2 *; split; first by smt(). move => *; split; first by smt(). admit.
-auto => /> &1 &2 *. do split.
-    + smt().
-    + smt().
-    + auto => /> *. admit.
-    + smt().
-    + smt().
+      call {1} (gen_chain_inplace_correct _P1 _P2 _P3 _P5 _P4); auto => /> /#.
+auto => /> &1 &2 *; do split; 1..3,5,6:smt(size_put).
+move => /> k *; rewrite initE ifT 1:/#; auto => />. 
+rewrite (nth_flatten witness n); first by rewrite allP; smt(size_put wots_pk_size).
+case (i{2} * 32 <= k && k < i{2} * 32 + 32).
+    + move => *; rewrite nth_put 1:/#; smt(@List @Array2144).
+    + move => *. rewrite nth_put 1:/#. admit.
 qed.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-(************************************************************************************)
-
-op load_mem_w8_array32 (mem : global_mem_t) (ptr : W64.t) : W8.t Array32.t = 
-  Array32.init (fun i => loadW8 mem (to_uint ptr + i)).
-
-op load_mem_w8_list32 (mem : global_mem_t) (ptr : W64.t) : W8.t list =
-  mkseq (fun i => loadW8 mem (to_uint ptr + i)) 32.
