@@ -308,15 +308,18 @@ inline fn __chain_lengths(
     reg ptr u8[XMSS_N] msg
 ) -> reg ptr u32[XMSS_WOTS_LEN]
 {
-    reg ptr u32[XMSS_WOTS_LEN2] t;
+    reg ptr u32[XMSS_WOTS_LEN1] t0;
+    reg ptr u32[XMSS_WOTS_LEN2] t1;
   
     // base_w(params, lengths, params->wots_len1, msg);
-    lengths = __base_w<XMSS_WOTS_LEN,XMSS_N>(lengths, msg);
+    t0 = lengths[0 : XMSS_WOTS_LEN1];
+    t0 = __base_w<XMSS_WOTS_LEN1, XMSS_N>(t0, msg);
+    lengths[0 : XMSS_WOTS_LEN1] = t0;
 
     // wots_checksum(params, lengths + params->wots_len1, lengths);
-    t = lengths[XMSS_WOTS_LEN1 : XMSS_WOTS_LEN2];
-    t = __wots_checksum(t, lengths);
-    lengths[XMSS_WOTS_LEN1 : XMSS_WOTS_LEN2] = t;
+    t1 = lengths[XMSS_WOTS_LEN1 : XMSS_WOTS_LEN2];
+    t1 = __wots_checksum(t1, lengths);
+    lengths[XMSS_WOTS_LEN1 : XMSS_WOTS_LEN2] = t1;
 
     return lengths;
 }
