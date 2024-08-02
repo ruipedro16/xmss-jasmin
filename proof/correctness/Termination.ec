@@ -245,10 +245,10 @@ proc; wp.
 while (0 <= consumed <= 3) (3 - consumed); auto => /> /#.
 qed.
 
-lemma base_w_67_32_ll : islossless M(Syscall).__base_w_67_32.
+lemma base_w_64_32_ll : islossless M(Syscall).__base_w_64_32.
 proof.
 proc; wp.
-while (0 <= consumed <= 67) (67 - consumed); auto => /> /#.
+while (0 <= consumed <= 64) (64 - consumed); auto => /> /#.
 qed.
 
 lemma csum_ll : islossless M(Syscall).__csum.
@@ -283,7 +283,7 @@ lemma chain_lengths_ll : islossless M(Syscall).__chain_lengths.
 proof.
 proc ; wp.
 call checksum_ll ; wp.
-call base_w_67_32_ll ; wp.
+call base_w_64_32_ll ; wp.
 skip => /> *.
 qed.
 

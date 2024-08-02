@@ -23,6 +23,10 @@ pred valid_ptr (p o : W64.t) =
   0 <= to_uint o => 
     0 <= to_uint p /\ to_uint (p + o) < W64.modulus.
 
+pred valid_ptr_i (p : W64.t) (o : int) = 
+  0 <= o => 
+    0 <= to_uint p /\ to_uint (p) + o < W64.modulus.
+
 op BytesToBits (bytes : W8.t list) : bool list = flatten (map W8.w2bits bytes).
 op BitsToBytes (bits : bool list) : W8.t list = map W8.bits2w (chunk W8.size bits).
 op W64ToBytes (w : W64.t, outlen : int) : W8.t list. (* = BitsToBytes (W64.w2bits w). *)

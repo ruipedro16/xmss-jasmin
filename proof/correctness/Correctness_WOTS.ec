@@ -20,24 +20,24 @@ type adrs = W32.t Array8.t.
 
 (*** BASE W : done ***)
 
-lemma base_w_correctness_67 ( _in_ : W8.t Array32.t) :
+lemma base_w_correctness_64 ( _in_ : W8.t Array32.t) :
     floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
     w = XMSS_WOTS_W => 
-      equiv[M(Syscall).__base_w_67_32 ~ BaseW.base_w :
+      equiv[M(Syscall).__base_w_64_32 ~ BaseW.base_w :
         arg{1}.`2 = _in_ /\
-        arg{2} = (to_list _in_, 67) ==>
+        arg{2} = (to_list _in_, 64) ==>
          res{2} = map (W32.to_uint) (to_list res{1})].
 proof.
 rewrite /XMSS_WOTS_LOG_W /XMSS_WOTS_W ; move => [logw_val w_val].
 proc.
-conseq (: _ ==> size base_w{2} = 67 /\ forall (k:int), 0 <= k < 67 => to_uint output{1}.[k] = nth witness base_w{2} k).
+conseq (: _ ==> size base_w{2} = 64 /\ forall (k:int), 0 <= k < 64 => to_uint output{1}.[k] = nth witness base_w{2} k).
   + move => &1 &2 /> *. apply (eq_from_nth witness). rewrite size_map size_to_list /#. 
-    move => *. rewrite  (nth_map witness). smt(Array67.size_to_list). rewrite get_to_list /#.  
+    move => *. rewrite  (nth_map witness). smt(Array64.size_to_list). rewrite get_to_list /#.  
 sp.
 while (
-  ={total, consumed} /\ 0 <= consumed{1} <= 67 /\
-  size base_w{2} = 67 /\
-  outlen{2} = 67 /\
+  ={total, consumed} /\ 0 <= consumed{1} <= 64 /\
+  size base_w{2} = 64 /\
+  outlen{2} = 64 /\
   out{2} = to_uint out{1} /\
   out{2} = consumed{1} /\
   X{2} = to_list input{1} /\
@@ -50,16 +50,17 @@ while (
 (* First subgoal of while *)
     + if.
         * auto => /> &1 &2 *; smt(@W64).
-        * auto => /> &1 &2 *; do split;1..11:smt(@W64 @IntDiv pow2_64 size_put).
+        * admit. (* auto => /> &1 &2 *; do split;1..11:smt(@W64 @IntDiv pow2_64 size_put).
             - move => j Hj *. rewrite get_setE 1:/# //= nth_put ; 1:smt(size_nseq).
               case (j = to_uint out{1}); last first.
                 + move => *. rewrite ifF 1:/#. smt(@W64).
-                + move => -> //=. rewrite logw_val w_val /=. 
+                + move => -> //=. rewrite logw_val w_val /=.  
                   have -> : 15 = 2 ^ 4 - 1 by smt().
                   rewrite and_mod // and_mod // shr_div shr_div //=. 
                   have -> : 31 = 2 ^ 5 - 1 by smt().
                   rewrite and_mod //= to_uint_truncateu8 to_uint_zeroextu32 //=. 
                   admit. (* smt(@W64 @W8 @W32 pow2_32 pow2_64 pow2_8 @IntDiv). *)
+            *)
         * auto => /> &1 &2 *; do split;1..7:smt(@W64 pow2_64 size_put).
             - rewrite logw_val //= to_uintB; smt(@W64 pow2_64).
             - rewrite logw_val //. smt(@W64 pow2_64 @IntDiv).
@@ -239,7 +240,6 @@ seq 27 9 : (
     + inline {1} M(Syscall).__core_hash__96 M(Syscall)._core_hash_96; wp; sp; ecall {1} (hash_96 in_00{1}); auto => /> *. 
       do split; 3..5,8,9:smt(@W32 pow2_32); smt().
 auto => />.
-
 seq 17 1 : (
   #pre /\ 
   addr2{1} = addr{1} /\ 
@@ -247,7 +247,6 @@ seq 17 1 : (
   pub_seed2{1} = pub_seed{1} /\
   out2{1} = out{1}
 ); first by ecall {1} (addr_to_bytes_correctness addr{1}); auto => /> /#. 
-
 swap {2} 7 -6.
 seq 2 1 : (#pre /\ padding{2} = to_list padding{1}); first by call {1} (ull_to_bytes_correct W64.zero); auto => />.
 seq 1 0 : (
@@ -286,7 +285,6 @@ seq 1 1 : (
   _key{2} = to_list aux{1} /\
   out2{1} = out{1}
 ); first by inline {1}; auto => />.
-
 seq 1 1 : (#pre); first by ecall {1} (addr_to_bytes_correctness addr2{1}); auto => /> /#. 
 seq 1 1 : (#pre /\ bitmask{2} = to_list bitmask{1}).
     + inline {1} M(Syscall).__prf_ M(Syscall)._prf; wp; sp.
@@ -313,15 +311,33 @@ while{1}  (
 qed.
 
 
-(*** Expand Seed : some subgoals with admit ***)
+(*** Expand Seed : Done ***)
 
 lemma size_nbytes : forall (x : nbytes), size x = n.
 proof.
 admit. (* smt(ge0_n). *)
-qed.
+qed. 
 
-lemma wots_sk_size (sk : wots_sk) : forall (x : W8.t list), x \in sk => size x = n by smt(size_nbytes).
-lemma wots_pk_size (pk : wots_pk) : forall (x : W8.t list), x \in pk => size x = n by smt(size_nbytes).
+
+lemma wots_sk_size (sk : wots_sk) :
+    forall (x : W8.t list), x \in sk => size x = n by smt(size_nbytes). 
+
+lemma wots_sk_size_2 (sk : wots_sk) (i : int):
+    0 <= i < len => size (nth witness sk i) = n by smt.
+
+
+lemma size_wots_sk (sk : wots_sk) : size sk = len by admit.
+
+lemma wots_pk_size (pk : wots_pk) : 
+    forall (x : W8.t list), x \in pk => size x = n by smt(size_nbytes).
+
+lemma size_wots_pk (pk : wots_pk) : size pk = len by admit.
+
+lemma wots_sig_size (s : wots_signature) : 
+    forall (x : W8.t list), x \in s => size x = n by smt(size_nbytes).
+
+lemma size_wots_sig (s : wots_signature) : size s = len by admit.
+
 
 lemma expand_seed_correct (_in_seed _pub_seed : W8.t Array32.t, _addr : W32.t Array8.t) :
     len = XMSS_WOTS_LEN /\ 
@@ -341,7 +357,6 @@ move => [#] ?????.
 proc; auto => />.
 conseq (: _ ==> addr{1} = address{2} /\ (forall (k : int), 0 <= k < 2144 => outseeds{1}.[k] = nth witness (flatten sk{2}) k)).
   + auto => /> *. rewrite /DecodeWotsSk /of_list tP; smt(@Array2144).
-(* have ?: len * n = 2144 by smt(). *)
 seq 5 3 : (
   sk_seed{2} = to_list inseed{1} /\
   seed{2} = to_list pub_seed{1} /\
@@ -372,19 +387,22 @@ seq 0 0 : (#pre /\ to_list buf{1} = (seed{2} ++ addr_bytes{2})).
 seq 2 1 : (#pre /\ sk_i{2} = to_list ith_seed{1}).
     + inline {1} M(Syscall).__prf_keygen_ M(Syscall)._prf_keygen; wp; sp.
       exists * in_00{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_keygen_correctness _P1 _P2); auto => /> *. split; [ smt() | move => *; rewrite size_to_list /# ]. 
-auto => /> &1 &2 *. do split;1..3,5..7:smt(size_put size_nbytes). move => k *. 
+auto => /> &1 &2 ?????? H *. do split;1..3,5..7:smt(size_put size_nbytes). move => k *. 
 rewrite initE ifT 1:/#; auto => />.
 rewrite (nth_flatten witness n); first by rewrite allP; smt(wots_sk_size size_put).
     + case (i{2} * 32 <= k && k < i{2} * 32 + 32).
         * move => *; rewrite nth_put 1:/#; smt(@List @Array2144).
         * move => *; rewrite nth_put 1:/#. case (i{2} = k %/ n). 
-            - smt(@List @Array2144).
-            - move => *. admit.
+            - smt(@List @Array2144). 
+            - move => *. rewrite H 1:/# (nth_flatten witness n); [ rewrite allP; smt(wots_sk_size) | trivial ]. 
 qed.
 
 
 
-(*** PK Gen : Doing ***)
+(*** PK Gen : Done ***)
+ 
+require import StdBigop. 
+(*---*) import Bigint.
 
 lemma pkgen_correct (_seed_ _pub_seed_ : W8.t Array32.t, _addr_ : W32.t Array8.t) :
     w = XMSS_WOTS_W /\
@@ -403,7 +421,7 @@ lemma pkgen_correct (_seed_ _pub_seed_ : W8.t Array32.t, _addr_ : W32.t Array8.t
       ==>
       res{1}.`1 = DecodeWotsPk res{2}.`1 /\ 
       res{2}.`2 = res{1}.`2
-    ].
+    ]. 
 proof.
 move => [#] *.
 proc; auto => />. (* auto simplifies #pre and #post *)
@@ -420,36 +438,148 @@ seq 2 2 : (
 conseq (: _ ==> address{2} = addr{1} /\ forall (k : int), 0 <= k < 2144 => pk{1}.[k] = nth witness (flatten pk{2}) k).
     + auto => /> *; rewrite /DecodeWotsPk /of_list tP; smt(@Array2144).
 while (
+  (* #pre but without the last expression *)
   sk_seed{2} = to_list seed{1} /\
   _seed{2} = to_list pub_seed{1} /\
   address{2} = addr{1} /\
+  size pk{2} = len /\
+
   ={i} /\ 
   0 <= i{1} <= 67 /\
-  size pk{2} = len /\
-  (forall (k : int), 0 <= k < 32 * i{1} => pk{1}.[k] = nth witness (flatten pk{2}) k)
-); last by auto => /> &2 *; do split;2,3:smt(); move => *; rewrite /DecodeWotsSk; smt(@List @Array2144).
+
+  (forall (k : int), 0 <= k < 32 * i{1} => pk{1}.[k] = nth witness (flatten pk{2}) k) /\
+  (forall (k : int), 32 * i{1} <= k < 2144 => pk{1}.[k] = nth witness (flatten wots_skey{2}) k)
+); last first.
+    + auto => /> &2 * ; do split;1,3:by smt(). 
+        * rewrite /DecodeWotsSk => *; smt(@Array2144 @List).
+        * smt(@List @Array2144). 
 seq 2 1 : (#pre); first by inline {1}; auto => />.
-wp 2 3.
-seq 1 1 : (#pre /\ sk_i{2} = to_list t{1}).
-    + auto => /> &1 &2 *. rewrite /to_list /mkseq -iotaredE => />. admit.
-seq 1 1 : (
-  sk_seed{2} = to_list seed{1} /\
-  _seed{2} = to_list pub_seed{1} /\
+inline M(Syscall).__gen_chain_inplace_ M(Syscall)._gen_chain_inplace; wp; sp.
+exists * out0{1}, start0{1}, steps0{1}, addr1{1}, pub_seed1{1}; elim * => _P1 _P2 _P3 _P4 _P5.
+call {1} (gen_chain_inplace_correct _P1 _P2 _P3 _P4 _P5).
+auto => /> &1 &2 ? H1 ? H3 H4 ? H6; do split.
+    + apply (eq_from_nth witness); first by rewrite size_to_list; smt. 
+      have ->: size (nth witness wots_skey{2} i{2}) = 32 by smt.
+      move => i ?; rewrite get_to_list initE ifT 1:/# => />. 
+      rewrite H4 1:/# -nth_flatten; [ smt(size_wots_sk) | smt(wots_sk_size_2) |].
+      do 2! congr. rewrite -size_flatten. smt(@List size_wots_sk wots_sk_size_2).
+    + smt().
+    + move => H7 H8 H9 H10 ?? H13 H14 ; do split;1..4,7,8:smt(size_put).
+        * move => k *; rewrite initE ifT 1:/#; auto => />; rewrite (nth_flatten witness n); first by rewrite allP; smt(size_put wots_pk_size).
+          case (i{2} * 32 <= k && k < i{2} * 32 + 32).
+            - move => *; rewrite nth_put 1:/#; smt(@List @Array2144).
+            - move => *; rewrite nth_put 1:/#. case (i{2} = k %/ n); first by move => *; smt(@List @Array2144).
+              move => *; rewrite H3 1:/#; rewrite (nth_flatten witness n); [ rewrite allP; smt(wots_pk_size) | trivial ].
+        * move => k ??. rewrite initE ifT 1:/# => />. rewrite H4 1:/#. 
+          case (i{2} * 32 <= k && k < i{2} * 32 + 32); smt(@Array2144 @List).
+qed.
+
+
+(*** Pk From Sig : Doing ***)
+
+op load_sig (mem : global_mem_t) (ptr : W64.t) : W8.t Array2144.t =
+  Array2144.init(fun i => loadW8 mem (to_uint ptr + i)).
+
+lemma pk_from_sig_correct (mem : global_mem_t) (_sig_ptr_ : W64.t, _msg_ _pub_seed_ :W8.t Array32.t, _addr_ :W32.t Array8.t) :
+    valid_ptr_i _sig_ptr_ 2144 =>
+    floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
+    w = XMSS_WOTS_W /\
+    len1 = XMSS_WOTS_LEN1 /\ 
+    len2 = XMSS_WOTS_LEN2 =>
+    equiv [
+      M(Syscall).__wots_pk_from_sig ~ WOTS.pkFromSig :
+      arg{1}.`2 = _sig_ptr_ /\
+      arg{1}.`3 = _msg_ /\
+      arg{1}.`4 = _pub_seed_ /\ 
+      arg{1}.`5 = _addr_ /\ 
+      arg{2} = (to_list _msg_, EncodeWotsSignature (load_sig mem _sig_ptr_) , to_list _pub_seed_, _addr_)
+      ==>
+      res{1}.`1 = DecodeWotsPk res{2}.`1 /\ 
+      res{1}.`2 = res{2}.`2
+    ].
+proof.
+rewrite /XMSS_WOTS_LOG_W /XMSS_WOTS_W /XMSS_WOTS_LEN1 /XMSS_WOTS_LEN2.
+move => ? [#] logw_val w_val len1_val len2_val.
+proc; auto => />.
+seq 1 1 : (#pre); first by auto.
+conseq (: _ ==> address{2} = addr{1} /\ 
+                forall (k : int), 0 <= k < 2144 => pk{1}.[k] = nth witness (flatten tmp_pk{2}) k).
+    + auto => /> *; rewrite /DecodeWotsPk /of_list tP; smt(@Array2144).
+inline {1} M(Syscall).__chain_lengths_ M(Syscall)._chain_lengths M(Syscall).__chain_lengths.
+seq 12 1 : (#pre /\ msg{2} = map (W32.to_uint) (to_list t0{1})).
+  + sp; exists * msg2{1}; elim * => _P1. call {1} (base_w_correctness_64 _P1); [ smt() | skip => /> ].
+seq 1 0 : (#pre /\ (forall (k : int), 0 <= k < 64 => lengths2{1}.[k] = t0{1}.[k])); first by auto => />; smt(@Array67).
+inline {1} M(Syscall).__wots_checksum.
+seq 6 1 : (#pre /\ csum{2} = to_uint csum{1}).
+  + admit.
+(* sp; exists * msg_base_w{1}; elim * => _P1; call {1} (wots_checksum_correctness _P1); first by smt().
+    skip => /> *. *)
+seq 4 2 : (
+  sig{2} = EncodeWotsSignature (load_sig mem sig_ptr{1}) /\
   address{2} = addr{1} /\
-  ={i} /\
-  (0 <= i{1} && i{1} <= 67) /\
-  (forall (k : int), 0 <= k && k < 32 * i{1} => pk{1}.[k] = nth witness (flatten pk{2}) k) /\
-  i{1} < 67 /\ i{2} < len /\
-  pk_i{2} = to_list t{1} /\
-  size pk{2} = len 
+  M{2} = to_list msg{1} /\
+  msg{2} = map W32.to_uint (to_list t0{1}) /\
+  _seed{2} = to_list pub_seed{1} /\
+  (forall (k0 : int), 0 <= k0 && k0 < 64 => lengths2{1}.[k0] = t0{1}.[k0]) /\
+  to_uint csum_32{2} = to_uint csum{1}
 ).
-    + inline {1} M(Syscall).__gen_chain_inplace_ M(Syscall)._gen_chain_inplace; wp; sp.
-      exists * out0{1}, start0{1}, steps0{1}, pub_seed1{1}, addr1{1}. elim * => _P1 _P2 _P3 _P4 _P5.
-      call {1} (gen_chain_inplace_correct _P1 _P2 _P3 _P5 _P4); auto => /> /#.
-auto => /> &1 &2 *; do split; 1..3,5,6:smt(size_put).
-move => /> k *; rewrite initE ifT 1:/#; auto => />. 
-rewrite (nth_flatten witness n); first by rewrite allP; smt(size_put wots_pk_size).
-case (i{2} * 32 <= k && k < i{2} * 32 + 32).
-    + move => *; rewrite nth_put 1:/#; smt(@List @Array2144).
-    + move => *. rewrite nth_put 1:/#. admit.
+    + auto => /> &1 *. rewrite len2_val logw_val //=. 
+      have ->: 63 = 2^6 - 1 by smt(). rewrite and_mod 1:/#.  
+      have ->: (to_uint ((of_int 4))%W64) = 4 by smt(@W64). simplify.
+      have ->: truncateu8 ((of_int 4))%W64 = (of_int 4)%W8 by smt(@W64).
+      have E: 0 <= to_uint csum{1} < len1 * (w - 1) * 2^8 by admit.
+      rewrite len1_val w_val //= in E.
+
+idtac.
+rewrite to_uint_shl 1:/# to_uint_shl 1:/# of_uintK /= /#.
+rewrite /(`<<`) /=.
+search (`<<<`).
+print W32.to_uintK.
+admit.
+qed.
+
+(*** Sign Seed : Doing ***)
+
+lemma sign_seed_correct (_msg_ _seed_ _pub_seed_ : W8.t Array32.t, _addr_ : W32.t Array8.t) :
+    n = XMSS_N /\
+    len = XMSS_WOTS_LEN /\
+    floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
+    w = XMSS_WOTS_W /\
+    len1 = XMSS_WOTS_LEN1 /\
+    len2 = XMSS_WOTS_LEN2 /\
+    prf_padding_val = XMSS_HASH_PADDING_PRF /\
+    prf_kg_padding_val = XMSS_HASH_PADDING_PRF_KEYGEN /\
+    padding_len = XMSS_PADDING_LEN => 
+    equiv [
+      M(Syscall).__wots_sign ~ WOTS.sign_seed : 
+      arg{1}.`2 = _msg_ /\
+      arg{1}.`3 = _seed_ /\
+      arg{1}.`4 = _pub_seed_ /\
+      arg{1}.`5 = _addr_ /\
+      arg{2} = (to_list _msg_, to_list _seed_, to_list _pub_seed_, _addr_)
+      ==>
+      res{1}.`1 = DecodeWotsSignature res{2}.`1 /\ 
+      res{1}.`2 = res{2}.`2
+    ].
+proof.
+rewrite /XMSS_WOTS_W /XMSS_WOTS_LEN1 /XMSS_WOTS_LEN2 => [#] ??? w_val len1_val len2_val *.
+proc => //=.
+conseq (: _ ==> addr{1} = address{2} /\ (forall (k : int), 0 <= k < 2144 => sig{1}.[k] = nth witness (flatten sig{2}) k)).
+  + auto => /> *; rewrite /DecodeWotsSignature /of_list /mkseq tP => ??; smt(@Array2144 @List).
+seq 0 1 : (
+  M{2} = to_list msg{1} /\
+  pub_seed{2} = to_list pub_seed{1} /\
+  sk_seed{2} = to_list seed{1} /\
+  address{2} = addr{1} /\
+  size sig{2} = len
+); first by auto => />; smt(size_nseq).
+swap {1} 3 -2.
+seq 1 1 : (#pre /\ to_list sig{1} = flatten wots_skey{2}).
+    + inline M(Syscall).__expand_seed_ M(Syscall)._expand_seed; wp; sp. 
+      exists * inseed0{1}, pub_seed1{1}, addr1{1}; elim * => _P1 _P2 _P3; call {1} (expand_seed_correct _P1 _P2 _P3). 
+      skip => /> &2. rewrite /DecodeWotsSk => ??? H0 ?. split; [ smt() |]. rewrite H0. apply (eq_from_nth witness).
+        * rewrite size_to_list. admit.
+admit.
+admit.
+
 qed.
