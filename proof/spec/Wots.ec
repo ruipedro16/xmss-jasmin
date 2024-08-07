@@ -285,7 +285,7 @@ module WOTS = {
     csum_32 <- W32.of_int csum;
 
     (* Convert checksum to base w *)
-    csum_32 <- csum_32 `<<` W8.of_int (8 - ((ceil (len2%r * log2(w%r))) %% 8));
+    csum_32 <- csum_32 `<<` W8.of_int (8 - (len2 * floor (log2 w%r)) %% 8);
     len_2_bytes <- (ceil ((ceil (len2%r * log2(w%r)))%r / 8%r));
 
     (* msg = msg || base_w(toByte(csum_32, len_2_bytes), w, len_2); *)

@@ -10,13 +10,6 @@ require import Params Notation Parameters Address Primitives Wots.
 import NBytes.
 import Array8.
 
-clone import Subtype as Bitmask with 
-   type T = W8.t list,
-   op P = fun l => size l = 2 * n
-   rename "T" as "bitmask"
-   proof inhabited by (exists (nseq (2*n) W8.zero);smt(size_nseq ge0_n))
-   proof *.
-
 clone import Subtype as Three_NBytes with 
    type T = W8.t list,
    op P = fun l => size l = 3 * n

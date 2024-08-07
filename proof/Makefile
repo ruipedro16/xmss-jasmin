@@ -75,7 +75,7 @@ clean:
 
 .PHONY: distclean
 distclean:	
-	$(RM) -rf extraction/XMSS_* common/
+	$(RM) -rf extraction/XMSS_IMPL.ec common/
 
 # --------------------------------------------------------------------------------------------------
 
