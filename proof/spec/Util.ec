@@ -14,7 +14,7 @@ module Util = {
 
     i <- outlen - 1;
 
-    while ((- 1) < i) {
+    while (0 <= i) {
       t <- (truncateu8 in_0);            (* Get the lowest 8 bits *)
       r <- put r i t;
       in_0 <- (in_0 `>>` (W8.of_int 8)); (* Shift right by 8 bits *)
@@ -26,8 +26,6 @@ module Util = {
 }.
 
 lemma w64_to_bytes_ll : 
-    phoare [Util.w64_to_bytes : 1 < outlen ==> true] = 1%r.
-proof.
-proc.
-admit.
-qed.
+    phoare [Util.w64_to_bytes : 0 <= outlen ==> true] = 1%r
+        by proc; while (#pre) (i + 1); auto => /> /#.
+

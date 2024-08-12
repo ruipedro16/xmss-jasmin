@@ -1,5 +1,3 @@
-pragma Goals : printall.
-
 require import AllCore List RealExp IntDiv.
 
 (* Height of the overall Merkle tree *)

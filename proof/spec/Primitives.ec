@@ -4,18 +4,10 @@ require import AllCore List RealExp IntDiv.
 require (*  *) Subtype. 
 from Jasmin require import JModel.
 
-require import Params Notation Address Hash Utils.
+require import Types Params Notation Address Hash Utils.
 require import Array8.
 
-clone import Subtype as NBytes with 
-   type T = W8.t list,
-   op P = fun l => size l = n
-   rename "T" as "nbytes"
-   proof inhabited by (exists (nseq n W8.zero);smt(size_nseq ge0_n))
-   proof *.
-
-type key = nbytes.
-type seed = nbytes.
+import NBytes.
 
 op nbytexor(a b : nbytes) : nbytes = 
     map (fun (ab : W8.t * W8.t) => ab.`1 `^` ab.`2) (zip a b).

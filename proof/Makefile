@@ -38,15 +38,15 @@ extraction/XMSS_IMPL.ec: | extraction/ common/
 .PHONY: typecheck_spec typecheck_proofs typecheck_extraction
 typecheck_spec: extraction/XMSS_IMPL.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Params.ec
+	$(EASYCRYPT) $(EC_INCLUDE) spec/Types.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Address.ec
-	$(EASYCRYPT) $(EC_INCLUDE) spec/Notation.ec
+	$(EASYCRYPT) $(EC_INCLUDE) spec/Util.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Hash.ec
+	$(EASYCRYPT) $(EC_INCLUDE) spec/Notation.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Primitives.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Wots.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/XMSS.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/XMSS_MT_PRF.ec
-	$(EASYCRYPT) $(EC_INCLUDE) spec/Properties.ec
-	$(EASYCRYPT) $(EC_INCLUDE) spec/Utils.ec
 
 
 typecheck_extraction: extraction/XMSS_IMPL.ec 

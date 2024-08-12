@@ -6,14 +6,9 @@ require import BitEncoding.
 
 from Jasmin require import JModel.
 
-require import Params Util.
+require import Types Params Util.
 
-clone import Subtype as NBytes with 
-   type T = W8.t list,
-   op P = fun l => size l = n
-   rename "T" as "nbytes"
-   proof inhabited by (exists (nseq n W8.zero);smt(size_nseq ge0_n))
-   proof *.
+import NBytes.
 
 op Hash : W8.t list -> W8.t list.
 
@@ -21,6 +16,8 @@ op prf_padding_val : W64.t.
 op prf_kg_padding_val : W64.t.
 op F_padding_val : W64.t.
 op padding_len : int.
+
+axiom padding_len_ge0 : 0 <= padding_len.
 
 module Hash = {
   proc prf (in_0 : W8.t list, key : nbytes) : nbytes = {
@@ -70,10 +67,10 @@ module Hash = {
 (*---------------------------------------------------------------------------------------------------------*)
 
 lemma prf_ll : islossless Hash.prf
-    by proc; wp; call w64_to_bytes_ll.
+    by proc; wp; call w64_to_bytes_ll; skip; smt(padding_len_ge0).
 
 lemma prf_kg_ll : islossless Hash.prf_keygen
-    by proc; wp ; call w64_to_bytes_ll.
+    by proc; wp; call w64_to_bytes_ll; skip; smt(padding_len_ge0).
 
 lemma f_ll : islossless Hash._F 
-    by proc; wp ; call w64_to_bytes_ll.
+    by proc; wp; call w64_to_bytes_ll; skip; smt(padding_len_ge0).

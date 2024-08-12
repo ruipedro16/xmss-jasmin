@@ -1,44 +1,13 @@
 pragma Goals : printall.
 
-require import AllCore List Distr RealExp IntDiv.
-require (*--*) Subtype.
-
+require import AllCore List Distr RealExp IntDiv DList.
 from Jasmin require import JModel.
 
-require import Params Notation Address Primitives Hash Params Utils.
-
-import DList.
-import NBytes.
+require import Types Params Notation Address Primitives Hash Params Utils.
 
 require import Array8.
 
-(**********************************************************************************************************************)
-
-clone import Subtype as LEN_N with 
-   type T = nbytes list,
-   op P = fun l => size l = len
-   rename "T" as "len_n_bytes"
-   proof inhabited by (exists (nseq len (nseq n W8.zero));smt(size_nseq ge0_len))
-   proof *.
-
-
-clone import Subtype as LEN1 with 
-   type T = W8.t list,
-   op P = fun l => size l = len1
-   rename "T" as "len1_bytes"
-   proof inhabited by (exists (nseq len1 W8.zero);smt(size_nseq ge0_len1))
-   proof *.
-
-(**********************************************************************************************************************)
-
-type wots_message = nbytes.
-type wots_message_base_w = len1_bytes.
-type wots_signature = len_n_bytes.
-type wots_pk = len_n_bytes.
-type wots_sk = len_n_bytes.
-type wots_keypair = wots_pk * wots_sk.
-
-(**********************************************************************************************************************)
+import NBytes.
 
 module WOTS = {
   (* In practise, we generate the private key from a secret seed *)
@@ -337,8 +306,15 @@ while (true) (len - i) ; auto => />; [ sp; call prf_kg_ll; skip => /> /# | smt()
 qed.
 
 (* TODO: Remove chain_ll lemma from this file => it is already in Properties *)
-lemma chain_ll : islossless Chain.chain
-  by proc; while (true) (s - chain_count); by auto => /#.
+lemma chain_ll : islossless Chain.chain.
+proof.
+proc.
+while (true) (s - chain_count); last by auto => /> /#.
+auto => />.
+call f_ll; call prf_ll.
+wp.
+call prf_ll; auto => /#. 
+qed.
 
 (* TODO: Move this to Generic.ec *)
 

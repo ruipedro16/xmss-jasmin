@@ -5,11 +5,9 @@ from Jasmin require import JModel_x86.
 
 require import Array8.
 
-require import Notation Params.
+require import Types Notation Params.
 
 (**********************************************************************************************************************)
-
-type adrs = W32.t Array8.t.
 
 op zero_address : adrs = Array8.init (fun _ => W32.zero).
 
