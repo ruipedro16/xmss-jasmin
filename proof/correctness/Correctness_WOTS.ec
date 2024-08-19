@@ -3,7 +3,7 @@ pragma Goals : printall.
 require import AllCore List RealExp IntDiv.
 from Jasmin require import JModel JArray.
 
-require import Params Parameters Address Notation Primitives Hash Wots Util.
+require import Types Params Parameters Address Notation Primitives Hash Wots Util.
 require import XMSS_IMPL.
 
 require import Array2 Array3 Array8 Array32 Array64 Array67 Array96 Array2144.
@@ -11,12 +11,11 @@ require import Array2 Array3 Array8 Array32 Array64 Array67 Array96 Array2144.
 require import Utils. (* valid ptr predicate & addr_to_bytes *)
 require import Correctness_Mem Correctness_Hash. 
 (*---*) import NBytes.
+
 require import Termination Repr.
 
 require import BitEncoding.
 (*---*) import BitChunking.
-
-type adrs = W32.t Array8.t.
 
 (*** BASE W : done ***)
 

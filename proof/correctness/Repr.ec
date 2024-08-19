@@ -3,7 +3,7 @@ pragma Goals : printall.
 require import AllCore List.
 from Jasmin require import JModel.
 
-require import Address Notation Primitives Wots.
+require import Types Address Notation Primitives Wots.
 require import XMSS_IMPL.
 
 require import Array32 Array64 Array2144.

@@ -31,8 +31,6 @@ lemma test_cmp_32_64 (_a _b : W64.t) (_c _d : W32.t) :
     (! (TEST_8 (SETcc (! (CMP_64 _a _b).`2)) (SETcc (CMP_32 _c _d).`5)).`5) = ((_b \ule _a) /\ _c = _d).
 proof.
 rewrite cmp_eq_W32 cmp_W64.
-pose b1 := (_b \ule _a).
-pose b2 := (_c = _d).
 apply test_8_bool.
 qed.
 

@@ -6,8 +6,8 @@ from Jasmin require import JModel.
 
 require import Array8.
 
-require import Address.
-require import XMSS_IMPL XMSS_IMPL_PP.
+require import Types Address.
+require import XMSS_IMPL.
 
 op zero_addr : adrs = Array8.init (fun _ => W32.zero). 
 

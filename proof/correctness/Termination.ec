@@ -53,6 +53,8 @@ proc.
 admit.
 qed.
 
+(*** ***)
+
 lemma core_hash_96_ll : islossless M(Syscall).__core_hash__96.
 proof.
 admit.
@@ -63,8 +65,7 @@ lemma core_hash_128_ll : islossless M(Syscall).__core_hash_128 by proc ; call sh
 lemma prf_ll : islossless M(Syscall).__prf.
 proof.
 proc.
-inline M(Syscall).__core_hash_96; wp.
-call sha256_96_ll; wp.
+call core_hash_96_ll; wp.
 call _x_memcpy_u8u8_32_32_ll; wp.
 call _x_memcpy_u8u8_32_32_ll; wp.
 call ull_to_bytes_32_ll.
@@ -89,21 +90,13 @@ lemma core_hash_ptr_ll : islossless M(Syscall).__core_hash_in_ptr by proc ; call
 lemma bytes_to_ull_ptr_ll : islossless M(Syscall).__bytes_to_ull_ptr.
 proof.
 proc.
-while (0 <= to_uint i <= 4) (4 - to_uint i) ; auto => /> * ; last by smt(@W64).
-do split.
-  + rewrite to_uintD /#.
-  + smt(@W64).
-  + rewrite to_uintD ; smt(@W64).
+while (0 <= to_uint i <= 4) (4 - to_uint i) ; auto => /> * ; smt(@W64 pow2_64).
 qed.
 
 lemma bytes_to_ull_ll : islossless M(Syscall).__bytes_to_ull.
 proof.
 proc.
-while (0 <= to_uint i <= 4) (4 - to_uint i); auto => /> *; last by smt(@W64).
-do split.
-  + rewrite to_uintD /#.
-  + smt(@W64).
-  + rewrite to_uintD ; smt(@W64).
+while (0 <= to_uint i <= 4) (4 - to_uint i); auto => /> *; smt(@W64 pow2_64).
 qed.
 
 lemma ull_to_bytes_2_ll  : islossless M(Syscall).__ull_to_bytes_2 
@@ -122,12 +115,7 @@ lemma zero_addr_ll : islossless M(Syscall).__zero_address_
 lemma memcpy_32_ptr_ll : islossless M(Syscall).__memcpy_u8pu8_32.
 proof.
 proc.
-while (0 <= to_uint i <= 32) (32 - to_uint i) ; auto => /> *.
-- do split.
-  + rewrite to_uintD_small /#.
-  + smt(@W64).
-  + rewrite to_uintD ; smt(@W64).
-- smt(@W64).
+while (0 <= to_uint i <= 32) (32 - to_uint i) ; auto => /> *; smt(@W64 pow2_64).
 qed.
 
 lemma memcpy_ptr_ll : islossless M(Syscall).__memcpy_u8u8p.
@@ -139,23 +127,13 @@ qed.
 lemma memcpy_ptr_ptr_ll : islossless M(Syscall).__memcpy_u8pu8p.
 proof.
 proc.
-while (0 <= to_uint i <= to_uint bytes) ((to_uint bytes) - (to_uint i)) ; auto => /> *.
-- do split.
-  + rewrite to_uintD ; smt(@W64).
-  + smt(@W64).
-  + smt(@W64).
-- smt(@W64).
+while (0 <= to_uint i <= to_uint bytes) ((to_uint bytes) - (to_uint i)) ; auto => /> *; smt(@W64).
 qed.
 
 lemma memset_zero_ll : islossless M(Syscall).__memset_zero_u8.
 proof.
 proc.
-while (0 <= to_uint i <= 4) (4 - to_uint i) ; auto => /> *.
-do split.
-  + rewrite to_uintD_small /#.
-  + smt(@W64).
-   + rewrite to_uintD_small ; smt(@W64).
-- smt(@W64).
+while (0 <= to_uint i <= 4) (4 - to_uint i) ; auto => /> *; smt(@W64 pow2_64).
 qed.
 
 lemma memset_u8_ptr_ll : phoare [M(Syscall).__memset_u8_ptr : 
@@ -168,27 +146,20 @@ qed.
 lemma memset_4_ll : islossless M(Syscall).__memset_u8_4.
 proof.
 proc.
-while (0 <= to_uint i <= 4) (4 - to_uint i); auto => /> *; last by smt(@W64).
-do split ; [rewrite to_uintD /# | smt(@W64) | rewrite to_uintD ; smt(@W64)].
+while (0 <= to_uint i <= 4) (4 - to_uint i); auto => /> *; smt(@W64 pow2_64).
 qed.
 
 lemma memset_128_ll : islossless M(Syscall).__memset_u8_128.
 proof.
 proc.
-while (0 <= to_uint i <= 128) (128 - to_uint i); auto => /> *; last by smt(@W64).
-do split ; [rewrite to_uintD /# | smt(@W64) | rewrite to_uintD ; smt(@W64)].
+while (0 <= to_uint i <= 128) (128 - to_uint i); auto => /> *; smt(@W64 pow2_64).
 qed.
 
 lemma memcmp_ll : islossless M(Syscall).__memcmp.
 proof.
 proc.
 sp ; wp.
-while (0 <= to_uint i <= 32) (32 - to_uint i) ; auto => />.
-- progress.
-  + rewrite to_uintD_small /#.
-  + smt(@W64).
-  + rewrite to_uintD ; smt(@W64).
-- progress ; smt(@W64).
+while (0 <= to_uint i <= 32) (32 - to_uint i) ; auto => />; smt(@W64 pow2_64).
 qed.
 
 lemma thash_f_ll : islossless M(Syscall).__thash_f.
@@ -203,8 +174,8 @@ while (0 <= to_uint i <= 32) (32 - to_uint i) ; auto => />.
   - inline M(Syscall).__prf_  M(Syscall)._prf; wp. call prf_ll; wp.
     call addr_to_bytes_ll. inline M(Syscall).__set_key_and_mask ; auto => />. 
     inline M(Syscall).__prf_  M(Syscall)._prf; wp. call prf_ll; wp.
-call addr_to_bytes_ll ; auto => />. 
-    call ull_to_bytes_32_ll. auto => /> *. rewrite ultE => /#.
+    call ull_to_bytes_32_ll. auto => /> *. 
+    call addr_to_bytes_ll. skip => /> *; rewrite ultE => /#.
 qed.
 
 lemma thash_h_ll : islossless M(Syscall).__thash_h.

@@ -31,8 +31,7 @@ lemma p_memset_4_post (input : W8.t Array4.t, v : W8.t) :
     phoare [M(Syscall).__memset_u8_4 : arg=(input, v) ==> 
      (forall (k : int), 0 <= k < 4 => (res.[k] = v))] = 1%r.
 proof.
-conseq memset_4_ll (memset_4_post input v).
-by auto => />.
+by conseq memset_4_ll (memset_4_post input v); auto => />.
 qed.
 
 lemma memset_128_post (input : W8.t Array128.t, v : W8.t) :
@@ -53,8 +52,7 @@ lemma p_memset_128_post (input : W8.t Array128.t, v : W8.t) :
     phoare [M(Syscall).__memset_u8_128 : arg=(input, v) ==> 
      (forall (k : int), 0 <= k < 128 => (res.[k] = v))] = 1%r.
 proof.
-conseq memset_128_ll (memset_128_post input v).
-auto => />.
+conseq memset_128_ll (memset_128_post input v); auto => />.
 qed.
 
 lemma memset_zero_post :
