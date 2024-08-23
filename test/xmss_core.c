@@ -32,7 +32,7 @@ extern void gen_leaf_wots_jazz(uint8_t *leaf, uint32_t ltree_addr[8], uint32_t o
 #endif
 
 #ifdef TEST_TREEHASH_ARRAY
-extern void treehash_array_jazz(unsigned char *root, unsigned char *auth_path, const unsigned char *sk_seed,
+extern void treehash_jazz(unsigned char *root, unsigned char *auth_path, const unsigned char *sk_seed,
                                 const unsigned char *pub_seed, uint32_t leaf_idx, const uint32_t subtree_addr[8]);
 #endif
 
@@ -183,7 +183,7 @@ int xmssmt_core_seed_keypair(const xmss_params *params, unsigned char *pk, unsig
 #ifdef TEST_TREEHASH_ARRAY
     // NOTE: auth path is first because in jasmin mutable arrays must come first
     puts("DEBUG: TREEHASH ARRAY JASMIN IMPL");
-    treehash_array_jazz(pk, auth_path, sk, pk + params->n, 0, top_tree_addr);
+    treehash_jazz(pk, auth_path, sk, pk + params->n, 0, top_tree_addr);
 #else
     treehash(params, pk, auth_path, sk, pk + params->n, 0, top_tree_addr);
 #endif
@@ -309,7 +309,7 @@ int xmssmt_core_sign(const xmss_params *params, unsigned char *sk, unsigned char
 /* Compute the authentication path for the used WOTS leaf. */
 #ifdef TEST_TREEHASH_ARRAY
         puts("DEBUG: TREEHASH ARRAY JASMIN IMPL 2");
-        treehash_array_jazz(root, sm, sk_seed, pub_seed, idx_leaf, ots_addr);
+        treehash_jazz(root, sm, sk_seed, pub_seed, idx_leaf, ots_addr);
 #else
         treehash(params, root, sm, sk_seed, pub_seed, idx_leaf, ots_addr);
 #endif

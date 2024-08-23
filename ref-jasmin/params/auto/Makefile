@@ -31,7 +31,7 @@ bin/:
 
 .PHONY: clean
 clean:
-	$(RM) -rf bin/
+	$(RM) -r bin/
 
 distclean:
 	find ../ -type f -name 'params-*' -delete

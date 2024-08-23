@@ -8,7 +8,7 @@ from XMSS require "xmss_commons/xmss_commons.jtmpl"
 
 /////////////////////////////////// TREEHASH ///////////////////////////////////
 
-inline fn __treehash_array(
+inline fn __treehash(
     reg ptr u8[XMSS_N] root,
     reg ptr u8[XMSS_TREE_HEIGHT * XMSS_N] auth_path,
     reg ptr u8[XMSS_N] sk_seed,
@@ -191,7 +191,7 @@ inline fn __treehash_array(
     return root, auth_path;
 }
 
-fn _treehash_array(
+fn _treehash(
     reg ptr u8[XMSS_N] root,
     reg ptr u8[XMSS_TREE_HEIGHT * XMSS_N] auth_path,
     reg ptr u8[XMSS_N] sk_seed,
@@ -200,11 +200,11 @@ fn _treehash_array(
     reg ptr u32[8] subtree_addr
 ) -> reg ptr u8[XMSS_N], reg ptr u8[XMSS_TREE_HEIGHT * XMSS_N]
 {
-    root, auth_path = __treehash_array(root, auth_path, sk_seed, pub_seed, leaf_idx, subtree_addr);
+    root, auth_path = __treehash(root, auth_path, sk_seed, pub_seed, leaf_idx, subtree_addr);
     return root, auth_path;
 }
 
-inline fn __treehash_array_(
+inline fn __treehash_(
     reg ptr u8[XMSS_N] root,
     reg ptr u8[XMSS_TREE_HEIGHT * XMSS_N] auth_path,
     reg ptr u8[XMSS_N] sk_seed,
@@ -220,7 +220,7 @@ inline fn __treehash_array_(
     leaf_idx = leaf_idx;
     subtree_addr = subtree_addr;
 
-    root, auth_path = _treehash_array(root, auth_path, sk_seed, pub_seed, leaf_idx, subtree_addr);
+    root, auth_path = _treehash(root, auth_path, sk_seed, pub_seed, leaf_idx, subtree_addr);
 
     root = root;
     auth_path = auth_path;
@@ -263,7 +263,7 @@ inline fn __xmssmt_core_seed_keypair(
 
     // treehash(params, pk, auth_path, sk, pk + params->n, 0, top_tree_addr);
     () = #spill(pk, sk);
-    buf, _ = __treehash_array_(buf, auth_path, sk[XMSS_INDEX_BYTES : XMSS_N], pk[XMSS_N : XMSS_N], 0, top_tree_addr);
+    buf, _ = __treehash_(buf, auth_path, sk[XMSS_INDEX_BYTES : XMSS_N], pk[XMSS_N : XMSS_N], 0, top_tree_addr);
     
     // memcpy(sk + 2*params->n, pk, params->n);
     () = #unspill(pk, sk);
@@ -463,7 +463,7 @@ inline fn __xmssmt_core_sign(
             sk_seed = sk[XMSS_INDEX_BYTES : XMSS_N];
             pub_seed = sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N];
             for j=0 to XMSS_TREE_HEIGHT * XMSS_N { auth_path[j] = (u8)[sm_ptr + j]; }
-            root, auth_path = __treehash_array_(root, auth_path, sk_seed, pub_seed, idx_leaf, ots_addr);
+            root, auth_path = __treehash_(root, auth_path, sk_seed, pub_seed, idx_leaf, ots_addr);
             
             () = #unspill(sm_ptr);
             for j=0 to XMSS_TREE_HEIGHT * XMSS_N { (u8)[sm_ptr + j] = auth_path[j]; }

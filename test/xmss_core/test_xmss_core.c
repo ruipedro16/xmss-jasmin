@@ -22,7 +22,7 @@
 #define TESTS 100
 #endif
 
-extern void treehash_array_jazz(uint8_t *auth_path, uint8_t *root, const uint8_t *sk_seed, const uint8_t *pub_seed,
+extern void treehash_jazz(uint8_t *auth_path, uint8_t *root, const uint8_t *sk_seed, const uint8_t *pub_seed,
                                 uint32_t leaf_idx, const uint32_t subtree_addr[8]);
 
 extern int xmssmt_core_seed_keypair_jazz(uint8_t *pk, uint8_t *sk, const uint8_t *seed);

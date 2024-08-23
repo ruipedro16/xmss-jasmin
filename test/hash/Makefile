@@ -102,4 +102,4 @@ bin/:
 
 .PHONY: clean
 clean:
-	$(RM) -fr bin/
+	$(RM) -r bin/

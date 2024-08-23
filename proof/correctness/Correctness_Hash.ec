@@ -112,3 +112,64 @@ seq 1 0 : (
     + auto => /> *; do split; smt(@Array128 @List).
     + auto => /> *; rewrite !/to_list !/mkseq -!iotaredE => /> /#. 
 qed.
+
+require import Types.
+
+op H : nbytes -> nbytes -> nbytes.
+
+module RandHash = {
+proc rand_hash (_left _right : nbytes, _seed : nbytes, address : adrs) : nbytes * adrs = { 
+  var key : nbytes;
+  var bitmask_0, bitmask_1 : nbytes;
+  var hash_in : W8.t list;
+  var addr_bytes : W8.t list;
+
+  address <- set_key_and_mask address 0;
+  addr_bytes <- addr_to_bytes address;
+  key <@ Hash.prf (addr_bytes, _seed);
+
+  address <- set_key_and_mask address 1;
+  addr_bytes <- addr_to_bytes address;
+  bitmask_0 <@ Hash.prf (addr_bytes,  _seed);
+
+  address <- set_key_and_mask address 2;
+  addr_bytes <- addr_to_bytes address;
+  bitmask_1 <@ Hash.prf (addr_bytes,  _seed);
+
+  hash_in <- (nbytexor _left bitmask_0) ++ (nbytexor _right bitmask_1);
+  
+  return (H key hash_in, address);
+  }
+}.
+
+
+op merge_nbytes_to_array (a b : nbytes) : W8.t Array64.t = 
+  Array64.init (fun i => if 0 <= i < 32 then nth witness a i else nth witness b (i - 32)).
+
+lemma rand_hash_correct (i0 i1: nbytes, _pub_seed : W8.t Array32.t, _in : W8.t Array64.t, address : W32.t Array8.t) :
+    equiv [
+      M(Syscall).__thash_h ~ RandHash.rand_hash :
+      arg{1}.`2 = (merge_nbytes_to_array i0 i1) /\
+      arg{1}.`3 = _pub_seed /\
+      arg{1}.`4 = address /\
+      arg{2} = (i0, i1, to_list _pub_seed, address)
+      ==>
+      to_list res{1}.`1 = res{2}.`1 /\
+      res{1}.`2 = res{2}.`2
+    ].
+proof.
+proc.
+auto => />.
+conseq (: 
+  (forall (k : int), 0 <= k < 32 => in_0{1}.[k] = nth witness _left{2} k) /\
+  (forall (k : int), 0 <= k < 32 => in_0{1}.[32 + k] = nth witness _right{2} k) /\
+  _seed{2} = to_list pub_seed{1} /\ 
+  address{2} = addr{1}
+  ==> _
+); first by auto => />; rewrite /merge_nbytes_to_array; smt(@List @Array64).
+seq 3 0 : (#pre); 1:auto.
+
+seq 2 0 : (#pre); 1:admit. (*Ver o que e que isto faz *)
+admit.
+
+qed.

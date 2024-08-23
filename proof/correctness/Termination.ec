@@ -344,7 +344,7 @@ qed.
 (*****************************************************************************************************)
 
 
-lemma treehash_array_ll : islossless M(Syscall).__treehash_array.
+lemma treehash_ll : islossless M(Syscall).__treehash.
 proof.
 proc.
 inline M(Syscall).__copy_subtree_addr M(Syscall).__set_type M(Syscall).__set_ltree_addr M(Syscall).__set_ots_addr.
@@ -392,8 +392,8 @@ proc.
 while (0 <= i <= 32) (32 - i) ; first by auto => /> /#.
 wp.
 while (0 <= i <= 32) (32 - i) ; first by auto => /> /#.
-inline M(Syscall).__treehash_array_ M(Syscall)._treehash_array.
-wp ; call treehash_array_ll.
+inline M(Syscall).__treehash_ M(Syscall)._treehash.
+wp ; call treehash_ll.
 do (wp ; call _x_memcpy_u8u8_32_32_ll).
 wp. call _x_memcpy_u8u8_64_64_ll.
 wp. call memset_zero_ll. 

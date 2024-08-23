@@ -82,7 +82,7 @@ module WOTS = {
   (* Generates the key from the seed *)
   proc pkGen(sk_seed : nbytes, _seed : seed, address : adrs) : wots_pk * adrs = {
     var pk : wots_pk <- nseq len (nseq n W8.zero);
-    var wots_skey : wots_sk;
+    var wots_skey : wots_sk <- nseq len (nseq n W8.zero);
     var i : int <- 0;
     var pk_i, sk_i : nbytes;
 
@@ -305,7 +305,6 @@ proc; wp; sp.
 while (true) (len - i) ; auto => />; [ sp; call prf_kg_ll; skip => /> /# | smt() ]. 
 qed.
 
-(* TODO: Remove chain_ll lemma from this file => it is already in Properties *)
 lemma chain_ll : islossless Chain.chain.
 proof.
 proc.
@@ -315,8 +314,6 @@ call f_ll; call prf_ll.
 wp.
 call prf_ll; auto => /#. 
 qed.
-
-(* TODO: Move this to Generic.ec *)
 
 lemma spec_base_w_ll : islossless BaseW.base_w.
 proof.

@@ -68,14 +68,14 @@ typecheck_proofs: extraction/XMSS_IMPL.ec
 
 .PHONY: clean
 clean:
-	$(RM) -rf *.eco
-	$(RM) -rf *~ 
-	$(RM) -rf \#*\#
+	$(RM) -r *.eco
+	$(RM) -r *~ 
+	$(RM) -r \#*\#
 
 
 .PHONY: distclean
 distclean:	
-	$(RM) -rf extraction/XMSS_IMPL.ec common/
+	$(RM) -r extraction/XMSS_IMPL.ec common/
 
 # --------------------------------------------------------------------------------------------------
 

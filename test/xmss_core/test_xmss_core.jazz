@@ -2,7 +2,7 @@ from XMSS require "xmss_core/xmss_core.jtmpl"
 
 /////////////////////////////////// TREEHASH ///////////////////////////////////////////////////////
 
-export fn treehash_array_jazz(
+export fn treehash_jazz(
     reg ptr u8[XMSS_N] root,
     reg ptr u8[XMSS_TREE_HEIGHT * XMSS_N] auth_path,
     reg ptr u8[XMSS_N] sk_seed,
@@ -11,7 +11,7 @@ export fn treehash_array_jazz(
     reg ptr u32[8] subtree_addr
 ) -> reg ptr u8[XMSS_N], reg ptr u8[XMSS_TREE_HEIGHT * XMSS_N]
 {
-    root, auth_path = __treehash_array_(root, auth_path, sk_seed, pub_seed, leaf_idx, subtree_addr);
+    root, auth_path = __treehash_(root, auth_path, sk_seed, pub_seed, leaf_idx, subtree_addr);
     return root, auth_path;
 }
 /////////////////////////////////// KEY PAIR ///////////////////////////////////////////////////////

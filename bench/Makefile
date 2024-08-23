@@ -112,11 +112,11 @@ results/:
 # --------------------------------------------------------------------------------------------------
 
 clean:
-	$(RM) -rf bin/
+	$(RM) -r bin/
 
 .PHONY: clean_executables
 clean_executables:
 	find bin/ -type f -executable -delete || true
 
 distclean:
-	$(RM) -rf csv/
+	$(RM) -r csv/
