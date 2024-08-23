@@ -7,85 +7,12 @@ from Jasmin require import JModel.
 
 require import Array67.
 
+(*****************************************************************************************************)
+(*** BYTES & ADDRESS ***)
+(*****************************************************************************************************)
+
 lemma ull_to_bytes_32_ll : islossless M(Syscall).__ull_to_bytes_32 
     by proc ; while (true) (i - aux) ; by auto => /> /#.
-
-lemma _x_memcpy_u8u8_32_32_ll : islossless M(Syscall)._x_memcpy_u8u8_32_32.
-proof.
-proc; inline*.
-auto => />.
-while (0 <= to_uint i <= 32) (32 - to_uint i).
-  + auto => /> &hr *; do split; smt(@W64 pow2_64).
-  + auto => />; smt(@W64).
-qed.
-
-lemma _x_memcpy_u8u8_64_64_ll : islossless M(Syscall)._x_memcpy_u8u8_64_64.
-proof.
-proc; inline*.
-wp.
-while (0 <= to_uint i <= 64) (64 - to_uint i); auto => /> *; smt(@W64 pow2_64).
-qed.
-
-lemma _x_memcpy_u8u8_64_32_ll: islossless M(Syscall)._x_memcpy_u8u8_64_32.
-proof.
-proc; inline*.
-wp.
-while (0 <= to_uint i <= 32) (32 - to_uint i); auto => /> *; smt(@W64 pow2_64).
-qed.
-
-(*** ***)
-
-lemma sha256_96_ll : islossless M(Syscall).__sha256_96.
-proof.
-proc.
-admit.
-qed.
-
-lemma sha256_128_ll : islossless M(Syscall).__sha256_128.
-proof.
-proc.
-admit.
-qed.
-
-lemma sha256_in_ptr_ll : islossless M(Syscall).__sha256_in_ptr.
-proof.
-proc.
-admit.
-qed.
-
-(*** ***)
-
-lemma core_hash_96_ll : islossless M(Syscall).__core_hash__96.
-proof.
-admit.
-qed.
-
-lemma core_hash_128_ll : islossless M(Syscall).__core_hash_128 by proc ; call sha256_128_ll.
-
-lemma prf_ll : islossless M(Syscall).__prf.
-proof.
-proc.
-call core_hash_96_ll; wp.
-call _x_memcpy_u8u8_32_32_ll; wp.
-call _x_memcpy_u8u8_32_32_ll; wp.
-call ull_to_bytes_32_ll.
-by auto.
-qed.
-
-lemma prf_keygen_ll : islossless M(Syscall).__prf_keygen.
-proof.
-proc.
-inline M(Syscall).__core_hash__128 M(Syscall)._core_hash_128; wp.
-call core_hash_128_ll; wp.
-call _x_memcpy_u8u8_64_64_ll; wp.
-call _x_memcpy_u8u8_32_32_ll; wp.
-call ull_to_bytes_32_ll.
-by auto.
-qed.
-
-lemma core_hash_ptr_ll : islossless M(Syscall).__core_hash_in_ptr by proc ; call sha256_in_ptr_ll.
-
-(*** ***)
 
 lemma bytes_to_ull_ptr_ll : islossless M(Syscall).__bytes_to_ull_ptr.
 proof.
@@ -112,10 +39,31 @@ qed.
 lemma zero_addr_ll : islossless M(Syscall).__zero_address_
     by proc ; inline ; wp ; while (true) (8 - i) ; auto => /> /#.
 
-lemma memcpy_32_ptr_ll : islossless M(Syscall).__memcpy_u8pu8_32.
+(*****************************************************************************************************)
+(*** MEMCPY, MEMSET & MEMCMP ***)
+(*****************************************************************************************************)
+
+lemma _x_memcpy_u8u8_32_32_ll : islossless M(Syscall)._x_memcpy_u8u8_32_32.
 proof.
-proc.
-while (0 <= to_uint i <= 32) (32 - to_uint i) ; auto => /> *; smt(@W64 pow2_64).
+proc; inline*.
+auto => />.
+while (0 <= to_uint i <= 32) (32 - to_uint i).
+  + auto => /> &hr *; do split; smt(@W64 pow2_64).
+  + auto => />; smt(@W64).
+qed.
+
+lemma _x_memcpy_u8u8_64_64_ll : islossless M(Syscall)._x_memcpy_u8u8_64_64.
+proof.
+proc; inline*.
+wp.
+while (0 <= to_uint i <= 64) (64 - to_uint i); auto => /> *; smt(@W64 pow2_64).
+qed.
+
+lemma _x_memcpy_u8u8_64_32_ll: islossless M(Syscall)._x_memcpy_u8u8_64_32.
+proof.
+proc; inline*.
+wp.
+while (0 <= to_uint i <= 32) (32 - to_uint i); auto => /> *; smt(@W64 pow2_64).
 qed.
 
 lemma memcpy_ptr_ll : islossless M(Syscall).__memcpy_u8u8p.
@@ -128,6 +76,12 @@ lemma memcpy_ptr_ptr_ll : islossless M(Syscall).__memcpy_u8pu8p.
 proof.
 proc.
 while (0 <= to_uint i <= to_uint bytes) ((to_uint bytes) - (to_uint i)) ; auto => /> *; smt(@W64).
+qed.
+
+lemma memcpy_32_ptr_ll : islossless M(Syscall).__memcpy_u8pu8_32.
+proof.
+proc.
+while (0 <= to_uint i <= 32) (32 - to_uint i) ; auto => /> *; smt(@W64 pow2_64).
 qed.
 
 lemma memset_zero_ll : islossless M(Syscall).__memset_zero_u8.
@@ -160,6 +114,68 @@ proof.
 proc.
 sp ; wp.
 while (0 <= to_uint i <= 32) (32 - to_uint i) ; auto => />; smt(@W64 pow2_64).
+qed.
+
+(*****************************************************************************************************)
+(*** SHA 256 & CORE HASH ***)
+(*****************************************************************************************************)
+
+lemma sha256_96_ll : islossless M(Syscall).__sha256_96.
+proof.
+proc.
+admit.
+qed.
+
+lemma sha256_128_ll : islossless M(Syscall).__sha256_128.
+proof.
+proc.
+admit.
+qed.
+
+lemma sha256_in_ptr_ll : islossless M(Syscall).__sha256_in_ptr.
+proof.
+proc.
+admit.
+qed.
+
+(*** ***)
+
+lemma core_hash_96_ll : islossless M(Syscall).__core_hash__96.
+proof.
+proc.
+inline M(Syscall)._core_hash_96 M(Syscall).__core_hash_96.
+wp; sp.
+call sha256_96_ll.
+skip => />.
+qed.
+
+lemma core_hash_128_ll : islossless M(Syscall).__core_hash_128 by proc ; call sha256_128_ll.
+
+lemma core_hash_ptr_ll : islossless M(Syscall).__core_hash_in_ptr by proc ; call sha256_in_ptr_ll.
+
+(*****************************************************************************************************)
+(*** PRF, PRF KG, THASH & HASHMSG ***)
+(*****************************************************************************************************)
+
+lemma prf_ll : islossless M(Syscall).__prf.
+proof.
+proc.
+call core_hash_96_ll; wp.
+call _x_memcpy_u8u8_32_32_ll; wp.
+call _x_memcpy_u8u8_32_32_ll; wp.
+call ull_to_bytes_32_ll.
+by auto.
+qed.
+
+lemma prf_keygen_ll : islossless M(Syscall).__prf_keygen.
+proof.
+proc.
+inline M(Syscall).__core_hash__128 M(Syscall)._core_hash_128; wp.
+call core_hash_128_ll; wp.
+call _x_memcpy_u8u8_64_64_ll; wp.
+call _x_memcpy_u8u8_32_32_ll; wp.
+call ull_to_bytes_32_ll.
+by auto.
 qed.
 
 lemma thash_f_ll : islossless M(Syscall).__thash_f.
@@ -198,8 +214,6 @@ while (0 <= to_uint i <= 2 * 32) ((2*32) - (to_uint i)).
   smt(@W64).
 qed.
 
-
-
 lemma hash_msg_ll : islossless M(Syscall).__hash_message.
 proof.
 proc.
@@ -209,6 +223,10 @@ call memcpy_32_ptr_ll ; wp. call ull_to_bytes_32_ll ; wp.
 do (call memcpy_32_ptr_ll ; wp). call ull_to_bytes_32_ll ; wp.
 by skip.
 qed.
+
+(*****************************************************************************************************)
+(*** WOTS ***)
+(*****************************************************************************************************)
 
 lemma base_w_3_2_ll : islossless M(Syscall).__base_w_3_2.
 proof.
@@ -225,9 +243,7 @@ qed.
 lemma csum_ll : islossless M(Syscall).__csum.
 proof.
 proc.
-while (0 <= to_uint i <= 64) (64 - to_uint i); auto => />.
-  - move => ?. rewrite ultE of_uintK /= => *. rewrite to_uintD_small => /#.
-  - move => ?. rewrite ultE => /= /#. 
+while (0 <= to_uint i <= 64) (64 - to_uint i); auto => />; smt(@W64 pow2_64).
 qed.
 
 lemma checksum_ll : islossless M(Syscall).__wots_checksum.
@@ -278,7 +294,7 @@ while (true) (67 - i).
     call expand_seed_ll ; by auto => /> /#.
 qed.
 
-(* TODO: replace with lemma *)
+(*** TODO: Remove this ***)
 axiom chain_lengths_post : phoare [M(Syscall).__chain_lengths : true ==> 
   forall (k : int), 0 <= k < 67 => (0 <= (to_uint res.[k]) <= 16) ] = 1%r.    
 
@@ -288,7 +304,7 @@ proc.
 sp ; wp.
 while (true) (67 - i).
 - auto => />. inline M(Syscall).__set_chain_addr M(Syscall).__gen_chain_inplace_ M(Syscall)._gen_chain_inplace.
-  wp; call gen_chain_inplace_ll. auto => /> &hr *. 
+  wp; call gen_chain_inplace_ll; auto => /> &hr *. 
   rewrite /XMSS_WOTS_W ; do split.
   + smt(@W32).
   + move => ?.  admit.
@@ -309,22 +325,24 @@ while (true) (67 - i).
   call chain_lengths_ll ; by auto => /> /#.
 qed.
 
-(* XMSS *)
+(*****************************************************************************************************)
+(*** WOTS ***)
+(*****************************************************************************************************)
 
 lemma ltree_ll : islossless M(Syscall).__l_tree.
 proof.
 proc.
 inline M(Syscall).__set_tree_height.
 wp ; sp ; call _x_memcpy_u8u8_32_32_ll.
-while (1 <= to_uint l <= 67) (to_uint l - 1).
-- auto. wp ; sp. seq 1 : true;  1,2: by admit.
-(*3*)  + sp. if.
-       * sp ; wp. while (0 <= j <= 32) (32 - j) ; auto => /> ; first by smt(). progress. smt(@W64). admit. admit. admit.
-       * auto ; progress ; by admit. 
-(*4*)  + admit.
-(*5*)  + auto.
-- skip => />. smt(@W64). 
+while (1 <= to_uint l <= 67) (to_uint l - 1); last by skip => />; smt(@W64).
+auto. sp.
+admit.
 qed.
+
+(*****************************************************************************************************)
+(*** XMSS ***)
+(*****************************************************************************************************)
+
 
 lemma treehash_array_ll : islossless M(Syscall).__treehash_array.
 proof.
@@ -427,19 +445,39 @@ while (0 <= to_uint i <= 1) (1 - to_uint i); auto => />.
     * admit.
 qed.
 
-lemma sign_ll : islossless M(Syscall).__xmssmt_core_sign.
+lemma core_sign_ll : islossless M(Syscall).__xmssmt_core_sign.
 proof.
 proc.
 wp ; sp.
 admit.
 qed.
 
+lemma sign_ll : islossless M(Syscall).__xmss_sign by proc; wp; by call core_sign_ll.
 
+(*****************************************************************************************************)
+(*** EXPORTED FUNCTIONS ***)
+(*****************************************************************************************************)
 
-(******************************* exported functions **********************************)
-lemma kg_ll : islossless M(Syscall).xmss_keypair_jazz.
+lemma kg_jazz_ll : islossless M(Syscall).xmss_keypair_jazz.
 proof.
 proc.
 inline M(Syscall).__xmss_keypair M(Syscall).__xmssmt_core_keypair_ M(Syscall)._xmssmt_core_keypair.
 wp ; sp. call keypair_ll. by skip.
+qed.
+
+lemma sign_jazz_ll : islossless M(Syscall).xmss_sign_jazz by proc; call sign_ll.
+
+lemma sign_open_jazz_ll : 
+    phoare [
+      M(Syscall).xmss_sign_open_jazz :
+      0 <= to_uint (loadW64 Glob.mem (to_uint mlen_ptr)) < W64.max_uint
+      ==>
+      true
+    ] = 1%r.
+proof.
+proc.
+inline M(Syscall).__xmss_sign_open M(Syscall).__xmssmt_core_sign_open_ M(Syscall)._xmssmt_core_sign_open.
+wp; sp.
+call sign_open_ll.
+skip => />.
 qed.

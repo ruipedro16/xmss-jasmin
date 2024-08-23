@@ -33,7 +33,6 @@ inline fn __treehash_array(
     reg bool cond;
     reg u32 a b;
 
-    stack u8[XMSS_N] buf;
     stack u8[2 * XMSS_N] buf2;
 
     u = 0; // dummy value to simplify proof
@@ -142,6 +141,7 @@ inline fn __treehash_array(
             // 2) Write the result back to stack
             () = #unspill(offset);
             index = offset; index -= 2; index *= XMSS_N;
+            // _stack[0:XMSS_N] = #copy(buf); // NOTE: #copy does not support subarrays
             for j=0 to XMSS_N { _stack[index + j] = buf[j]; }
 
             // offset--;
@@ -185,6 +185,7 @@ inline fn __treehash_array(
     () = #unspill(root, auth_path);
 
     // memcpy(root, stack, params->n);
+    // root = #copy(_stack[0:XMSS_N]); // NOTE: #copy does not support subarrays
     for j=0 to XMSS_N { root[j] = _stack[j]; }
 
     return root, auth_path;

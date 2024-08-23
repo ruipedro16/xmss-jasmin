@@ -312,32 +312,6 @@ qed.
 
 (*** Expand Seed : Done ***)
 
-lemma size_nbytes : forall (x : nbytes), size x = n.
-proof.
-admit. (* smt(ge0_n). *)
-qed. 
-
-
-lemma wots_sk_size (sk : wots_sk) :
-    forall (x : W8.t list), x \in sk => size x = n by smt(size_nbytes). 
-
-lemma wots_sk_size_2 (sk : wots_sk) (i : int):
-    0 <= i < len => size (nth witness sk i) = n by smt.
-
-
-lemma size_wots_sk (sk : wots_sk) : size sk = len by admit.
-
-lemma wots_pk_size (pk : wots_pk) : 
-    forall (x : W8.t list), x \in pk => size x = n by smt(size_nbytes).
-
-lemma size_wots_pk (pk : wots_pk) : size pk = len by admit.
-
-lemma wots_sig_size (s : wots_signature) : 
-    forall (x : W8.t list), x \in s => size x = n by smt(size_nbytes).
-
-lemma size_wots_sig (s : wots_signature) : size s = len by admit.
-
-
 lemma expand_seed_correct (_in_seed _pub_seed : W8.t Array32.t, _addr : W32.t Array8.t) :
     len = XMSS_WOTS_LEN /\ 
     n = XMSS_N /\ 
