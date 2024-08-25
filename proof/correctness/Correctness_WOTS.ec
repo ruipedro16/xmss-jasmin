@@ -363,9 +363,7 @@ seq 2 1 : (#pre /\ sk_i{2} = to_list ith_seed{1}).
     + inline {1} M(Syscall).__prf_keygen_ M(Syscall)._prf_keygen; wp; sp.
       exists * in_00{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_keygen_correctness _P1 _P2); auto => /> *. 
       rewrite /to_list /mkseq -iotaredE => /> /#. 
- 
-
-auto => /> &1 &2 ?????? H *. do split;1,3,4,7,8:smt(size_put); 1,3:(move => ?; rewrite /put /to_list; smt(@List)). 
+auto => /> &1 &2 ?????? H *. do split;1,3,4,7,8:smt(size_put); 1,3:(move => ?; rewrite /put /to_list; smt(@List)). (* this call to smt fails sometimes *)
 move => k *. 
 rewrite initE ifT 1:/#; auto => />.
 rewrite (nth_flatten witness n); first by rewrite allP /put /to_list; smt(@List). (* this call to smt fails sometimes *)
@@ -373,7 +371,28 @@ case (i{2} * 32 <= k && k < i{2} * 32 + 32).
     * move => *; rewrite nth_put 1:/#; smt(@List @Array2144).
     * move => *; rewrite nth_put 1:/#. case (i{2} = k %/ n). 
         - smt(@List @Array2144). 
-        - move => *. rewrite H 1:/# (nth_flatten witness n); [ rewrite allP /# | trivial ].
+        - move => *. rewrite H 1:/# (nth_flatten witness n); [ rewrite allP /# | trivial].
+qed.
+
+
+
+lemma expand_seed_results (_in_seed _pub_seed : W8.t Array32.t, _addr : W32.t Array8.t) :
+    len = XMSS_WOTS_LEN /\ 
+    n = XMSS_N /\ 
+    prf_padding_val = XMSS_HASH_PADDING_PRF /\
+    prf_kg_padding_val = XMSS_HASH_PADDING_PRF_KEYGEN /\
+    padding_len = XMSS_PADDING_LEN =>
+    equiv [M(Syscall).__expand_seed ~ WOTS.pseudorandom_genSK :
+      arg{1}.`2 = _in_seed /\ 
+      arg{1}.`3 = _pub_seed /\
+      arg{1}.`4 = _addr /\
+      arg{2} = (to_list _in_seed, to_list _pub_seed, _addr) ==>
+      res{1}.`1 = DecodeWotsSk res{2}.`1 /\
+      size res{2}.`1 = len /\ 
+      (forall (x : W8.t list), x \in res{2}.`1 => size x = n) /\
+      res{1}.`2 = res{2}.`2].
+proof.
+admit.
 qed.
 
 (*** PK Gen : Done ***)
@@ -381,13 +400,7 @@ qed.
 require import StdBigop. 
 (*---*) import Bigint.
 
-(** TODO: Move to properties **)
-
-lemma foo : hoare [Hash.prf_keygen : true ==> true].
-proof.
-proc; inline; auto.
-qed.
-
+(*
 lemma wots_sk_size : hoare [WOTS.pseudorandom_genSK : true ==> size (res.`1) = len /\ forall (x : nbytes), x \in res.`1 => size x = n].
 proof.
 proc.
@@ -408,6 +421,7 @@ qed.
 lemma p_wots_sk_size : 
     phoare [WOTS.pseudorandom_genSK : true ==> size (res.`1) = len /\ forall (x : nbytes), x \in res.`1 => size x = n] = 1%r
         by conseq wots_genSK_prf_ll wots_sk_size.
+*)
 
 lemma pkgen_correct (_seed_ _pub_seed_ : W8.t Array32.t, _addr_ : W32.t Array8.t) :
     w = XMSS_WOTS_W /\
@@ -431,18 +445,25 @@ proof.
 move => [#] *.
 proc; auto => />. (* auto simplifies #pre and #post *)
 swap {2} 3 1.
-seq 2 3 : (  
+seq 0 2 : (
+  #pre /\
+  size pk{2} = len /\
+  forall (x : W8.t list), x \in pk{2} => size x = n /\
+  size wots_skey{2} = len /\
+  forall (x : W8.t list), x \in wots_skey{2} => size x = n
+); first by auto => /> ; smt(@List).
+seq 2 1: (  
   sk_seed{2} = to_list seed{1} /\
   _seed{2} = to_list pub_seed{1} /\
   address{2} = addr{1} /\
   pk{1} = DecodeWotsSk wots_skey{2} /\
   size pk{2} = len /\
-  (forall (x : nbytes), x \in pk{2} => size x = n)
-(*  size wots_skey{2} = len /\
-  (forall (x : nbytes), x \in wots_skey{2} => size x = n) *)
+  (forall (x : W8.t list), x \in pk{2} => size x = n) /\ 
+  size wots_skey{2} = len /\
+  (forall (x : W8.t list), x \in wots_skey{2} => size x = n)
 ).
     + inline {1} M(Syscall).__expand_seed_ M(Syscall)._expand_seed. wp; sp.
-      exists * inseed0{1}, pub_seed1{1}, addr1{1}; elim * => _P1 _P2 _P3; call {1} (expand_seed_correct _P1 _P2 _P3). auto => /> H0 H1 H2 H3 . do split. smt(). smt(size_nseq). smt(@List). 
+      exists * inseed0{1}, pub_seed1{1}, addr1{1}; elim * => _P1 _P2 _P3; call {1} (expand_seed_results _P1 _P2 _P3); auto => /> /#. 
 conseq (: _ ==> address{2} = addr{1} /\ forall (k : int), 0 <= k < 2144 => pk{1}.[k] = nth witness (flatten pk{2}) k). 
     + auto => /> *; rewrite /DecodeWotsPk /of_list tP; smt(@Array2144).
 while (

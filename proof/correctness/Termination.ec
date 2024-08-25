@@ -348,16 +348,15 @@ lemma treehash_ll : islossless M(Syscall).__treehash.
 proof.
 proc.
 inline M(Syscall).__copy_subtree_addr M(Syscall).__set_type M(Syscall).__set_ltree_addr M(Syscall).__set_ots_addr.
-wp ; sp.
-while (0 <= j <= 32) (32 - j) ; first by auto => /> /#.
-inline M(Syscall).__cond_u64_geq_u64_u32_eq_u32. wp.
-while (0 <= j <= 32) (32 - j).
-- admit.
-- auto => />; first by progress ; 1,3:smt(@W32) ; smt(). do call zero_addr_ll.
-  skip => /> * ; do split.
+wp ; sp. 
+while (0 <= to_uint idx <= 1 `<<` 10) ((1 `<<` 10) - (to_uint idx)); last first.
+  + wp; do 3! call zero_addr_ll; skip => /> *; smt(@W32 pow2_32).
+auto => />.
+while (0 <= j <= 32) (32 - j).  (* this invariant is wrong *)
   + admit.
-  + admit.
-  + move => *. split ; last by smt(). rewrite ultE. move => ???. rewrite of_uintK. admit. (* TODO: no info about idx *)
+inline M(Syscall).__cond_u64_geq_u64_u32_eq_u32.
+wp; sp.
+admit.
 qed.
 
 lemma gen_leaf_ll : islossless M(Syscall).__gen_leaf_wots.
@@ -431,7 +430,7 @@ inline M(Syscall).__set_type M(Syscall).__set_layer_addr M(Syscall).__set_tree_a
        M(Syscall).__set_ots_addr M(Syscall).__set_ltree_addr.
 sp ; wp.
 call set_result_ll. call memcmp_ll.
-while (0 <= to_uint i <= 1) (1 - to_uint i); auto => />.
+while (0 <= to_uint (loadW64 Glob.mem (to_uint mlen_ptr)) < W64.max_uint /\ 0 <= to_uint i <= 1) (1 - to_uint i); auto => />.
   + inline M(Syscall).__compute_root_ M(Syscall)._compute_root ; wp ; call compute_root_ll ; wp.
     inline M(Syscall).__l_tree_ M(Syscall)._l_tree ; wp ; call ltree_ll ; wp.
     inline M(Syscall).__wots_pk_from_sig_ ; wp ; call wots_pk_from_sig_ll ; wp. skip => /> *. smt(@W32 pow2_32).
@@ -439,16 +438,17 @@ while (0 <= to_uint i <= 1) (1 - to_uint i); auto => />.
   + call hash_msg_ll. inline M(Syscall)._x_memcpy_u8u8p M(Syscall)._memcpy_u8u8p ; wp.
     call memcpy_ptr_ll ; wp. inline M(Syscall)._x__memcpy_u8pu8p M (Syscall)._memcpy_u8pu8p ; wp. 
     call memcpy_ptr_ptr_ll ; wp. call bytes_to_ull_ptr_ll ; wp. do 3! call zero_addr_ll. 
-    skip => /> *. progress.
-    * smt(@W32).
-    * smt.
-    * admit.
+    skip => /> &hr ?? mem. do split; [| | move => *; rewrite ultE]; 1,3:smt(@W64 pow2_64 @JMemory). 
+    move => ?. admit.
+(* smt(@JMemory @IntDiv @W64 pow2_64). *)
 qed.
 
 lemma core_sign_ll : islossless M(Syscall).__xmssmt_core_sign.
 proof.
 proc.
 wp ; sp.
+auto => />.
+inline M(Syscall).__set_type. 
 admit.
 qed.
 

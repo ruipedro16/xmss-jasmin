@@ -18,6 +18,7 @@ op F_padding_val : W64.t.
 op padding_len : int.
 
 axiom padding_len_ge0 : 0 <= padding_len.
+axiom size_hash (x : W8.t list) :  size (Hash x) = n. 
 
 module Hash = {
   proc prf (in_0 : W8.t list, key : nbytes) : nbytes = {

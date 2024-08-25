@@ -141,7 +141,6 @@ inline fn __treehash(
             // 2) Write the result back to stack
             () = #unspill(offset);
             index = offset; index -= 2; index *= XMSS_N;
-            // _stack[0:XMSS_N] = #copy(buf); // NOTE: #copy does not support subarrays
             for j=0 to XMSS_N { _stack[index + j] = buf[j]; }
 
             // offset--;
@@ -185,9 +184,8 @@ inline fn __treehash(
     () = #unspill(root, auth_path);
 
     // memcpy(root, stack, params->n);
-    // root = #copy(_stack[0:XMSS_N]); // NOTE: #copy does not support subarrays
-    for j=0 to XMSS_N { root[j] = _stack[j]; }
-
+    root = #copy(_stack[0:XMSS_N]); // used to be: for j=0 to XMSS_N { root[j] = _stack[j]; }
+                                    // requires branch support-slices-in-copy
     return root, auth_path;
 }
 
@@ -267,8 +265,12 @@ inline fn __xmssmt_core_seed_keypair(
     
     // memcpy(sk + 2*params->n, pk, params->n);
     () = #unspill(pk, sk);
+
     for i=0 to XMSS_N { pk[i] = buf[i]; }
+    // pk[0:XMSS_N] = #copy_8(buf); // stack allocation: no region associated to variable dst
+
     for i=0 to XMSS_N { sk[XMSS_INDEX_BYTES + 2 * XMSS_N + i] = pk[i]; }
+    // sk[XMSS_INDEX_BYTES + 2 * XMSS_N : XMSS_N] = #copy_8(pk[0:XMSS_N]); // variable allocation: bad range alignment for dst.6040[0]/u64 in sk.2941[68; 100[
 
     return pk, sk;
 }
