@@ -115,14 +115,18 @@ qed.
 
 require import Types.
 
-op H : nbytes -> nbytes -> nbytes.
+op H (pad a b : nbytes) : nbytes = Hash (pad ++ a ++ b).
+op rand_hash_padding : W64.t = W64.one.
 
 module RandHash = {
 proc rand_hash (_left _right : nbytes, _seed : nbytes, address : adrs) : nbytes * adrs = { 
-  var key : nbytes;
+  var padding : W8.t list;
+  var key : W8.t list;
   var bitmask_0, bitmask_1 : nbytes;
-  var hash_in : W8.t list;
+  var buf : W8.t list;
   var addr_bytes : W8.t list;
+
+  padding <@ Util.w64_to_bytes (rand_hash_padding, padding_len);
 
   address <- set_key_and_mask address 0;
   addr_bytes <- addr_to_bytes address;
@@ -136,9 +140,9 @@ proc rand_hash (_left _right : nbytes, _seed : nbytes, address : adrs) : nbytes 
   addr_bytes <- addr_to_bytes address;
   bitmask_1 <@ Hash.prf (addr_bytes,  _seed);
 
-  hash_in <- (nbytexor _left bitmask_0) ++ (nbytexor _right bitmask_1);
+  buf <- (nbytexor _left bitmask_0) ++ (nbytexor _right bitmask_1);
   
-  return (H key hash_in, address);
+  return (H padding key buf, address);
   }
 }.
 
@@ -146,20 +150,23 @@ proc rand_hash (_left _right : nbytes, _seed : nbytes, address : adrs) : nbytes 
 op merge_nbytes_to_array (a b : nbytes) : W8.t Array64.t = 
   Array64.init (fun i => if 0 <= i < 32 then nth witness a i else nth witness b (i - 32)).
 
-lemma rand_hash_correct (i0 i1: nbytes, _pub_seed : W8.t Array32.t, _in : W8.t Array64.t, address : W32.t Array8.t) :
+lemma rand_hash_correct (i0 i1: nbytes, _pub_seed : W8.t Array32.t, _in : W8.t Array64.t, a : W32.t Array8.t) :
+    padding_len = XMSS_PADDING_LEN /\ 
+    prf_padding_val = XMSS_HASH_PADDING_PRF /\
+    padding_len = XMSS_PADDING_LEN =>
     equiv [
       M(Syscall).__thash_h ~ RandHash.rand_hash :
       arg{1}.`2 = (merge_nbytes_to_array i0 i1) /\
       arg{1}.`3 = _pub_seed /\
-      arg{1}.`4 = address /\
-      arg{2} = (i0, i1, to_list _pub_seed, address)
+      arg{1}.`4 = a /\
+      arg{2} = (i0, i1, to_list _pub_seed, a)
       ==>
       to_list res{1}.`1 = res{2}.`1 /\
       res{1}.`2 = res{2}.`2
     ].
 proof.
-proc.
-auto => />.
+move => *.
+proc; auto => />.
 conseq (: 
   (forall (k : int), 0 <= k < 32 => in_0{1}.[k] = nth witness _left{2} k) /\
   (forall (k : int), 0 <= k < 32 => in_0{1}.[32 + k] = nth witness _right{2} k) /\
@@ -168,8 +175,79 @@ conseq (:
   ==> _
 ); first by auto => />; rewrite /merge_nbytes_to_array; smt(@List @Array64).
 seq 3 0 : (#pre); 1:auto.
+seq 1 1 : (#pre /\ padding{2} = to_list aux{1}); first by call {1} (ull_to_bytes_correct W64.one); auto => /> /#.  
+swap {1} [2..3] -1. 
+seq 2 2 : (#pre /\ addr_bytes{2} = to_list addr_as_bytes{1}).
+    + inline {1} M(Syscall).__set_key_and_mask; ecall {1} (addr_to_bytes_correctness addr{1}); auto => /> /#.
+seq 1 0 : (
+  #pre /\
+  forall (k : int), 0 <= k < 32 => buf{1}.[k] = nth witness padding{2} k
+); first by auto => /> *; smt(@Array128).
+seq 1 1 : (
+  (forall (k : int), 0 <= k < 32 => in_0{1}.[k] = nth witness _left{2} k) /\
+  (forall (k : int), 0 <= k < 32 => in_0{1}.[32 + k] = nth witness _right{2} k) /\
+  _seed{2} = to_list pub_seed{1} /\ 
+  address{2} = addr{1} /\
+  addr_bytes{2} = to_list addr_as_bytes{1} /\
+  key{2} = to_list aux{1} /\
 
-seq 2 0 : (#pre); 1:admit. (*Ver o que e que isto faz *)
+  (* Towards #post *)
+  forall (k : int), 0 <= k < 32 => buf{1}.[k] = nth witness padding{2} k
+).
+    + inline {1} M(Syscall).__prf_ M(Syscall)._prf; wp; sp.
+      exists * in_01{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_correctness _P1 _P2); [ smt() | auto => /> ]. 
+seq 1 0 : (
+    #pre /\
+    forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = nth witness key{2} k
+); first by auto => />; smt(@Array128).
+seq 2 2 : (#pre).
+    + inline {1} M(Syscall).__set_key_and_mask; ecall {1} (addr_to_bytes_correctness addr{1}); auto => /> /#.
+seq 2 1 : (
+  (forall (k : int), 0 <= k < 32 => in_0{1}.[k] = nth witness _left{2} k) /\
+  (forall (k : int), 0 <= k < 32 => in_0{1}.[32 + k] = nth witness _right{2} k) /\
+  _seed{2} = to_list pub_seed{1} /\ 
+  address{2} = addr{1} /\
+  addr_bytes{2} = to_list addr_as_bytes{1} /\
+  
+  (* Bitmask *)
+  (forall (k : int), 0 <= k < 32 => bitmask{1}.[k] = nth witness bitmask_0{2} k) /\
+
+  (* Towards #post *)
+  (forall (k : int), 0 <= k < 32 => buf{1}.[k] = nth witness padding{2} k) /\
+  (forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = nth witness key{2} k)
+).
+    + inline {1} M(Syscall).__prf_ M(Syscall)._prf; wp; sp.
+      exists * in_01{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_correctness _P1 _P2); [ smt() | auto => /> *; smt(@Array64) ].
+seq 2 2 : (#pre).
+    + inline {1} M(Syscall).__set_key_and_mask; ecall {1} (addr_to_bytes_correctness addr{1}); auto => /> /#.
+seq 2 1 : (
+  #pre /\ 
+  (forall (k : int), 0 <= k < 32 => bitmask{1}.[32 + k] = nth witness bitmask_1{2} k)
+).
+    + inline {1} M(Syscall).__prf_ M(Syscall)._prf; wp; sp.
+      exists * in_01{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_correctness _P1 _P2); [ smt() | auto => /> *; smt(@Array64) ].
+
+(* WIP: Maybe use a conseq here to simplify #post *)
+
+(* 
+seq 2 0 : (
+  #pre /\
+  to_list buf{1} = padding{2} ++ nbytexor _left{2} bitmask_0{2} ++ nbytexor _right{2} bitmask_1{2}
+).
+    + admit.
+inline {1} M(Syscall)._core_hash_128; wp; sp.
+ecall {1} (hash_128 in_00{1}).
+skip => /> &1 &2 *.
+rewrite /nbytexor /H.
+rewrite /to_list /mkseq -!iotaredE => />.
+
+(* while starts here *)
+
+while (
+  0 <= i{1} <= 64 /\
+  
+)
+*)
+
 admit.
-
 qed.
