@@ -36,13 +36,15 @@ OUT   := $(addsuffix .out, $(TESTS))
 
 # ----------------------------------------------------------------------------------------------------------------------
 
-JPP_FILES     := $(addsuffix .jpp, $(TESTS))
-JAZZ_FILES    := $(JPP_FILES:.jpp=.jazz)
-ASM_FILES     := $(JAZZ_FILES:.jazz=.s)
-OBJ_FILES     := $(ASM_FILES:.s=.o)
+JPP_FILES             := $(addsuffix .jpp, $(TESTS))
+JAZZ_FILES            := $(JPP_FILES:.jpp=.jazz)
+ASM_FILES             := $(JAZZ_FILES:.jazz=.s)
+ZEROIZATION_ASM_FILES := $(patsubst bin/%.jazz,bin/zeroization_loop_%.s,$(JAZZ_FILES)) $(patsubst bin/%.jazz,bin/zeroization_unroll_%.s,$(JAZZ_FILES))
+ALL_ASM_FILES         := $(ASM_FILES) $(ZEROIZATION_ASM_FILES)
+OBJ_FILES             := $(ALL_ASM_FILES:.s=.o)
 
 CHECK_CT  := $(JPP_FILES:.jpp=.check_ct)
-CHECK_SCT := $(JPP_FILES:.jpp=.check_sct)
+CHECK_SCT := $(JPP_FILES:.jpp=.check_sct) # NOTE: This should fail as the code is not protected against Spectre attacks
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -57,7 +59,7 @@ run: $(OUT)
 
 jpp_files: $(JPP_FILES)
 jazz_files: $(JAZZ_FILES)
-asm_files: $(ASM_FILES)
+asm_files: $(ALL_ASM_FILES)
 obj_files: $(OBJ_FILES)
 
 ct: $(CHECK_CT)
@@ -82,6 +84,13 @@ $(ASM_FILES):
 .PRECIOUS: bin/%.s
 bin/%.s: bin/%.jazz
 	$(JASMIN) $(JFLAGS) $(JINCLUDE) $< -o $@
+
+$(ZEROIZATION_ASM_FILES):
+bin/zeroization_loop_%.s: bin/%.jazz
+	$(JASMIN) $(JFLAGS) -stack-zero loop $(JINCLUDE) $< -o $@
+
+bin/zeroization_unroll_%.s: bin/%.jazz
+	$(JASMIN) $(JFLAGS) -stack-zero unrolled $(JINCLUDE) $< -o $@
 
 $(TESTS):
 bin/%: bin/%.s | bin/
@@ -115,3 +124,7 @@ clean:
 .PHONY: clean_executables
 clean_executables:
 	find bin/ -type f -executable -delete || true
+
+
+debug:
+	@echo $(ALL_ASM_FILES)
