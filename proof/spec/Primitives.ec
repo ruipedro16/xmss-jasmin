@@ -4,13 +4,10 @@ require import AllCore List RealExp IntDiv.
 require (*  *) Subtype. 
 from Jasmin require import JModel.
 
-require import Types Params Notation Address Hash Utils.
+require import Types Params Notation Address Hash Util Utils.
 require import Array8.
 
 import NBytes.
-
-op nbytexor(a b : nbytes) : nbytes = 
-    map (fun (ab : W8.t * W8.t) => ab.`1 `^` ab.`2) (zip a b).
 
 module Chain = {
    proc chain(X : nbytes, i s : int, _seed : seed, address : adrs) : nbytes * adrs = {

@@ -124,7 +124,3 @@ clean:
 .PHONY: clean_executables
 clean_executables:
 	find bin/ -type f -executable -delete || true
-
-
-debug:
-	@echo $(ALL_ASM_FILES)

@@ -152,8 +152,9 @@ seq 2 2 : (#pre /\ addr_bytes{2} = to_list addr_as_bytes{1}).
     + inline {1} M(Syscall).__set_key_and_mask; ecall {1} (addr_to_bytes_correctness addr{1}); auto => /> /#. 
 seq 1 0 : (
   #pre /\
+  size padding{2} = 32 /\
   forall (k : int), 0 <= k < 32 => buf{1}.[k] = nth witness padding{2} k
-); first by auto => /> *; smt(@Array128).
+); first by auto => /> *; split; [ by rewrite size_to_list |]; smt(@Array128).
 
 seq 1 1 : (
   (forall (k : int), 0 <= k < 32 => in_0{1}.[k] = nth witness _left{2} k) /\
@@ -164,12 +165,14 @@ seq 1 1 : (
   key{2} = to_list aux{1} /\
   size _left{2} = n /\
   size _right{2} = n /\
-
+  size padding{2} = 32 /\
+  size key{2} = 32 /\
   (* Towards #post *)
   forall (k : int), 0 <= k < 32 => buf{1}.[k] = nth witness padding{2} k
 ).
     + inline {1} M(Syscall).__prf_ M(Syscall)._prf; wp; sp.
-      exists * in_01{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_correctness _P1 _P2); auto => />. 
+      exists * in_01{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_correctness _P1 _P2); auto => /> &1 &2 *. 
+      by rewrite size_to_list.
 seq 1 0 : (
     #pre /\
     forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = nth witness key{2} k
@@ -184,6 +187,11 @@ seq 2 1 : (
   _seed{2} = to_list pub_seed{1} /\ 
   address{2} = addr{1} /\
   addr_bytes{2} = to_list addr_as_bytes{1} /\
+
+  size _left{2} = n /\
+  size _right{2} = n /\
+  size padding{2} = 32 /\
+  size key{2} = 32 /\
   
   (* Bitmask *)
   (forall (k : int), 0 <= k < 32 => bitmask{1}.[k] = nth witness bitmask_0{2} k) /\
@@ -211,14 +219,39 @@ auto => />. (* Simplifies #post *)
 
 while {1} (
   0 <= to_uint i{1} <= 64 /\
+
+  size _left{2} = n /\  
+  size _right{2} = n /\
+  size bitmask_0{2} = n /\
+  size bitmask_1{2} = n /\
+  size padding{2} = 32 /\
+  size key{2} = 32 /\
+
   addr{1} = address{2} /\ 
   (forall (k : int), 0 <= k < 32 => buf{1}.[k] = nth witness padding{2} k) /\
   (forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = nth witness key{2} k) /\
-  (forall (k : int), 0 <= k < to_uint i{1} => buf{1}.[64 + to_uint i{1}] = nth witness ((Primitives.nbytexor _left{2} bitmask_0{2}) ++ (Primitives.nbytexor _right{2} bitmask_1{2})  ) (to_uint i{1}) )
+  (forall (k : int), 
+    0 <= k < to_uint i{1} => buf{1}.[64 + to_uint i{1}] = 
+      nth witness ((nbytexor _left{2} bitmask_0{2}) ++ (nbytexor _right{2} bitmask_1{2})) (to_uint i{1}))
 ) (64 - to_uint i{1}).
-    + auto => /> &hr *. do split;1,2,6:smt(@W64 pow2_64).
+    + auto => /> &hr ?? size_l size_r size_b0 size_b1 size_pad size_k H0 H1 H2 *. do split;1,2,6:smt(@W64 pow2_64). 
         * move => ???; rewrite get_setE; [ smt(@W64 pow2_64) | smt(@Array64 @List @W64 pow2_64) ].
         * move => ???; rewrite get_setE; [ smt(@W64 pow2_64) | smt(@Array64 @List @W64 pow2_64) ].
-        * move => ???; rewrite get_setE; first by smt(@W64 pow2_64). rewrite ifF; first by smt(@W64 pow2_64). admit.
-    + auto => /> &1 &2 *. split; 1:smt(). move => *. split; 1:smt(@W64 pow2_64). move => ??????? H. rewrite H. congr. admit. (* smt(@List @Array128). *)
+        * move => k ?? ; rewrite get_setE; first by smt(@W64 pow2_64). rewrite ifF; first by smt(@W64 pow2_64). 
+          have ->: to_uint (i{hr} + W64.one) = to_uint i{hr} + 1 by smt(@W64).
+          rewrite /nbytexor. 
+          rewrite nth_cat size_map size_zip.
+          have ->: min (size _left{m}) (size bitmask_0{m}) = n by smt(). 
+          case (to_uint i{hr} + 1 < n).
+            - move => ?. admit.
+            - rewrite -lezNgt => ?. admit.
+    + auto => /> &1 &2 H0 H1 size_l size_r size_pad size_k H2 size_b0 H3 H4 H5 size_b1. 
+      do split. smt(@W64 pow2_64). auto => *; do split. move => *. smt(@W64 pow2_64). move => ??? T0 T1 T2 ? T3.
+      rewrite T3; congr. 
+      apply (eq_from_nth witness); first by rewrite size_to_list /nbytexor !size_cat !size_map !size_zip size_pad size_k size_l size_r size_b0 size_b1 /#.
+      rewrite size_to_list => i2 ?.      
+      rewrite get_to_list. 
+      case (0 <= i2 < 32). move => ?; rewrite T0; [assumption | smt(@List)].
+      case (32 <= i2 < 64). move => ??. admit.
+      admit.
 qed.

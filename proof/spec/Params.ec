@@ -8,6 +8,8 @@ const h : { int | 0 < h } as h_g0.
 (* d = 1 for the single-tree variant *)
 (* XMSS_D in the implementation *)
 (* h is a multiple of d *)
+(* d layers of trees, each having height h/d  *)
+(* hyper-tree of total height h, where h is a multiple of d *)
 const d : { int | 0 < h /\ h %% d = 0 } as d_g0.
 
 (* XMSS_FULL_HEIGHT in the implementation *)
@@ -29,3 +31,4 @@ const len : int = len1 + len2.
 axiom ge0_h : 0 <= h.
 axiom ge0_len  : 0 <= len.
 axiom ge0_len1 : 0 <= len1.
+axiom ge0_d : 0 < d.
