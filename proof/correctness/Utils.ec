@@ -15,6 +15,19 @@ require import Types Params Parameters Address Notation.
 import NBytes.
 
 (** -------------------------------------------------------------------------------------------- **)
+(* This is used in treehash *)
+(* LHS : Spec               *)
+(* RHS : EC Jasmin          *)
+
+lemma mod2_eq_and1_w64 (t : W64.t) : to_uint t %% 2 = to_uint (t `&` W64.one). 
+proof.
+have ->: 2 = 2^1 by smt(). 
+rewrite -to_uint_and_mod 1:/#.
+do 3! congr.
+smt(). 
+qed.
+
+(** -------------------------------------------------------------------------------------------- **)
 
 lemma size_nth (x : W8.t list list) (a i : int) :
     0 <= i < size x =>

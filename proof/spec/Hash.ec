@@ -87,7 +87,7 @@ module Hash = {
       addr_bytes <- addr_to_bytes address;
       bitmask_1 <@ prf (addr_bytes,  _seed);
     
-      t <- (nbytexor _left bitmask_0) ++ (nbytexor _right bitmask_1);
+      t <- nbytexor (_left ++ _right) (bitmask_0 ++ bitmask_1);
       buf <- padding ++ key ++ t;
   
       return (Hash buf, address);
@@ -107,7 +107,7 @@ lemma f_ll : islossless Hash._F
     by proc; wp; call w64_to_bytes_ll; skip; smt(padding_len_ge0).
 
 lemma rand_hash_ll : islossless Hash.rand_hash
-    by proc; call f_ll; wp; do ! (call prf_ll; wp); call w64_to_bytes_ll; skip; smt(padding_len_ge0).
+    by proc; wp; do ! (call prf_ll; wp); call w64_to_bytes_ll; skip; smt(padding_len_ge0).
 
 (*---------------------------------------------------------------------------------------------------------*)
 
@@ -136,7 +136,7 @@ lemma f_size : phoare [Hash._F : true ==> size res = n] = 1%r
     by conseq f_ll _f_size => /#.
 
 lemma _randhash_size : hoare [Hash.rand_hash : true ==> size res.`1 = n]
-    by proc; seq 11 : (true); auto => />; call _f_size; skip => />.
+    by proc; seq 12 : (true); [ auto => /> | skip => />; by rewrite size_hash ].
 
 lemma randhash_size : phoare [Hash.rand_hash : true ==> size res.`1 = n] = 1%r
     by conseq rand_hash_ll _randhash_size => /#.
