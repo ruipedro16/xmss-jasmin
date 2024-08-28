@@ -12,6 +12,11 @@ require import Types.
 op nbytexor(a b : nbytes) : nbytes = 
     map (fun (ab : W8.t * W8.t) => ab.`1 `^` ab.`2) (zip a b).
 
+lemma size_nbyte_xor (a b : nbytes) :
+    size a = size b =>
+      size (nbytexor a b) = size a
+        by rewrite /nbytexor size_map size_zip /#. 
+
 (******************************************************************************)
 
 (* gets the n most significant bits *)

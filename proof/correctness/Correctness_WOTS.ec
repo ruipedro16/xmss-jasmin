@@ -351,14 +351,12 @@ while (
   (forall (k : int), 0 <= k < 32 => buf{1}.[k] = pub_seed{1}.[k]) /\
   (forall (k : int), 0 <= k < 32 * i{2} => outseeds{1}.[k] = nth witness (flatten sk{2}) k) /\
   (forall (x : nbytes), x \in sk{2} => size x = n)
-); last first. 
-    + auto => /> &1 &2 *; smt(@List). 
-seq 1 1 : (#pre); first by inline {1}; auto => />.
-seq 2 1 : (#pre /\ addr_bytes{2} = to_list addr_bytes{1}); first by ecall {1} (addr_to_bytes_correctness addr{1}); auto => /> /#. 
+); last by auto => /#.
+seq 2 1 : (#pre); first by inline {1}; auto => />.
+seq 1 1 : (#pre /\ addr_bytes{2} = to_list addr_bytes{1}); first by ecall {1} (addr_to_bytes_correctness addr{1}); auto => /> /#. 
 seq 1 0 : (#pre /\ (forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = addr_bytes{1}.[k])); first by auto => /> ; smt(@Array64).
 seq 0 0 : (#pre /\ to_list buf{1} = (seed{2} ++ addr_bytes{2})).
-    + skip => /> &1 &2 *. apply (eq_from_nth witness); first by rewrite size_cat !size_to_list. 
-      move => *; congr; rewrite /to_list /mkseq -iotaredE => /> /#.
+    + skip => /> &1 &2 *. apply (eq_from_nth witness); [ by rewrite size_cat !size_to_list | move => *; congr; rewrite /to_list /mkseq -iotaredE => /> /# ].
 seq 2 1 : (#pre /\ sk_i{2} = to_list ith_seed{1}).
     + inline {1} M(Syscall).__prf_keygen_ M(Syscall)._prf_keygen; wp; sp.
       exists * in_00{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_keygen_correctness _P1 _P2); auto => /> *. 
@@ -373,7 +371,6 @@ case (i{2} * 32 <= k && k < i{2} * 32 + 32).
         - smt(@List @Array2144). 
         - move => *. rewrite H 1:/# (nth_flatten witness n); [ rewrite allP /# | trivial].
 qed.
-
 
 
 lemma expand_seed_results (_in_seed _pub_seed : W8.t Array32.t, _addr : W32.t Array8.t) :
@@ -485,11 +482,28 @@ while (
     + auto => /> &2 * ; do split;1,3:by smt(). 
         * rewrite /DecodeWotsSk => *; smt(@Array2144 @List).
         * smt(@List @Array2144). 
-seq 2 1 : (#pre); first by inline {1}; auto => />.
+seq 2 1 : (#pre); first by inline {1}; auto.
 inline M(Syscall).__gen_chain_inplace_ M(Syscall)._gen_chain_inplace; wp; sp.
 exists * out0{1}, start0{1}, steps0{1}, addr1{1}, pub_seed1{1}; elim * => _P1 _P2 _P3 _P4 _P5.
 call {1} (gen_chain_inplace_correct _P1 _P2 _P3 _P4 _P5).
-auto => /> &1 &2 ? H1 ? H3 H4 ? H6 *; do split.
+auto => /> &1 &2 ? H1 ? H3 H4 ? H6 H7 *; do split;2:smt().
+    +  have H0: size (nth witness wots_skey{2} i{2}) = 32 by rewrite (size_nth wots_skey{2} 32 i{2}); smt(). 
+      apply (eq_from_nth witness); first by rewrite size_to_list H0. 
+      rewrite H0 => i ?. rewrite get_to_list initE ifT 1:/# => />.
+      rewrite H7 1:/# -nth_flatten 1,2:/#. do 2! congr. 
+      rewrite sumzE. admit.
+    + move => *. do split. 
+    * smt().
+    * smt(size_put).
+    * admit. (* need more info *)
+    * smt().
+    * smt(). 
+    * move => k *. rewrite initE ifT 1:/#. auto => />. rewrite (nth_flatten witness n). 
+       - rewrite allP. admit. 
+       - case (i{2} * 32 <= k && k < i{2} * 32 + 32).
+(* 
+
+
     + apply (eq_from_nth witness). rewrite size_to_list; smt(@List).
       have ->: size (nth witness wots_skey{2} i{2}) = 32 by smt(@List).
       move => i ?; rewrite get_to_list initE ifT 1:/# => />. 
@@ -505,7 +519,11 @@ auto => /> &1 &2 ? H1 ? H3 H4 ? H6 *; do split.
               move => *; rewrite H3 1:/#; rewrite (nth_flatten witness n); [ rewrite allP; smt(wots_pk_size) | trivial ].
         * move => k ??. rewrite initE ifT 1:/# => />. rewrite H4 1:/#. 
           case (i{2} * 32 <= k && k < i{2} * 32 + 32); smt(@Array2144 @List).
-*) admit.
+*) *) admit.
+admit.
+admit.
+admit.
+admit.
 qed.
 
 

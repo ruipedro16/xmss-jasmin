@@ -8,16 +8,25 @@ from Jasmin require import JModel.
 
 require import XMSS_IMPL Util.
 
-require import Array8 Array32.
+require import Array8 Array32 Array64.
 
-require import Params Parameters Address Notation.
+require import Types Params Parameters Address Notation.
 
-clone import Subtype as NBytes with 
-   type T = W8.t list,
-   op P = fun l => size l = n
-   rename "T" as "nbytes"
-   proof inhabited by (exists (nseq n W8.zero);smt(size_nseq ge0_n))
-   proof *.
+import NBytes.
+
+(** -------------------------------------------------------------------------------------------- **)
+
+lemma size_nth (x : W8.t list list) (a i : int) :
+    0 <= i < size x =>
+      (forall (t : W8.t list), t \in x => size t = a) =>
+        size (nth witness x i) = a
+          by smt(@List).
+
+(** -------------------------------------------------------------------------------------------- **)
+
+(* size a = 32 /\ size b = 32 *)
+op merge_nbytes_to_array (a b : nbytes) : W8.t Array64.t = 
+  Array64.init (fun i => if 0 <= i < 32 then nth witness a i else nth witness b (i - 32)).
 
 pred valid_ptr (p o : W64.t) = 
   0 <= to_uint o => 

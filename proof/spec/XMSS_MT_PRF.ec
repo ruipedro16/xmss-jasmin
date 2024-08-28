@@ -33,7 +33,7 @@ module LTree = {
 
     while (1 < _len) { (* Same as _len > 1 *)
       i <- 0;
-      while (i < floor (len%r / 2%r)) {
+      while (i < floor (_len%r / 2%r)) {
         address <- set_tree_index address i;
         pk_i <- nth witness pk (2*i);
         tmp <- nth witness pk (2*i + 1);

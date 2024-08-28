@@ -20,6 +20,8 @@ inline fn __l_tree(
     reg u64 offset_in offset_out bytes;
     reg u64 i in_index out_index;
 
+    reg ptr u8[XMSS_N] tmp;
+
     inline int j;
 
     // unsigned int l = params->wots_len;
@@ -108,7 +110,9 @@ inline fn __l_tree(
 
     // memcpy(leaf, wots_pk, params->n);
     () = #unspill(leaf, wots_pk);
-    leaf =  _x_memcpy_u8u8<XMSS_N, XMSS_N>(leaf, wots_pk[0: XMSS_N]);
+
+    tmp = wots_pk[0: XMSS_N];
+    leaf =  _x_memcpy_u8u8<XMSS_N, XMSS_N>(leaf, tmp);
 
     return leaf, wots_pk, addr;
 }
