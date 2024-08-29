@@ -8,11 +8,105 @@ from Jasmin require import JModel.
 
 require import XMSS_IMPL Util.
 
-require import Array8 Array32 Array64.
-
+require import Array8 Array32 Array64 Array320 Array352.
 require import Types Params Parameters Address Notation.
 
 import NBytes.
+
+(** -------------------------------------------------------------------------------------------- **)
+
+(*** ------------------------ ***)
+(*** outlen=320 /\ inlen=352  ***)
+(*** ------------------------ ***)
+
+lemma nbytes_copy_320_352_result (ain : W8.t Array352.t, aout : W8.t Array320.t, oin oout : W64.t) :
+    0 <= to_uint oout < 320 - 32 /\
+    0 <= to_uint oin < 352 - 32 =>
+        phoare [
+            M(Syscall).__nbytes_copy_offset_320_352 :
+            arg = (aout, oout, ain, oin)
+            ==>
+            forall (k : int), 0 <= k < 32 => res.[(to_uint oout) + k] = ain.[(to_uint oin) + k]
+        ] = 1%r.
+proof.
+simplify => [#] *.
+proc; auto.
+while (
+  offset_out = oout /\
+  offset_in = oin /\
+  0 <= i <= 32 /\
+  forall (k : int), 0 <= k < i => out.[(to_uint offset_out) + k] = in_0.[(to_uint offset_in) + k]
+) (32 - i); last by auto => /> /#.
+auto => /> &hr *; do split; 1,2,4:smt().
+move => k ??. 
+rewrite get_setE. 
+    + split; [ smt(@W64 pow2_64) | move => ?;  rewrite to_uintD // of_uintK; smt(@IntDiv @W64 pow2_64)].
+case (to_uint oout + k = to_uint (oout + (of_int i{hr})%W64)).
+    + move => ?; congr; smt(@W64 pow2_64 @IntDiv).
+    + move => ?; smt(@W64 pow2_64 @IntDiv @Array320 @Array352).
+qed.
+
+(*** ------------------------ ***)
+(*** outlen=352 /\ inlen=32   ***)
+(*** ------------------------ ***)
+
+lemma nbytes_copy_352_32_result (ain : W8.t Array32.t, aout : W8.t Array352.t, oin oout : W64.t) :
+    0 <= to_uint oout < 352 - 32 /\
+    0 <= to_uint oin < 32 - 32 =>
+        phoare [
+            M(Syscall).__nbytes_copy_offset_352_32 :
+            arg = (aout, oout, ain, oin)
+            ==>
+            forall (k : int), 0 <= k < 32 => res.[(to_uint oout) + k] = ain.[(to_uint oin) + k]
+        ] = 1%r.
+proof.
+simplify => [#] *.
+proc; auto.
+while (
+  offset_out = oout /\
+  offset_in = oin /\
+  0 <= i <= 32 /\
+  forall (k : int), 0 <= k < i => out.[(to_uint offset_out) + k] = in_0.[(to_uint offset_in) + k]
+) (32 - i); last by auto => /> /#.
+auto => /> &hr *; do split; 1,2,4:smt().
+move => k ??. 
+rewrite get_setE. 
+    + split; [ smt(@W64 pow2_64) | move => ?;  rewrite to_uintD // of_uintK; smt(@IntDiv @W64 pow2_64)].
+case (to_uint oout + k = to_uint (oout + (of_int i{hr})%W64)).
+    + move => ?; congr; smt(@W64 pow2_64 @IntDiv).
+    + move => ?; smt(@W64 pow2_64 @IntDiv @Array352 @Array32).
+qed.
+
+(*** ------------------------ ***)
+(*** outlen=32 /\ inlen=352   ***)
+(*** ------------------------ ***)
+
+lemma nbytes_copy_32_352_result (ain : W8.t Array352.t, aout : W8.t Array32.t, oin oout : W64.t) :
+    0 <= to_uint oout < 32 - 32 /\
+    0 <= to_uint oin < 352 - 32 =>
+        phoare [
+            M(Syscall).__nbytes_copy_offset_32_352 :
+            arg = (aout, oout, ain, oin)
+            ==>
+            forall (k : int), 0 <= k < 32 => res.[(to_uint oout) + k] = ain.[(to_uint oin) + k]
+        ] = 1%r.
+proof.
+simplify => [#] *.
+proc; auto.
+while (
+  offset_out = oout /\
+  offset_in = oin /\
+  0 <= i <= 32 /\
+  forall (k : int), 0 <= k < i => out.[(to_uint offset_out) + k] = in_0.[(to_uint offset_in) + k]
+) (32 - i); last by auto => /> /#.
+auto => /> &hr *; do split; 1,2,4:smt().
+move => k ??. 
+rewrite get_setE. 
+    + split; [ smt(@W64 pow2_64) | move => ?;  rewrite to_uintD // of_uintK; smt(@IntDiv @W64 pow2_64)].
+case (to_uint oout + k = to_uint (oout + (of_int i{hr})%W64)).
+    + move => ?; congr; smt(@W64 pow2_64 @IntDiv).
+    + move => ?; smt(@W64 pow2_64 @IntDiv @Array32 @Array352).
+qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 
