@@ -6,6 +6,35 @@ from Stdlib require "memcpy/memcpy.jtmpl"
 from XMSS require "hash_address/hash_address.jinc"
 from XMSS require "xmss_commons/xmss_commons.jtmpl"
 
+// TODO: Move this somewhere else 
+// Same as out[offset_out : XMSS_N] = #copy(in[offset_in : XMSS_N]) 
+// (we cant use #copy because offset_* are not known at compile time)
+//
+// pre conditions: no accesses are out of bounds : i.e.
+//  0 <= offset_out + XMSS_N < size out /\ 0 <= offset_in + XMSS_N < size in 
+//
+// post condition: sub out offset_out XMSS_N = sub in offset_in XMSS_N 
+inline fn __nbytes_copy_offset<OUTLEN, INLEN>(
+    reg ptr u8[OUTLEN] out,
+    reg u64 offset_out,
+    reg ptr u8[INLEN] in,
+    reg u64 offset_in
+) -> reg ptr u8[OUTLEN]
+{
+    // TODO: XMSS_N is either 24, 32 or 64 (all divisible by 4), meaning that we can 
+    //       copy 4 bytes (i.e a u64) at a time
+
+    inline int i;
+
+    for i=0 to XMSS_N {
+        out[offset_out + i] = in[offset_in + i];
+    }
+
+    // for i=0 to XMSS_N / 4 { out.[u64 (offset_out + i)] = in.[u64 (offset_in + i)]; }
+
+    return out;
+}//<>
+
 /////////////////////////////////// TREEHASH ///////////////////////////////////
 
 inline fn __treehash(
@@ -34,8 +63,6 @@ inline fn __treehash(
     reg u32 a b;
 
     stack u8[2 * XMSS_N] buf2;
-
-    u = 0; // dummy value to simplify proof
 
     // unsigned int offset = 0;
     offset = 0;
@@ -77,13 +104,17 @@ inline fn __treehash(
         
             // We need to load the buf first 
             () = #unspill(offset, sk_seed, pub_seed);
-            for j=0 to XMSS_N { index = offset; index *= XMSS_N; buf[j] = _stack[index + j]; }
+            // nbytes_copy_offset() offset_in = 0; offset_out = index
+            index = offset; index *= XMSS_N;
+            buf = __nbytes_copy_offset<XMSS_N, (XMSS_TREE_HEIGHT + 1) * XMSS_N>(buf, 0, _stack, index);
 
         buf, ltree_addr, ots_addr = __gen_leaf_wots_(buf, sk_seed, pub_seed, ltree_addr, ots_addr);
         
             // Write the result back
             () = #unspill(offset);
-            for j=0 to XMSS_N { index = offset; index *= XMSS_N; _stack[index + j] = buf[j]; }
+            // nbytes_copy_offset() offset_in = index; offset_out = 0
+            index = offset; index *= XMSS_N;
+            _stack = __nbytes_copy_offset<(XMSS_TREE_HEIGHT + 1) * XMSS_N, XMSS_N>(_stack, index, buf, 0);
 
         // offset++;
         offset += 1;
@@ -100,7 +131,8 @@ inline fn __treehash(
         t = leaf_idx; t ^= 0x1;
         if (t == idx) {
             () = #unspill(auth_path);
-            for j=0 to XMSS_N { index = offset; index -= 1; index *= XMSS_N; auth_path[j] = _stack[index + j]; }
+            index = offset; index -= 1; index *= XMSS_N;
+            auth_path = __nbytes_copy_offset<XMSS_TREE_HEIGHT * XMSS_N, (XMSS_TREE_HEIGHT + 1) * XMSS_N>(auth_path, 0, _stack, index);
             () = #spill(auth_path);
         }
 
@@ -141,7 +173,7 @@ inline fn __treehash(
             // 2) Write the result back to stack
             () = #unspill(offset);
             index = offset; index -= 2; index *= XMSS_N;
-            for j=0 to XMSS_N { _stack[index + j] = buf[j]; }
+            _stack = __nbytes_copy_offset<(XMSS_TREE_HEIGHT + 1) * XMSS_N, XMSS_N>(_stack, index, buf, 0);
 
             // offset--;
             offset -= 1;
@@ -169,7 +201,7 @@ inline fn __treehash(
                 t64 = (64u) heights[index];
                 t64 *= XMSS_N; // t = heights[offset - 1]*params->n
                 index *= XMSS_N; // index = (offset - 1)*params->n
-                for j=0 to XMSS_N { auth_path[t64 + j] = _stack[index + j]; }
+                auth_path = __nbytes_copy_offset<XMSS_TREE_HEIGHT * XMSS_N, (XMSS_TREE_HEIGHT + 1) * XMSS_N>(auth_path, t64, _stack, index);
                 () = #spill(auth_path);
             }
         }
@@ -185,7 +217,6 @@ inline fn __treehash(
 
     // memcpy(root, stack, params->n);
     root = #copy(_stack[0:XMSS_N]); // used to be: for j=0 to XMSS_N { root[j] = _stack[j]; }
-                                    // requires branch support-slices-in-copy
     return root, auth_path;
 }
 
@@ -267,10 +298,8 @@ inline fn __xmssmt_core_seed_keypair(
     () = #unspill(pk, sk);
 
     for i=0 to XMSS_N { pk[i] = buf[i]; }
-    // pk[0:XMSS_N] = #copy_8(buf); // stack allocation: no region associated to variable dst
 
     for i=0 to XMSS_N { sk[XMSS_INDEX_BYTES + 2 * XMSS_N + i] = pk[i]; }
-    // sk[XMSS_INDEX_BYTES + 2 * XMSS_N : XMSS_N] = #copy_8(pk[0:XMSS_N]); // variable allocation: bad range alignment for dst.6040[0]/u64 in sk.2941[68; 100[
 
     return pk, sk;
 }

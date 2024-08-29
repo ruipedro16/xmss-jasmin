@@ -15,6 +15,14 @@ require import Types Params Parameters Address Notation.
 import NBytes.
 
 (** -------------------------------------------------------------------------------------------- **)
+
+lemma nbyte_xor_cat (a0 a1 b0 b1 : nbytes) (n : int) :
+    size a0 = n /\ size a1 = n /\ size b0 = n /\ size b1 = n =>
+        (nbytexor a0 b0) ++ (nbytexor a1 b1) = nbytexor (a0 ++ a1) (b0 ++ b1)
+          by smt(@List). 
+
+(** -------------------------------------------------------------------------------------------- **)
+
 (* This is used in treehash *)
 (* LHS : Spec               *)
 (* RHS : EC Jasmin          *)

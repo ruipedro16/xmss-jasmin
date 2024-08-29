@@ -188,9 +188,9 @@ seq 1 1 : (
 (* Remove hash from #post *)
 seq 11 6 : (
   addr{1} = address{2} /\
-  to_list buf{1} = padding{2} ++ key{2} ++ (nbytexor _left{2} bitmask_0{2} ++ nbytexor _right{2} bitmask_1{2})
+  to_list buf{1} = padding{2} ++ key{2} ++ nbytexor (_left{2} ++ _right{2}) (bitmask_0{2} ++ bitmask_1{2})
 ); last first. 
-    + inline {1}  M(Syscall)._core_hash_128. wp. ecall {1} (hash_128 in_00{1}). auto => /> &1 &2 ??; move => ->; congr.
+    + inline {1}  M(Syscall)._core_hash_128. wp. ecall {1} (hash_128 in_00{1}). auto => /> &1 &2 ??; move => ->; congr.      
 seq 1 0 : (
     #pre /\
     forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = nth witness key{2} k
@@ -233,73 +233,87 @@ seq 2 1 : (
       exists * in_01{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_correctness _P1 _P2); first by split; assumption.
       skip => /> &1 &2 *.
       do split; [| | by rewrite size_to_list /#]; move => ???; rewrite initE ifT 1:/#; auto => />; [rewrite ifF /# | rewrite ifT /# ].
-
-(* Conseq to simplify #post *)
+ 
+(* Conseq to simplify #post *) 
 conseq (: _ ==>
   size padding{2} = 32 /\
   size key{2} = 32 /\
   size bitmask_0{2} = 32 /\
   size bitmask_1{2} = 32 /\
+  size _left{2} = 32 /\
+  size _right{2} = 32 /\
   addr{1} = address{2} /\
   (forall (k : int), 0 <= k < 32 => buf{1}.[k] = nth witness padding{2} k) /\
   (forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = nth witness key{2} k) /\
-  (forall (k : int), 0 <= k < 32 => buf{1}.[64 + k] = nth witness (nbytexor _left{2} bitmask_0{2}) k) /\
-  (forall (k : int), 0 <= k < 32 => buf{1}.[96 + k] = nth witness (nbytexor _right{2} bitmask_1{2}) k)
+  (forall (k : int), 0 <= k < 64 => buf{1}.[64 + k] = nth witness (nbytexor (_left{2} ++ _right{2}) (bitmask_0{2} ++ bitmask_1{2})) k)
 ).
-    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 buf_L H11 H12 H13 H14 H15 H16.
-      apply (eq_from_nth witness); first by rewrite !size_cat size_to_list H3 H4 /nbytexor !size_map !size_zip H1 H2 H6 H10 !nval //=.  
+    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 buf_L H11 H12 H13 H14 H15 H16 H17. 
+      apply (eq_from_nth witness). rewrite !size_cat size_to_list H3 H4 /nbytexor !size_map !size_zip !size_cat H1 H2 H6 H10 !nval //=.  
       move => i. rewrite size_to_list => Hi.
+      rewrite get_to_list.
       case (0 <= i < 32). 
-          * move => ?. smt(@List @Array128).
+          * smt(@List @Array128).
       case (32 <= i < 64). 
-          * move => ? _. rewrite get_to_list nth_cat ifT; first by rewrite size_cat H3 H4 /#. rewrite nth_cat ifF 1:/#. smt(@List @Array128).
-      case (64 <= i < 96).
-          * move => ? _ _. rewrite get_to_list nth_cat ifF. rewrite size_cat H3 H4 /#.
-            have ->: size (padding{2} ++ key{2}) = 64 by rewrite size_cat H3 H4.
-            rewrite nth_cat. rewrite ifT. rewrite /nbytexor size_map size_zip H1 H6 /#. smt(@List @Array128).
-      move => Ht0 Ht1 Ht2. have E: 96 <= i < 128 by smt(). clear Hi Ht0 Ht1 Ht2. 
-      rewrite get_to_list nth_cat ifF; first by rewrite size_cat H3 H4 /#.
-      rewrite nth_cat ifF; first by rewrite size_cat /nbytexor size_map size_zip H1 H3 H4 H6 /#.
-      rewrite size_cat size_nbyte_xor 1:/# H3 H4 H1 nval //=. smt(@List @Array128).
+          * move => ? _. rewrite nth_cat ifT; first by rewrite size_cat H3 H4 /#. rewrite nth_cat ifF 1:/#. smt(@List @Array128).
+      move => Ht0 Ht1. 
+      have H: 64 <= i < 128 by smt(). clear Ht0 Ht1 Hi.
+      rewrite nth_cat ifF; first by rewrite size_cat H3 H4 /#.
+      have ->: size (padding{2} ++ key{2}) = 64 by rewrite size_cat H3 H4.
+      smt().
 
 (* End of proof for conseq *)
-
-while {1} (
+ 
+while {1} ( 
   0 <= to_uint i{1} <= 64 /\
-  size padding{2} = 32 /\
+
+  size padding{2} = 32 /\ 
   size key{2} = 32 /\
   size bitmask_0{2} = 32 /\
   size bitmask_1{2} = 32 /\
+  size _left{2} = 32 /\
+  size _right{2} = 32 /\
+
   addr{1} = address{2} /\
+  
+  to_list in_0{1} = _left{2} ++ _right{2} /\
+  to_list bitmask{1} = bitmask_0{2} ++ bitmask_1{2} /\
+
   (forall (k : int), 0 <= k < 32 => buf{1}.[k] = nth witness padding{2} k) /\
   (forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = nth witness key{2} k) /\
 
+  (* Isto se calhar esta mal *)
   (forall (k : int), 0 <= k < to_uint i{1} => 
     buf{1}.[64 + to_uint i{1}] = 
       nth witness (_left{2} ++ _right{2}) (to_uint i{1}) `^` nth witness (bitmask_0{2} ++ bitmask_1{2}) (to_uint i{1}))
 ) (64 - to_uint i{1}).
-    + auto => /> &hr *; do split.
+
+    + auto => /> &hr ?? H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10  *; do split.
        * smt(@W64).
        * smt(@W64).
        * move => *; rewrite get_setE; first by smt(@W64). rewrite ifF; first by smt(@W64 pow2_64). smt(). 
        * move => *; rewrite get_setE; first by smt(@W64). rewrite ifF; first by smt(@W64 pow2_64). smt(). 
-       * move => *. rewrite get_setE; first by smt(@W64). rewrite ifF; first by smt(@W64 pow2_64). admit.
+       * move => *. rewrite get_setE; first by smt(@W64). rewrite ifF; first by smt(@W64 pow2_64). 
+         rewrite !nth_cat H2 H4. case (to_uint (i{hr} + W64.one) < 32); move => ?. 
+           - admit.
+           - admit.
        * smt(@W64 pow2_64).
     + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10; do split. 
        * smt().  
        * smt(). 
        * smt(@List @Array128).
+       * smt().
+       * apply /(eq_from_nth witness); first by rewrite size_cat size_to_list H6 H10 /#.
+         rewrite size_to_list => i?; rewrite nth_cat get_to_list H6; case (i < n); smt(). 
+      *  smt(). 
        * move => bufL iL; do split.
            - move => *. smt(@W64).
-           - move => ??????? H. split.
-              + move => k Hk0 Hk1; rewrite /nbytexor (nth_map witness); first by rewrite size_zip H1 H6 /#.  
-                auto => />. 
-                have ->: (nth witness (zip _left{2} bitmask_0{2}) k).`1 = nth witness _left{2} k by smt(@List).
-                have ->: (nth witness (zip _left{2} bitmask_0{2}) k).`2 = nth witness bitmask_0{2} k by smt(@List).
-                admit.
-              + move => k Hk0 Hk1; rewrite /nbytexor (nth_map witness); first by rewrite size_zip H2 H10 /#. 
-                auto => />. 
-                have ->: (nth witness (zip _right{2} bitmask_1{2}) k).`1 = nth witness _right{2} k by smt(@List).
-                have ->: (nth witness (zip _right{2} bitmask_1{2}) k).`2 = nth witness bitmask_1{2} k by smt(@List). 
-                admit.
+           - move => Ht0 Ht1 Ht2 H11 H12 H13 H14. (* have ->: to_uint iL = 64 by smt(@W64 pow2_64). *)
+             move => H15 H16 H17 H18 k ??.  
+             rewrite /nbytexor (nth_map witness); first by rewrite size_zip !size_cat H1 H2 H6 H10 nval /#. 
+             auto => />. 
+             have ->: (nth witness (zip (_left{2} ++ _right{2}) (bitmask_0{2} ++ bitmask_1{2})) k).`1 = nth witness (_left{2} ++ _right{2}) k by smt(@List). 
+             have ->: (nth witness (zip (_left{2} ++ _right{2}) (bitmask_0{2} ++ bitmask_1{2})) k).`2 = nth witness (bitmask_0{2} ++ bitmask_1{2}) k by smt(@List). 
+             rewrite !nth_cat H1 H11 nval. case (k < 32); move => ?. 
+                 * admit. 
+                 * admit.
 qed.
