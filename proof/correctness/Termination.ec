@@ -116,25 +116,101 @@ sp ; wp.
 while (0 <= to_uint i <= 32) (32 - to_uint i) ; auto => />; smt(@W64 pow2_64).
 qed.
 
+lemma nbytes_copy_320_352_ll : islossless M(Syscall).__nbytes_copy_offset_320_352
+    by proc; while (true) (32 - i); auto => /> /#. 
+
+
+lemma nbytes_copy_352_32_ll : islossless M(Syscall).__nbytes_copy_offset_352_32
+    by proc; while (true) (32 - i); auto => /> /#. 
+
+
+lemma nbytes_copy_32_352_ll : islossless M(Syscall).__nbytes_copy_offset_32_352
+    by proc; while (true) (32 - i); auto => /> /#. 
+
+
 (*****************************************************************************************************)
 (*** SHA 256 & CORE HASH ***)
 (*****************************************************************************************************)
 
+(*** Functions of Sha256 ***)
+
+lemma store_ref_array_ll : islossless M(Syscall).__store_ref_array
+    by proc; while (true) (8 - i); auto => /> /#.
+
+lemma blocks1_ref_ll : 
+    phoare [M(Syscall)._blocks_1_ref : 0 <= to_uint nblocks ==> true] = 1%r.
+proof.
+proc.
+wp; sp.
+while (0 <= to_uint i <= to_uint nblocks) (to_uint nblocks - to_uint i); last by auto => /> /#.
+auto => />.
+inline M(Syscall).__store_H_ref; wp.
+while (0 <= to_uint tr <= 64) (64 - to_uint tr).
+  + auto => />; inline; islossless; move => &hr *; do split; [smt(@W64) | |]; move => *; rewrite to_uintD;
+    have ->: to_uint W64.one = 1 by smt().
+    * admit.
+    * admit.
+inline M(Syscall).__load_H_ref; wp.
+while (true) (64 - t + 1); first by auto => />; inline; islossless => /#. 
+wp.
+while (true) (16 - t).
+  + auto => /> /#.  
+auto => /> &hr *; split; [smt() | do (move => *; split)]; 2..5:smt(@W64).
+smt(). 
+qed.
+
+lemma last_blocks96_ll : islossless M(Syscall).__lastblocks_ref_96.
+proof.
+proc.
+admit.
+qed.
+
+lemma blocks0_ref_96_ll : islossless M(Syscall)._blocks_0_ref_96.
+proof.
+proc.
+wp; sp.
+if; last by skip. 
+while (63 <= to_uint inlen <= 96) (63 - to_uint inlen); last first. 
+  + admit.
+auto => />. 
+inline M(Syscall).__store_H_ref; wp.
+while (0 <= to_uint tr <= 64) (64 - to_uint tr).
+  + auto => />. inline. islossless. move => &hr * //=. do split; [smt(@W64) | |]. admit. admit. 
+inline M(Syscall).__load_H_ref; wp.
+while (true) (64 - t + 1); first by auto => />; inline; islossless => /#. 
+wp. 
+while (true) (16 - t); first by auto => /> /#. 
+auto => /> &hr; do (move => *; do split); [smt() | smt() | smt(@W64 pow2_32) | | smt(@W64 pow2_32) |].
+admit.
+admit.
+qed.
+
+
 lemma sha256_96_ll : islossless M(Syscall).__sha256_96.
 proof.
 proc.
+call store_ref_array_ll; wp.
+call blocks1_ref_ll; wp.
+call last_blocks96_ll; wp.
+call blocks0_ref_96_ll.
+inline M(Syscall).__initH_ref; wp.
+skip => />.
 admit.
 qed.
 
 lemma sha256_128_ll : islossless M(Syscall).__sha256_128.
 proof.
 proc.
+call store_ref_array_ll; wp.
+call blocks1_ref_ll; wp.
 admit.
 qed.
 
 lemma sha256_in_ptr_ll : islossless M(Syscall).__sha256_in_ptr.
 proof.
 proc.
+call store_ref_array_ll; wp.
+call blocks1_ref_ll; wp.
 admit.
 qed.
 
@@ -326,22 +402,18 @@ while (true) (67 - i).
 qed.
 
 (*****************************************************************************************************)
-(*** WOTS ***)
+(*** XMSS ***)
 (*****************************************************************************************************)
 
 lemma ltree_ll : islossless M(Syscall).__l_tree.
 proof.
 proc.
 inline M(Syscall).__set_tree_height.
-wp ; sp ; call _x_memcpy_u8u8_32_32_ll.
+wp ; sp ; call _x_memcpy_u8u8_32_32_ll; wp.
 while (1 <= to_uint l <= 67) (to_uint l - 1); last by skip => />; smt(@W64).
-auto. sp.
+auto; sp.
 admit.
 qed.
-
-(*****************************************************************************************************)
-(*** XMSS ***)
-(*****************************************************************************************************)
 
 
 lemma treehash_ll : islossless M(Syscall).__treehash.
@@ -356,7 +428,11 @@ while (0 <= j <= 32) (32 - j).  (* this invariant is wrong *)
   + admit.
 inline M(Syscall).__cond_u64_geq_u64_u32_eq_u32.
 wp; sp.
-admit.
+seq 11 : (true);2,4,5: admit.
+  + wp. admit.
+if. 
+  + call nbytes_copy_320_352_ll. auto => />. admit.
+  + skip => /> &hr *. admit.  (* true is wrong in seq *)
 qed.
 
 lemma gen_leaf_ll : islossless M(Syscall).__gen_leaf_wots.
