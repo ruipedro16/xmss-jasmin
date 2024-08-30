@@ -58,11 +58,12 @@ clone import Subtype as Three_NBytes with
    proof inhabited by (exists (nseq (3*n) W8.zero);smt(size_nseq ge0_n))
    proof *.
 
+(* treeheight . n *)
 clone import Subtype as AuthPath with
   type T = nbytes list,
-  op P = fun l => size l = len
+  op P = fun l => size l = d
   rename "T" as "auth_path"
-  proof inhabited by (exists (nseq len (nseq n W8.zero));smt(size_nseq ge0_len))
+  proof inhabited by admit
   proof *.
 
 (******************************************************************************)

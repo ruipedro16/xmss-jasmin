@@ -64,10 +64,10 @@ lemma ssize_enc_wots_signature (x : W8.t Array2144.t) :
 lemma size_flatten_enc_wots_signature (x : W8.t Array2144.t) : size (flatten (EncodeWotsSignature x)) = 2144. (* 2144 = len . n *)
 proof.
 rewrite size_flatten sumzE BIA.big_map /(\o) //=.
-rewrite -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) /=; first by smt(ssize_enc_wots_signature).
+rewrite -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) /=; [smt(ssize_enc_wots_signature) |].
 rewrite big_constz count_predT.
 have ->: size (EncodeWotsSignature x) = 67 by apply (size_enc_wots_signature).
-smt(). 
+by simplify.
 qed.
 
 (* aux *)
@@ -75,14 +75,13 @@ lemma enc_dec_wots_signature_r (x : W8.t Array2144.t) (y : wots_signature) :
     y = EncodeWotsSignature x => x = DecodeWotsSignature y.
 proof.
 move => Hy.
-have H0 : size y = 67. by rewrite Hy; apply size_enc_wots_signature.
-have H1 : forall (t : W8.t list), t \in y => size t = 32 by rewrite Hy; apply ssize_enc_wots_signature. 
+have ?: size y = 67 by rewrite Hy; apply size_enc_wots_signature.
+have ?: forall (t : W8.t list), t \in y => size t = 32 by rewrite Hy; apply ssize_enc_wots_signature. 
 rewrite /DecodeWotsSignature Hy /EncodeWotsSignature.
 apply tP.
-move => i Hi.
+move => ??.
 rewrite get_of_list; 1:assumption.
-rewrite chunkK; 1,2:smt(size_to_list).
-rewrite get_to_list //. 
+rewrite chunkK;[ by [] | by rewrite size_to_list | by rewrite get_to_list ].
 qed.
 
 (* aux *)
@@ -91,11 +90,12 @@ lemma enc_dec_wots_signature_l (x : W8.t Array2144.t) (y : wots_signature) :
      (forall (t : W8.t list), t \in y => size t = 32) =>
     x = DecodeWotsSignature y => y = EncodeWotsSignature x.
 proof.
-move => H0 H1 Hx.
+move => H0 ? Hx.
 rewrite /EncodeWotsSignature Hx /DecodeWotsSignature.
 rewrite of_listK.
   + rewrite size_flatten sumzE BIA.big_map /(\o) //= -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) /= 1:/# big_constz count_predT H0 /#.
-rewrite flattenK /#.
+rewrite flattenK; 1,3: by simplify. 
+assumption.
 qed.
 
 lemma enc_dec_wots_signature (x : W8.t Array2144.t) (y : wots_signature) : 
@@ -115,10 +115,10 @@ lemma ssize_enc_wots_pk (x : W8.t Array2144.t) :
 lemma size_flatten_enc_wots_pk (x : W8.t Array2144.t) : size (flatten (EncodeWotsPk x)) = 2144. (* 2144 = len . n *)
 proof.
 rewrite size_flatten sumzE BIA.big_map /(\o) //=.
-rewrite -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) /=; first by smt(ssize_enc_wots_pk).
+rewrite -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) /=; [ smt(ssize_enc_wots_pk) |].
 rewrite big_constz count_predT.
 have ->: size (EncodeWotsPk x) = 67 by apply (size_enc_wots_pk).
-smt(). 
+by simplify. 
 qed.
 
 (* aux *)
@@ -126,15 +126,14 @@ lemma enc_dec_wots_pk_r (x : W8.t Array2144.t) (y : wots_pk) :
     y = EncodeWotsPk x => x = DecodeWotsPk y.
 proof.
 move => Hy.
-have H0 : size y = 67. by rewrite Hy; apply size_enc_wots_pk.
-have H1 : forall (t : W8.t list), t \in y => size t = 32 by rewrite Hy; apply ssize_enc_wots_pk. 
+have ?: size y = 67 by rewrite Hy; apply size_enc_wots_pk.
+have ?: forall (t : W8.t list), t \in y => size t = 32 by rewrite Hy; apply ssize_enc_wots_pk. 
 rewrite /DecodeWotsPk Hy /EncodeWotsPk.
 apply tP.
-move => i Hi.
+move => ??.
 rewrite get_of_list; 1:assumption.
-rewrite chunkK; 1,2:smt(size_to_list).
-rewrite get_to_list //. 
-qed.
+rewrite chunkK;[ by [] | by rewrite size_to_list | by rewrite get_to_list ].
+qed. 
 
 (* aux *)
 lemma enc_dec_wots_pk_l (x : W8.t Array2144.t) (y : wots_pk) :
@@ -142,18 +141,19 @@ lemma enc_dec_wots_pk_l (x : W8.t Array2144.t) (y : wots_pk) :
      (forall (t : W8.t list), t \in y => size t = 32) =>
     x = DecodeWotsPk y => y = EncodeWotsPk x.
 proof.
-move => H0 H1 Hx.
+move => H0 ? Hx.
 rewrite /EncodeWotsPk Hx /DecodeWotsPk.
 rewrite of_listK.
   + rewrite size_flatten sumzE BIA.big_map /(\o) //= -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) /= 1:/# big_constz count_predT H0 /#.
-rewrite flattenK /#.
+rewrite flattenK; 1,3: by simplify.
+assumption. 
 qed.
 
 lemma enc_dec_wots_pk (x : W8.t Array2144.t) (y : wots_pk) : 
     size y = 67 => 
       (forall (t : W8.t list), t \in y => size t = 32) => 
         x = DecodeWotsPk y <=> y = EncodeWotsPk x
-          by move => ??; split; [ apply enc_dec_wots_pk_l => /# | apply enc_dec_wots_pk_r] .
+          by move => ??; split; [ apply enc_dec_wots_pk_l | apply enc_dec_wots_pk_r] .
 
 (*** Lemmas about sk ***)
 
@@ -166,10 +166,10 @@ lemma ssize_enc_wots_sk (x : W8.t Array2144.t) :
 lemma size_flatten_enc_wots_sk (x : W8.t Array2144.t) : size (flatten (EncodeWotsSk x)) = 2144. (* 2144 = len . n *)
 proof.
 rewrite size_flatten sumzE BIA.big_map /(\o) //=.
-rewrite -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) /=; first by smt(ssize_enc_wots_sk).
+rewrite -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) /=; [ smt(ssize_enc_wots_sk) |].
 rewrite big_constz count_predT.
 have ->: size (EncodeWotsSk x) = 67 by apply (size_enc_wots_sk).
-smt(). 
+by simplify. 
 qed.
 
 (* aux *)
@@ -177,14 +177,13 @@ lemma enc_dec_wots_sk_r (x : W8.t Array2144.t) (y : wots_sk) :
     y = EncodeWotsSk x => x = DecodeWotsSk y.
 proof.
 move => Hy.
-have H0 : size y = 67. by rewrite Hy; apply size_enc_wots_sk.
-have H1 : forall (t : W8.t list), t \in y => size t = 32 by rewrite Hy; apply ssize_enc_wots_sk. 
+have ?: size y = 67 by rewrite Hy; apply size_enc_wots_sk.
+have ?: forall (t : W8.t list), t \in y => size t = 32 by rewrite Hy; apply ssize_enc_wots_sk. 
 rewrite /DecodeWotsSk Hy /EncodeWotsSk.
 apply tP.
-move => i Hi.
+move => ??.
 rewrite get_of_list; 1:assumption.
-rewrite chunkK; 1,2:smt(size_to_list).
-rewrite get_to_list //. 
+rewrite chunkK;[ by [] | by rewrite size_to_list | by rewrite get_to_list ].
 qed.
 
 (* aux *)
@@ -193,11 +192,12 @@ lemma enc_dec_wots_sk_l (x : W8.t Array2144.t) (y : wots_sk) :
      (forall (t : W8.t list), t \in y => size t = 32) =>
     x = DecodeWotsSk y => y = EncodeWotsSk x.
 proof.
-move => H0 H1 Hx.
+move => H0 ? Hx.
 rewrite /EncodeWotsSk Hx /DecodeWotsSk.
 rewrite of_listK.
   + rewrite size_flatten sumzE BIA.big_map /(\o) //= -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) /= 1:/# big_constz count_predT H0 /#.
-rewrite flattenK /#.
+rewrite flattenK; 1,3: by simplify. 
+assumption.
 qed.
 
 lemma enc_dec_wots_sk (x : W8.t Array2144.t) (y : wots_sk) : 
@@ -219,3 +219,63 @@ op sig_from_ptr_list (mem : global_mem_t) (ptr : W64.t) : W8.t list =
 (*******************                        XMSS                                *******************)
 (**************************************************************************************************)
 
+require import Array320.
+import AuthPath. 
+
+op EncodeAuthPath (x : W8.t Array320.t) : auth_path = chunk 32 (to_list x). 
+
+op DecodeAuthPath (x : auth_path) : W8.t Array320.t = Array320.of_list witness (flatten x).
+
+
+(*** Lemmas about authentication path ***)
+
+lemma size_enc_authpath (x : W8.t Array320.t) :
+    size (EncodeAuthPath x) = 10 by rewrite /EncodeAuthPath size_chunk // size_to_list //.
+
+lemma ssize_enc_authpath (x : W8.t Array320.t) : 
+    forall (t : W8.t list), t \in (EncodeAuthPath x) => size t = 32 by smt(@BitChunking). 
+
+lemma size_flatten_enc_authpath (x : W8.t Array320.t) :
+    size (flatten (EncodeAuthPath x)) = 320.
+proof.
+rewrite size_flatten sumzE BIA.big_map /(\o) //=.
+rewrite -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) /=; [smt(ssize_enc_authpath) |]. 
+rewrite big_constz count_predT.
+have ->: size (EncodeAuthPath x) = 10 by apply size_enc_authpath. 
+by simplify. 
+qed.
+
+(*aux *)
+lemma enc_dec_auth_path_r (x : W8.t Array320.t) (y : auth_path) : 
+    y = EncodeAuthPath x => x = DecodeAuthPath y.    
+proof.
+move => Hy. 
+have ?: size y = 10 by rewrite Hy; apply size_enc_authpath. 
+have ?: forall (t : W8.t list), t \in y => size t = 32 by rewrite Hy; apply ssize_enc_authpath. 
+rewrite /DecodeAuthPath Hy /EncodeAuthPath. 
+apply tP. 
+move => ??. 
+rewrite get_of_list; 1:assumption.  
+rewrite chunkK;[ by [] | by rewrite size_to_list | by rewrite get_to_list ].
+qed.
+
+(* aux *)
+lemma enc_dec_auth_path_l (x : W8.t Array320.t) (y : auth_path) :
+    size y = 10 =>
+      (forall (t : W8.t list), t \in y => size t = 32) =>
+        x = DecodeAuthPath y => y = EncodeAuthPath x.
+proof.
+move => H0 H1 Hx. 
+rewrite /EncodeAuthPath Hx /DecodeAuthPath. 
+rewrite of_listK; last first. 
+  + rewrite flattenK; 1,3: by simplify. assumption. 
+rewrite size_flatten sumzE BIA.big_map /(\o) //= 
+       -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) /= 1:/#
+       big_constz count_predT H0 //=.
+qed.
+
+lemma enc_dec_auth_path (x : W8.t Array320.t) (y : auth_path) :
+    size y = 10 =>
+      (forall (t : W8.t list), t \in y => size t = 32) =>
+        x = DecodeAuthPath y <=> y = EncodeAuthPath x
+          by move => ??; split; [ apply enc_dec_auth_path_l | apply enc_dec_auth_path_r ].

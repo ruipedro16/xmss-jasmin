@@ -3,7 +3,7 @@ pragma Goals : printall.
 require import AllCore List RealExp IntDiv.
 from Jasmin require import JModel JArray.
 
-require import Types Params Parameters Address Notation Primitives Hash Wots Util.
+require import Types Params Parameters Address Notation Primitives Hash Wots Util Properties.
 require import XMSS_IMPL.
 
 require import Array2 Array3 Array8 Array32 Array64 Array67 Array96 Array2144.
@@ -471,6 +471,7 @@ while (
   size pk{2} = len /\
   (forall (x : nbytes), x \in pk{2} => size x = n) /\
   size wots_skey{2} = len /\
+(*  size pk_i{2} = n /\ *)
   (forall (x : nbytes), x \in wots_skey{2} => size x = n) /\
 
   ={i} /\ 
