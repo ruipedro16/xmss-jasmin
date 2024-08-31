@@ -13,7 +13,7 @@ LDLIBS   = -lcrypto
 
 JASMIN   ?= jasminc
 JAZZCT   ?= jazzct
-JFLAGS   ?= -nowarning ${JADDFLAGS}
+JFLAGS   ?= ${JADDFLAGS}
 JINCLUDE ?= -I XMSS:../../ref-jasmin/ -I Stdlib:../../ref-jasmin/stdlib
 
 JPP          ?= ../../submodules/jasmin-preprocessor/jpp
@@ -120,6 +120,7 @@ bin/:
 .PHONY: clean
 clean:
 	$(RM) -r bin/
+	$(RM) -r *.txt
 
 .PHONY: clean_executables
 clean_executables:

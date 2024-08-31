@@ -57,7 +57,6 @@ inline fn __treehash(
     reg u32 idx tree_idx;
     reg u32 t u;
     reg u64 offset t64;
-    reg u64 offset_in offset_out;
 
     reg bool cond;
     reg u32 a b;
@@ -268,7 +267,7 @@ inline fn __xmssmt_core_seed_keypair(
     stack u8[XMSS_TREE_HEIGHT * XMSS_N] auth_path;
     stack u32[8] top_tree_addr;
     inline int i;
-    stack u8[XMSS_N] buf;
+    stack u8[XMSS_N] root;
 
     top_tree_addr = __zero_address_(top_tree_addr);
 
@@ -284,7 +283,6 @@ inline fn __xmssmt_core_seed_keypair(
     // memcpy(sk + 3 * params->n, seed + 2 * params->n, params->n);
     sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N] = 
         _x_memcpy_u8u8<XMSS_N, XMSS_N>(sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N], seed[2*XMSS_N : XMSS_N]);
-    // sk = #randombytes(sk);
 
     // memcpy(pk + params->n, sk + 3*params->n, params->n);
     pk[XMSS_N : XMSS_N] = 
@@ -292,12 +290,12 @@ inline fn __xmssmt_core_seed_keypair(
 
     // treehash(params, pk, auth_path, sk, pk + params->n, 0, top_tree_addr);
     () = #spill(pk, sk);
-    buf, _ = __treehash_(buf, auth_path, sk[XMSS_INDEX_BYTES : XMSS_N], pk[XMSS_N : XMSS_N], 0, top_tree_addr);
+    root, _ = __treehash_(root, auth_path, sk[XMSS_INDEX_BYTES : XMSS_N], pk[XMSS_N : XMSS_N], 0, top_tree_addr);
     
     // memcpy(sk + 2*params->n, pk, params->n);
     () = #unspill(pk, sk);
 
-    for i=0 to XMSS_N { pk[i] = buf[i]; }
+    for i=0 to XMSS_N { pk[i] = root[i]; }
 
     for i=0 to XMSS_N { sk[XMSS_INDEX_BYTES + 2 * XMSS_N + i] = pk[i]; }
 

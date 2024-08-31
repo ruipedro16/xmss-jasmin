@@ -16,9 +16,7 @@ inline fn __l_tree(
     stack u8[2 * XMSS_N] buf1;
 
     reg u32 tree_index height;
-    reg u64 t l parent_nodes;
-    reg u64 offset_in offset_out bytes;
-    reg u64 i in_index out_index;
+    reg u64 i t l parent_nodes offset_in offset_out bytes;
 
     reg ptr u8[XMSS_N] tmp;
 
@@ -162,13 +160,10 @@ inline fn __compute_root(
 {
     stack u8[2 * XMSS_N] buffer;
     stack u8[2 * XMSS_N] thash_in;
-    stack u8[2 * XMSS_N] debug;
 
     reg u32 t32 tree_height;
-    reg u64 offset_out len;
 
     reg u64 i;
-    inline int j;
 
     stack u64 auth_path_ptr;
 

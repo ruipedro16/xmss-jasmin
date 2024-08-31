@@ -253,8 +253,7 @@ inline fn __wots_checksum(
     stack u8[(XMSS_WOTS_LEN2 * XMSS_WOTS_LOG_W + 7) / 8] csum_bytes;
     reg ptr u8[(XMSS_WOTS_LEN2 * XMSS_WOTS_LOG_W + 7) / 8] csum_bytes_p;
 
-    reg u64 i;
-    reg u64 csum t u;
+    reg u64 csum u;
 
     inline int k;
 
