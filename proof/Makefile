@@ -1,7 +1,5 @@
 # -*- Makefile -*-
 
-# Install jq with sudo apt-get install jq
-
 EASYCRYPT  ?= easycrypt
 EC_INCLUDE ?= -I common -I extraction -I spec -I correctness
 EC_FN      ?= -ec xmss_keypair_jazz -ec xmss_sign_jazz -ec xmss_sign_open_jazz

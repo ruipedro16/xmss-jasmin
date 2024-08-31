@@ -3,15 +3,16 @@ pragma Goals : printall.
 require import AllCore List.
 from Jasmin require import JModel.
 
-require import Types Address Notation Primitives Wots.
+require import Types Address Notation Primitives Wots XMSS_MT_PRF.
+require import Utils.
 require import XMSS_IMPL.
 
-require import Array32 Array64 Array2144.
+require import Array32 Array64 Array136 Array320 Array2144.
 
 require import BitEncoding.
 (*---*) import BitChunking.
 
-(*---*) import NBytes.
+(*---*) import NBytes AuthPath.
 
 (*****) import StdBigop.Bigint.
 
@@ -219,13 +220,55 @@ op sig_from_ptr_list (mem : global_mem_t) (ptr : W64.t) : W8.t list =
 (*******************                        XMSS                                *******************)
 (**************************************************************************************************)
 
-require import Array320.
-import AuthPath. 
-
 op EncodeAuthPath (x : W8.t Array320.t) : auth_path = chunk 32 (to_list x). 
+
+(*
+SK = OID || IDX || SK SEED || SK PRF || PUB SEED || ROOT (In the spec, the OID is ommited)
+
+OID & IDX are 4 bytes each 
+SK SEEDK SK PRF PUB SEED & ROOT are n bytes each, with n = 32
+
+OID      | goes from index 0   to 3   (4  bytes) [0,   3]
+IDX      | goes from index 4   to 7   (4  bytes) [4,   7]
+SK SEED  | goes from index 8   to 39  (32 bytes) [8,   39]
+SK PRF   | goes from index 40  to 71  (32 bytes) [40,  71]
+PUB SEED | goes from index 72  to 103 (32 bytes) [72,  103]
+ROOT     | goes from index 104 to 135 (32 bytes) [104, 134]
+*)
+op EncodeSk (x : W8.t Array136.t) : xmss_mt_sk = {| idx         = W32ofBytes (sub x 4 4);
+                                                    sk_seed     = sub x 8 32; 
+                                                    sk_prf      = sub x 40 32;
+                                                    pub_seed_sk = sub x 72 32;
+                                                    sk_root     = sub x 104 32 
+                                                 |}.
+
+require import Array68.
+
+(*
+PK = OID || ROOT || PUB SEED (Both the spec and the impl have the oid)
+
+OID is 4 bytes
+ROOT & PUB SEED are both n bytes each, with n = 32
+
+OID      | goes from index 0 to 3   (4  bytes) [0,  3]
+PUB SEED | goes from index 4 to 35  (32 bytes) [4,  35] 
+ROOT     | goes from index 36 to 67 (32 bytes) [36, 67]
+
+*)
+op EncodePk (x : W8.t Array68.t) : xmss_mt_pk = {| pk_oid      = W32ofBytes (sub x 0 4);
+                                                   pk_root     = sub x 4 32; 
+                                                   pk_pub_seed = sub x 36 32; 
+                                                 |}.
+                                             
 
 op DecodeAuthPath (x : auth_path) : W8.t Array320.t = Array320.of_list witness (flatten x).
 
+op DecodeSk (x : xmss_mt_sk) : W8.t Array136.t = 
+  Array136.of_list witness (W32toBytes impl_oid ++ W32toBytes x.`idx ++ x.`sk_seed ++ 
+                            x.`sk_prf ++ x.`pub_seed_sk ++ x.`sk_root).
+
+op DecodePk (x : xmss_mt_pk) : W8.t Array68.t = 
+  Array68.of_list witness (W32toBytes impl_oid ++ x.`pk_root ++ x.`pk_pub_seed).
 
 (*** Lemmas about authentication path ***)
 
@@ -253,7 +296,7 @@ move => Hy.
 have ?: size y = 10 by rewrite Hy; apply size_enc_authpath. 
 have ?: forall (t : W8.t list), t \in y => size t = 32 by rewrite Hy; apply ssize_enc_authpath. 
 rewrite /DecodeAuthPath Hy /EncodeAuthPath. 
-apply tP. 
+rewrite tP. 
 move => ??. 
 rewrite get_of_list; 1:assumption.  
 rewrite chunkK;[ by [] | by rewrite size_to_list | by rewrite get_to_list ].
@@ -279,3 +322,41 @@ lemma enc_dec_auth_path (x : W8.t Array320.t) (y : auth_path) :
       (forall (t : W8.t list), t \in y => size t = 32) =>
         x = DecodeAuthPath y <=> y = EncodeAuthPath x
           by move => ??; split; [ apply enc_dec_auth_path_l | apply enc_dec_auth_path_r ].
+
+(*** Lemmas about sk ***)
+
+lemma enc_dec_sk_l (x : W8.t Array136.t) (y : xmss_mt_sk) :
+    x = DecodeSk y => y = EncodeSk x.
+proof.
+rewrite /EncodeSk /DecodeSk.
+admit.
+qed.
+
+lemma enc_dec_sk_r (x : W8.t Array136.t) (y : xmss_mt_sk) :
+    size y.`sk_seed     = 32 /\
+    size y.`sk_prf      = 32 /\
+    size y.`pub_seed_sk = 32 =>
+    y = EncodeSk x => x = DecodeSk y.
+proof.
+move => [#] H0 H1 H2 Hy.
+rewrite /DecodeSk /EncodeSk. 
+rewrite tP.
+move => i Hi.
+rewrite get_of_list; 1:assumption. 
+rewrite !nth_cat !size_cat !size_W32toBytes H0 H1 H2 //=.
+case (i < 104); last by smt(@List @Array136). 
+move => ?; case (i < 72); last by smt(@List @Array136). 
+move => ?; case (i < 40); last by smt(@List @Array136). 
+move => ?; case (i < 8); last by smt(@List @Array136). 
+move => ?; case (i < 4); move => H. 
+  + admit.
+  + admit.
+qed.
+
+
+lemma enc_dec_sk (x : W8.t Array136.t) (y : xmss_mt_sk) :
+    size y.`sk_seed = 32 /\ 
+    size y.`sk_prf = 32 /\ 
+    size y.`pub_seed_sk = 32 =>
+    x = DecodeSk y <=> y = EncodeSk x
+      by move => ?; split; [apply enc_dec_sk_l | apply enc_dec_sk_r; assumption]. 

@@ -6,7 +6,9 @@ from Jasmin require import JModel JArray.
 require import Types Params Parameters Address Notation Hash Primitives Wots XMSS_MT_PRF.
 require import XMSS_IMPL.
 require import Repr. 
-require import Array8 Array32 Array64 Array2144.
+
+require import Array8 Array32 Array64 Array352 Array2144.
+require import WArray32.
 
 (*---*) import NBytes.
 
@@ -15,6 +17,34 @@ require import Utils.
 
 require import BitEncoding.
 (*---*) import BitChunking.
+
+(*** Treehash kg ***)
+
+lemma treehash_kg_correct :
+    equiv [
+      M(Syscall).__treehash ~ TreeHash.treehash :
+      true
+      ==>
+      to_list res{1}.`1 = res{2}.`1 (* we ignore the second part of the result in the proof for kg *)
+    ].
+proof.
+proc.
+seq 7 0 : (#pre); first by auto.
+admit.
+qed.
+
+(*** Key Gen ***)
+
+lemma xmss_kg_correct :
+    equiv [
+      M(Syscall).xmss_keypair_jazz ~ XMSS_MT_PRF.kg:
+      true
+      ==>
+      true
+    ].
+proof.
+proc.
+
 
 (*** L Tree ***)
 

@@ -15,6 +15,19 @@ import NBytes.
 
 (** -------------------------------------------------------------------------------------------- **)
 
+op concatMap (f: 'a -> 'b list) (a: 'a list): 'b list = flatten (map f a).
+op W32ofBytes (bytes : W8.t list) : W32.t = W32.bits2w (concatMap W8.w2bits bytes).
+op W32toBytes (x : W32.t) : W8.t list = map W8.bits2w (chunk W8.size (W32.w2bits x)).
+
+(** -------------------------------------------------------------------------------------------- **)
+
+lemma set0_res : set0_64_.`6 = W64.zero by rewrite /set0_64_ //.
+
+lemma size_W32toBytes (x : W32.t) : size (W32toBytes x) = 4
+    by rewrite /W32toBytes size_map size_chunk 1:// /w2bits size_mkseq //.
+
+(** -------------------------------------------------------------------------------------------- **)
+
 (*** ------------------------ ***)
 (*** outlen=320 /\ inlen=352  ***)
 (*** ------------------------ ***)
