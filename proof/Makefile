@@ -29,7 +29,7 @@ extraction/XMSS_IMPL.ec: | extraction/ common/
 	$(JASMIN) $(JFLAGS) $(EC_FN) -oec $@ $(@:.ec=.jazz)
 	mv Array*.ec common/
 	mv WArray*.ec common/
-	$(RM) extraction/XMSS_IMPL.jazz
+	-$(RM) extraction/XMSS_IMPL.jazz
 
 # --------------------------------------------------------------------------------------------------
 
@@ -66,14 +66,14 @@ typecheck_proofs: extraction/XMSS_IMPL.ec
 
 .PHONY: clean
 clean:
-	$(RM) -r *.eco
-	$(RM) -r *~ 
-	$(RM) -r \#*\#
+	-$(RM) -r *.eco
+	-$(RM) -r *~ 
+	-$(RM) -r \#*\#
 
 
 .PHONY: distclean
 distclean:	
-	$(RM) -r extraction/XMSS_IMPL.ec common/
+	-$(RM) -r extraction/XMSS_IMPL.ec common/
 
 # --------------------------------------------------------------------------------------------------
 

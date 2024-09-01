@@ -119,8 +119,8 @@ bin/:
 
 .PHONY: clean
 clean:
-	$(RM) -r bin/
-	$(RM) -r *.txt
+	-$(RM) -r bin/
+	-$(RM) -r *.txt
 
 .PHONY: clean_executables
 clean_executables:

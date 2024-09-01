@@ -44,12 +44,12 @@ bin/test_hash_address: bin/test_hash_address.s | bin/
 bin/test_hash_address.check_ct: test_hash_address.jazz | bin/
 	$(JPP) $(JINCLUDE) -in $< -out $@
 	$(JAZZCT) --infer $@
-	$(RM) $@
+	-$(RM) $@
 
 bin/test_hash_address.check_sct: test_hash_address.jazz | bin/
 	$(JPP) $(JINCLUDE) -in $< -out $@
 	$(JAZZCT) --sct --infer $@
-	$(RM) $@
+	-$(RM) $@
 
 bin/test_hash_address.out: bin/test_hash_address
 	@./$<
@@ -61,4 +61,4 @@ bin/:
 
 .PHONY: clean
 clean:
-	$(RM) -r bin/
+	-$(RM) -r bin/

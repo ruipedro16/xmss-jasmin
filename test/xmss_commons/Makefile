@@ -102,7 +102,7 @@ bin/:
 
 .PHONY: clean
 clean:
-	$(RM) -r bin/
+	-$(RM) -r bin/
 
 .PHONY: clean_executables
 clean_executables:

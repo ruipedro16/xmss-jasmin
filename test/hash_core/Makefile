@@ -87,4 +87,4 @@ bin/:
 
 .PHONY: clean
 clean:
-	$(RM) -r bin/
+	-$(RM) -r bin/

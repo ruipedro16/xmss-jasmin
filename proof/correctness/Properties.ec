@@ -64,7 +64,7 @@ lemma base_w_bounds (t : W8.t list) (il ol : int):
     hoare [ 
         BaseW.base_w : 
         arg = (t, ol)
-        ==> (*       (forall (k : int), 0 <= k < l => 0 <= nth witness res k < w) *)
+        ==>
         forall (x : int), x \in res => 0 <= x < w
       ].
 proof.
@@ -79,8 +79,7 @@ while (
   out = consumed /\
   0 <= consumed <= outlen /\
   (forall (k : int), 0 <= k < consumed => 0 <= nth witness base_w k < w)
-); last first. 
-    + auto => /> &hr *;  smt(). 
+); last by auto => /> /#. 
 if.
 (* proof for first subgoal begins here *)
 auto => /> &hr *.
