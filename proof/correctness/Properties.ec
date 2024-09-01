@@ -59,6 +59,7 @@ if; auto => /> *; by rewrite size_put.
 qed.
 
 lemma base_w_bounds (t : W8.t list) (il ol : int):
+    w = 16 =>
     0 < il /\ 0 < ol /\ size t = il =>
     hoare [ 
         BaseW.base_w : 
@@ -67,27 +68,33 @@ lemma base_w_bounds (t : W8.t list) (il ol : int):
         forall (x : int), x \in res => 0 <= x < w
       ].
 proof.
-move => [#] ???.
+move => w_val [#] ???.
 conseq (:_ ==> (forall (k : int), 0 <= k < size res => 0 <= nth witness res k < w)); first by auto => /> *; smt(@List). 
 proc.
 auto.
 seq 6 : (#pre /\ out = 0 /\ size base_w = ol /\ consumed = 0); first by auto => /> *; rewrite size_nseq /#.
 while (
   0 < outlen /\
-  size base_w = ol /\
+  size base_w = outlen /\
   out = consumed /\
   0 <= consumed <= outlen /\
   (forall (k : int), 0 <= k < consumed => 0 <= nth witness base_w k < w)
 ); last first. 
     + auto => /> &hr *;  smt(). 
 if.
-admit.
-auto => /> &hr *. 
-rewrite size_put. do split; 1,2:smt(). 
-move => k Hk0 Hk1.
-split. 
-    + rewrite nth_put. split; [smt() |]. admit. case (consumed{hr} = k); admit.
-    + rewrite nth_put. split; [smt() |]. admit. case (consumed{hr} = k).
-       - move => *. admit.
-    + smt(@List). 
+(* proof for first subgoal begins here *)
+auto => /> &hr *.
+do split;2,3:smt(); [ by rewrite size_put |]. 
+move => k *.
+have ->: w = 2^4 by smt(). 
+have ->: floor (log2 (2 ^ 4)%r) = 4 by admit.
+split; rewrite nth_put 1:/# and_mod 1:/# shr_div /#. 
+(* proof for first subgoal ends here *)
+auto => /> &hr *.
+rewrite size_put.
+do split; 1,2:smt().
+move => k *.
+have ->: w = 2^4 by smt(). 
+have ->: floor (log2 (2 ^ 4)%r) = 4 by admit.
+split; rewrite nth_put 1:/# and_mod 1:/# shr_div /#.
 qed.
