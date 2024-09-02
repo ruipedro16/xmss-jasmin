@@ -11,8 +11,6 @@ require import XMSS_IMPL Util.
 require import Array8 Array32 Array64 Array320 Array352.
 require import Types Params Parameters Address Notation.
 
-import NBytes.
-
 (** -------------------------------------------------------------------------------------------- **)
 
 op concatMap (f: 'a -> 'b list) (a: 'a list): 'b list = flatten (map f a).

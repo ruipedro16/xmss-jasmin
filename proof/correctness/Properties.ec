@@ -12,7 +12,7 @@ require import Array2 Array3 Array8 Array32 Array64 Array67 Array96 Array2144.
 
 require import Utils. (* valid ptr predicate & addr_to_bytes *)
 require import Correctness_Mem Correctness_Hash. 
-(*---*) import NBytes.
+
 
 require import Termination Repr.
 
@@ -60,11 +60,12 @@ while (#pre); last by skip.
 if; auto => /> *; by rewrite size_put. 
 qed.
 
-lemma foo (a b : int) : 0 < b => a%r ^ b%r = (a ^ b)%r.
+lemma foo (a b : int) : 0 < a /\ 0 < b => a%r ^ b%r = (a ^ b)%r.
 proof.
-move => ?.
+move => [#] ? ?.
 rewrite -RField.fromintXn 1:/#.
-admit.
+(* rewrite RealOrder.Domain.expr_pred 1:/#. *)
+admit. 
 qed.
 
 hint simplify foo. 

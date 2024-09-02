@@ -7,8 +7,6 @@ require import Types Params Notation Address Primitives Hash Params Utils.
 
 require import Array8.
 
-import NBytes.
-
 module WOTS = {
   (* In practise, we generate the private key from a secret seed *)
   proc genSK() : wots_sk = {
@@ -66,7 +64,7 @@ module WOTS = {
   proc genPK(sk : wots_sk, _seed : seed, address : adrs) : wots_pk * adrs = {
     var pk : wots_pk <- nseq len (nseq n W8.zero);
     var i : int <- 0;
-    var pk_i, sk_i : nbytes;
+    var pk_i, sk_i : nbytes <- nseq n W8.zero;
 
     while (i < len) {
       address <- set_chain_addr address i;
@@ -84,7 +82,7 @@ module WOTS = {
     var pk : wots_pk <- nseq len (nseq n W8.zero);
     var wots_skey : wots_sk <- nseq len (nseq n W8.zero);
     var i : int <- 0;
-    var pk_i, sk_i : nbytes;
+    var pk_i, sk_i : nbytes <- nseq n W8.zero;
 
     (wots_skey, address) <@ pseudorandom_genSK(sk_seed, _seed, address); (* Generate sk from the secret key *)
     while (i < len) {

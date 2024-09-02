@@ -10,7 +10,7 @@ require import Repr.
 require import Array8 Array32 Array64 Array352 Array2144.
 require import WArray32.
 
-(*---*) import NBytes.
+
 
 require import Correctness_Mem Correctness_Hash.
 require import Utils.

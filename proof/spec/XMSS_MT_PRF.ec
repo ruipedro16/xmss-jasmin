@@ -7,7 +7,7 @@ from Jasmin require import JModel.
  
 require import Types Params Notation Parameters Address Hash Primitives Wots Util.
  
-import NBytes OTSKeys Three_NBytes AuthPath.
+import OTSKeys Three_NBytes AuthPath.
 import Array8.
 
 (**********************************************************************************************)

@@ -5,7 +5,6 @@ from Jasmin require import JModel.
 
 require import Params Notation Parameters Address Primitives Wots.
 
-import NBytes.
 import Array8.
 
 clone import Subtype as Bitmask with 

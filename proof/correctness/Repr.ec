@@ -12,7 +12,7 @@ require import Array32 Array64 Array136 Array320 Array2144.
 require import BitEncoding.
 (*---*) import BitChunking.
 
-(*---*) import NBytes AuthPath.
+(*---*) import AuthPath.
 
 (*****) import StdBigop.Bigint.
 

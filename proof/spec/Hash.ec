@@ -8,8 +8,6 @@ from Jasmin require import JModel.
 
 require import Types Params Util Utils Address.
 
-import NBytes.
-
 op Hash : W8.t list -> W8.t list.
 
 op prf_padding_val : W64.t.

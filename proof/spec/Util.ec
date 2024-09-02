@@ -7,7 +7,7 @@ require import BitEncoding.
 from Jasmin require import JModel.
 
 require import Types.
-(*---*) import NBytes.
+
 
 op nbytexor(a b : nbytes) : nbytes = 
     map (fun (ab : W8.t * W8.t) => ab.`1 `^` ab.`2) (zip a b).

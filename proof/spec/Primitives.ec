@@ -7,8 +7,6 @@ from Jasmin require import JModel.
 require import Types Params Notation Address Hash Util Utils.
 require import Array8.
 
-import NBytes.
-
 module Chain = {
    proc chain(X : nbytes, i s : int, _seed : seed, address : adrs) : nbytes * adrs = {
       (*

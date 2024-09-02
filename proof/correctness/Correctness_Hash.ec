@@ -8,7 +8,7 @@ require import Types Address Notation Hash Primitives Params Parameters Utils Ut
 require import Correctness_Mem.
 
 require import Array8 Array32 Array64 Array96 Array128.
-(*---*) import NBytes.
+
 
 axiom hash_96 (x : W8.t Array96.t) :
     phoare[M(Syscall).__core_hash_96 : arg.`2 = x ==> to_list res = Hash (to_list x)] = 1%r.
