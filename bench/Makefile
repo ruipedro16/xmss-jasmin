@@ -42,4 +42,4 @@ asm/:
 
 .PHONY: clean
 clean:
-	$(RM) -r asm/ bin/
+	-$(RM) -r asm/ bin/

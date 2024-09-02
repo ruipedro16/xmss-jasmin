@@ -1,6 +1,8 @@
 pragma Goals : printall.
 
-require import AllCore List RealExp IntDiv.
+require import AllCore List RealExp IntDiv StdOrder.
+(*---*) import IntOrder.
+
 from Jasmin require import JModel JArray.
 
 require import Types Params Parameters Address Notation Primitives Hash Wots Util.
@@ -58,8 +60,16 @@ while (#pre); last by skip.
 if; auto => /> *; by rewrite size_put. 
 qed.
 
+lemma foo (a b : int) : 0 < b => a%r ^ b%r = (a ^ b)%r.
+proof.
+move => ?.
+rewrite -RField.fromintXn 1:/#.
+admit.
+qed.
+
+hint simplify foo. 
+
 lemma base_w_bounds (t : W8.t list) (il ol : int):
-    w = 16 =>
     0 < il /\ 0 < ol /\ size t = il =>
     hoare [ 
         BaseW.base_w : 
@@ -68,7 +78,8 @@ lemma base_w_bounds (t : W8.t list) (il ol : int):
         forall (x : int), x \in res => 0 <= x < w
       ].
 proof.
-move => w_val [#] ???.
+have w_val : w = 4 \/ w = 16 by smt(w_vals).
+move => [#] ???.
 conseq (:_ ==> (forall (k : int), 0 <= k < size res => 0 <= nth witness res k < w)); first by auto => /> *; smt(@List). 
 proc.
 auto.
@@ -79,21 +90,45 @@ while (
   out = consumed /\
   0 <= consumed <= outlen /\
   (forall (k : int), 0 <= k < consumed => 0 <= nth witness base_w k < w)
-); last by auto => /> /#. 
+); last by auto => /> /#.
 if.
 (* proof for first subgoal begins here *)
 auto => /> &hr *.
 do split;2,3:smt(); [ by rewrite size_put |]. 
 move => k *.
-have ->: w = 2^4 by smt(). 
-have ->: floor (log2 (2 ^ 4)%r) = 4 by admit.
-split; rewrite nth_put 1:/# and_mod 1:/# shr_div /#. 
+case (w = 16).
+    - move => ?. 
+      have ->: w = 2^4 by smt(). 
+      have ->: floor (log2 (2 ^ 4)%r) = 4.
+        + simplify.
+          have ->: 16%r = 2%r ^ 4%r by simplify.
+          rewrite /log2 logK 1,2:/# from_int_floor //.
+      split; rewrite nth_put 1:/# and_mod 1:/# shr_div /#. 
+    - move => ?.
+      have ->: w = 2 ^ 2 by smt(). 
+      have ->: floor (log2 (2 ^ 2)%r) = 2.
+        + simplify.
+          have ->: 4%r = 2%r ^ 2%r by simplify.
+          rewrite /log2 logK 1,2:/# from_int_floor //.
+      split; rewrite nth_put 1:/# and_mod 1:/# shr_div /#. 
 (* proof for first subgoal ends here *)
 auto => /> &hr *.
 rewrite size_put.
 do split; 1,2:smt().
 move => k *.
-have ->: w = 2^4 by smt(). 
-have ->: floor (log2 (2 ^ 4)%r) = 4 by admit.
-split; rewrite nth_put 1:/# and_mod 1:/# shr_div /#.
+case (w = 16).
+    - move => ?. 
+      have ->: w = 2^4 by smt().
+      have ->: floor (log2 (2 ^ 4)%r) = 4.
+        + simplify.
+          have ->: 16%r = 2%r ^ 4%r by simplify.
+          rewrite /log2 logK 1,2:/# from_int_floor //.
+      split; rewrite nth_put 1:/# and_mod 1:/# shr_div /#.
+    - move => ?. 
+      have ->: w = 2 ^ 2 by smt(). 
+      have ->: floor (log2 (2 ^ 2)%r) = 2.
+        + simplify.
+          have ->: 4%r = 2%r ^ 2%r by simplify.
+          rewrite /log2 logK 1,2:/# from_int_floor //.
+      split; rewrite nth_put 1:/# and_mod 1:/# shr_div /#. 
 qed.
