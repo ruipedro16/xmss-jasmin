@@ -298,7 +298,7 @@ module XMSS_MT_PRF = {
       var pk : xmss_mt_pk <- witness;
       var sk : xmss_mt_sk <- witness;
 
-      var sk_seed, sk_prf, pub_seed, root : nbytes;
+      var sk_seed, sk_prf, pub_seed, root : nbytes <- nseq n W8.zero;
 
       var address : adrs <- zero_address;
       

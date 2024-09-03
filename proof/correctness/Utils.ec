@@ -13,6 +13,50 @@ require import Types Params Parameters Address Notation.
 
 (** -------------------------------------------------------------------------------------------- **)
 
+lemma all_put ['a] (x : 'a list) (y : 'a) (p : 'a -> bool) (i : int) :
+    0 <= i < size x => p y =>
+    (forall (t : 'a), t \in x => p t) => 
+    (forall (t : 'a), t \in (put x i y) => p t) by smt(@List).   
+
+
+lemma all_take ['a] (x : 'a list) (p : 'a -> bool) (i : int) :
+    0 <= i < size x =>
+    (forall (t : 'a), t \in x => p t) => 
+      (forall (u : 'a), u \in take i x => p u) by smt(@List).
+
+
+(** -------------------------------------------------------------------------------------------- **)
+
+(* TODO: FIXME: Refactor the 32 out of this *)
+lemma size_size (x : W8.t list list) :
+	(forall (k : int), 0 <= k < size x => size (nth witness x k) = 32) => 
+		all (fun (s : W8.t list) => size s = 32) x
+                  by rewrite (all_nthP (fun (s : W8.t list) => size s = 32) x).
+
+lemma size_all (x : W8.t list list)  :
+  (all (fun (s : W8.t list) => size s = 32) x) =
+    (forall (t0 : W8.t list), t0 \in x => 32 = size t0)
+      by smt(@List). 
+
+lemma size_all_r (x : W8.t list list)  :
+  (all (fun (s : W8.t list) => size s = 32) x) =
+    (forall (t0 : W8.t list), t0 \in x => size t0 = 32)
+      by smt(@List). 
+
+(** -------------------------------------------------------------------------------------------- **)
+
+lemma simplify_pow (a b : int) : 
+    0 < a /\ 0 < b => 
+      a%r ^ b%r = (a ^ b)%r.
+proof.
+move => [#] ??.
+rewrite -RField.fromintXn 1:/# #smt:(@RealExp).
+qed.
+
+hint simplify simplify_pow. 
+
+(** -------------------------------------------------------------------------------------------- **)
+
 op concatMap (f: 'a -> 'b list) (a: 'a list): 'b list = flatten (map f a).
 op W32ofBytes (bytes : W8.t list) : W32.t = W32.bits2w (concatMap W8.w2bits bytes).
 op W32toBytes (x : W32.t) : W8.t list = map W8.bits2w (chunk W8.size (W32.w2bits x)).

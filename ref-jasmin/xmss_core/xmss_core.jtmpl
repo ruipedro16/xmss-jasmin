@@ -295,9 +295,9 @@ inline fn __xmssmt_core_seed_keypair(
     // memcpy(sk + 2*params->n, pk, params->n);
     () = #unspill(pk, sk);
 
-    for i=0 to XMSS_N { pk[i] = root[i]; }
-
-    for i=0 to XMSS_N { sk[XMSS_INDEX_BYTES + 2 * XMSS_N + i] = pk[i]; }
+    // set the field root
+    pk = __nbytes_copy_offset<XMSS_PK_BYTES, XMSS_N>(pk, 0, root, 0);
+    sk = __nbytes_copy_offset<XMSS_SK_BYTES, XMSS_N>(sk, XMSS_INDEX_BYTES + 2 * XMSS_N, root, 0);
 
     return pk, sk;
 }

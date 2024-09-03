@@ -67,7 +67,7 @@ while (
 - split; 1:smt(); move => *. smt.
 qed.
 
-lemma p_memset_zero_post (x : W8.t Array4.t) :
+lemma p_memset_zero_post :
     phoare[M(Syscall).__memset_zero_u8 : true ==> forall (k : int), 0 <= k < 4 => (res.[k] = W8.zero)] = 1%r.
 proof.
 conseq memset_zero_ll memset_zero_post.

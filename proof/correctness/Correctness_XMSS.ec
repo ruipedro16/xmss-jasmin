@@ -1,16 +1,14 @@
 pragma Goals : printall.
 
-require import AllCore List RealExp IntDiv.
+require import AllCore List RealExp IntDiv Distr DList.
 from Jasmin require import JModel JArray.
 
 require import Types Params Parameters Address Notation Hash Primitives Wots XMSS_MT_PRF.
 require import XMSS_IMPL.
 require import Repr. 
 
-require import Array8 Array32 Array64 Array352 Array2144.
-require import WArray32.
-
-
+require import Array4 Array8 Array32 Array64 Array68 Array96 Array136 Array352 Array2144.
+require import WArray32 WArray136.
 
 require import Correctness_Mem Correctness_Hash.
 require import Utils.
@@ -35,15 +33,132 @@ qed.
 
 (*** Key Gen ***)
 
+
+
+lemma toByteZero : toByte W32.zero 4 = nseq 4 W8.zero.
+proof.
+rewrite /toByte.
+admit.
+qed.
+
+
+lemma xmss_kg_no_oid : 
+    n = XMSS_N =>
+    equiv [
+      M(Syscall).__xmssmt_core_keypair ~ XMSS_MT_PRF.kg :
+      true 
+      ==>
+(*      res{2}.`1 = EncodeSk_NoOID res{1}.`2 /\
+      res{2}.`2 = EncodePk_NoOID res{1}.`1
+*)
+      true
+    ].
+proof.
+move => ?. 
+proc.
+seq 3 2 : (true); first by auto.
+seq 0 4 : (
+  #pre /\
+  size sk_seed{2}  = n /\
+  size sk_prf{2}   = n /\
+  size pub_seed{2} = n /\
+  size root{2}     = n
+); first by auto => />; rewrite size_nseq /#.
+swap {2} [2..4] -1.
+seq 1 3 : (
+  #pre /\
+  to_list seed_p{1} = sk_seed{2} ++ sk_prf{2} ++ pub_seed{2}
+).
+    + inline {1}.
+
+print dapply.
+print dmap.
+
+
+ admit.
+inline {1} M(Syscall).__xmssmt_core_seed_keypair.
+sp 3 0.
+seq 4 0 : (#pre); first by auto. 
+seq 2 1 : (#pre /\ address{2} = top_tree_addr{1}). (* FIXME: on the spec we should also set the layer addr *)
+    + admit.
+
+print Array4.of_list.
+print toByte.
+seq 1 0 : ( (* sets the index bytes to zero *)
+    #pre /\ 
+    aux{1} = Array4.of_list witness (toByte W32.zero 4)
+).
+    + admit. (* new lemma *)
+
+
+admit.
+qed.
+
+lemma toByteZero : toByte W32.zero 4 = nseq 4 W8.zero.
+proof.
+rewrite /toByte.
+admit.
+
+
+
 lemma xmss_kg_correct :
     equiv [
       M(Syscall).xmss_keypair_jazz ~ XMSS_MT_PRF.kg:
       true
       ==>
-      true
+      res{2}.`1 = EncodeSk res{1}.`2 /\
+      res{2}.`2 = EncodePk res{1}.`1
     ].
 proof.
 proc.
+seq 1 13 : (#post); last by auto.
+seq 0 6 : (
+  size sk_seed{2}  = n /\
+  size sk_prf{2}   = n /\
+  size pub_seed{2} = n
+); first by auto => />; rewrite size_nseq #smt:(ge0_n).  
+inline {1} M(Syscall).__xmss_keypair.
+seq 2 0 : (#pre); first by auto.
+seq 4 0 : (#pre /\ oid{1} = BSWAP_32 W32.one).
+  + auto. 
+
+
+
+
+(* This needs to be changed accordingly *)
+inline M(Syscall).__xmssmt_core_keypair_ M(Syscall)._xmssmt_core_keypair M(Syscall).__xmssmt_core_keypair.
+seq 11 0 : (#pre); first by auto.  (* E possivel que isto esteja errado *)
+seq 0 1 : (#pre /\ address{2} = zero_address); first by auto.
+seq 1 3 : (#pre /\ to_list seed_p{1} = sk_seed{2} ++ sk_prf{2} ++ pub_seed{2}).
+  + inline {1}; sp; auto => />. 
+(*
+    rnd () (Array96.of_list witness).
+    auto => /> *; do split. 
+     - move => ?. rewrite of_listK
+*)
+admit.
+inline  M(Syscall).__xmssmt_core_seed_keypair.
+
+
+
+seq 9 3 : (#pre). (* this pre is wrong *)
+  + admit.
+seq 0 1 : (#pre /\ sk{2} = EncodeSk sk{1}).
+  + admit.
+seq 0 1 : (#post); last by skip. 
+  + admit.
+qed.
+
+
+
+
+
+
+
+
+
+
+
 
 
 (*** L Tree ***)

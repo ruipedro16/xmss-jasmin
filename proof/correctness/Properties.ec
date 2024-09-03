@@ -1,7 +1,6 @@
 pragma Goals : printall.
 
-require import AllCore List RealExp IntDiv StdOrder.
-(*---*) import IntOrder.
+require import AllCore List RealExp IntDiv.
 
 from Jasmin require import JModel JArray.
 
@@ -10,7 +9,7 @@ require import XMSS_IMPL.
 
 require import Array2 Array3 Array8 Array32 Array64 Array67 Array96 Array2144.
 
-require import Utils. (* valid ptr predicate & addr_to_bytes *)
+require import Utils. (* valid ptr predicate & addr_to_bytes & simplify_pow hint *)
 require import Correctness_Mem Correctness_Hash. 
 
 
@@ -60,16 +59,6 @@ while (#pre); last by skip.
 if; auto => /> *; by rewrite size_put. 
 qed.
 
-lemma foo (a b : int) : 0 < a /\ 0 < b => a%r ^ b%r = (a ^ b)%r.
-proof.
-move => [#] ? ?.
-rewrite -RField.fromintXn 1:/#.
-(* rewrite RealOrder.Domain.expr_pred 1:/#. *)
-admit. 
-qed.
-
-hint simplify foo. 
-
 lemma base_w_bounds (t : W8.t list) (il ol : int):
     0 < il /\ 0 < ol /\ size t = il =>
     hoare [ 
@@ -102,14 +91,14 @@ case (w = 16).
       have ->: w = 2^4 by smt(). 
       have ->: floor (log2 (2 ^ 4)%r) = 4.
         + simplify.
-          have ->: 16%r = 2%r ^ 4%r by simplify.
+          have ->: 16%r = 2%r ^ 4%r by simplify. (* this uses hint simplify simplify_pow from Utils.ec *)
           rewrite /log2 logK 1,2:/# from_int_floor //.
       split; rewrite nth_put 1:/# and_mod 1:/# shr_div /#. 
     - move => ?.
       have ->: w = 2 ^ 2 by smt(). 
       have ->: floor (log2 (2 ^ 2)%r) = 2.
         + simplify.
-          have ->: 4%r = 2%r ^ 2%r by simplify.
+          have ->: 4%r = 2%r ^ 2%r by simplify. (* this uses hint simplify simplify_pow from Utils.ec *)
           rewrite /log2 logK 1,2:/# from_int_floor //.
       split; rewrite nth_put 1:/# and_mod 1:/# shr_div /#. 
 (* proof for first subgoal ends here *)
@@ -120,16 +109,17 @@ move => k *.
 case (w = 16).
     - move => ?. 
       have ->: w = 2^4 by smt().
-      have ->: floor (log2 (2 ^ 4)%r) = 4.
-        + simplify.
-          have ->: 16%r = 2%r ^ 4%r by simplify.
+      have ->: floor (log2 (2 ^ 4)%r) = 4. 
+        + simplify. 
+          have ->: 16%r = 2%r ^ 4%r by simplify. (* this uses hint simplify simplify_pow from Utils.ec *)
           rewrite /log2 logK 1,2:/# from_int_floor //.
       split; rewrite nth_put 1:/# and_mod 1:/# shr_div /#.
     - move => ?. 
       have ->: w = 2 ^ 2 by smt(). 
       have ->: floor (log2 (2 ^ 2)%r) = 2.
-        + simplify.
-          have ->: 4%r = 2%r ^ 2%r by simplify.
+        + simplify. 
+          have ->: 4%r = 2%r ^ 2%r by simplify. (* this uses hint simplify simplify_pow from Utils.ec *)
           rewrite /log2 logK 1,2:/# from_int_floor //.
       split; rewrite nth_put 1:/# and_mod 1:/# shr_div /#. 
 qed.
+
