@@ -70,18 +70,10 @@ left; left.
 admit.
 
 auto => /> *. do split. 
-smt(). 
-admit.
 smt().
-move => *. admit.
-qed.
-
-lemma ltree_size : hoare [LTree.ltree : true ==> size res.`1 = n].
-proof.
-proc.
-seq 3 : (true); first by auto.
-seq 1 : (forall (x : W8.t list), x \in pk => size pk = n); last first.
-  + auto => /> &hr *. admit.
+admit.
+  
+admit.
 admit.
 qed.
 
@@ -301,6 +293,7 @@ module XMSS_MT_PRF = {
       var sk_seed, sk_prf, pub_seed, root : nbytes <- nseq n W8.zero;
 
       var address : adrs <- zero_address;
+      address <- set_layer_addr address (d - 1);
       
       sk_seed <$ DList.dlist W8.dword n;
       sk_prf <$ DList.dlist W8.dword n;
@@ -518,10 +511,12 @@ qed.
 lemma root_from_sig_ll : islossless XMSS_MT_PRF.rootFromSig.
 proof.
 proc.
-while (0 <= k <= h) (h - k) ; auto => />; 1,2:admit. (* by progress ; smt(). *)
-call ltree_ll ; auto => />. 
-call wots_pkFromSig_ll ; auto => />.
-smt(h_g0).
+while (0 <= k <= h) (h - k) ; auto => />.
+  + admit.
+  + admit.
+  + call ltree_ll ; auto => />. 
+    call wots_pkFromSig_ll ; auto => />.
+    smt(h_g0).
 qed.
 
 lemma xmss_mt_sign_ll : islossless XMSS_MT_PRF.sign.

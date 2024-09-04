@@ -266,31 +266,44 @@ inline fn __xmssmt_core_seed_keypair(
 {
     stack u8[XMSS_TREE_HEIGHT * XMSS_N] auth_path;
     stack u32[8] top_tree_addr;
-    inline int i;
     stack u8[XMSS_N] root;
+
+    reg ptr u8[XMSS_INDEX_BYTES] idx;
+    reg ptr u8[2 * XMSS_N] buf0 buf1;
+    reg ptr u8[XMSS_N] bufn0 bufn1;
 
     top_tree_addr = __zero_address_(top_tree_addr);
 
     top_tree_addr =  __set_layer_addr(top_tree_addr, XMSS_D - 1);
     
     // memset(sk, 0, params->index_bytes);
-    sk[0 : XMSS_INDEX_BYTES] = __memset_zero_u8(sk[0 : XMSS_INDEX_BYTES]);
+    idx = sk[0 : XMSS_INDEX_BYTES];
+    idx = __memset_zero_u8(idx);
+    sk[0 : XMSS_INDEX_BYTES] = idx;
     
     // memcpy(sk, seed, 2 * params->n);
-    sk[XMSS_INDEX_BYTES : 2 * XMSS_N] = 
-        _x_memcpy_u8u8<2*XMSS_N, 2*XMSS_N>(sk[XMSS_INDEX_BYTES : 2 * XMSS_N], seed[0 : 2 * XMSS_N]);
+    buf0 = sk[XMSS_INDEX_BYTES : 2 * XMSS_N]; 
+    buf1 = seed[0 : 2 * XMSS_N];
+    buf0 = _x_memcpy_u8u8<2*XMSS_N, 2*XMSS_N>(buf0, buf1);
+    sk[XMSS_INDEX_BYTES : 2 * XMSS_N] = buf0;
 
     // memcpy(sk + 3 * params->n, seed + 2 * params->n, params->n);
-    sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N] = 
-        _x_memcpy_u8u8<XMSS_N, XMSS_N>(sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N], seed[2*XMSS_N : XMSS_N]);
+    bufn0 = sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N]; 
+    bufn1 = seed[2*XMSS_N : XMSS_N];
+    bufn0 = _x_memcpy_u8u8<XMSS_N, XMSS_N>(bufn0, bufn1);
+    sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N] = bufn0;
 
     // memcpy(pk + params->n, sk + 3*params->n, params->n);
-    pk[XMSS_N : XMSS_N] = 
-        _x_memcpy_u8u8<XMSS_N, XMSS_N>(pk[XMSS_N : XMSS_N], sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N]);
+    bufn0 = pk[XMSS_N : XMSS_N]; 
+    bufn1 = sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N];
+    bufn0 = _x_memcpy_u8u8<XMSS_N, XMSS_N>(bufn0, bufn1);
+    pk[XMSS_N : XMSS_N] = bufn0;
 
     // treehash(params, pk, auth_path, sk, pk + params->n, 0, top_tree_addr);
+    bufn0 = sk[XMSS_INDEX_BYTES : XMSS_N];
+    bufn1 = pk[XMSS_N : XMSS_N];
     () = #spill(pk, sk);
-    root, _ = __treehash_(root, auth_path, sk[XMSS_INDEX_BYTES : XMSS_N], pk[XMSS_N : XMSS_N], 0, top_tree_addr);
+    root, _ = __treehash_(root, auth_path, bufn0, bufn1, 0, top_tree_addr);
     
     // memcpy(sk + 2*params->n, pk, params->n);
     () = #unspill(pk, sk);

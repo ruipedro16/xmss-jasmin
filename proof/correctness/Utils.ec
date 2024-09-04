@@ -24,7 +24,6 @@ lemma all_take ['a] (x : 'a list) (p : 'a -> bool) (i : int) :
     (forall (t : 'a), t \in x => p t) => 
       (forall (u : 'a), u \in take i x => p u) by smt(@List).
 
-
 (** -------------------------------------------------------------------------------------------- **)
 
 (* TODO: FIXME: Refactor the 32 out of this *)
@@ -67,6 +66,60 @@ lemma set0_res : set0_64_.`6 = W64.zero by rewrite /set0_64_ //.
 
 lemma size_W32toBytes (x : W32.t) : size (W32toBytes x) = 4
     by rewrite /W32toBytes size_map size_chunk 1:// /w2bits size_mkseq //.
+
+(** -------------------------------------------------------------------------------------------- **)
+
+require import Array4.
+
+lemma memset_zero :
+    hoare [ M(Syscall).__memset_zero_u8 : true ==> to_list res = nseq 4 W8.zero].
+proof.
+proc.
+while (
+  0 <= to_uint i <= 4 /\
+  forall (k : int), 0 <= k < to_uint i => a.[k] = W8.zero
+).
+    + auto => /> &hr *; do split; 1,2:smt(@W64). 
+      move => k??. rewrite get_setE; first by smt(@W64).
+      smt(@Array4 @W64).       
+    + auto => /> &hr; split; 1:smt(). move => ? j ???. 
+      have ->: to_uint j = 4 by smt(@W64 pow2_64).  
+      move => H. 
+      apply (eq_from_nth witness); first by rewrite size_to_list size_nseq. 
+      rewrite size_to_list => *. 
+      rewrite get_to_list nth_nseq /#. 
+qed.
+
+lemma toByteZero : toByte W32.zero 4 = nseq 4 W8.zero.
+proof.
+rewrite /toByte.
+apply (eq_from_nth W8.zero).
+  + rewrite size_take 1:/# size_nseq size_rev size_to_list //.
+have ->: size (take 4 (rev (to_list (unpack8 W32.zero)))) = 4.
+  + rewrite size_take 1:/# size_rev size_to_list //.
+move => i?.
+rewrite nth_nseq 1:/# nth_take 1,2:/#.
+rewrite nth_rev; first by rewrite size_to_list //.
+rewrite size_to_list.
+
+case (i = 0).  
+  + move => Hi. rewrite Hi //=.
+case (i = 1).
+  + move => Hi?. rewrite Hi //=.
+case (i = 2).
+  + move => Hi??. rewrite Hi //=.
+case (i = 3).
+  + move => Hi???. rewrite Hi //=.
+move => ????. have ->: i = 4 by smt().
+smt(). 
+qed.
+
+lemma memset_toByte_Zero : 
+    hoare [ M(Syscall).__memset_zero_u8 : true ==> to_list res = toByte W32.zero 4 ].
+proof.
+admit. (* Use transitivity *)
+(* memset_zero => toByte zero *)
+qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 

@@ -7,10 +7,10 @@ require import Types Params Parameters Address Notation Hash Primitives Wots XMS
 require import XMSS_IMPL.
 require import Repr. 
 
-require import Array4 Array8 Array32 Array64 Array68 Array96 Array136 Array352 Array2144.
+require import Array4 Array8 Array32 Array64 Array68 Array96 Array132 Array136 Array352 Array2144.
 require import WArray32 WArray136.
 
-require import Correctness_Mem Correctness_Hash.
+require import Correctness_Address Correctness_Mem Correctness_Hash.
 require import Utils.
 
 require import BitEncoding.
@@ -33,17 +33,39 @@ qed.
 
 (*** Key Gen ***)
 
-
-
-lemma toByteZero : toByte W32.zero 4 = nseq 4 W8.zero.
+lemma _memset_nseq : 
+    hoare [
+      M(Syscall).__memset_zero_u8 :
+      true
+      ==>
+      to_list res = nseq 4 W8.zero
+    ].
 proof.
-rewrite /toByte.
-admit.
+proc.
+while (
+  0 <= to_uint i <= 4 /\
+  forall (k : int), 0 <= k < to_uint i => a.[k] = W8.zero
+). 
+    + auto => /> &hr *; do split; 1,2:smt(@W64).
+      move => ???. rewrite get_setE #smt:(@W64).
+    + auto => /> &hr; split; [smt() |]. move => ? i???. 
+      have ->: to_uint i = 4 by smt(@W64 pow2_64).
+      move => ?. 
+      apply (eq_from_nth witness); [ rewrite size_to_list size_nseq //= |].
+      rewrite size_to_list => *. 
+      rewrite nth_nseq 1:/# get_to_list /#.
 qed.
 
+require import Termination.
+
+lemma memset_nseq : 
+    phoare [ M(Syscall).__memset_zero_u8 : true ==>
+       to_list res = nseq 4 W8.zero] = 1%r
+          by conseq memset_zero_ll _memset_nseq; auto.
 
 lemma xmss_kg_no_oid : 
-    n = XMSS_N =>
+    n = XMSS_N /\ 
+    d = XMSS_D =>
     equiv [
       M(Syscall).__xmssmt_core_keypair ~ XMSS_MT_PRF.kg :
       true 
@@ -54,9 +76,9 @@ lemma xmss_kg_no_oid :
       true
     ].
 proof.
-move => ?. 
+rewrite /XMSS_N => [#] ??. 
 proc.
-seq 3 2 : (true); first by auto.
+seq 3 2 : (true); first by auto. 
 seq 0 4 : (
   #pre /\
   size sk_seed{2}  = n /\
@@ -64,41 +86,97 @@ seq 0 4 : (
   size pub_seed{2} = n /\
   size root{2}     = n
 ); first by auto => />; rewrite size_nseq /#.
-swap {2} [2..4] -1.
+swap {2} [3..5] -2.
 seq 1 3 : (
   #pre /\
   to_list seed_p{1} = sk_seed{2} ++ sk_prf{2} ++ pub_seed{2}
 ).
-    + inline {1}.
-
-print dapply.
-print dmap.
-
-
- admit.
+    + inline {1}; wp; sp; auto => />. admit.
 inline {1} M(Syscall).__xmssmt_core_seed_keypair.
 sp 3 0.
-seq 4 0 : (#pre); first by auto. 
-seq 2 1 : (#pre /\ address{2} = top_tree_addr{1}). (* FIXME: on the spec we should also set the layer addr *)
-    + admit.
+seq 9 0 : (#pre); first by auto. 
+seq 1 1 : (#pre /\ address{2} = top_tree_addr{1}).
+    + inline {1}; wp; sp. 
+      while {1} (0 <= i{1} <= 8 /\ forall (k : int), 0 <= k < i{1} => addr0{1}.[k] = W32.zero) (8 - i{1}).
+         * auto => /> *; do split;1,2,4:smt(); move => k??; rewrite get_setE /#.
+         * skip => /> *; split; [smt() |]; move => *; split; [smt() | move => ????; rewrite /zero_address; smt(@Array8)].
+seq 1 1 : (#pre); first by inline {1}; auto => /> *; rewrite /set_layer_addr /#. 
+seq 2 0 : (#pre /\ to_list idx{1} = nseq 4 W8.zero).
+    + call {1} memset_nseq; auto. 
+auto => />. 
+seq 1 0 : (
+  (* #pre without the second /\ *)
+  pk0{1} = pk{1} /\
+  seed0{1} = seed_p{1} /\
+  size sk_seed{2} = n /\
+  size sk_prf{2} = n /\ 
+  size pub_seed{2} = n /\ 
+  size root{2} = n /\
+  to_list seed_p{1} = sk_seed{2} ++ sk_prf{2} ++ pub_seed{2} /\
+  address{2} = top_tree_addr{1} /\
+  to_list idx{1} = nseq 4 W8.zero /\
 
-print Array4.of_list.
-print toByte.
-seq 1 0 : ( (* sets the index bytes to zero *)
-    #pre /\ 
-    aux{1} = Array4.of_list witness (toByte W32.zero 4)
+  forall (k : int), 0 <= k < 4 => sk0{1}.[k] = W8.zero
 ).
-    + admit. (* new lemma *)
+    + auto => /> ??????? H *; rewrite initE ifT 1:/#. 
+      auto => />; rewrite ifT 1:/# -get_to_list H nth_nseq 1:/# //. 
+seq 2 0 : (
+    #pre /\
+    forall (k : int), 0 <= k < 64 => buf1{1}.[k] = seed0{1}.[k]
+); first by auto => /> *; rewrite initE ifT 1:/#; auto => />. 
+seq 1 0 : (#pre /\ buf0{1} = buf1{1}); first by ecall {1} (_x_memcpy_u8u8_64_post buf1{1}); skip => />. 
+seq 1 0 : (
+  #pre /\ 
+  forall (k : int), 0 <= k < 64 => sk0{1}.[4 + k] = seed0{1}.[k]
+).
+    + auto => /> &1 &2 ?????? H0 H1; split; move => ???; rewrite initE ifT 1:/#; auto => />; [rewrite ifF /# | rewrite ifT /#]. 
+seq 2 0 : (
+  (* from #pre *)
+  pk0{1} = pk{1} /\
+  seed0{1} = seed_p{1} /\
+  size sk_seed{2} = n /\
+  size sk_prf{2} = n /\
+  size pub_seed{2} = n /\
+  size root{2} = n /\
+  to_list seed_p{1} = sk_seed{2} ++ sk_prf{2} ++ pub_seed{2} /\
+  address{2} = top_tree_addr{1} /\
+  to_list idx{1} = nseq 4 W8.zero /\
+  (forall (k : int), 0 <= k < 4  => sk0{1}.[k] = W8.zero) /\
+  (forall (k : int), 0 <= k < 64 => sk0{1}.[4 + k] = seed0{1}.[k]) /\
+
+  forall (k : int), 0 <= k < 32 => bufn1{1}.[k] = seed0{1}.[64 + k]
+); first by auto => /> *; rewrite initE ifT /#.
+seq 1 0 : (#pre /\ bufn0{1} = bufn1{1}); first by ecall {1} (_x_memcpy_u8u8_post bufn1{1}); skip => />. 
+seq 1 0 : (
+    #pre /\
+    forall (k : int), 0 <= k < 32 => sk0{1}.[4 + 3 *32 + k] = seed0{1}.[64 + k]
+).
+    + auto => /> *; do split; move => *; rewrite initE ifT 1:/#; auto => />; [| | rewrite ifT /#]; rewrite ifF /#. 
+seq 2 0 : (
+  (* from #pre *)
+  seed0{1} = seed_p{1} /\
+  size sk_seed{2} = n /\
+  size sk_prf{2} = n /\
+  size pub_seed{2} = n /\
+  size root{2} = n /\
+  to_list seed_p{1} = sk_seed{2} ++ sk_prf{2} ++ pub_seed{2} /\
+  address{2} = top_tree_addr{1} /\
+  to_list idx{1} = nseq 4 W8.zero /\
+  (forall (k : int), 0 <= k < 4 => sk0{1}.[k] = W8.zero) /\
+  (forall (k : int), 0 <= k < 64 => sk0{1}.[4 + k] = seed0{1}.[k]) /\
+  (forall (k : int), 0 <= k < 32 => sk0{1}.[4 + 3 * 32 + k] = seed0{1}.[64 + k]) /\
 
 
+  (forall (k : int), 0 <= k < 32 => bufn1{1}.[k] = sk0{1}.[4 + 3*32 + k])
+); first by auto => /> *; rewrite initE 1:/#.
+seq 1 0 : (#pre /\ bufn0{1} = bufn1{1}); first by ecall {1} (_x_memcpy_u8u8_post bufn1{1}); skip => />. 
+seq 1 0 : (
+  #pre /\
+  forall (k : int), 0 <= k < 32 => pk{1}.[32 + k] = bufn0{1}.[k]
+).
+    + auto => /> &1 &2 ?????? H0 H1 H2 H3 k??. rewrite H3 1:/# H2 1:/#. admit.
 admit.
 qed.
-
-lemma toByteZero : toByte W32.zero 4 = nseq 4 W8.zero.
-proof.
-rewrite /toByte.
-admit.
-
 
 
 lemma xmss_kg_correct :
@@ -148,18 +226,6 @@ seq 0 1 : (#pre /\ sk{2} = EncodeSk sk{1}).
 seq 0 1 : (#post); last by skip. 
   + admit.
 qed.
-
-
-
-
-
-
-
-
-
-
-
-
 
 (*** L Tree ***)
 
