@@ -26,6 +26,9 @@ lemma size_prf : hoare[Hash.prf : true ==> size res = n]
 lemma size_F : hoare[Hash._F : true ==> size res = n]
     by proc; seq 2: (true); auto => />; smt(size_hash). 
 
+lemma size_prf_kg : hoare [Hash.prf_keygen : true ==> size res = n]
+    by proc; seq 2 : (true); auto => />; smt(size_hash).
+
 lemma size_chain : hoare[Chain.chain : size X = n ==> size res.`1 = n].
 proof.
 proc.
@@ -44,7 +47,6 @@ qed.
 
 lemma ssize_chain : phoare[Chain.chain : size X = n ==> size res.`1 = n] = 1%r 
     by conseq chain_ll size_chain; auto => />. 
-
 
 (*** Base W Bounds ***)
 
@@ -123,3 +125,53 @@ case (w = 16).
       split; rewrite nth_put 1:/# and_mod 1:/# shr_div /#. 
 qed.
 
+(*** Checksum bounds ***)
+
+(* The checksum is computed over the base w message, so we know that all bytes are withing the range [0, w [ *)
+
+lemma checksum_bounds : 
+    len1 = XMSS_WOTS_LEN1 /\ w = XMSS_WOTS_W =>
+    hoare [
+      WOTS.checksum :
+      size m = 64 /\
+      forall (x : int), x \in m => 0 <= x < w
+      ==>
+      0 <= res <= len1 * (w - 1) 
+    ].
+proof.
+rewrite /XMSS_WOTS_LEN1 /XMSS_WOTS_W => [#] len1_val w_val.
+proc.
+conseq (: 
+  size m = 64 /\
+  forall (k : int), 0 <= k < 64 => 0 <= nth witness m k < 16
+  ==> _
+); first by auto => /> *; smt(@List). 
+while (
+  size m = 64 /\
+  (forall (k : int), 0 <= k < 64 => 0 <= nth witness m k < 16) /\
+  0 <= i <= 64 /\
+  0 <= checksum <= i * (w - 1)
+); auto => /> &hr. 
+    + move => ? H0 H1 H2 H3 H4 H5; do split.  
+       - smt().  
+       - smt().  
+       - rewrite w_val //= /#. 
+       - rewrite w_val //= /#. 
+    + move => ? H0 k j.
+      rewrite len1_val w_val //= => H2 H3 H4 H5.
+      have ->: j = 64 by smt(). 
+      smt(). 
+qed.
+
+(*** size of wots gen sk ***)
+lemma wots_gen_sk_size : hoare [WOTS.pseudorandom_genSK : true ==> size res.`1 = len /\ (forall (t : W8.t list), t \in res.`1 => size t = n)].
+proof.
+proc.
+seq 1 : (size sk = len /\ (forall (t : W8.t list), t \in sk => size t = n)).
+  + auto => />. split; [ smt(size_nseq ge0_len) | smt(@List ge0_n) ].
+sp.
+while (0 <= i <= len /\ #pre); last by auto => /> *; apply ge0_len.
+seq 3 : (#pre /\ size sk_i = n).
+  + call  size_prf_kg. admit. 
+auto => /> *. admit.
+qed.

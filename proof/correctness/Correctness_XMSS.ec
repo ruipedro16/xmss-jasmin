@@ -8,7 +8,7 @@ require import XMSS_IMPL.
 require import Repr. 
 
 require import Array4 Array8 Array32 Array64 Array68 Array96 Array132 Array136 Array352 Array2144.
-require import WArray32 WArray136.
+require import WArray32 WArray96 WArray136.
 
 require import Correctness_Address Correctness_Mem Correctness_Hash.
 require import Utils.
@@ -58,6 +58,14 @@ qed.
 
 require import Termination.
 
+lemma get8_nth (x : W8.t list) (i : int) :
+    0 <= i < 96 =>
+      get8 (WArray96.of_list x) i = nth W8.zero x i.
+proof.
+move => H.
+rewrite /get8 get_of_list; [assumption | trivial].
+qed.
+
 lemma memset_nseq : 
     phoare [ M(Syscall).__memset_zero_u8 : true ==>
        to_list res = nseq 4 W8.zero] = 1%r
@@ -91,7 +99,27 @@ seq 1 3 : (
   #pre /\
   to_list seed_p{1} = sk_seed{2} ++ sk_prf{2} ++ pub_seed{2}
 ).
-    + inline {1}; wp; sp; auto => />. admit.
+    + inline {1}; wp; sp; auto => />. 
+      rnd{1}. do 3! rnd{2}. skip => /> &2 H0 H1 H2 H3 sk_seed0 ? sk_prf0 T1 pub_seed0? ; split. 
+        - apply dmap_ll. rewrite /darray dmap_ll dlist_ll #smt:(@W8). 
+        - move => ? a0.
+          rewrite /darray dmap_comp /(\o) /get8 => H4.
+          have E0: size sk_seed0 = 32 by smt(@DList).
+          have E1: size sk_prf0 = 32 by smt(@DList). 
+          have E2: size pub_seed0 = 32 by smt(@DList).
+          do split; 1..3:smt().  
+          apply (eq_from_nth witness).
+               +  by rewrite size_to_list !size_cat E0 E1 E2. 
+          move => i. rewrite size_to_list => Hi.
+          rewrite !nth_cat size_cat E0 E1 //=.
+          case (0 <= i < 32).
+             * move => H. rewrite ifT 1:/# ifT 1:/#. admit.          
+          case (32 <= i < 64).
+             * move => H?. rewrite ifT 1:/# ifF 1:/#. admit.
+          move => ??. 
+          have H: 64 <= i < 96 by smt().
+          rewrite ifF 1:/#.                     
+          admit.
 inline {1} M(Syscall).__xmssmt_core_seed_keypair.
 sp 3 0.
 seq 9 0 : (#pre); first by auto. 
@@ -189,7 +217,7 @@ lemma xmss_kg_correct :
     ].
 proof.
 proc.
-seq 1 13 : (#post); last by auto.
+  seq 1 13 : (#post); last by auto.
 seq 0 6 : (
   size sk_seed{2}  = n /\
   size sk_prf{2}   = n /\

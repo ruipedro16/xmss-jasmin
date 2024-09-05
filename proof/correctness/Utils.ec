@@ -13,6 +13,46 @@ require import Types Params Parameters Address Notation.
 
 (** -------------------------------------------------------------------------------------------- **)
 
+lemma mod_eq (q1 q2 : int) (x : int) :
+    0 < q1 /\ 0 < q2 /\ q1 < q2 /\ x < q1 => x %% q1 = x %% q2.
+proof.
+move => [#] *.
+admit.
+qed.
+
+(* 
+
+In Coq we can prove this lemma in the following way :
+
+Require Import Nat.
+Require Import Arith.
+
+Lemma mod_eq_ (q1 q2 x : nat) : 
+  q1 < q2 -> x < q1 -> x mod q1 = x mod q2.
+Proof.
+  intros Hq Hx.
+  assert (Hmod1 : x mod q1 = x).
+    { apply Nat.mod_small; assumption. }
+  assert (Hlt : x < q2).
+    { apply Nat.lt_trans with (m := q1); assumption. }
+  assert (Hmod2 : x mod q2 = x).
+    { apply Nat.mod_small; assumption. }
+  rewrite Hmod1.
+  rewrite Hmod2.
+  reflexivity.
+Qed.
+
+*)
+
+(** -------------------------------------------------------------------------------------------- **)
+
+lemma W64_eq_W32 (x : W64.t) :
+    0 <= to_uint x < W32.max_uint =>
+      to_uint x = to_uint (W32.of_int (to_uint x)) 
+        by move => ?; rewrite of_uintK #smt(@W32 pow2_32). 
+
+(** -------------------------------------------------------------------------------------------- **)
+
 lemma all_put ['a] (x : 'a list) (y : 'a) (p : 'a -> bool) (i : int) :
     0 <= i < size x => p y =>
     (forall (t : 'a), t \in x => p t) => 

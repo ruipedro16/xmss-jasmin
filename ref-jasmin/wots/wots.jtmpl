@@ -226,7 +226,7 @@ inline fn __base_w_<OUTLEN, INLEN>(
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Just computes the checksum
-inline fn __csum(reg ptr u32[XMSS_WOTS_LEN] msg_base_w) -> reg u64
+inline fn __csum(reg ptr u32[XMSS_WOTS_LEN1] msg_base_w) -> reg u64
 {
     reg u64 csum i t u;
 
@@ -257,7 +257,10 @@ inline fn __wots_checksum(
 
     inline int k;
 
-    csum = __csum(msg_base_w); // Compute the checksum
+    reg ptr u32[XMSS_WOTS_LEN1] buf;
+
+    buf = msg_base_w[0 : XMSS_WOTS_LEN1];
+    csum = __csum(buf); // Compute the checksum using only the first len1 bytes
 
     // csum = csum << (8 - ((params->wots_len2 * params->wots_log_w) % 8));
     k = (XMSS_WOTS_LEN2 * XMSS_WOTS_LOG_W) % 8;
