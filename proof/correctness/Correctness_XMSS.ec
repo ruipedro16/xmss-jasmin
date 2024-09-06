@@ -39,6 +39,78 @@ clone import DListProgramX as T
   with type t <- W8.t,
        op d <- W8.dword.
 
+
+lemma random_bytes_equiv :
+    n = XMSS_N =>
+    equiv [
+      Syscall.randombytes_96 ~ XMSS_MT_PRF.sample_randomness :
+      true 
+      ==>
+      to_list res{1} = res{2}.`1 ++ res{2}.`2 ++ res{2}.`3
+    ].    
+proof.
+rewrite /XMSS_N => n_val.
+proc.
+transitivity {2} { pub_seed <$ dlist W8.dword 96; }
+(true ==> to_list a{1} = pub_seed{2})
+(true ==> pub_seed{1} = (sk_seed{2} ++ sk_prf{2} ++ pub_seed{2}) ) => //.
+  + rnd Array96.to_list (Array96.of_list W8.zero): *0 *0.
+    auto => />; split => [l | ?].
+      * rewrite supp_dmap; move => [x].
+        rewrite supp_dlist // => /> E _.
+        by rewrite of_listK.
+    split => [l | ?].
+      * rewrite supp_dmap; move=> [x].
+        rewrite darray_dlist dmap_comp /(\o) /=.
+        rewrite supp_dlist //; move=> [[Ex Hx] ->].
+        rewrite dmap_id dmap1E /(\o) /pred1 /=.
+        apply mu_eq_support => y.
+        rewrite supp_dlist //=; move=> [Ey Hy].
+        rewrite eqboolP; split => //.
+        move => E.
+        by rewrite -(Array96.of_listK W8.zero y) // E of_listK.
+    move => a; rewrite darray_dlist dmap_comp supp_dmap.
+    move => [l]; rewrite supp_dlist // => [[[Esz] H]].
+    rewrite /(\o) /= => ->.
+    by rewrite of_listK //= dmap_id supp_dlist //.
+(* At this point, we are no longer dealing with WArrays, we are only reasoning about lists *)
+(* We have the same distribution on both sides, the only difference is that on the left side we
+   generate 3*n = 96 bytes at once, and on the right side we generate n = 32 bytes three times.
+   At this point, we can use the results from DListUtils.ec to prove that these are equivalent *) 
+outline {1} [1] { pub_seed <@ T.Program.Sample.sample(96); }.
+transitivity {1}
+ { pub_seed <@ T.SampleX.samplecat(64,32); }
+ (true ==> ={pub_seed})
+ (true ==> pub_seed{1} = sk_seed{2} ++ sk_prf{2} ++ pub_seed{2}) => //; first by call sample_samplecat => //.
+inline*; swap {1} 2 1.
+seq 2 2: (x1{1} = sk_seed{2} ++ sk_prf{2}).
+   + outline {1} [1-2] { x1 <@ T.Program.Sample.sample(64); }.
+     transitivity {1}
+     { x1 <@ T.SampleX.samplecat(32,32); }
+     (true ==> ={x1})
+     (true ==> x1{1} = sk_seed{2} ++ sk_prf{2}) => //.
+        * by call sample_samplecat => //.
+     by inline*; auto; rewrite n_val. 
+by auto; rewrite n_val.
+qed.
+
+lemma random_bytes_results :
+    n = XMSS_N =>
+    equiv [
+      Syscall.randombytes_96 ~ XMSS_MT_PRF.sample_randomness :
+      true 
+      ==>
+      to_list res{1} = res{2}.`1 ++ res{2}.`2 ++ res{2}.`3 /\
+      size res{2}.`1 = n /\
+      size res{2}.`2 = n /\
+      size res{2}.`3 = n 
+    ].    
+proof.
+(* combine previous results *)
+admit.
+qed.
+
+
 (*** Keygen without OID ***)
 lemma xmss_kg_no_oid : 
     n = XMSS_N /\ 
@@ -54,57 +126,27 @@ proof.
 rewrite /XMSS_N /XMSS_D => [#] *. 
 proc. 
 seq 3 6 : (true); first by auto. 
-swap {2} [3..5] -2. 
-seq 1 3 : (
+swap {2} 3 -2. 
+seq 1 1 : (
   to_list seed_p{1} = sk_seed{2} ++ sk_prf{2} ++ pub_seed{2} /\
   size sk_seed{2} = 32 /\
   size sk_prf{2} = 32 /\
   size pub_seed{2} = 32 
-).
-  + inline {1}; wp; sp; auto => />. 
-    transitivity {2} { pub_seed <$ dlist W8.dword 96; }
-    (true ==> to_list a{1} = pub_seed{2})
-    (true ==> pub_seed{1} = (sk_seed{2} ++ sk_prf{2} ++ pub_seed{2}) /\ size sk_seed{2} = 32 /\
-  size sk_prf{2} = 32 /\
-  size pub_seed{2} = 32 ) => //.
-        - rnd Array96.to_list (Array96.of_list W8.zero): *0 *0.
-          auto => />;  split => [l | ?].
-             * rewrite supp_dmap; move => [x].
-               rewrite supp_dlist // => /> E _.
-               by rewrite of_listK.
-          split => [l | ?].
-             * rewrite supp_dmap; move=> [x].                
-               rewrite darray_dlist dmap_comp /(\o) /= supp_dlist //; move=> [[Ex Hx] ->].
-               rewrite dmap_id dmap1E /(\o) /pred1 /=.
-               apply mu_eq_support => y.
-               rewrite supp_dlist //=; move=> [Ey Hy].
-               rewrite eqboolP; split => //.
-               move => E.
-               by rewrite -(Array96.of_listK W8.zero y) // E of_listK.
-          move => a; rewrite darray_dlist dmap_comp supp_dmap.              
-          move => [l]; rewrite supp_dlist // => [[[Esz] H]].
-          rewrite /(\o) /= => ->.
-          by rewrite of_listK //= dmap_id supp_dlist //.
-        (* At this point we're only working with distributions over lists *)
-        - outline {1} [1] { pub_seed <@ T.Program.Sample.sample(96); }.
-          transitivity {1} { pub_seed <@ T.SampleX.samplecat(64,32); }
-          (true ==> ={pub_seed})
-          (true ==> pub_seed{1} = sk_seed{2} ++ sk_prf{2} ++ pub_seed{2} /\ 
-                    size sk_seed{2} = 32 /\ size sk_prf{2} = 32 /\ size pub_seed{2} = 32) => //.
-             * by call sample_samplecat => //.
-          inline*; swap {1} 2 1.
-          seq 2 2: (x1{1} = sk_seed{2} ++ sk_prf{2} /\ size sk_seed{2} = 32 /\ size sk_prf{2} = 32 /\ size pub_seed{2} = 32).
-             * outline {1} [1-2] { x1 <@ T.Program.Sample.sample(64); }.
-               transitivity {1}  { x1 <@ T.SampleX.samplecat(32,32); }
-               (true ==> ={x1})
-               (true ==> x1{1} = sk_seed{2} ++ sk_prf{2} /\ size sk_seed{2} = 32 /\ size sk_prf{2} = 32 /\ size pub_seed{2} = 32) => //.
-                 + by call sample_samplecat => //.
-               inline*; auto; rewrite (: n = 32) //=. 
-             * admit.
-            * admit. 
-(* TODO: FIXME: Add size = 32 to these *)
-seq 0 0 : (#pre /\ size sk_seed{2} = 32 /\ size sk_prf{2} = 32 /\ size pub_seed{2} = 32); first by admit. (* FIXME This should be in the post of the previous seq *) 
-(* TODO: FIXME: Add size = 32 to these *)
+); first by call random_bytes_results => //=; skip => /> /#.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 inline {1} M(Syscall).__xmssmt_core_seed_keypair. 
 seq 12 0 : (#pre /\ pk0{1} = pk{1} /\  sk0{1} = sk{1} /\ seed0{1} = seed_p{1}); first by auto. 
 seq 1 1 : (#pre /\ address{2} = top_tree_addr{1}).
@@ -229,8 +271,6 @@ admit.
 qed.
 
 
-
-
 (*** L Tree ***)
 
 lemma ltree_correct (_pk : W8.t Array2144.t, _pub_seed : W8.t Array32.t, _addr : W32.t Array8.t) : 
@@ -287,19 +327,7 @@ while (
         admit.
     
      
-
-(* ------------------------- *)
-
-    + skip => /> &1 *. do split.
-
-smt().
-smt().
-rewrite size_enc_wots_pk /#.
-move => k ? ?. 
-    + admit. (* rewrite -nth_flatten. rewrite size_enc_wots_pk /#. rewrite (size_nth (EncodeWotsPk wots_pk{1}) 32 0); smt(size_enc_wots_pk ssize_enc_wots_pk). *)      
-smt(ssize_enc_wots_pk).
-smt(@W64 pow2_64).
-smt(@W64 pow2_64).
+admit.
 qed.
 
 (*** Treehash ***)

@@ -1,6 +1,6 @@
 pragma Goals : printall.
 
-require import AllCore List RealExp IntDiv.
+require import AllCore List RealExp IntDiv Distr DList.
 require (*--*) Subtype. 
 
 from Jasmin require import JModel.
@@ -286,6 +286,17 @@ module XMSS_MT_PRF = {
 
                             XMSS^MT Public Key
    *)
+
+  proc sample_randomness () : nbytes * nbytes * nbytes = {
+    var sk_seed, sk_prf, pub_seed : nbytes;
+
+    sk_seed <$ DList.dlist W8.dword n;
+    sk_prf <$ DList.dlist W8.dword n;
+    pub_seed <$ DList.dlist W8.dword n;
+
+    return (sk_seed, sk_prf, pub_seed);
+  }
+
    proc kg() : xmss_mt_keypair = {
       var pk : xmss_mt_pk <- witness;
       var sk : xmss_mt_sk <- witness;
@@ -295,9 +306,7 @@ module XMSS_MT_PRF = {
       var address : adrs <- zero_address;
       address <- set_layer_addr address (d - 1);
       
-      sk_seed <$ DList.dlist W8.dword n;
-      sk_prf <$ DList.dlist W8.dword n;
-      pub_seed <$ DList.dlist W8.dword n;
+      (sk_seed, sk_prf, pub_seed) <@ sample_randomness();
 
       sk <- {| idx=W32.zero;
                sk_seed=sk_seed;
@@ -508,11 +517,23 @@ module XMSS_MT_PRF = {
    }
 }.
 
+lemma sample_randomness_ll : islossless XMSS_MT_PRF.sample_randomness by proc; islossless.
+
+(** TODO: Move this to properties **)
+lemma sample_randomness_size :
+    hoare [XMSS_MT_PRF.sample_randomness : true ==> 
+      size res.`1 = n /\ size res.`2 = n /\ size res.`3 = n ].
+proof.
+proc.
+admit.
+qed.
+
 lemma xmss_mt_kg_ll : islossless XMSS_MT_PRF.kg.
 proof.
 proc.
-auto => /> ; call treehash_ll.
-auto => /> *; smt(@Distr @DList @W8).
+auto => /> ; call treehash_ll; wp.
+call sample_randomness_ll.
+by auto.
 qed.
 
 lemma root_from_sig_ll : islossless XMSS_MT_PRF.rootFromSig.
