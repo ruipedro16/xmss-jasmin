@@ -7,7 +7,7 @@ require import Types Address Notation Primitives Wots XMSS_MT_PRF.
 require import Utils.
 require import XMSS_IMPL.
 
-require import Array32 Array64 Array136 Array320 Array2144.
+require import Array32 Array64 Array68 Array132 Array136 Array320 Array2144.
 
 require import BitEncoding.
 (*---*) import BitChunking.
@@ -242,8 +242,13 @@ op EncodeSk (x : W8.t Array136.t) : xmss_mt_sk = {| idx         = W32ofBytes (su
                                                     sk_root     = sub x 104 32 
                                                  |}.
 
-require import Array68.
-
+op EncodeSkNoOID (x : W8.t Array132.t) : xmss_mt_sk = {| idx         = witness;
+                                                         sk_seed     = sub x 0 32;
+                                                         sk_prf      = sub x 32 32;
+                                                         pub_seed_sk = sub x 64 32;
+                                                         sk_root     = sub x 96 32;
+                                                      |}. 
+                                                        
 (*
 PK = OID || ROOT || PUB SEED (Both the spec and the impl have the oid)
 
@@ -259,6 +264,11 @@ op EncodePk (x : W8.t Array68.t) : xmss_mt_pk = {| pk_oid      = W32ofBytes (sub
                                                    pk_root     = sub x 4 32; 
                                                    pk_pub_seed = sub x 36 32; 
                                                  |}.
+
+op EncodePkNoOID (x : W8.t Array64.t) : xmss_mt_pk = {| pk_oid      = witness;
+                                                        pk_root     = sub x 0 32; 
+                                                        pk_pub_seed = sub x 32 32;
+                                                     |}. 
                                              
 
 op DecodeAuthPath (x : auth_path) : W8.t Array320.t = Array320.of_list witness (flatten x).
@@ -267,8 +277,15 @@ op DecodeSk (x : xmss_mt_sk) : W8.t Array136.t =
   Array136.of_list witness (W32toBytes impl_oid ++ W32toBytes x.`idx ++ x.`sk_seed ++ 
                             x.`sk_prf ++ x.`pub_seed_sk ++ x.`sk_root).
 
+op DeocdeSkNoOID (x : xmss_mt_sk) : W8.t Array132.t = 
+  Array132.of_list witness (W32toBytes x.`idx ++ x.`sk_seed ++ x.`sk_prf ++ x.`pub_seed_sk ++ x.`sk_root).
+
 op DecodePk (x : xmss_mt_pk) : W8.t Array68.t = 
   Array68.of_list witness (W32toBytes impl_oid ++ x.`pk_root ++ x.`pk_pub_seed).
+
+op DecodePkNoOID (x : xmss_mt_pk) : W8.t Array64.t = 
+  Array64.of_list witness (x.`pk_root ++ x.`pk_pub_seed).
+
 
 (*** Lemmas about authentication path ***)
 
@@ -360,3 +377,4 @@ lemma enc_dec_sk (x : W8.t Array136.t) (y : xmss_mt_sk) :
     size y.`pub_seed_sk = 32 =>
     x = DecodeSk y <=> y = EncodeSk x
       by move => ?; split; [apply enc_dec_sk_l | apply enc_dec_sk_r; assumption]. 
+
