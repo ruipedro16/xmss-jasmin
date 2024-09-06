@@ -299,6 +299,13 @@ module XMSS_MT_PRF = {
       sk_prf <$ DList.dlist W8.dword n;
       pub_seed <$ DList.dlist W8.dword n;
 
+      sk <- {| idx=W32.zero;
+               sk_seed=sk_seed;
+               sk_prf=sk_prf;
+               pub_seed_sk=pub_seed;
+               sk_root=witness;
+             |};
+
       (root, address) <@ TreeHash.treehash(sk, 0, h, address);
 
       sk <- {| idx=W32.zero;

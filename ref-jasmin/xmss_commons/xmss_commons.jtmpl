@@ -59,7 +59,7 @@ inline fn __l_tree(
 
             offset_in = (i * 2); offset_in *= XMSS_N;
             bytes = 2 * XMSS_N;
-            buf1, _ = __memcpy_u8u8_2<2 * XMSS_N, XMSS_WOTS_SIG_BYTES>(buf1, /* offset_out, */ wots_pk, offset_in, bytes);
+            buf1, _ = __memcpy_u8u8_2<2 * XMSS_N, XMSS_WOTS_SIG_BYTES>(buf1, wots_pk, offset_in, bytes);
 
             () = #unspill(pub_seed);
             buf0, addr = __thash_h(buf0, buf1, pub_seed, addr);
@@ -89,11 +89,11 @@ inline fn __l_tree(
             () = #spill(wots_pk);
 
             // l = (l >> 1) + 1;
-            l >>= (1 & 63); // ?{}, l = #SHR(l, 1);
+            l >>= (1 & 63);
             l += 1;
         } else {
             // l = l >> 1;
-            l >>= (1 & 63); // ?{}, l = #SHR(l, 1);
+            l >>= (1 & 63);
         }
 
         // height++;

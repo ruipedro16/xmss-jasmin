@@ -577,6 +577,8 @@ qed.
 op load_sig (mem : global_mem_t) (ptr : W64.t) : W8.t Array2144.t =
   Array2144.init(fun i => loadW8 mem (to_uint ptr + i)).
 
+require import Correctness_Bytes.
+
 lemma pk_from_sig_correct (mem : global_mem_t) (_sig_ptr_ : W64.t, _msg_ _pub_seed_ : W8.t Array32.t, _addr_ : W32.t Array8.t) :
     valid_ptr_i _sig_ptr_ 2144 =>
     floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
@@ -663,13 +665,10 @@ seq 1 1 : (
 ).
     + auto => /> &1 _ H0 H1 H2 H3 H4 H5. (* The first hypothesis evaluates to true *)
       rewrite len1_val logw_val w_val len2_val //= => H6.
-      have ->: 63 = 2 ^ 6 - 1 by smt(). 
-      rewrite and_mod 1:/#.
-      have ->: to_uint ((of_int 4))%W64 %% 2 ^ 6 = 4 by smt(). 
-      have ->: truncateu8 ((of_int 4))%W64 = W8.of_int 4 by smt(@W64).
-      rewrite !shl_shlw 1,2:/# !to_uint_shl 1,2:/#. 
+      rewrite (: 63 = 2 ^ 6 - 1) 1:/# and_mod 1:/# (: to_uint ((of_int 4))%W64 %% 2 ^ 6 = 4) 1:/# 
+              (: truncateu8 ((of_int 4))%W64 = W8.of_int 4) 1:#smt:(@W64) !shl_shlw 1,2:/# !to_uint_shl 1,2:/#. 
       smt(@W32 @W64 pow2_32 pow2_64 @IntDiv).
-seq 0 1 : (#pre /\ len_2_bytes{2} = 2).
+seq 0 1 : (#pre /\ len_2_bytes{2} = 3).
     + auto => /> &1 &2 _ *. rewrite len2_val w_val.
       have ->: log2 16%r = 4%r.
           * have ->: 16%r = 2%r ^ 4%r by simplify.
@@ -677,16 +676,27 @@ seq 0 1 : (#pre /\ len_2_bytes{2} = 2).
       simplify.
       rewrite from_int_ceil //=. 
       admit. (* ceil (3%r / 2%r) = 2 ======> This should be easy to prove *)
-
-(*** IM HERE ***)
-
+             (* Problem is: this should be 3 and not 2 *)
 seq 2 1 : (#pre /\ csum_bytes{2} = to_list csum_bytes_p{1}).
-    + admit.
-seq 1 1 : (#pre /\ csum_base_w{2} = map W32.to_uint (to_list csum_base_w{1})).
-    + admit.
-seq 6 1 : (#pre /\ map W32.to_uint (to_list lengths{1}) = msg{2}). (* lengths = t0 || t1 *)
-    + admit.
-
+    + sp 1 0; exists * csum_bytes_p{1}, csum{1}; elim * => P0 P1.
+      (* call {1} (ull_to_bytes_2_correct P0 P1). => INVALID GOAL SHAPE *) 
+      admit.
+seq 0 0 : (#pre /\ size csum_bytes{2} = 2).
+    + auto => /> &1 &2 _ *; by rewrite size_to_list.
+seq 1 1 : (  
+    #pre /\ 
+    csum_base_w{2} = map W32.to_uint (to_list csum_base_w{1}) /\
+    forall (k : int), 0 <= k < 3 => 0 <= to_uint csum_base_w{1}.[k] < w 
+).
+    + sp; exists * csum_bytes_p{1}; elim * => _P2.
+      call {1} (base_w_results_3 _P2) => //. 
+seq 6 1 : (#pre /\ map W32.to_uint(to_list lengths{1}) = msg{2}); last by admit. (* lengths = t0 || t1 *) 
+    + auto => /> &1 &2 _ H0 H1 H2 H3 H4 H5 H6 H7; do split. 
+       * admit.
+       * admit.
+       * admit.
+       * admit.
+       * admit.
 (***
 
 while (

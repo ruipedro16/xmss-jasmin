@@ -338,20 +338,26 @@ lemma gen_chain_inplace_ll :
         M(Syscall).__gen_chain_inplace : 
         0 <= to_uint start /\
         0 <= to_uint steps <= XMSS_WOTS_W /\
-        0 <= to_uint (start + steps) <= XMSS_WOTS_W /\
-        to_uint start <= to_uint steps
+        0 <= to_uint (start + steps) <= XMSS_WOTS_W
         ==> 
         true
       ] = 1%r.
 proof.
 proc. 
 auto => />. 
-while (#pre /\ to_uint start <= to_uint i <= to_uint (start + steps)) ((to_uint t) - (to_uint i)) ; auto => />; last by auto => /> *; split; [rewrite to_uintD |]; smt(@W32). 
+while (
+  #pre /\ 
+  to_uint start <= to_uint i <= to_uint (start + steps)
+) ((to_uint t) - (to_uint i)); last first. 
+    + auto => /> &hr. 
+      rewrite /XMSS_WOTS_W => H0 H1 H2 H3 H4; split; [| smt(@W32)]. 
+      admit.
+auto => />.
 inline M(Syscall).__set_hash_addr M(Syscall).__set_key_and_mask 
        M(Syscall).__thash_f_ M(Syscall)._thash_f.
 wp; call thash_f_ll.  
-auto => /> &hr H0 H1 H2 H3 H4 H5 H6 H7 H8; do split; [smt(@W32 pow2_32) | | smt(@W32)].
-move => ?. 
+auto => /> &hr H0 H1 H2 H3 H4 H5 H6 H7 ; do split; [smt(@W32 pow2_32) | | smt(@W32)].
+move => H8. 
 rewrite to_uintD_small; first by smt(@W32). 
 have ->: to_uint W32.one = 1 by smt(). 
 rewrite /XMSS_WOTS_W in H2.
@@ -402,9 +408,11 @@ while (true) (67 - i).
   + admit.
   + admit.
   + admit.
+(*
 - inline M(Syscall).__expand_seed_ M(Syscall)._expand_seed ;  wp ; call expand_seed_ll.
   inline M(Syscall).__chain_lengths_ M(Syscall)._chain_lengths ; wp ; call chain_lengths_ll.
   auto => /> /#.
+*)
 qed.
 
 

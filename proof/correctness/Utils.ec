@@ -9,40 +9,51 @@ from Jasmin require import JModel.
 require import XMSS_IMPL Util.
 
 require import Array8 Array32 Array64 Array320 Array352.
+require import WArray96.
+
 require import Types Params Parameters Address Notation.
 
 (** -------------------------------------------------------------------------------------------- **)
 
-lemma mod_eq (q1 q2 : int) (x : int) :
-    0 < q1 /\ 0 < q2 /\ q1 < q2 /\ x < q1 => x %% q1 = x %% q2.
+lemma get8_nth (x : W8.t list) (i : int) :
+    0 <= i < 96 =>
+      get8 (WArray96.of_list x) i = nth W8.zero x i.
 proof.
-move => [#] *.
-admit.
+move => H.
+rewrite /get8 get_of_list; [assumption | trivial].
 qed.
 
-(* 
+(** -------------------------------------------------------------------------------------------- **)
 
-In Coq we can prove this lemma in the following way :
+lemma nseq_nth (x : W8.t list) (i : int) (v : W8.t) :
+    x = nseq i v => forall (k : int), 0 <= k < i => nth witness x k = v
+        by smt(@List).
 
-Require Import Nat.
-Require Import Arith.
+(** -------------------------------------------------------------------------------------------- **)
 
-Lemma mod_eq_ (q1 q2 x : nat) : 
-  q1 < q2 -> x < q1 -> x mod q1 = x mod q2.
-Proof.
-  intros Hq Hx.
-  assert (Hmod1 : x mod q1 = x).
-    { apply Nat.mod_small; assumption. }
-  assert (Hlt : x < q2).
-    { apply Nat.lt_trans with (m := q1); assumption. }
-  assert (Hmod2 : x mod q2 = x).
-    { apply Nat.mod_small; assumption. }
-  rewrite Hmod1.
-  rewrite Hmod2.
-  reflexivity.
-Qed.
+lemma nth_seed_1 (s s0 s1 s2: W8.t list) (i : int) :
+    0 <= i < 32 /\ 
+    size s0 = 32 /\ size s1 = 32 /\ size s2 = 32 /\ s = s0 ++ s1 ++ s2 =>
+       nth witness s1 i = nth witness s (32 + i).
+proof.
+move => [#] ?? H0 H1 H2 H3.
+rewrite H3 nth_cat size_cat H0 H1 ifT 1:/# nth_cat H0 ifF 1:/# //=.
+qed.
 
-*)
+lemma nth_seed_2 (s s0 s1 s2: W8.t list) (i : int) :
+    0 <= i < 32 /\ 
+    size s0 = 32 /\ size s1 = 32 /\ size s2 = 32 /\ s = s0 ++ s1 ++ s2 =>
+       nth witness s2 i = nth witness s (64 + i).
+proof.
+move => [#] ?? H0 H1 H2 H3.
+rewrite H3 nth_cat size_cat H0 H1 ifF 1:/# //=.
+qed.
+
+(** -------------------------------------------------------------------------------------------- **)
+
+lemma mod_eq (q1 q2 : int) (x : int) :
+    0 < q1 /\ 0 < q2 /\ q1 < q2 /\ 0 < x < q1 => 
+      x %% q1 = x %% q2 by smt(). 
 
 (** -------------------------------------------------------------------------------------------- **)
 
@@ -77,7 +88,7 @@ lemma size_all (x : W8.t list list)  :
     (forall (t0 : W8.t list), t0 \in x => 32 = size t0)
       by smt(@List). 
 
-lemma size_all_r (x : W8.t list list)  :
+ lemma size_all_r (x : W8.t list list)  :
   (all (fun (s : W8.t list) => size s = 32) x) =
     (forall (t0 : W8.t list), t0 \in x => size t0 = 32)
       by smt(@List). 
