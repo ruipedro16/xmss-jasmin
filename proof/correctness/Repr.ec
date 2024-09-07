@@ -53,7 +53,6 @@ op DecodeWotsSignature (s : wots_signature) : W8.t Array2144.t = Array2144.of_li
 op DecodeWotsPk (pk : wots_pk) : W8.t Array2144.t = Array2144.of_list witness (flatten pk).
 op DecodeWotsSk (sk : wots_sk) : W8.t Array2144.t = Array2144.of_list witness (flatten sk).
 
-
 (*** Lemmas about signature ***)
 
 lemma size_enc_wots_signature (x : W8.t Array2144.t) : size (EncodeWotsSignature x) = 67 (* 67 = len *)
@@ -234,19 +233,21 @@ SK SEED  | goes from index 8   to 39  (32 bytes) [8,   39]
 SK PRF   | goes from index 40  to 71  (32 bytes) [40,  71]
 PUB SEED | goes from index 72  to 103 (32 bytes) [72,  103]
 ROOT     | goes from index 104 to 135 (32 bytes) [104, 134]
+
+NOTE: PUB SEED & ROOT ARE SWITCHED
 *)
 op EncodeSk (x : W8.t Array136.t) : xmss_mt_sk = {| idx         = W32ofBytes (sub x 4 4);
                                                     sk_seed     = sub x 8 32; 
                                                     sk_prf      = sub x 40 32;
-                                                    pub_seed_sk = sub x 72 32;
-                                                    sk_root     = sub x 104 32 
+                                                    pub_seed_sk = sub x 104 32;
+                                                    sk_root     = sub x 72 32 
                                                  |}.
 
 op EncodeSkNoOID (x : W8.t Array132.t) : xmss_mt_sk = {| idx         = witness;
                                                          sk_seed     = sub x 0 32;
                                                          sk_prf      = sub x 32 32;
-                                                         pub_seed_sk = sub x 64 32;
-                                                         sk_root     = sub x 96 32;
+                                                         pub_seed_sk = sub x 96 32;
+                                                         sk_root     = sub x 64 32;
                                                       |}. 
                                                         
 (*
@@ -275,10 +276,10 @@ op DecodeAuthPath (x : auth_path) : W8.t Array320.t = Array320.of_list witness (
 
 op DecodeSk (x : xmss_mt_sk) : W8.t Array136.t = 
   Array136.of_list witness (W32toBytes impl_oid ++ W32toBytes x.`idx ++ x.`sk_seed ++ 
-                            x.`sk_prf ++ x.`pub_seed_sk ++ x.`sk_root).
+                            x.`sk_prf ++  x.`sk_root ++ x.`pub_seed_sk).
 
-op DeocdeSkNoOID (x : xmss_mt_sk) : W8.t Array132.t = 
-  Array132.of_list witness (W32toBytes x.`idx ++ x.`sk_seed ++ x.`sk_prf ++ x.`pub_seed_sk ++ x.`sk_root).
+op DecodeSkNoOID (x : xmss_mt_sk) : W8.t Array132.t = 
+  Array132.of_list witness (W32toBytes x.`idx ++ x.`sk_seed ++ x.`sk_prf ++ x.`sk_root ++  x.`pub_seed_sk).
 
 op DecodePk (x : xmss_mt_pk) : W8.t Array68.t = 
   Array68.of_list witness (W32toBytes impl_oid ++ x.`pk_root ++ x.`pk_pub_seed).
@@ -286,6 +287,8 @@ op DecodePk (x : xmss_mt_pk) : W8.t Array68.t =
 op DecodePkNoOID (x : xmss_mt_pk) : W8.t Array64.t = 
   Array64.of_list witness (x.`pk_root ++ x.`pk_pub_seed).
 
+(* Compares an array of size 132 with the record type, ignoring the OID *)
+pred skEqNoOID (x : W8.t Array132.t) (y : xmss_mt_sk) = x = DecodeSkNoOID y.
 
 (*** Lemmas about authentication path ***)
 

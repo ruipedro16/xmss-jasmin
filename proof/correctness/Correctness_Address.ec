@@ -18,3 +18,10 @@ proc.
 while (0 <= i <= 8 /\ 
       (forall (k : int), 0 <= k < i => (addr.[k] = W32.zero))); auto => /> ; smt(get_setE tP initiE).
 qed.
+
+(* TODO: Move this to termination.ec *)
+lemma zero_addr_ll : islossless M(Syscall)._zero_address by proc; while (true) (8 - i); auto => /> /#.
+
+lemma zero_addr_res (address : adrs) :
+    phoare[M(Syscall)._zero_address : true ==> res = zero_addr] = 1%r
+      by conseq zero_addr_ll (zero_addr_op_impl address) => //=. 
