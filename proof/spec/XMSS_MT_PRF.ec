@@ -519,14 +519,23 @@ module XMSS_MT_PRF = {
 
 lemma sample_randomness_ll : islossless XMSS_MT_PRF.sample_randomness by proc; islossless.
 
-(** TODO: Move this to properties **)
 lemma sample_randomness_size :
     hoare [XMSS_MT_PRF.sample_randomness : true ==> 
       size res.`1 = n /\ size res.`2 = n /\ size res.`3 = n ].
 proof.
 proc.
-admit.
+auto => />.
+move => ?; rewrite supp_dlist; [ apply ge0_n |] => [#] ??.
+move => ?; rewrite supp_dlist; [ apply ge0_n |] => [#] ??.
+move => ?; rewrite supp_dlist; [ apply ge0_n |] => [#] ??.
+do split; assumption.
 qed.
+
+lemma p_sample_randomness_size :
+    phoare [XMSS_MT_PRF.sample_randomness : true ==> 
+      size res.`1 = n /\ size res.`2 = n /\ size res.`3 = n ] = 1%r
+        by conseq sample_randomness_ll sample_randomness_size => //=.
+
 
 lemma xmss_mt_kg_ll : islossless XMSS_MT_PRF.kg.
 proof.

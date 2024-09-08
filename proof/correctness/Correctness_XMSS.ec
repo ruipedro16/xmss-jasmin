@@ -117,6 +117,20 @@ seq 2 2: (x1{1} = sk_seed{2} ++ sk_prf{2}).
 by auto; rewrite n_val.
 qed.
 
+lemma random_bytes_equiv_flipped :
+    n = XMSS_N =>
+    equiv [
+      XMSS_MT_PRF.sample_randomness ~ Syscall.randombytes_96  :
+      true 
+      ==>
+      to_list res{2} = res{1}.`1 ++ res{1}.`2 ++ res{1}.`3
+    ].  
+proof.
+move => H. 
+symmetry.
+admit.
+qed.
+
 lemma random_bytes_results :
     n = XMSS_N =>
     equiv [
@@ -129,8 +143,9 @@ lemma random_bytes_results :
       size res{2}.`3 = n 
     ].    
 proof.
-(* combine previous results *)
-admit.
+move => nP.
+symmetry.
+conseq (random_bytes_equiv_flipped nP) sample_randomness_size.
 qed.
 
 (*** Keygen without OID ***)
@@ -325,18 +340,47 @@ seq 1 0 : (
   (forall (k : int), 0 <= k < 32 => sk0{1}.[4 + 2 * 32 + k] = nth witness root{2} k)
 ).
     + admit.
-auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18; split. 
-    + admit.
-    + rewrite /DecodeSkNoOID => />. rewrite tP => i Hi. rewrite -!get_to_list.
-      case (0 <= i < 4); last by admit.
-        (* This case refers to the idx *)
-        + move => ?; 
+auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18; split.
+    + rewrite /DecodePkNoOID => />; rewrite tP => i Hi.
+      rewrite get_of_list //=.
+      case (0 <= i < 32).
+        + move => ?.
+          rewrite nth_cat size_to_list ifT 1:/# get_to_list H17 //=.
+        + move => ?. 
+          rewrite nth_cat size_to_list ifF 1:/# get_to_list -H12 //= /#.
+    + rewrite /DecodeSkNoOID => />; rewrite tP => i Hi. rewrite -!get_to_list.
+      case (0 <= i < 4).
+        + move => ?. 
           rewrite of_listK; [by rewrite !size_cat !size_to_list H2 size_W32toBytes |].
           do ! (rewrite nth_cat !size_cat !size_to_list H2 size_W32toBytes //= ifT 1:/#).
           rewrite nth_cat !size_cat !size_to_list size_W32toBytes //= ifT 1:/#.
-          rewrite nth_cat size_W32toBytes ifT 1:/#.
+          rewrite nth_cat size_W32toBytes ifT 1:/# W32toBytes_zero_nth //= H8 //=.
+      case (4 <= i < 4 + 32).
+        + simplify => ? _. 
+          rewrite get_of_list //=.
+          rewrite nth_cat !size_cat !size_to_list size_W32toBytes H2 //= ifT 1:/#.
+          rewrite nth_cat !size_cat !size_to_list size_W32toBytes H2 //= ifT 1:/#.
+          rewrite nth_cat !size_cat !size_to_list size_W32toBytes //= ifT 1:/#.  
+          rewrite nth_cat size_W32toBytes //= ifF 1:/# -H9 //= /#.  
+      case (4 + 32 <= i < 4 + 2 * 32).
+        + simplify => ? _ _.
+          rewrite get_of_list //=.
+          rewrite nth_cat !size_cat !size_to_list size_W32toBytes H2 //= ifT 1:/#.
+          rewrite nth_cat !size_cat !size_to_list size_W32toBytes H2 //= ifT 1:/#.
+          rewrite nth_cat !size_cat !size_to_list size_W32toBytes //= ifF 1:/# -H10 //= /#.  
+      case (4 + 2*32 <= i < 4 + 3*32).     
+        + simplify => ? _ _ _.
+          rewrite get_of_list //=.
+          rewrite nth_cat !size_cat !size_to_list size_W32toBytes H2 //= ifT 1:/#.
+          rewrite nth_cat !size_cat !size_to_list size_W32toBytes H2 //= ifF 1:/# -H18 /#.
+      move => ????.      
+      have E : 100 <= i < 132 by smt().           
+          rewrite get_to_list of_listK; [by rewrite !size_cat !size_to_list size_W32toBytes H2|].
+          rewrite nth_cat !size_cat !size_to_list size_W32toBytes H2 //= ifF 1:/# -H11 /#.
 qed.
 
+
+(*** TODO: exported function ***)
 
 (*** L Tree ***)
 

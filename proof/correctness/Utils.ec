@@ -13,6 +13,7 @@ require import WArray96.
 
 require import Types Params Parameters Address Notation.
 
+
 (** -------------------------------------------------------------------------------------------- **)
 
 lemma get8_nth (x : W8.t list) (i : int) :
@@ -104,6 +105,22 @@ rewrite -RField.fromintXn 1:/# #smt:(@RealExp).
 qed.
 
 hint simplify simplify_pow. 
+
+(** -------------------------------------------------------------------------------------------- **)
+
+(* NOTE: This lemma needs to be defined after the previous hint *)
+(* This is used a lot in the proofs for wots *)
+
+lemma log2_16 : log2 16%r = 4%r.
+proof.
+have ->: 16%r = 2%r ^ 4%r by simplify.
+rewrite /log2 logK /#.
+qed.
+
+lemma ceil_3_2 : ceil (3%r / 2%r) = 2.
+proof.
+admit.
+qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 

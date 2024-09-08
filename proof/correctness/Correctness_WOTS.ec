@@ -1,6 +1,7 @@
 pragma Goals : printall.
 
 require import AllCore List RealExp IntDiv.
+
 from Jasmin require import JModel JArray.
 
 require import Types Params Parameters Address Notation Primitives Hash Wots. 
@@ -12,7 +13,7 @@ require import XMSS_IMPL.
 require import Array2 Array3 Array8 Array32 Array64 Array67 Array96 Array2144.
 
 require import Utils. (* valid ptr predicate & addr_to_bytes *)
-require import Correctness_Mem Correctness_Hash. 
+require import Correctness_Mem Correctness_Hash Correctness_Bytes. 
 
 require import Termination Repr.
 
@@ -214,8 +215,6 @@ lemma wots_checksum_results (msg : W32.t Array64.t) :
     ].
 proof.
 admit.
-(* Isto nao acrescenta nada. Se to_uint res{1} = res{2} isto ja implica que 0 <= res{2} < W32.max_uint
-   Caso contrario haveria overflow e a igualdade ja nao se verificaria *)
 qed.
 
 (*** CHAIN: Done ***)
@@ -577,8 +576,6 @@ qed.
 op load_sig (mem : global_mem_t) (ptr : W64.t) : W8.t Array2144.t =
   Array2144.init(fun i => loadW8 mem (to_uint ptr + i)).
 
-require import Correctness_Bytes.
-
 lemma pk_from_sig_correct (mem : global_mem_t) (_sig_ptr_ : W64.t, _msg_ _pub_seed_ : W8.t Array32.t, _addr_ : W32.t Array8.t) :
     valid_ptr_i _sig_ptr_ 2144 =>
     floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
@@ -665,9 +662,11 @@ seq 1 1 : (
 ).
     + auto => /> &1 _ H0 H1 H2 H3 H4 H5. (* The first hypothesis evaluates to true *)
       rewrite len1_val logw_val w_val len2_val //= => H6.
-      rewrite (: 63 = 2 ^ 6 - 1) 1:/# and_mod 1:/# (: to_uint ((of_int 4))%W64 %% 2 ^ 6 = 4) 1:/# 
-              (: truncateu8 ((of_int 4))%W64 = W8.of_int 4) 1:#smt:(@W64) !shl_shlw 1,2:/# !to_uint_shl 1,2:/#. 
-      smt(@W32 @W64 pow2_32 pow2_64 @IntDiv).
+      rewrite (: 63 = 2 ^ 6 - 1) 1:/# and_mod 1:/# (: to_uint ((of_int 4))%W64 %% 2 ^ 6 = 4) 1:/#.
+      have ->: truncateu8 ((of_int 4))%W64 = W8.of_int 4 by smt(@W64 pow2_64).  
+      rewrite !shl_shlw 1,2:/# !to_uint_shl 1,2:/#. 
+      simplify. admit.
+
 seq 0 1 : (#pre /\ len_2_bytes{2} = 3).
     + auto => /> &1 &2 _ *. rewrite len2_val w_val.
       have ->: log2 16%r = 4%r.
@@ -693,7 +692,7 @@ seq 1 1 : (
 seq 6 1 : (#pre /\ map W32.to_uint(to_list lengths{1}) = msg{2}); last by admit. (* lengths = t0 || t1 *) 
     + auto => /> &1 &2 _ H0 H1 H2 H3 H4 H5 H6 H7; do split. 
        * admit.
-       * admit.
+       * rewrite size_cat !size_map !size_iota len1_val //=. admit.
        * admit.
        * admit.
        * admit.
@@ -716,7 +715,6 @@ seq 2 0 : (#pre /\ forall (k : int), 0 <= k < 67 => lengths2{1}.[k] = csum_base_
 (* Antes do inicio do ciclo while, temos que lengths{1} = msg{2} *)
 
 ***)
-admit.
 qed.
 
 (*** Sign Seed : Doing ***)
@@ -724,10 +722,10 @@ qed.
 lemma sign_seed_correct (_msg_ _seed_ _pub_seed_ : W8.t Array32.t, _addr_ : W32.t Array8.t) :
     n = XMSS_N /\
     len = XMSS_WOTS_LEN /\
-    floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
+    floor (log2 w%r) = XMSS_WOTS_LOG_W /\
     w = XMSS_WOTS_W /\
     len1 = XMSS_WOTS_LEN1 /\
-    len2 = XMSS_WOTS_LEN2 /\
+    len2 = XMSS_WOTS_LEN2 /\ 
     prf_padding_val = XMSS_HASH_PADDING_PRF /\
     prf_kg_padding_val = XMSS_HASH_PADDING_PRF_KEYGEN /\
     padding_len = XMSS_PADDING_LEN /\
@@ -772,6 +770,165 @@ seq 0 0 : (
 ).
     + auto => /> &1 &2 H *. split; [ by rewrite size_to_list|].
       rewrite size_flatten sumzE BIA.big_map /(\o) //= -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) /= 1:/# big_constz count_predT H //=. 
+inline M(Syscall).__chain_lengths_ M(Syscall)._chain_lengths M(Syscall).__chain_lengths.
+seq 10 0 : (#pre /\ lengths2{1} = lengths{1} /\ msg2{1} = msg{1}); first by auto.
+seq 1 0 : (
+  #pre /\
+  forall (k : int), 0 <= k < 64 => t0{1}.[k] = lengths{1}.[k]
+); first by auto => /> *; rewrite initiE //=.
+seq 1 1 : (
+  (* the last part of pre is no longer true *)
+  M{2} = to_list msg{1} /\
+  pub_seed{2} = to_list pub_seed{1} /\
+  sk_seed{2} = to_list seed{1} /\
+  address{2} = addr{1} /\
+  size sig{2} = 67 /\ 
+  (forall (t : W8.t list), t \in sig{2} => size t = 32) /\
+  to_list sig{1} = flatten wots_skey{2} /\
+  size M{2} = 32 /\ 
+  size (flatten sig{2}) = 2144 /\
+  lengths2{1} = lengths{1} /\ 
+  msg2{1} = msg{1} /\
+
+  msg{2} = map (W32.to_uint) (to_list t0{1}) /\
+  (forall (k : int), 0 <= k < 64 => 0 <= to_uint t0{1}.[k] < w)
+).
+    + exists * msg2{1}; elim * => P; call (base_w_results_64 P) => //=.
+seq 2 0 : (
+  M{2} = to_list msg{1} /\
+  pub_seed{2} = to_list pub_seed{1} /\
+  sk_seed{2} = to_list seed{1} /\
+  address{2} = addr{1} /\
+  size sig{2} = 67 /\
+  (forall (t : W8.t list), t \in sig{2} => size t = 32) /\
+  to_list sig{1} = flatten wots_skey{2} /\
+  size M{2} = 32 /\
+  size (flatten sig{2}) = 2144 /\
+  msg2{1} = msg{1} /\
+  msg{2} = map W32.to_uint (to_list t0{1}) /\
+  (forall (k : int), 0 <= k < 64 => 0 <= to_uint t0{1}.[k] < w) /\
+  
+  (forall (k : int), 0 <= k < 64 => to_uint lengths2{1}.[k] =  nth witness msg{2} k)
+).
+    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 k??. 
+      rewrite initiE 1:/# => />.
+      rewrite ifT // (nth_map witness); [by rewrite size_to_list |].                      
+      rewrite get_to_list //=.
+inline {1} M(Syscall).__wots_checksum.
+seq 5 0 : (#pre /\ csum_base_w{1} = t1{1} /\ msg_base_w{1} = lengths2{1}); first by auto.
+seq 1 0 : (
+  #pre /\
+  (forall (k : int), 0 <= k < 64 => 0 <= to_uint buf{1}.[k] <= 15) /\
+  msg{2} = map (W32.to_uint) (to_list buf{1})
+).
+    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6; split.
+       * move => k0??; split.
+          - rewrite initiE //= H6 //= (nth_map witness); [by rewrite size_to_list //= |].
+            rewrite get_to_list /#.
+          - rewrite w_val in H5.
+            rewrite initiE //= => H7.
+            rewrite H6 //= (nth_map witness); [by rewrite size_to_list //= |].
+            rewrite get_to_list /#.
+       * apply (eq_from_nth witness); [ by rewrite !size_map !size_iota |].
+         rewrite size_map size_to_list => i Hi.
+         rewrite -H6 //= (nth_map witness); [ by rewrite size_to_list |]. 
+         rewrite get_to_list //= initiE //=.
+seq 1 1 : (
+  #pre /\
+  to_uint csum{1} = csum{2} /\
+  0 <= csum{2} <= len1 * (w - 1)
+); first by exists * buf{1}; elim * => P; call {1} (wots_checksum_results P) => //.
+seq 3 0 : (#pre /\ u{1} = W64.of_int 4); first by auto.
+seq 2 2 : (
+  M{2} = to_list msg{1} /\
+  pub_seed{2} = to_list pub_seed{1} /\
+  sk_seed{2} = to_list seed{1} /\
+  address{2} = addr{1} /\
+  size sig{2} = 67 /\
+  (forall (t : W8.t list), t \in sig{2} => size t = 32) /\
+  to_list sig{1} = flatten wots_skey{2} /\
+  size M{2} = 32 /\
+  size (flatten sig{2}) = 2144 /\
+  msg2{1} = msg{1} /\
+  msg{2} = map W32.to_uint (to_list t0{1}) /\
+  (forall (k0 : int), 0 <= k0 < 64 => 0 <= to_uint t0{1}.[k0] < w) /\
+  (forall (k0 : int), 0 <= k0 < 64 => to_uint lengths2{1}.[k0] = nth witness msg{2} k0) /\
+  csum_base_w{1} = t1{1} /\ 
+  msg_base_w{1} = lengths2{1} /\
+  (forall (k0 : int), 0 <= k0 < 64 => 0 <= to_uint buf{1}.[k0] <= 15) /\
+  msg{2} = map W32.to_uint (to_list buf{1}) /\
+  0 <= csum{2} && csum{2} <= len1 * (w - 1) /\
+  u{1} = (of_int 4)%W64 /\
+  to_uint csum{1} = to_uint csum_32{2}
+).
+    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10.
+      rewrite (: 63 = 2^6 - 1) 1:/# and_mod //=. 
+      have ->: truncateu8 ((of_int 4))%W64 = W8.of_int 4 by smt(@W64 pow2_64).
+      rewrite !shl_shlw //= len2_val w_val.
+      have ->: ceil (3%r * log2 16%r) = 12.
+        * have ->: 16%r = 2%r ^ 4%r by simplify. 
+          rewrite /log2 logK 1,2:/# -fromintM //= from_int_ceil //=.
+      by simplify.
+      have ->: ceil (3%r * log2 16%r) = 12.
+        * have ->: 16%r = 2%r ^ 4%r by simplify. 
+          rewrite /log2 logK 1,2:/# -fromintM //= from_int_ceil //=.
+      simplify.
+      rewrite !to_uint_shl //= of_uintK //=.
+      rewrite len1_val w_val //= in H10.
+      have ->: to_uint csum{1} %% 4294967296 = to_uint csum{1} by smt(@W64 pow2_64 @IntDiv).
+      smt(@IntDiv).
+seq 0 1 : (#pre /\ len_2_bytes{2} = 2).
+    + auto => /> *. 
+      rewrite w_val len2_val log2_16 -fromintM //= from_int_ceil //=. 
+      apply ceil_3_2.
+
+seq 1 1 : (#pre /\ to_list csum_bytes_p{1} = csum_bytes{2}).
+    + ecall {1} (ull_to_bytes_2_equiv csum{1}). 
+      auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 rL H12. 
+      rewrite H12 //=; congr; smt(@W32). 
+seq 1 1 : (
+  M{2} = to_list msg{1} /\
+  pub_seed{2} = to_list pub_seed{1} /\
+  sk_seed{2} = to_list seed{1} /\
+  address{2} = addr{1} /\
+  size sig{2} = 67 /\
+  (forall (t : W8.t list), t \in sig{2} => size t = 32) /\
+  to_list sig{1} = flatten wots_skey{2} /\
+  size M{2} = 32 /\
+  size (flatten sig{2}) = 2144 /\
+  msg2{1} = msg{1} /\
+  msg{2} = map W32.to_uint (to_list t0{1}) /\
+  (forall (k0 : int), 0 <= k0 < 64 => 0 <= to_uint t0{1}.[k0] < w) /\
+  (forall (k0 : int), 0 <= k0 < 64 => to_uint lengths2{1}.[k0] = nth witness msg{2} k0) /\
+  msg_base_w{1} = lengths2{1} /\
+  (forall (k0 : int), 0 <= k0 < 64 => 0 <= to_uint buf{1}.[k0] <= 15) /\
+  msg{2} = map W32.to_uint (to_list buf{1}) /\
+  0 <= csum{2} <= len1 * (w - 1) /\
+  u{1} = (of_int 4)%W64 /\ 
+  to_uint csum{1} = to_uint csum_32{2} /\
+  len_2_bytes{2} = 2 /\
+  to_list csum_bytes_p{1} = csum_bytes{2} /\
+  csum_base_w{2} = map (W32.to_uint) (to_list csum_base_w{1}) /\
+  (forall (k : int), 0 <= k < 3 => 0 <= to_uint csum_base_w{1}.[k] < w)
+); first by exists * csum_bytes_p{1}; elim * => P; call (base_w_results_3 P) => //=.
+
+(*** Fiquei aqui => TODO: Adicionar pre (apenas as partes que interessam) a estes lemmas  ***)      
+seq 6 0 : (
+  (forall (k : int), 0 <= k < 3 => lengths{1}.[64 + k] = csum_base_w{1}.[k]) /\
+  (forall (k : int), 0 <= k < 64 => to_uint lengths{1}.[k] = nth witness msg{2} k)
+); last by admit.
+    + auto=> /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 *; split => k0 ??. 
+
+* rewrite initiE 1:/# => />; rewrite ifT 1:/# //=.
+* rewrite initiE 1:/# => />; rewrite ifF 1:/# H6 //=.
+
+
+
+
+
+
+
+
 (* Ate aqui ta tudo certo *)
 seq 1 8 : (
     addr{1} = address{2} /\

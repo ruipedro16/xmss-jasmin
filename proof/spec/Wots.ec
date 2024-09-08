@@ -166,7 +166,7 @@ module WOTS = {
     len_2_bytes <- (ceil ((ceil (len2%r * log2(w%r)))%r / 8%r));
 
     (* msg = msg || base_w(toByte(csum_32, len_2_bytes), w, len_2); *)
-    csum_bytes <- toByte csum_32 len;
+    csum_bytes <- toByte csum_32 len2;
     csum_base_w <@ BaseW.base_w(csum_bytes, len_2_bytes);
     msg <- msg ++ csum_base_w;
 
@@ -214,8 +214,8 @@ module WOTS = {
     len_2_bytes <- (ceil ((ceil (len2%r * log2(w%r)))%r / 8%r));
 
     (* msg = msg || base_w(toByte(csum, len_2_bytes), w, len_2); *)
-    csum_bytes <- toByte csum_32 len;
-    csum_base_w <@ BaseW.base_w(csum_bytes, len_2_bytes);
+    csum_bytes <- toByte csum_32 len_2_bytes;
+    csum_base_w <@ BaseW.base_w(csum_bytes, len2);
     msg <- msg ++ csum_base_w;
 
     i <- 0;
@@ -256,8 +256,8 @@ module WOTS = {
     len_2_bytes <- (ceil ((ceil (len2%r * log2(w%r)))%r / 8%r));
 
     (* msg = msg || base_w(toByte(csum_32, len_2_bytes), w, len_2); *)
-    csum_bytes <- toByte csum_32 len;
-    csum_base_w <@ BaseW.base_w(csum_bytes, len_2_bytes);
+    csum_bytes <- toByte csum_32 len_2_bytes;
+    csum_base_w <@ BaseW.base_w(csum_bytes, len2);
     msg <- msg ++ csum_base_w;
         
     i <- 0;
