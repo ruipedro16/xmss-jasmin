@@ -13,6 +13,49 @@ require import WArray96.
 
 require import Types Params Parameters Address Notation.
 
+(** -------------------------------------------------------------------------------------------- **)
+
+op concatMap  (f: 'a -> 'b list) (a: 'a list): 'b list = flatten (map f a).
+op W32ofBytes (bytes : W8.t list) : W32.t = W32.bits2w (concatMap W8.w2bits bytes).
+op W32toBytes (x : W32.t) : W8.t list = map W8.bits2w (chunk W8.size (W32.w2bits x)).
+
+(** -------------------------------------------------------------------------------------------- **)
+lemma size_W32toBytes (x : W32.t) : size (W32toBytes x) = 4 
+    by rewrite /W32toBytes size_map size_chunk //.
+
+lemma W32toBytes_zero_nth (i : int) :
+    0 <= i < 4 => nth witness (W32toBytes W32.zero) i = W8.zero.
+proof.
+move => H.
+rewrite /W32toBytes.
+rewrite (nth_map witness).
+  + by rewrite size_chunk.
+print w2bits. 
+have ->: w2bits W32.zero = nseq 32 false.
+  + apply (eq_from_nth false); [ by rewrite size_w2bits size_nseq |].
+    rewrite size_w2bits => j?.
+    rewrite get_w2bits nth_nseq //=.
+have ->: chunk 8 (nseq 32 false) = nseq 4 (nseq 8 false).
+  + apply (eq_from_nth witness); [by rewrite size_chunk //= !size_nseq /# |].
+    rewrite size_chunk //= size_nseq (: 32 %/ 8 = 4) 1:/# => j?.
+    rewrite nth_nseq 1:/#.
+    rewrite /chunk nth_mkseq; [by rewrite size_nseq (: 32 %/ 8 = 4) 1:/# |].
+    auto => />. 
+    apply (eq_from_nth witness).
+      * rewrite size_take //= size_drop 1:/# !size_nseq. 
+        rewrite (: (max 0 32) = 32) 1:/# (: max 0 (32 - 8 * j) = (32 - 8 *j)) 1:/# /#. 
+    rewrite size_take //= size_drop 1:/# !size_nseq.      
+    rewrite (: (max 0 32) = 32) 1:/# (: max 0 (32 - 8 * j) = (32 - 8 *j)) 1:/#.
+    move => i0?.
+    rewrite nth_nseq 1:/# nth_take //= 1:/# nth_drop 1,2:/# nth_nseq 1:/# //.
+rewrite nth_nseq //.
+rewrite /W8.zero.
+congr. 
+apply (eq_from_nth false).
+  + rewrite size_nseq /int2bs size_mkseq //=.
+rewrite size_nseq (: max 0 8 = 8) 1:/# => j?.  
+rewrite nth_nseq //= /int2bs nth_mkseq //=.
+qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 
@@ -126,16 +169,7 @@ qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 
-op concatMap (f: 'a -> 'b list) (a: 'a list): 'b list = flatten (map f a).
-op W32ofBytes (bytes : W8.t list) : W32.t = W32.bits2w (concatMap W8.w2bits bytes).
-op W32toBytes (x : W32.t) : W8.t list = map W8.bits2w (chunk W8.size (W32.w2bits x)).
-
-(** -------------------------------------------------------------------------------------------- **)
-
 lemma set0_res : set0_64_.`6 = W64.zero by rewrite /set0_64_ //.
-
-lemma size_W32toBytes (x : W32.t) : size (W32toBytes x) = 4
-    by rewrite /W32toBytes size_map size_chunk 1:// /w2bits size_mkseq //.
 
 (** -------------------------------------------------------------------------------------------- **)
 
@@ -187,8 +221,30 @@ qed.
 lemma memset_toByte_Zero : 
     hoare [ M(Syscall).__memset_zero_u8 : true ==> to_list res = toByte W32.zero 4 ].
 proof.
-admit. (* Use transitivity *)
-(* memset_zero => toByte zero *)
+rewrite /toByte; proc.
+while (
+  0 <= to_uint i <= 4 /\ 
+  (forall (k : int), 0 <= k < to_uint i => a.[k] = W8.zero)
+).
+
+    + auto => /> &hr H0 H1 H2 H3; do split; 1,2:smt(@W64 pow2_64).
+      move => k??. 
+      rewrite get_setE 1:#smt:(@W64 pow2_64).
+      smt(@Array4 @W64).  
+    + auto => /> &hr; do split; 1:smt(). 
+      move => a i ???. 
+      have ->: to_uint i = 4 by smt(@W64 pow2_64).
+      move => H.
+      have ->: to_list a = nseq 4 W8.zero.
+         * apply (eq_from_nth witness); [by rewrite size_to_list size_nseq |].
+           rewrite size_to_list => j?. rewrite get_to_list H //= nth_nseq //=.
+      apply (eq_from_nth witness); [rewrite size_take //= size_nseq size_rev size_to_list //= |].
+      rewrite size_nseq (: max 0 4 = 4) 1:/#  => j?.        
+      rewrite nth_nseq //= nth_take 1,2:/# nth_rev; [by rewrite size_to_list //= |].
+      rewrite size_to_list.
+      have ->: nth witness (to_list (unpack8 W32.zero)) (4 - (j + 1)) = 
+               (unpack8 W32.zero).[4 - (j+1)] by smt(@List).
+      rewrite get_unpack8 1:/# get_zero //=.
 qed.
 
 (** -------------------------------------------------------------------------------------------- **)
@@ -355,15 +411,25 @@ while (
     + admit.
 qed.
 
-lemma addr_to_bytes_correctness (x : W32.t Array8.t) : 
-    phoare[M(Syscall).__addr_to_bytes : arg.`2 = x ==> to_list res = addr_to_bytes x] = 1%r.
+lemma _addr_to_bytes_correctness (x : W32.t Array8.t) : 
+    hoare[M(Syscall).__addr_to_bytes : arg.`2 = x ==> to_list res = addr_to_bytes x].
 proof.
-proc.
+rewrite /addr_to_bytes /BitsToBytes; proc.
 auto => />. 
+while (
+   0 <= i <= 8
+).
+admit.
 admit.
 qed.
 
-lemma addr_to_bytes_ll : 
-    phoare[M(Syscall).__addr_to_bytes : true ==> true] = 1%r
-        by proc; inline; while (true) (8 - i); auto => /> /#.
+lemma addr_to_bytes_ll : islossless M(Syscall).__addr_to_bytes by proc; inline; while (true) (8 - i); auto => /> /#.
 
+lemma addr_to_bytes_correctness (x : W32.t Array8.t) : 
+    phoare[M(Syscall).__addr_to_bytes : arg.`2 = x ==> 
+      to_list res = addr_to_bytes x] = 1%r.
+proof.
+proc.
+(* conseq addr_to_bytes_ll (_addr_to_bytes_correctness x). *)
+admit.
+qed.

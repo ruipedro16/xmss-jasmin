@@ -22,29 +22,6 @@ clone import DListProgramX as T
   with type t <- W8.t,
        op d <- W8.dword.
 
-lemma size_W32toBytes (x : W32.t) : size (W32toBytes x) = 4 
-    by rewrite /W32toBytes size_map size_chunk //.
-
-lemma W32toBytes_zero_nth (i : int) :
-    0 <= i < 4 => nth witness (W32toBytes W32.zero) i = W8.zero.
-proof.
-move => H.
-rewrite /W32toBytes.
-case (i = 0).
-  + move => ?; admit.
-case (i = 1).
-  + move => ??; admit.
-case (i = 2).
-  + move => ???; admit.  
-move => ???.
-rewrite (: i = 3) 1:/#.
-have ->: w2bits W32.zero = nseq 32 false. 
-  + rewrite /w2bits. apply (eq_from_nth witness); [ by rewrite size_mkseq size_nseq |].   
-    rewrite size_mkseq (: max 0 32 = 32) 1:/# => j Hj.
-    rewrite nth_nseq //= nth_mkseq //=.
-admit.
-qed.
-
 (*** Treehash kg ***)
 
 lemma treehash_kg_correct :
