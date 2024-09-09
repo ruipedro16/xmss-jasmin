@@ -109,7 +109,7 @@ lemma W64_eq_W32 (x : W64.t) :
 (** -------------------------------------------------------------------------------------------- **)
 
 lemma all_put ['a] (x : 'a list) (y : 'a) (p : 'a -> bool) (i : int) :
-    0 <= i < size x => p y =>
+    p y =>
     (forall (t : 'a), t \in x => p t) => 
     (forall (t : 'a), t \in (put x i y) => p t) by smt(@List).   
 

@@ -555,13 +555,13 @@ do split;3,4,7,8:smt().
     + move => k Hk0 Hk1. rewrite initE ifT 1:/#. auto => />. 
       case (i{2} * 32 <= k && k < i{2} * 32 + 32); move => *.
         - rewrite (nth_flatten witness 32). 
-           + rewrite allP; apply all_put; [ rewrite H0 len_val /XMSS_WOTS_LEN /# | auto => />; rewrite size_to_list // |]. 
+           + rewrite allP; apply all_put; auto => />; [ rewrite size_to_list // |]. 
              auto => />; rewrite -size_all_r size_size /#. 
           rewrite nth_put 1:/# ifT 1:/#. 
           rewrite get_to_list; congr => /#.
         - rewrite (nth_flatten witness 32). 
             + rewrite allP. 
-              apply all_put; [ rewrite H0 len_val /XMSS_WOTS_LEN /# | auto => />; rewrite size_to_list // |]. 
+              apply all_put; [ auto => />; rewrite size_to_list // |]. 
           auto => />. rewrite -size_all_r size_size /#. 
           rewrite nth_put 1:/# ifF 1:/#. 
           rewrite -nth_flatten 2:/# size_size /#.
@@ -742,7 +742,8 @@ lemma sign_seed_correct (_msg_ _seed_ _pub_seed_ : W8.t Array32.t, _addr_ : W32.
       res{1}.`2 = res{2}.`2
     ].
 proof.
-rewrite /XMSS_N /XMSS_WOTS_LEN /XMSS_WOTS_W /XMSS_WOTS_LEN1 /XMSS_WOTS_LEN2 => [#] n_val len_val ? w_val len1_val len2_val *.
+rewrite /XMSS_N /XMSS_WOTS_LEN /XMSS_WOTS_W /XMSS_WOTS_LEN1 /XMSS_WOTS_LEN2.
+move => [#] n_val len_val ? w_val len1_val len2_val *.
 proc => //=.
 conseq (: _ ==> addr{1} = address{2} /\ (forall (k : int), 0 <= k < 2144 => sig{1}.[k] = nth witness (flatten sig{2}) k)).
   + auto => /> *; rewrite /DecodeWotsSignature /of_list /mkseq tP => ??; smt(@Array2144 @List).
@@ -751,60 +752,58 @@ seq 1 1 : (
   pub_seed{2} = to_list pub_seed{1} /\
   sk_seed{2} = to_list seed{1} /\
   address{2} = addr{1} /\
+  
   size sig{2} = 67 /\
-  forall (t : W8.t list), t \in sig{2} => size t = 32
-); first by auto => />; split; [ rewrite size_nseq len_val //= | smt(@List) ].
+  size (flatten sig{2}) = 2144 /\
+  (forall (t : W8.t list), t \in sig{2} => size t = 32) /\
 
+  size M{2} = 32
+).
+    + auto => /> * ; do split.
+        - rewrite size_nseq /#.
+        - rewrite size_flatten sumzE BIA.big_map /(\o) //= -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) 1:#smt:(@List) big_constz count_predT size_nseq len_val //=.
+        - smt(@List).
+        - by rewrite size_to_list. 
 swap {1} 2 -1.
 
 seq 1 1 : (#pre /\ to_list sig{1} = flatten wots_skey{2}).
     + inline M(Syscall).__expand_seed_ M(Syscall)._expand_seed; wp; sp. 
       exists * inseed0{1}, pub_seed1{1}, addr1{1}; elim * => _P1 _P2 _P3; call {1} (expand_seed_results _P1 _P2 _P3); [smt() |]. 
-      skip => /> &2; rewrite /DecodeWotsSk => ?H0 rL rR H1 H2 H3 ?; split; [ smt() |]. 
+      skip => /> &1 &2.  
+      rewrite /DecodeWotsSk => H0 H1 H2 H3 rL rR H4 H5 H6 H7. 
+      split; [ smt() |]. 
       apply (eq_from_nth witness). 
-          * rewrite size_to_list size_flatten sumzE BIA.big_map /(\o) //= -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) /= 1:/# big_constz count_predT H2 len_val //. 
+       * rewrite size_to_list size_flatten sumzE BIA.big_map /(\o) //= -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) /= 1:/# big_constz count_predT H5 len_val //. 
           * rewrite size_to_list => ??.
-            rewrite H1 of_listK 2:// size_flatten sumzE BIA.big_map /(\o) //= -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) /= 1:/# big_constz count_predT H2 len_val //.  
+            rewrite H4 of_listK 2:// size_flatten sumzE BIA.big_map /(\o) //= -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) /= 1:/# big_constz count_predT H5 len_val //.  
 
-seq 0 0 : (
-  #pre /\
-  size M{2} = 32 /\
-  size (flatten sig{2}) = 2144
-).
-    + auto => /> &1 &2 H *. split; [ by rewrite size_to_list|].
-      rewrite size_flatten sumzE BIA.big_map /(\o) //= -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) /= 1:/# big_constz count_predT H //=. 
+(*** Chain lengths comeca aqui ***) 
 
+(***
+    T0 : Array 64 
+    T1 : Array 3
+    T0 + T1 : Array67 = lengths 
+***)
 
 inline M(Syscall).__chain_lengths_ M(Syscall)._chain_lengths M(Syscall).__chain_lengths.
-
-seq 10 0 : (#pre /\ lengths2{1} = lengths{1} /\ msg2{1} = msg{1}); first by auto.
-
-seq 1 0 : (
-  #pre /\
-  forall (k : int), 0 <= k < 64 => t0{1}.[k] = lengths{1}.[k]
-); first by auto => /> *; rewrite initiE //=.
-
+seq 11 0 : (#pre /\ lengths2{1} = lengths{1} /\ msg2{1} = msg{1}); first by auto.
 seq 1 1 : (
-  (* the last part of pre is no longer true *)
   M{2} = to_list msg{1} /\
   pub_seed{2} = to_list pub_seed{1} /\
   sk_seed{2} = to_list seed{1} /\
   address{2} = addr{1} /\
-  size sig{2} = 67 /\ 
-  (forall (t : W8.t list), t \in sig{2} => size t = 32) /\
-  to_list sig{1} = flatten wots_skey{2} /\
-  size M{2} = 32 /\ 
+  size sig{2} = 67 /\
   size (flatten sig{2}) = 2144 /\
+  (forall (t : W8.t list), t \in sig{2} => size t = 32) /\ 
+  size M{2} = 32 /\
+  to_list sig{1} = flatten wots_skey{2} /\
   lengths2{1} = lengths{1} /\ 
-  msg2{1} = msg{1} /\
+
+(*** ------------------------------------------------------------------------------------ ***)
 
   msg{2} = map (W32.to_uint) (to_list t0{1}) /\
   (forall (k : int), 0 <= k < 64 => 0 <= to_uint t0{1}.[k] < w)
-).
-    + exists * msg2{1}; elim * => P; call (base_w_results_64 P) => //=.
-
-
-
+); first by exists * msg2{1}; elim * => P; call (base_w_results_64 P) => //=.
 
 seq 2 0 : (
   M{2} = to_list msg{1} /\
@@ -812,13 +811,14 @@ seq 2 0 : (
   sk_seed{2} = to_list seed{1} /\
   address{2} = addr{1} /\
   size sig{2} = 67 /\
-  (forall (t : W8.t list), t \in sig{2} => size t = 32) /\
-  to_list sig{1} = flatten wots_skey{2} /\
-  size M{2} = 32 /\
   size (flatten sig{2}) = 2144 /\
-  msg2{1} = msg{1} /\
-  msg{2} = map W32.to_uint (to_list t0{1}) /\
+  (forall (t : W8.t list), t \in sig{2} => size t = 32) /\ 
+  size M{2} = 32 /\
+  to_list sig{1} = flatten wots_skey{2} /\
+  msg{2} = map (W32.to_uint) (to_list t0{1}) /\
   (forall (k : int), 0 <= k < 64 => 0 <= to_uint t0{1}.[k] < w) /\
+
+(*** ------------------------------------------------------------------------------------ ***)
   
   (forall (k : int), 0 <= k < 64 => to_uint lengths2{1}.[k] =  nth witness msg{2} k) /\
   (forall (k : int), 0 <= k < 64 => 0 <= to_uint lengths2{1}.[k] < w)
@@ -833,10 +833,10 @@ inline {1} M(Syscall).__wots_checksum.
 
 seq 5 0 : (#pre /\ csum_base_w{1} = t1{1} /\ msg_base_w{1} = lengths2{1}); first by auto.
 
-(* buf = lengths *)
+(*** BUF = mensagem em base w = 1o parte do LENGTHS ***)
 seq 1 0 : (
   #pre /\
-  (forall (k : int), 0 <= k < 64 => 0 <= to_uint buf{1}.[k] <= 15) /\
+  (forall (k : int), 0 <= k < 64 => 0 <= to_uint buf{1}.[k] < w) /\
   msg{2} = map (W32.to_uint) (to_list buf{1})
 ).
     + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 *; split.
@@ -852,12 +852,9 @@ seq 1 0 : (
          rewrite -H6 //= (nth_map witness); [ by rewrite size_to_list |]. 
          rewrite get_to_list //= initiE //=.
 
-seq 1 1 : (
-  #pre /\
-  to_uint csum{1} = csum{2} /\
-  0 <= csum{2} <= len1 * (w - 1)
-); first by exists * buf{1}; elim * => P; call {1} (wots_checksum_results P) => //.
-
+seq 1 1 : (#pre /\ to_uint csum{1} = csum{2} /\ 0 <= csum{2} <= len1 * (w - 1)).
+    + exists * buf{1}; elim * => P; call {1} (wots_checksum_results P) => //.
+      skip => /> /#.
 seq 3 0 : (#pre /\ u{1} = W64.of_int 4); first by auto.
 
 seq 2 2 : (
@@ -866,22 +863,24 @@ seq 2 2 : (
   sk_seed{2} = to_list seed{1} /\
   address{2} = addr{1} /\
   size sig{2} = 67 /\
-  (forall (t : W8.t list), t \in sig{2} => size t = 32) /\
-  to_list sig{1} = flatten wots_skey{2} /\
-  size M{2} = 32 /\
   size (flatten sig{2}) = 2144 /\
-  msg2{1} = msg{1} /\
+  (forall (t : W8.t list), t \in sig{2} => size t = 32) /\
+  size M{2} = 32 /\
+  to_list sig{1} = flatten wots_skey{2} /\
   msg{2} = map W32.to_uint (to_list t0{1}) /\
   (forall (k0 : int), 0 <= k0 < 64 => 0 <= to_uint t0{1}.[k0] < w) /\
   (forall (k0 : int), 0 <= k0 < 64 => to_uint lengths2{1}.[k0] = nth witness msg{2} k0) /\
+  (forall (k0 : int), 0 <= k0 < 64 => 0 <= to_uint lengths2{1}.[k0] < w) /\
   csum_base_w{1} = t1{1} /\ 
   msg_base_w{1} = lengths2{1} /\
-  (forall (k0 : int), 0 <= k0 < 64 => 0 <= to_uint buf{1}.[k0] <= 15) /\
-  msg{2} = map W32.to_uint (to_list buf{1}) /\
-  0 <= csum{2} && csum{2} <= len1 * (w - 1) /\
+  (forall (k0 : int), 0 <= k0 < 64 => 0 <= to_uint buf{1}.[k0] < w) /\
+  msg{2} = map W32.to_uint (to_list buf{1}) /\ 
+  0 <= csum{2} <= len1 * (w - 1) /\
   u{1} = (of_int 4)%W64 /\
-  to_uint csum{1} = to_uint csum_32{2} /\
-  (forall (k : int), 0 <= k < 64 => 0 <= to_uint lengths2{1}.[k] < w)
+
+(*** ------------------------------------------------------------------------------------ ***)
+
+  to_uint csum{1} = to_uint csum_32{2}
 ).
     + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11.
       rewrite (: 63 = 2^6 - 1) 1:/# and_mod //=. 
@@ -898,13 +897,12 @@ seq 2 2 : (
 
 seq 0 1 : (#pre /\ len_2_bytes{2} = 2).
     + auto => /> *. 
-      rewrite w_val len2_val log2_16 -fromintM //= from_int_ceil //=. 
-      apply ceil_3_2.
+      rewrite w_val len2_val log2_16 -fromintM //= from_int_ceil //=; apply ceil_3_2.
 
 seq 1 1 : (#pre /\ to_list csum_bytes_p{1} = csum_bytes{2}).
     + ecall {1} (ull_to_bytes_2_equiv csum{1}). 
-      auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 rL.  
-      rewrite H11 //=; congr; smt(@W32). 
+      auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 rL H13.  
+      rewrite H13 //=; congr; smt(@W32). 
 
 seq 1 1 : (
   M{2} = to_list msg{1} /\
@@ -912,307 +910,169 @@ seq 1 1 : (
   sk_seed{2} = to_list seed{1} /\
   address{2} = addr{1} /\
   size sig{2} = 67 /\
-  (forall (t : W8.t list), t \in sig{2} => size t = 32) /\
-  to_list sig{1} = flatten wots_skey{2} /\
-  size M{2} = 32 /\
   size (flatten sig{2}) = 2144 /\
-  msg2{1} = msg{1} /\
+  (forall (t : W8.t list), t \in sig{2} => size t = 32) /\
+  size M{2} = 32 /\
+  to_list sig{1} = flatten wots_skey{2} /\
   msg{2} = map W32.to_uint (to_list t0{1}) /\
-  (forall (k0 : int), 0 <= k0 < 64 => 0 <= to_uint t0{1}.[k0] < w) /\
-  (forall (k0 : int), 0 <= k0 < 64 => to_uint lengths2{1}.[k0] = nth witness msg{2} k0) /\
+  (forall (k0 : int), 0 <= k0 && k0 < 64 => 0 <= to_uint t0{1}.[k0] && to_uint t0{1}.[k0] < w) /\
+  (forall (k0 : int), 0 <= k0 && k0 < 64 => to_uint lengths2{1}.[k0] = nth witness msg{2} k0) /\
+  (forall (k0 : int), 0 <= k0 && k0 < 64 => 0 <= to_uint lengths2{1}.[k0] && to_uint lengths2{1}.[k0] < w) /\
   msg_base_w{1} = lengths2{1} /\
-  (forall (k0 : int), 0 <= k0 < 64 => 0 <= to_uint buf{1}.[k0] <= 15) /\
+  (forall (k0 : int), 0 <= k0 && k0 < 64 => 0 <= to_uint buf{1}.[k0] && to_uint buf{1}.[k0] < w) /\
   msg{2} = map W32.to_uint (to_list buf{1}) /\
-  0 <= csum{2} <= len1 * (w - 1) /\
-  u{1} = (of_int 4)%W64 /\ 
+  (0 <= csum{2} && csum{2} <= len1 * (w - 1)) /\
   to_uint csum{1} = to_uint csum_32{2} /\
   len_2_bytes{2} = 2 /\
   to_list csum_bytes_p{1} = csum_bytes{2} /\
+  
+    (*** ------------------------------------------------------------------------------------ ***)
+  
   csum_base_w{2} = map (W32.to_uint) (to_list csum_base_w{1}) /\
-  (forall (k : int), 0 <= k < 3 => 0 <= to_uint csum_base_w{1}.[k] < w) /\
-
-  size msg{2} = 64 /\ 
-  (forall (k : int), 0 <= k < 64 => 0 <= to_uint lengths2{1}.[k] < w)
+  (forall (k : int), 0 <= k < 3 => 0 <= to_uint csum_base_w{1}.[k] < w)
 ).
     + exists * csum_bytes_p{1}; elim * => P; call (base_w_results_3 P) => //=.
-      skip => /> *. rewrite size_map size_to_list //=.
-
-seq 6 0 : (
-  pub_seed{2} = to_list pub_seed{1} /\
-  sk_seed{2} = to_list seed{1} /\
-  address{2} = addr{1} /\
-  size sig{2} = 67 /\
-  (forall (t : W8.t list), t \in sig{2} => size t = 32) /\
-  to_list sig{1} = flatten wots_skey{2} /\
-  size M{2} = 32 /\
-  size (flatten sig{2}) = 2144 /\
-  (forall (k0 : int), 0 <= k0 < 64 => 0 <= to_uint t0{1}.[k0] < w) /\
-  (forall (k0 : int), 0 <= k0 < 64 => to_uint lengths2{1}.[k0] = nth witness msg{2} k0) /\ 
-  msg_base_w{1} = lengths2{1} /\
-   0 <= csum{2} <= len1 * (w - 1) /\
-  u{1} = (of_int 4)%W64 /\ 
-  to_uint csum{1} = to_uint csum_32{2} /\
-  len_2_bytes{2} = 2 /\
-  to_list csum_bytes_p{1} = csum_bytes{2} /\
-  csum_base_w{2} = map (W32.to_uint) (to_list csum_base_w{1}) /\
-  (forall (k : int), 0 <= k < 3 => 0 <= to_uint csum_base_w{1}.[k] < w) /\
-
-  size msg{2} = 64 /\
-  
-(* Whats above this is from pre *)
-
-
-  (forall (k : int), 0 <= k < 3 => lengths{1}.[64 + k] = csum_base_w{1}.[k]) /\
-  (forall (k : int), 0 <= k < 64 => to_uint lengths{1}.[k] = nth witness msg{2} k) /\
-  (forall (k : int), 0 <= k < 64 => 0 <= to_uint lengths2{1}.[k] < w) /\
-  (forall (k : int), 0 <= k < 3 => 0 <= to_uint lengths{1}.[64 + k] < w)
-).
-    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 *; do split.  
-       * move => k0??. rewrite initiE 1:/# => />; rewrite ifF 1:/# //=. 
-       * by apply H6.
-       * rewrite tP => i0?.
-
-
-       * move => k0??. rewrite initiE 1:/# => />; rewrite ifF 1:/# //= H6 //=.
-       * move => k0??; split => [| H]; rewrite initiE 1:/# => />; rewrite ifF /#.
-       * move => k0??; split => [| H]; rewrite initiE 1:/# => />; rewrite ifT /#.
-
-
-
-seq 5 1 : (
+ 
+seq 6 1 : (
   M{2} = to_list msg{1} /\
   pub_seed{2} = to_list pub_seed{1} /\
   sk_seed{2} = to_list seed{1} /\
   address{2} = addr{1} /\
   size sig{2} = 67 /\
-  (forall (t : W8.t list), t \in sig{2} => size t = 32) /\
-  to_list sig{1} = flatten wots_skey{2} /\
-  size M{2} = 32 /\
   size (flatten sig{2}) = 2144 /\
-  msg_base_w{1} = lengths2{1} /\
-  (0 <= csum{2} && csum{2} <= len1 * (w - 1)) /\
-  u{1} = (of_int 4)%W64 /\
-  to_uint csum{1} = to_uint csum_32{2} /\
-  len_2_bytes{2} = 2 /\
-  to_list csum_bytes_p{1} = csum_bytes{2} /\
-  csum_base_w{2} = map W32.to_uint (to_list csum_base_w{1}) /\
-  
-  (forall (k0 : int), 0 <= k0 < 3 => 0 <= to_uint csum_base_w{1}.[k0] < w) /\
-  (forall (k0 : int), 0 <= k0 < 67 => 0 <= to_uint lengths2{1}.[k0] < w) /\
-  
-  (forall (k : int), 0 <= k < 67 => to_uint lengths{1}.[k] = nth witness msg{2} k) 
+  (forall (t : W8.t list), t \in sig{2} => size t = 32) /\
+  size M{2} = 32 /\
+  to_list sig{1} = flatten wots_skey{2} /\
+
+    (*** ------------------------------------------------------------------------------------ ***)
+
+    map W32.to_uint (to_list lengths{1}) = msg{2} /\
+  (forall (k : int), 0 <= k < 67 => 0 <= to_uint lengths{1}.[k] < w) /\
+  size msg{2} = 67 
+
 ).
-    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 *; do split.
-        * rewrite tP => i0?.  
-          rewrite initiE //=.
-          case (0 <= i0 < 64).
-             - move => ?; rewrite ifF 1:/# //=.
-             - move => ?.
-               have E: 64 <= i0 < 67 by smt(). 
-               rewrite ifT 1:/#. admit. (* nao ha info que chegue => preciso de provar que lengths2 k = csum basew k - 64 mas nao tenho nenhuma hipotese a relacionar lengths2 e cusm base w *)
-        * move => k0??; split => [| ?]; rewrite initiE //=.
-             - case (0 <= k0 < 64). 
-                 + move => ?.
-                   rewrite ifF 1:/# H6 //= (nth_map witness); [by rewrite size_to_list |]. 
-                   rewrite get_to_list /#. 
-                 + move => ?; rewrite ifT /#. 
-             - case (0 <= k0 < 64). 
-                 + move => ?.
-                   rewrite ifF 1:/# H6 //= (nth_map witness); [by rewrite size_to_list |]. 
-                   rewrite get_to_list /#. 
-                 + move => ?. rewrite ifT /#.               
-        * move => k0??. 
-          rewrite nth_cat !size_map !size_iota (: max 0 64 = 64) 1:/#. 
-          case (0 <= k0 < 64).
-             - move => ?. 
-               (* rewrite ifT 1:/#. 
-apply H6. (nth_map witness); [by rewrite size_to_list |].
-
-apply H6.
-               rewrite get_to_list.
+    + auto => />. progress. 
+       - apply (eq_from_nth witness).
+            * rewrite size_cat !size_map !size_iota //=.
+         rewrite size_map size_to_list => j?.
+         case (0 <= j < 64). 
+            * move => ?.  
+              rewrite (nth_map witness); [by rewrite size_to_list |].
+              rewrite nth_cat !size_map !size_iota (: max 0 64 = 64) 1:/# ifT 1:/#.
+              rewrite get_to_list initiE //= ifF 1:/# H5 //=.
+            * move => ?.           
+              rewrite (nth_map witness); [by rewrite size_to_list |].
+              rewrite nth_cat !size_map !size_iota (: max 0 64 = 64) 1:/# ifF 1:/#.
+              rewrite get_to_list initiE //= ifT 1:/# (nth_map witness); [by rewrite size_to_list /# |]. 
+              rewrite get_to_list //=.
+       - rewrite initiE //=.
+         case (0 <= k0 < 64). 
+            * move => ?; rewrite ifF /#.
+            * move => ?; rewrite ifT /#.
+       - rewrite initiE //=. case (0 <= k0 < 64).
+            * move => ?; rewrite ifF /#. 
+            * move => ?. rewrite ifT /#.
+       - by rewrite size_cat !size_map !size_iota.
 
 
- nth_cat !size_map !size_iota (: max 0 64 = 64) 1:/# ifT 1:/#.
-               apply H6 => //=. *) admit.
-             - move => ?.
-               have E: 64 <= k0 < 67 by smt(). 
-               rewrite ifF 1:/# (nth_map witness); [by rewrite size_to_list /# |].
-               rewrite get_to_list //=. admit. (* nao ha info que chegue *)
-
+(*** A cena do while comeca aqui ***)
 
 while (
-  ={i} /\ 0 <= i{1} <= 67 /\
-
-  address{2} = addr{1} /\
-
-  (forall (t : W8.t list), t \in sig{2} => size t = 32) /\
-  size sig{2} = 67 /\
-
-  addr{1} = address{2} /\
+  M{2} = to_list msg{1} /\
   pub_seed{2} = to_list pub_seed{1} /\
   sk_seed{2} = to_list seed{1} /\
-  
-  (forall (k : int), 32 * i{1} < k < 2144 => sig{1}.[k] = nth witness (flatten wots_skey{2}) k) /\
-  (forall (k : int), 0 <= k < 32 * i{1} => sig{1}.[k] = nth witness (flatten sig{2}) k)
+  address{2} = addr{1} /\
+  size sig{2} = 67 /\
+  size (flatten sig{2}) = 2144 /\
+  (forall (t : W8.t list), t \in sig{2} => size t = 32) /\
+  size M{2} = 32 /\
+    map W32.to_uint (to_list lengths{1}) = msg{2} /\
+  (forall (k0 : int), 0 <= k0 && k0 < 67 => 0 <= to_uint lengths{1}.[k0] < w) /\
+  size msg{2} = 67 /\
+
+  ={i} /\ 
+  0 <= i{1} <= 67 /\
+
+(forall (k : int), 32 * i{1} <= k < 2144 => sig{1}.[k] = nth witness (flatten wots_skey{2}) k) /\ (* parte nao consumida *) 
+(forall (k : int), 0 <= k < 32 * i{1} => sig{1}.[k] = nth witness (flatten sig{2}) k) (* parte consumida *)
 ); last first.
-    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 *. do split.
-         * move => k0??. admit. 
-         * move => k0??.  admit.
-         * by rewrite len_val.
-         * move => ? iR ??????. 
-           rewrite (: iR = 67) 1:/# //=.
-           smt(). 
+    + auto => /> &1 &2 H H0 H1 H2 H3 H4 H5; do split.
+      * rewrite -H3 => k??. rewrite get_to_list //=.
+      * smt(). 
+      * by rewrite len_val.
+      * smt(). 
 
 seq 2 1 : (#pre); first by inline{1}; auto.
 
 seq 1 3 : (
-  ={i} /\ 0 <= i{1} < 67 /\
-
-  address{2} = aux_1{1} /\
-  sig_i{2} = to_list aux_0{1} /\
-  size sig_i{2} = 32 /\
-
-  (forall (t : W8.t list), t \in sig{2} => size t = 32) /\
-  size sig{2} = 67 /\
-
-  addr{1} = address{2} /\
+  M{2} = to_list msg{1} /\
   pub_seed{2} = to_list pub_seed{1} /\
   sk_seed{2} = to_list seed{1} /\
-  
-  (forall (k : int), 32 * i{1} < k < 2144 => sig{1}.[k] = nth witness (flatten wots_skey{2}) k) /\
-  (forall (k : int), 0 <= k < 32 * i{1} => sig{1}.[k] = nth witness (flatten sig{2}) k)
-).
-    + admit.
-
-auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 *; do split.   
-    + smt(). 
-    + smt(). 
-    + admit.
-    + by rewrite size_put. 
-    + move => k??; rewrite initiE 1:/# => />; rewrite ifF 1:/# H5 1:/# //=.
-    + move => k??; rewrite initiE 1:/# => />. 
-      case (0 <= k < i{2} * 32).
-        * move => ?. rewrite ifF 1:/#.
-          rewrite H6 1:/#. do congr. admit. (* this is false *)
-        * move => ?. rewrite ifT 1:/#. 
-          rewrite (nth_flatten witness 32). rewrite allP. apply  all_put; 1..3:smt().   
-          rewrite nth_put 1:/# ifT 1:/# get_to_list /#.   
-    + smt(). 
-    + smt(). 
-qed.
-
-
-
-
-
-
-
-
-
-
-
-(*** Fiquei aqui => TODO: Adicionar pre (apenas as partes que interessam) a estes lemmas  ***)      
-seq 6 0 : (
-  pub_seed{2} = to_list pub_seed{1} /\
-  sk_seed{2} = to_list seed{1} /\
-  address{2} = addr{1} /\
   size sig{2} = 67 /\
-  (forall (t : W8.t list), t \in sig{2} => size t = 32) /\
-  to_list sig{1} = flatten wots_skey{2} /\
-  size M{2} = 32 /\
   size (flatten sig{2}) = 2144 /\
-  (forall (k0 : int), 0 <= k0 < 64 => 0 <= to_uint t0{1}.[k0] < w) /\
-  (forall (k0 : int), 0 <= k0 < 64 => to_uint lengths2{1}.[k0] = nth witness msg{2} k0) /\ 
-  msg_base_w{1} = lengths2{1} /\
-   0 <= csum{2} <= len1 * (w - 1) /\
-  u{1} = (of_int 4)%W64 /\ 
-  to_uint csum{1} = to_uint csum_32{2} /\
-  len_2_bytes{2} = 2 /\
-  to_list csum_bytes_p{1} = csum_bytes{2} /\
-  csum_base_w{2} = map (W32.to_uint) (to_list csum_base_w{1}) /\
-  (forall (k : int), 0 <= k < 3 => 0 <= to_uint csum_base_w{1}.[k] < w) /\
-
-  size msg{2} = 64 /\
-  
-(* Whats above this is from pre *)
-
-
-  (forall (k : int), 0 <= k < 3 => lengths{1}.[64 + k] = csum_base_w{1}.[k]) /\
-  (forall (k : int), 0 <= k < 64 => to_uint lengths{1}.[k] = nth witness msg{2} k) /\
-  (forall (k : int), 0 <= k < 64 => 0 <= to_uint lengths2{1}.[k] < w) /\
-  (forall (k : int), 0 <= k < 3 => 0 <= to_uint lengths{1}.[64 + k] < w)
-).
-    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 *; do split.  
-       * move => k0??. rewrite initiE 1:/# => />; rewrite ifT 1:/# //=.
-       * move => k0??. rewrite initiE 1:/# => />; rewrite ifF 1:/# //= H6 //=.
-       * move => k0??; split => [| H]; rewrite initiE 1:/# => />; rewrite ifF /#.
-       * move => k0??; split => [| H]; rewrite initiE 1:/# => />; rewrite ifT /#.
-
-(* Ate aqui ta OK *)
-
-seq 0 1 : ( 
-  pub_seed{2} = to_list pub_seed{1} /\
-  sk_seed{2} = to_list seed{1} /\
-  address{2} = addr{1} /\
-  size sig{2} = 67 /\
   (forall (t : W8.t list), t \in sig{2} => size t = 32) /\
   size M{2} = 32 /\
-  size (flatten sig{2}) = 2144 /\
-  (0 <= csum{2} <= len1 * (w - 1)) /\
-  u{1} = (of_int 4)%W64 /\
-  to_uint csum{1} = to_uint csum_32{2} /\
-  len_2_bytes{2} = 2 /\
-  to_list csum_bytes_p{1} = csum_bytes{2} /\
-  csum_base_w{2} = map W32.to_uint (to_list csum_base_w{1}) /\
-  (forall (k0 : int), 0 <= k0 < 3 => 0 <= to_uint csum_base_w{1}.[k0] < w) /\
-  
+    map W32.to_uint (to_list lengths{1}) = msg{2} /\
+  (forall (k0 : int), 0 <= k0 && k0 < 67 => 0 <= to_uint lengths{1}.[k0] < w) /\
   size msg{2} = 67 /\
-  (forall (k0 : int), 0 <= k0 < 67 => to_uint lengths{1}.[k0] = nth witness msg{2} k0) /\
-  (forall (k0 : int), 0 <= k0 < 67 => 0 <= to_uint lengths{1}.[k0] < w) 
+
+  ={i} /\ 
+  0 <= i{1} < 67 /\
+
+(forall (k : int), 32 * i{1} <= k < 2144 => sig{1}.[k] = nth witness (flatten wots_skey{2}) k) /\ (* parte nao consumida *)
+(forall (k : int), 0 <= k < 32 * i{1} => sig{1}.[k] = nth witness (flatten sig{2}) k) /\ (* parte consumida *)
+
+  to_list aux_0{1} = sig_i{2} /\ 
+  aux_1{1} = address{2}
 ).
-    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15; do split. 
-        * rewrite size_cat H11 size_map size_to_list //=. 
-        * move => k??.
-          case (0 <= k < 64); move => ?; [rewrite nth_cat H11 ifT /# |]. 
-          have E0 : 64 <= k < 67 by smt(). 
-          rewrite nth_cat H11 ifF 1:/# (nth_map witness); [by rewrite size_to_list /# |].
-          rewrite get_to_list /#.
-        * move => k??.
-          case (0 <= k < 64); move => ?; split. 
-rewrite H13 //=.
-
-          have E0 : 64 <= k < 67 by smt(). 
-          rewrite nth_cat H11 ifF 1:/# (nth_map witness); [by rewrite size_to_list /# |].
-          rewrite get_to_list /#.
-
-
-
-while (
-  ={i} /\ 0 <= i{1} <= 67 /\ 
-
-  size msg{2} = 67 /\
-  (forall (k0 : int), 0 <= k0 < 67 => to_uint lengths{1}.[k0] = nth witness msg{2} k0) /\
-
-  addr{1} = address{2} /\
-  pub_seed{2} = to_list pub_seed{1} /\
-  sk_seed{2} = to_list seed{1} /\
-  
-  
-  (forall (k : int), 0 <= k < 32 * i{1} => sig{1}.[k] = nth witness (flatten sig{2}) k)
-); last by admit.
-(* The first goal of the while loop starts here *)
-seq 2 1 : (#pre); first by inline{1}; auto => />.
-seq 1 3 : (#pre /\ to_list aux_0{1} = sig_i{2}); last by admit.
     + inline M(Syscall).__gen_chain_inplace_ M(Syscall)._gen_chain_inplace; wp; sp. 
       exists * out0{1}, start0{1}, steps0{1}, addr1{1}, pub_seed1{1}.  
       elim * => _P1 _P2 _P3 _P4 _P5.  
-      call (gen_chain_inplace_correct _P1 _P2 _P3 _P4 _P5); [smt() |].
-      auto => /> &1 &2 H0 H1 H2 H3 H4 H5 *; do split. 
-                
+      auto => />. 
+      call (gen_chain_inplace_correct _P1 _P2 _P3 _P4 _P5); [smt() |].       
+      skip => /> &1 &2 H H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 * ; do split. 
+         * apply (eq_from_nth witness). rewrite size_to_list.  admit. (* Falta me isto !!!!!!!!!!!!!!!!!!! *) admit.
+         * rewrite (nth_map witness); [by rewrite size_to_list |]. 
+           rewrite get_to_list //=.
+         * smt(). 
+         * rewrite -w_val => ? /#. .
+         * smt(). 
+         * smt(). 
+         * smt().  
 
 
 
-
-
-    + auto => /> *; do split; [| | move => ? iR ?????; rewrite (: iR = 67) 1:/# ] => /#.
+auto => /> &1 &2 H H0 H1 H2 H3 H4 H5 H6 H7 H8; do split.  
+   * by rewrite size_put.
+   * rewrite size_flatten sumzE BIA.big_map /(\o) //= -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) /=.
+      - apply all_put. by auto => />; rewrite size_to_list. 
+        auto => /> /#. 
+     rewrite big_constz count_predT size_put  H //=.
+   * apply all_put; [by auto => />; rewrite size_to_list | auto => />]. 
+   * smt(). 
+   * smt(). 
+   * move => k??. rewrite initiE 1:/# => />.
+     case (i{2} * 32 <= k && k < i{2} * 32 + 32).
+        - move => ?; rewrite -H7 /#.
+        - move => ?. rewrite -H7 1:/# //=.
+   * move => k??. rewrite initiE 1:/# => />.
+     case (i{2} * 32 <= k && k < i{2} * 32 + 32).
+        - move => ?. 
+          rewrite (nth_flatten witness 32). 
+            + rewrite size_size size_put H => j?.
+              rewrite nth_put 1:H //=.  
+              case (i{2} = j); move => *; [by rewrite size_to_list |].
+              smt(@List).
+          rewrite nth_put 1:H //= ifT 1:/# get_to_list /#.
+        - move => ?.
+          rewrite (nth_flatten witness 32). 
+            + rewrite size_size size_put H => j?.
+              rewrite nth_put 1:H //=.  
+              case (i{2} = j); move => *; [by rewrite size_to_list |].
+              smt(@List).
+          rewrite nth_put 1:H //= ifF 1:/#.
+          rewrite -nth_flatten; [| smt()]. 
+            + rewrite size_size H. smt(@List). 
+   * smt(). 
+   * smt(). 
 qed.
