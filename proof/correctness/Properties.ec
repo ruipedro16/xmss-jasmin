@@ -164,14 +164,38 @@ while (
 qed.
 
 (*** size of wots gen sk ***)
-lemma wots_gen_sk_size : hoare [WOTS.pseudorandom_genSK : true ==> size res.`1 = len /\ (forall (t : W8.t list), t \in res.`1 => size t = n)].
+lemma wots_sk_size :
+    n = 32 => 
+    hoare[WOTS.pseudorandom_genSK : true ==>
+      size res.`1 = len /\
+      forall (x : W8.t list), x \in res.`1 => size x = n].
 proof.
+move => n_val.
 proc.
-seq 1 : (size sk = len /\ (forall (t : W8.t list), t \in sk => size t = n)).
-  + auto => />. split; [ smt(size_nseq ge0_len) | smt(@List ge0_n) ].
-sp.
-while (0 <= i <= len /\ #pre); last by auto => /> *; apply ge0_len.
-seq 3 : (#pre /\ size sk_i = n).
-  + call  size_prf_kg. admit. 
-auto => /> *. admit.
+seq 3 : (size sk = len); first by auto => />; smt(size_nseq ge0_len).
+while (
+  0 <= i <= len /\
+  size sk = len /\
+  forall (k : int), 0 <= k < i => size (nth witness sk k) = n
+); last first.      
+    + auto => /> &hr *; do split. 
+       * apply ge0_len.
+       * smt().         
+       * move => i sk ??? H0 H1. 
+         rewrite n_val -size_all_r size_size /#.
+    + wp. call size_prf_kg. auto => /> &hr *; do split;1,2:smt().
+       * smt(size_put).
+       * smt(@List). 
 qed.
+
+lemma p_sk_size :
+    n = 32 => 
+    phoare[WOTS.pseudorandom_genSK : true ==>
+      size res.`1 = len /\
+      forall (x : W8.t list), x \in res.`1 => size x = n] = 1%r.
+proof.
+move => ?. 
+(* conseq  wots_genSK_prf_ll wots_sk_size doesnt work *)
+admit.
+qed.
+    

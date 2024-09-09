@@ -69,6 +69,16 @@ qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 
+lemma truncate_1_and_63 :
+    truncateu8 (W256.one `&` W256.of_int(63)) = W8.one
+        by rewrite (: 63 = 2 ^ 6 - 1) 1:/# and_mod //=.
+
+lemma shr_1 (x : W64.t) :
+    to_uint (x `>>` W8.one) = to_uint x %/ 2
+        by rewrite shr_div (: (to_uint W8.one %% 64) = 1) 1:#smt:(@W64) //=. 
+
+(** -------------------------------------------------------------------------------------------- **)
+
 lemma nseq_nth (x : W8.t list) (i : int) (v : W8.t) :
     x = nseq i v => forall (k : int), 0 <= k < i => nth witness x k = v
         by smt(@List).
@@ -249,6 +259,62 @@ qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 
+require import Array132.
+
+(*** ------------------------ ***)
+(*** outlen=352 /\ inlen=32  ***)
+(*** ------------------------ ***)
+
+lemma nbytes_copy_352_32_result (ain : W8.t Array32.t, aout : W8.t Array352.t, oin oout : W64.t) :
+    0 <= to_uint oout < 320 - 32 /\
+    0 <= to_uint oin < 32 - 32 =>
+        phoare [
+            M(Syscall).__nbytes_copy_offset_352_32 :
+            arg = (aout, oout, ain, oin)
+            ==>
+            forall (k : int), 0 <= k < 32 => res.[(to_uint oout) + k] = ain.[(to_uint oin) + k]
+        ] = 1%r.
+proof.
+simplify => [#] *.
+proc; auto.
+while (
+  offset_out = oout /\
+  offset_in = oin /\
+  0 <= i <= 32 /\
+  forall (k : int), 0 <= k < i => out.[(to_uint offset_out) + k] = in_0.[(to_uint offset_in) + k]
+) (32 - i); last by auto => /> /#.
+auto => /> &hr *; do split; 1,2,4:smt().
+move => k ??. 
+rewrite get_setE. 
+    + split; [ smt(@W64 pow2_64) | move => ?;  rewrite to_uintD // of_uintK; smt(@IntDiv @W64 pow2_64)].
+smt().
+qed.
+
+(*** ------------------------ ***)
+(*** outlen=64 /\ inlen=32  ***)
+(*** ------------------------ ***)
+
+lemma nbytes_copy_64_32_result (ain : W8.t Array32.t, aout : W8.t Array64.t) :
+        phoare [
+            M(Syscall).__nbytes_copy_offset_64_32 :
+            arg = (aout, W64.of_int 68, ain, W64.zero)
+            ==>
+            forall (k : int), 0 <= k < 32 => res.[68 + k] = ain.[k]
+        ] = 1%r.
+proof.
+proc.
+while (
+  0 <= i <= 32 /\
+  forall (k : int), 0 <= k < i => out.[(to_uint offset_out) + k] = in_0.[k]
+) (32 - i); last by auto => /> /#.
+auto => /> &hr *; do split; 1,2,4:smt().
+move => k ??. 
+rewrite get_setE. 
+    + split; [smt(@W64 pow2_64) |] => ?.
+admit.
+admit.
+qed.
+
 (*** ------------------------ ***)
 (*** outlen=320 /\ inlen=352  ***)
 (*** ------------------------ ***)
@@ -277,18 +343,18 @@ rewrite get_setE.
     + split; [ smt(@W64 pow2_64) | move => ?;  rewrite to_uintD // of_uintK; smt(@IntDiv @W64 pow2_64)].
 case (to_uint oout + k = to_uint (oout + (of_int i{hr})%W64)).
     + move => ?; congr; smt(@W64 pow2_64 @IntDiv).
-    + move => ?; smt(@W64 pow2_64 @IntDiv @Array320 @Array352).
+    + move => ?; smt(@W64 pow2_64 @IntDiv).
 qed.
 
 (*** ------------------------ ***)
-(*** outlen=352 /\ inlen=32   ***)
+(*** outlen=132 /\ inlen=32  ***)
 (*** ------------------------ ***)
 
-lemma nbytes_copy_352_32_result (ain : W8.t Array32.t, aout : W8.t Array352.t, oin oout : W64.t) :
-    0 <= to_uint oout < 352 - 32 /\
+lemma nbytes_copy_132_32_result (ain : W8.t Array32.t, aout : W8.t Array132.t, oin oout : W64.t) :
+    0 <= to_uint oout < 320 - 32 /\
     0 <= to_uint oin < 32 - 32 =>
         phoare [
-            M(Syscall).__nbytes_copy_offset_352_32 :
+            M(Syscall).__nbytes_copy_offset_132_32 :
             arg = (aout, oout, ain, oin)
             ==>
             forall (k : int), 0 <= k < 32 => res.[(to_uint oout) + k] = ain.[(to_uint oin) + k]
@@ -306,17 +372,15 @@ auto => /> &hr *; do split; 1,2,4:smt().
 move => k ??. 
 rewrite get_setE. 
     + split; [ smt(@W64 pow2_64) | move => ?;  rewrite to_uintD // of_uintK; smt(@IntDiv @W64 pow2_64)].
-case (to_uint oout + k = to_uint (oout + (of_int i{hr})%W64)).
-    + move => ?; congr; smt(@W64 pow2_64 @IntDiv).
-    + move => ?; smt(@W64 pow2_64 @IntDiv @Array352 @Array32).
+smt().
 qed.
 
 (*** ------------------------ ***)
-(*** outlen=32 /\ inlen=352   ***)
+(*** outlen=32 /\ inlen=352  ***)
 (*** ------------------------ ***)
 
 lemma nbytes_copy_32_352_result (ain : W8.t Array352.t, aout : W8.t Array32.t, oin oout : W64.t) :
-    0 <= to_uint oout < 32 - 32 /\
+    0 <= to_uint oout < 320 - 32 /\
     0 <= to_uint oin < 352 - 32 =>
         phoare [
             M(Syscall).__nbytes_copy_offset_32_352 :
@@ -336,10 +400,8 @@ while (
 auto => /> &hr *; do split; 1,2,4:smt().
 move => k ??. 
 rewrite get_setE. 
-    + split; [ smt(@W64 pow2_64) | move => ?;  rewrite to_uintD // of_uintK; smt(@IntDiv @W64 pow2_64)].
-case (to_uint oout + k = to_uint (oout + (of_int i{hr})%W64)).
-    + move => ?; congr; smt(@W64 pow2_64 @IntDiv).
-    + move => ?; smt(@W64 pow2_64 @IntDiv @Array32 @Array352).
+    + split. smt(@W64 pow2_64). move => ?.  rewrite to_uintD_small. smt(@W64 pow2_64). admit.
+admit.
 qed.
 
 (** -------------------------------------------------------------------------------------------- **)
