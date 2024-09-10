@@ -6,35 +6,6 @@ from Stdlib require "memcpy/memcpy.jtmpl"
 from XMSS require "hash_address/hash_address.jinc"
 from XMSS require "xmss_commons/xmss_commons.jtmpl"
 
-// TODO: Move this somewhere else 
-// Same as out[offset_out : XMSS_N] = #copy(in[offset_in : XMSS_N]) 
-// (we cant use #copy because offset_* are not known at compile time)
-//
-// pre conditions: no accesses are out of bounds : i.e.
-//  0 <= offset_out + XMSS_N < size out /\ 0 <= offset_in + XMSS_N < size in 
-//
-// post condition: sub out offset_out XMSS_N = sub in offset_in XMSS_N 
-inline fn __nbytes_copy_offset<OUTLEN, INLEN>(
-    reg ptr u8[OUTLEN] out,
-    reg u64 offset_out,
-    reg ptr u8[INLEN] in,
-    reg u64 offset_in
-) -> reg ptr u8[OUTLEN]
-{
-    // TODO: XMSS_N is either 24, 32 or 64 (all divisible by 4), meaning that we can 
-    //       copy 4 bytes (i.e a u64) at a time
-
-    inline int i;
-
-    for i=0 to XMSS_N {
-        out[offset_out + i] = in[offset_in + i];
-    }
-
-    // for i=0 to XMSS_N / 4 { out.[u64 (offset_out + i)] = in.[u64 (offset_in + i)]; }
-
-    return out;
-}//<>
-
 /////////////////////////////////// TREEHASH ///////////////////////////////////
 
 inline fn __treehash(
@@ -215,7 +186,7 @@ inline fn __treehash(
     () = #unspill(root, auth_path);
 
     // memcpy(root, stack, params->n);
-    root = #copy(_stack[0:XMSS_N]); // used to be: for j=0 to XMSS_N { root[j] = _stack[j]; }
+    for j=0 to XMSS_N { root[j] = _stack[j]; }
     return root, auth_path;
 }
 

@@ -85,7 +85,7 @@ inline fn __l_tree(
             () = #unspill(wots_pk);
             offset_out = l; ?{}, offset_out = #SHR(offset_out, 1); offset_out *= XMSS_N;
             offset_in = l; offset_in -= 1; offset_in *= XMSS_N;
-            for j = 0 to XMSS_N { wots_pk[offset_out + j] = wots_pk[offset_in + j]; }
+            wots_pk = __nbytes_copy_inplace<XMSS_WOTS_SIG_BYTES>(wots_pk, offset_out, offset_in);
             () = #spill(wots_pk);
 
             // l = (l >> 1) + 1;

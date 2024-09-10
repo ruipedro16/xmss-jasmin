@@ -811,7 +811,7 @@ while (
 ); last by auto => /> /#.
 
 seq 2 1 : (#pre); first by inline{1}; auto.
-
+ 
 seq 1 1 : (
     #pre /\ 
   to_uint start{1} = msg_i{2} /\
@@ -819,24 +819,17 @@ seq 1 1 : (
 ).
     + auto => /> &1 &2 *; rewrite (nth_map witness); [ by rewrite size_to_list |]. 
       rewrite get_to_list //= /#. 
+
 seq 2 1 : (
     #pre /\ 
-  to_uint steps{1} = w - 1 - msg_i{2} /\
-  0 <= to_uint steps{1} < w
-).
-    + auto => /> &1 &2 *. 
-      rewrite (: w - 1 = 15) 1:/# to_uintD; do split. 
-       * have ->: to_uint ((of_int 15)%W32) = 15 by smt(@W32 pow2_32).      
-         admit. 
-       * have ->: to_uint ((of_int 15)%W32) = 15 by smt(@W32 pow2_32).      
-         smt(@W32 pow2_32).
-       * have ->: to_uint ((of_int 15)%W32) = 15 by smt(@W32 pow2_32). 
-         move => ?.
-         admit.
+  steps{1} = (W32.of_int 15) - lengths{1}.[i{2}]
+); first by auto.
+
 admit.
+
 qed.
 
-(*** Sign Seed : Doing ***)
+(*** Sign Seed : Done ***)
 
 lemma sign_seed_correct (_msg_ _seed_ _pub_seed_ : W8.t Array32.t, _addr_ : W32.t Array8.t) :
     n = XMSS_N /\

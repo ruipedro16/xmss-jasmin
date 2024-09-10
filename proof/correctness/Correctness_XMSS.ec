@@ -29,6 +29,7 @@ clone import DListProgramX as T
 (*** Treehash kg ***)
 
 lemma treehash_kg_correct :
+    n = XMSS_N =>
     equiv [
       M(Syscall).__treehash ~ TreeHash.treehash :
       true
@@ -36,8 +37,44 @@ lemma treehash_kg_correct :
       to_list res{1}.`1 = res{2}.`1 
     ].
 proof.
+rewrite /XMSS_N.
+move => n_val. 
 proc.
 seq 7 0 : (#pre); first by auto.
+seq 1 0 : (#pre /\ offset{1} = W64.zero); first by auto.
+seq 1 0 : (
+  #pre  /\
+  ots_addr{1} = zero_address
+).
+    + inline M(Syscall).__zero_address_; wp; sp.
+      ecall {1} (zero_addr_res addr{1}); skip => />.
+seq 1 0 : (
+  #pre  /\
+  ltree_addr{1} = zero_address
+).
+    + inline M(Syscall).__zero_address_; wp; sp.
+      ecall {1} (zero_addr_res addr{1}); skip => />.
+seq 1 0 : (
+  #pre  /\
+  node_addr{1} = zero_address
+).
+    + inline M(Syscall).__zero_address_; wp; sp.
+      ecall {1} (zero_addr_res addr{1}); skip => />.
+seq 0 1 : (#pre /\ size node{2} = n); first by auto => />; rewrite size_nseq n_val //=.
+
+(* This removes the last while *)
+seq 8 9 : (
+  (forall (k : int), 0 <= k < 32 => _stack{1}.[k] = nth witness node{2} k) /\
+  size node{2} = 32
+); last first. 
+    + while {1} (size node{2} = 32 /\ 0 <= j{1} <= 32 /\ (forall (k : int), 0 <= k < j{1} => root{1}.[k] = _stack{1}.[k])) (32 - j{1}).
+         * auto => /> &hr H0 H1 H2 H3 H4; do split; 1,2,4:smt(). 
+           move => k H5 H6.
+           rewrite get_setE //= /#.
+         * auto => /> &1 &2 H0 H1; split; [smt() |].
+           move => jL rootL; split; [smt() |].
+           move => H2 H3 H4 H5.
+           apply (eq_from_nth witness); [ by rewrite size_to_list H1 | by rewrite size_to_list /# ]. 
 admit.
 qed.
 
@@ -98,19 +135,13 @@ seq 2 2: (x1{1} = sk_seed{2} ++ sk_prf{2}).
 by auto; rewrite n_val.
 qed.
 
+(* Same as randombytes_equiv but the spec is on the lhs and the impl is on the rhs *)
+(* In random_bytes_results conseq only works with the spec is on the lhs *)
 lemma random_bytes_equiv_flipped :
     n = XMSS_N =>
-    equiv [
-      XMSS_MT_PRF.sample_randomness ~ Syscall.randombytes_96  :
-      true 
-      ==>
-      to_list res{2} = res{1}.`1 ++ res{1}.`2 ++ res{1}.`3
-    ].  
-proof.
-move => H. 
-symmetry.
-admit.
-qed.
+    equiv [XMSS_MT_PRF.sample_randomness ~ Syscall.randombytes_96  :
+      true ==> to_list res{2} = res{1}.`1 ++ res{1}.`2 ++ res{1}.`3]
+        by move => ?; symmetry; apply random_bytes_equiv => //=.
 
 lemma random_bytes_results :
     n = XMSS_N =>
@@ -125,7 +156,7 @@ lemma random_bytes_results :
     ].    
 proof.
 move => nP.
-symmetry.
+symmetry. 
 conseq (random_bytes_equiv_flipped nP) sample_randomness_size.
 qed.
 
@@ -367,9 +398,6 @@ auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H
           rewrite nth_cat !size_cat !size_to_list size_W32toBytes H2 //= ifF 1:/# -H11 /#.
 qed.
 
-
-(*** TODO: exported function ***)
-
 (*** L Tree ***)
 
 lemma ltree_correct (_pk : W8.t Array2144.t, _pub_seed : W8.t Array32.t, _addr : W32.t Array8.t) : 
@@ -435,8 +463,9 @@ conseq (: _ ==>
            rewrite sumzE BIA.big_map /(\o) //= -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) 1:#smt:(@List) big_constz count_predT. 
            rewrite size_take //= ifT 1:/# //=.
 *)
-(* At this point, we only have the while loop *)
 
+
+(* At this point, we only have the while loop *)
 while (
   addr{1} = address{2} /\
   _seed{2} = to_list pub_seed{1} /\
@@ -447,36 +476,74 @@ while (
     1 <= _len{2} <= 67 /\ 
   _len{2} = to_uint l{1} /\
 
+  (* Inner loop *)
+  (* 0 <= i{2} < floor (_len{2}%r / 2%r) /\ *)
+  (* to_uint i{1} = i{2} /\ *)
+
   forall (k : int), 0 <= k < to_uint (l{1} `>>` W8.one) => wots_pk{1}.[k] = nth witness (flatten pk{2}) k
 
 ); last first.
+(* The last subgoal of while starts here *)
 auto => /> &1 H0 H1 H2 *; do split.
     + smt().
     + smt(). 
-    + move => k??. rewrite /EncodeWotsPk. admit.
+    + move => k. rewrite shr_1 => ??. 
+      rewrite /EncodeWotsPk (nth_flatten witness 32); [rewrite size_all_r 1:#smt:(@BitChunking @List) |]. 
+      rewrite /chunk size_to_list nth_mkseq 1:/# => />.
+      rewrite nth_take //= 1:/# nth_drop //= 1,2:/#.
+      congr => /#. 
     + smt(). 
     + smt(@W64 pow2_64). 
-    + move => iL pkL pkR Ha Hb Hc Hd He Hf Hg k*. 
-      rewrite Hg; [rewrite shr_1 |]. admit.
+    + move => lL pkL pkR Ha Hb Hc Hd He Hf Hg k*. 
+      rewrite Hg. 
+         * rewrite shr_1; split => [/# | H]. 
+           have E0 : 1 <=  to_uint lL <= 67 by smt(). 
+           have E1 : 0 <=  to_uint lL %/ 2 <= 33 by smt(). 
+           admit. 
       rewrite -nth_flatten 1:/#. 
       rewrite (: size (nth witness pkR 0) = 32) 1:#smt:(@List) //=. 
       congr. 
       rewrite sumzE BIA.big_map /(\o) //= -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) 1:#smt:(@List) big_constz count_predT size_take //=. 
       rewrite ifT 1:/# //=.
 
-
+(* The first subgoal of while starts here *)
+ 
 seq 2 0 : (
   #pre /\
-  to_uint parent_nodes{1} = floor (_len{2}%r / 2%r)
-).
-    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6.
-      rewrite truncate_1_and_63 shr_1. admit.
+  to_uint parent_nodes{1} = to_uint l{1} %/ 2
+); first by auto => /> *; rewrite truncate_1_and_63 shr_1 //.
 
-seq 2 2 : (
+
+(* In the loop we set the values for the i-th chunk of pk *)
+seq 2 2 : ( 
   #pre /\
-  forall (k : int)
+  (forall (k : int), 0 <= k <= (to_uint parent_nodes{1}) => sub wots_pk{1} (k * 32) 32 = nth witness pk{2} k)
 ). 
 
+(* This deals with the body of the inner while loop *)
+    + admit. 
+
+
+(* The inner loop ends here *)
+
+seq 2 0 : (#pre /\ t{1} = l{1} `&` W64.one); first by auto.
+if.
+    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8; split; rewrite mod2_eq_and1_w64 => H9. 
+       * admit.
+       * admit.
+
+    + seq 7 0 : (#pre /\ forall (k : int), 0 <= k < 32 => wots_pk{1}.[l >> 
+
+inline {1}.
+auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9; do split. 
+    + admit.
+    + admit.
+    + admit.
+    + rewrite truncate_1_and_63 shr_1. admit.
+    + move => k?. rewrite truncate_1_and_63 shr_1 => H10.
+      apply H4 => /#. 
+    + rewrite truncate_1_and_63 => H. 
+      admit.
 
 
 

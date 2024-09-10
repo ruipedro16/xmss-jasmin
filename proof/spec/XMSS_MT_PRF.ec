@@ -28,6 +28,7 @@ module LTree = {
     var tmp : nbytes;
     var i : int <- witness;
     var _len : int <- len;
+    var tree_height : int;
 
     address <- set_tree_height address 0;
 
@@ -39,6 +40,7 @@ module LTree = {
         tmp <- nth witness pk (2*i + 1);
         (pk_i, address) <@ Hash.rand_hash (pk_i, tmp, _seed, address);
         pk <- put pk i pk_i;
+        i <- i + 1;
       }
 
       if (_len %% 2 = 1) {
@@ -47,7 +49,9 @@ module LTree = {
       }
 
       _len <- ceil (len%r / 2%r);
-      i <- i + 1;
+
+      tree_height <- get_tree_height address;
+      address <- set_tree_height address tree_height;
     }
 
     pk_i <- nth witness pk 0;
@@ -96,7 +100,7 @@ pred treehash_p (s t : int) = s %% (1 `<<` t) <> 0.
 module TreeHash = {
   (* Computes the root *)
   proc treehash(sk : xmss_mt_sk, s t : int, address : adrs) : nbytes * adrs = {
-  var node : nbytes;
+  var node : nbytes <- nseq n W8.zero;
   var stack : nbytes list;
   var top_node : nbytes;
   var pub_seed : seed <- sk.`pub_seed_sk;
