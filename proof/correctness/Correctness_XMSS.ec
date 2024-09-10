@@ -26,6 +26,8 @@ clone import DListProgramX as T
   with type t <- W8.t,
        op d <- W8.dword.
 
+print chunk.
+print nth.
 (*** Treehash kg ***)
 
 lemma treehash_kg_correct :
@@ -71,8 +73,8 @@ seq 8 9 : (
          * auto => /> &hr H0 H1 H2 H3 H4; do split; 1,2,4:smt(). 
            move => k H5 H6.
            rewrite get_setE //= /#.
-         * auto => /> &1 &2 H0 H1; split; [smt() |].
-           move => jL rootL; split; [smt() |].
+         * auto => /> &1 &2 H0 H1; split => [/# |].
+           move => jL rootL; split => [/# |].
            move => H2 H3 H4 H5.
            apply (eq_from_nth witness); [ by rewrite size_to_list H1 | by rewrite size_to_list /# ]. 
 admit.
@@ -420,19 +422,15 @@ rewrite /XMSS_WOTS_LEN /XMSS_N.
 move => [#] len_val n_val.
 proc. 
 auto => />.
-seq 3 1 : (#pre); first by auto. 
- 
-seq 1 1 : (#pre /\ _len{2} = to_uint l{1} /\ _len{2} = 67);  first by auto.
- 
-seq 2 1 : (
+seq 6 3 : (
   addr{1} = address{2} /\
   pk{2} = EncodeWotsPk wots_pk{1} /\
   _seed{2} = to_list pub_seed{1} /\
   _len{2} = to_uint l{1} /\
   _len{2} = 67 /\
   size pk{2} = len /\
-  (forall (t0 : W8.t list), t0 \in pk{2} => size t0 = 32)
-
+  (forall (t0 : W8.t list), t0 \in pk{2} => size t0 = 32) /\
+  height{1} = W32.zero
 ); first by inline {1}; auto. 
 
 seq 1 1 : (
@@ -448,106 +446,112 @@ seq 1 1 : (
       rewrite size_to_list => j?. 
       rewrite -H0 //= initiE //=.
 
-(*
 conseq (: _ ==>
   addr{1} = address{2} /\
   (forall (k : int), 0 <= k < 32 =>  wots_pk{1}.[k] = nth witness (flatten pk{2}) k) /\
   size pk{2} = len /\ 
-    forall (t0 : W8.t list), t0 \in pk{2} => size t0 = 32
+  (forall (t0 : W8.t list), t0 \in pk{2} => size t0 = 32)
 ).
-    + auto => /> &1 H0 H1 H2 addrL pkL H3 H4 H5 k??. 
+    + auto => /> &1 H0 H1 H2 addrL pkL H3 H4 H5 k??.
       rewrite -nth_flatten.
          * rewrite H4 len_val //=.                      
-         * rewrite (: size (nth witness pkL 0) = 32); [apply H5; smt(@List) | by []].
+         * rewrite (: size (nth witness pkL 0) = 32) //= H5 //=; smt(@List). 
          * rewrite H3 //=; congr. 
            rewrite sumzE BIA.big_map /(\o) //= -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) 1:#smt:(@List) big_constz count_predT. 
            rewrite size_take //= ifT 1:/# //=.
-*)
 
+(* ------------------------------------------------------------------------------- *)
+(*                     At this point, we only have the while loop                  *)
+(* ------------------------------------------------------------------------------- *)
 
-(* At this point, we only have the while loop *)
 while (
   addr{1} = address{2} /\
   _seed{2} = to_list pub_seed{1} /\
   
   size pk{2} = len /\
   (forall (t0 : W8.t list), t0 \in pk{2} => size t0 = 32) /\
-  
-    1 <= _len{2} <= 67 /\ 
+
+  1 <= to_uint l{1} <= 67 /\
   _len{2} = to_uint l{1} /\
-
-  (* Inner loop *)
-  (* 0 <= i{2} < floor (_len{2}%r / 2%r) /\ *)
-  (* to_uint i{1} = i{2} /\ *)
-
-  forall (k : int), 0 <= k < to_uint (l{1} `>>` W8.one) => wots_pk{1}.[k] = nth witness (flatten pk{2}) k
-
+  
+  pk{2} = EncodeWotsPk wots_pk{1}
 ); last first.
-(* The last subgoal of while starts here *)
-auto => /> &1 H0 H1 H2 *; do split.
-    + smt().
-    + smt(). 
-    + move => k. rewrite shr_1 => ??. 
+
+auto => /> &1 &2 H0 H1; do split.
+    * smt(). 
+    * smt(). 
+    * smt(). 
+    * smt(@W64). 
+    * move => l pk H2 H3 H4 H5 H6 H7 k??.
       rewrite /EncodeWotsPk (nth_flatten witness 32); [rewrite size_all_r 1:#smt:(@BitChunking @List) |]. 
       rewrite /chunk size_to_list nth_mkseq 1:/# => />.
       rewrite nth_take //= 1:/# nth_drop //= 1,2:/#.
       congr => /#. 
-    + smt(). 
-    + smt(@W64 pow2_64). 
-    + move => lL pkL pkR Ha Hb Hc Hd He Hf Hg k*. 
-      rewrite Hg. 
-         * rewrite shr_1; split => [/# | H]. 
-           have E0 : 1 <=  to_uint lL <= 67 by smt(). 
-           have E1 : 0 <=  to_uint lL %/ 2 <= 33 by smt(). 
-           admit. 
-      rewrite -nth_flatten 1:/#. 
-      rewrite (: size (nth witness pkR 0) = 32) 1:#smt:(@List) //=. 
-      congr. 
-      rewrite sumzE BIA.big_map /(\o) //= -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) 1:#smt:(@List) big_constz count_predT size_take //=. 
-      rewrite ifT 1:/# //=.
 
-(* The first subgoal of while starts here *)
- 
-seq 2 0 : (
-  #pre /\
-  to_uint parent_nodes{1} = to_uint l{1} %/ 2
-); first by auto => /> *; rewrite truncate_1_and_63 shr_1 //.
+(* ------------------------------------------------------------------------------- *)
+(*              The first subgoal of the outter while loop starts here             *)
+(* ------------------------------------------------------------------------------- *)
+seq 2 0 : (#pre /\ to_uint parent_nodes{1} = to_uint l{1} %/ 2).
+    + by auto => /> *; rewrite truncate_1_and_63 shr_1.
+
+seq 2 2 : (
+  addr{1} = address{2} /\
+  _seed{2} = to_list pub_seed{1} /\
+  size pk{2} = len /\
+  (forall (t0 : W8.t list), t0 \in pk{2} => size t0 = 32) /\
+  pk{2} = EncodeWotsPk wots_pk{1} /\
+  _len{2} = to_uint l{1} /\
+  1 < to_uint l{1} <= len
+); first by admit. 
+
+seq 2 0 : (#pre /\ t{1} = l{1} `&` W64.one); first by auto. 
+
+(* ------------------------------------------------------------------------------- *)
+(*                      The second subgoal of if starts here                       *)
+(* ------------------------------------------------------------------------------- *)
+if; first by auto => /> *; smt(and_1_mod_2). 
+
+seq 6 0 : (
+  #pre /\ 
+  offset_out{1} = (l{1} `>>` W8.one) * W64.of_int 32 /\
+  offset_in{1} = (l{1} - W64.one) * W64.of_int 32
+); first by auto => /> *; rewrite truncate_1_and_63 //.
+
+seq 1 2 : (#pre).
+    + inline {1}; wp; sp.
+      while {1} 
+      (#pre /\ 0 <= i0{1} <= 32 /\ forall (k : int), 0 <= k < i0{1} => out{1}.[to_uint offset_out0{1} + i0{1}] = nth witness (flatten pk{2}) k)
+      (32 - i0{1}); last by auto => /> /#.
+          * auto => /> &hr H0 H1 H2 H3 H4 H5 *. admit. (* Nao sei o que e este z *)
 
 
-(* In the loop we set the values for the i-th chunk of pk *)
-seq 2 2 : ( 
-  #pre /\
-  (forall (k : int), 0 <= k <= (to_uint parent_nodes{1}) => sub wots_pk{1} (k * 32) 32 = nth witness pk{2} k)
-). 
+seq 2 1 : (#pre). (* l e len continuam iguais *)
+        + auto => /> &1 H0 H1 H2 H3 H4 *; rewrite truncate_1_and_63; do split. 
+            * rewrite to_uintD shr_1 //=. admit.
+            * rewrite to_uintD shr_1 //= /#. 
+            * rewrite to_uintD shr_1 //= /#.
+            * congr. admit. 
+            * congr. admit.
+            * do 2! congr. admit. 
 
-(* This deals with the body of the inner while loop *)
-    + admit. 
-
-
-(* The inner loop ends here *)
-
-seq 2 0 : (#pre /\ t{1} = l{1} `&` W64.one); first by auto.
-if.
-    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8; split; rewrite mod2_eq_and1_w64 => H9. 
-       * admit.
-       * admit.
-
-    + seq 7 0 : (#pre /\ forall (k : int), 0 <= k < 32 => wots_pk{1}.[l >> 
+seq 1 1 : (#pre /\ to_uint height{1} = tree_height{2}).
+        + admit.
 
 inline {1}.
-auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9; do split. 
-    + admit.
-    + admit.
-    + admit.
-    + rewrite truncate_1_and_63 shr_1. admit.
-    + move => k?. rewrite truncate_1_and_63 shr_1 => H10.
-      apply H4 => /#. 
-    + rewrite truncate_1_and_63 => H. 
-      admit.
+auto => /> &1 *; do split; 1,2:smt(). 
+smt(@W64). 
 
+(* ------------------------------------------------------------------------------- *)
+(* The last subgoal of if starts here                       *)
+(* ------------------------------------------------------------------------------- *)
 
+inline {1}. 
+auto => /> &1 &2 *; do split. 
+    * rewrite /set_tree_height /get_tree_height to_uintK. congr. admit.  
+    * rewrite truncate_1_and_63 shr_1 /#.
+    * rewrite truncate_1_and_63 shr_1 /#.
+    * rewrite truncate_1_and_63 shr_1. admit. 
+    * rewrite truncate_1_and_63 => ?. admit.
+    * rewrite truncate_1_and_63 => ?. admit.
 
-
-(*** Treehash ***)
-
-(******* exported functions ********)
+qed.

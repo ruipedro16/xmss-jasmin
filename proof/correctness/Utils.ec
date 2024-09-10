@@ -77,6 +77,20 @@ lemma shr_1 (x : W64.t) :
     to_uint (x `>>` W8.one) = to_uint x %/ 2
         by rewrite shr_div (: (to_uint W8.one %% 64) = 1) 1:#smt:(@W64) //=. 
 
+lemma mod2_vals (x : int) :
+    x %% 2 = 0 \/ x %% 2 = 1 by smt(). 
+
+lemma foo (x : W64.t):
+    to_uint x %% 2 = 1 => W64.of_int (to_uint x %% 2) = W64.one by smt(@W64). 
+
+lemma and_1_mod_2 (x : W64.t):
+    x `&` W64.one <> W64.zero <=> to_uint x %% 2 = 1.
+proof.
+split; rewrite (: 1 = 2 ^ 1 - 1) 1:/# and_mod //=; [smt(foo) |].
+move => H.
+rewrite foo //= #smt:(@W64). 
+qed.
+
 (** -------------------------------------------------------------------------------------------- **)
 
 lemma nseq_nth (x : W8.t list) (i : int) (v : W8.t) :

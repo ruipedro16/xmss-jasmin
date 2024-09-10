@@ -108,25 +108,35 @@ lemma load_store  (mem : global_mem_t) (ptr : W64.t) (v : W8.t) :
 
 lemma memset_ptr_post (ptr : W64.t, len : W64.t, v : W8.t) :
     hoare [M(Syscall).__memset_u8_ptr : 
-      0 <= to_uint len /\
+      0 <= to_uint len < W64.modulus /\
       0 <= to_uint ptr /\ to_uint (ptr + len) < W64.modulus /\ 
       arg=(ptr, len, v) ==>
         forall (k:int), 0 <= k < to_uint len => (loadW8 Glob.mem (W64.to_uint (ptr  + (W64.of_int k)))) = v].
 proof.
 proc ; auto.
 while (
-  0 <= to_uint len /\
-  0 <= to_uint ptr /\ 
-  to_uint (ptr + len) < W64.modulus /\ 
-  inlen = len /\ value = v /\ _ptr = ptr /\
+  #pre /\
   0 <= to_uint i <= to_uint inlen /\
   (forall (k : int), 0 <= k < to_uint i => loadW8 Glob.mem ((W64.to_uint _ptr) + k) = v )
-) ; auto => />.
-- move => &hr * ; do split.
-    + rewrite to_uintD /#.
-    + smt(@W64).
-    + move => k ??. rewrite /loadW8 /storeW8 get_setE //=. admit.
-- move => &hr * ; do split; 1:smt(). move => mem ????? k *. rewrite /loadW8. admit.
+) ; last first.
+
+    + auto => /> &hr H0 H1 H2 *; split; 1:smt(@JMemory). 
+      move => mem i H3 H4 H5.
+      have ->: i = len by smt(@W64).
+      move => H6 k??.
+      have ->: (to_uint (ptr + (of_int k)%W64)) = (to_uint ptr + k).
+         + rewrite to_uintD of_uintK.  
+           have ->: k %% W64.modulus = k by admit.
+           admit. 
+      apply H6 => //=.
+
+    + auto => /> &hr H0 H1 H2 H3 H4 H5 H6 H7; do split. 
+       * smt(@W64).
+       * smt(@W64).
+       * move => k ??. search loadW8. 
+         rewrite /loadW8 /storeW8 get_setE //=.
+         case (to_uint ptr + k = to_uint (ptr + i{hr})); [smt(@W64) |].
+         admit.
 qed.
 
 

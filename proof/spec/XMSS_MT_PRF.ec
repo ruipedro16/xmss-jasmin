@@ -48,10 +48,10 @@ module LTree = {
         pk <- put pk (floor (len%r / 2%r)) pk_i;
       }
 
-      _len <- ceil (len%r / 2%r);
+      _len <- ceil (_len%r / 2%r);
 
       tree_height <- get_tree_height address;
-      address <- set_tree_height address tree_height;
+      address <- set_tree_height address (tree_height + 1);
     }
 
     pk_i <- nth witness pk 0;
