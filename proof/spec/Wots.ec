@@ -232,7 +232,7 @@ module WOTS = {
   }
 
   proc pkFromSig(M : wots_message, sig : wots_signature, _seed : seed, address : adrs) : wots_pk * adrs = {
-    var tmp_pk : wots_pk <- witness;
+    var tmp_pk : wots_pk <- nseq len (nseq n W8.zero);
     var csum_32 : W32.t;
     var csum : int;
     var msg : int list;
