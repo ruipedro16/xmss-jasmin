@@ -163,6 +163,30 @@ while (
   move => E0 ; congr. rewrite E0 to_uintD of_uintK //=. admit. (* overflow *)
 qed.
 
+lemma memcpy_ptr_ll :
+    phoare [
+      M(Syscall)._x_memcpy_u8u8p : 
+      0 <= (to_uint arg.`2) + 32 <= W64.modulus /\
+      0 <= to_uint arg.`2 
+      ==>
+      true
+    ] = 1%r.
+proof.
+proc.
+inline; wp; sp.
+while (true) (32 - i); auto => /> /#. 
+qed.
+
+lemma p_memcpy_ptr_correct (ptr : W64.t):
+    phoare [M(Syscall)._x_memcpy_u8u8p : 
+      arg.`2 = ptr /\  
+      0 <= (to_uint ptr) + 32 <= W64.modulus /\
+      0 <= to_uint ptr ==>
+        res = Array32.init (fun (i : int) => loadW8 Glob.mem (to_uint ptr + i))] = 1%r.
+proof.
+by conseq memcpy_ptr_ll (memcpy_ptr_correct ptr).
+qed.
+
 lemma _x_memcpy_u8u8_post (x : W8.t Array32.t) :
     phoare [M(Syscall)._x_memcpy_u8u8_32_32 : arg.`2 = x ==> res = x] = 1%r.
 proof.

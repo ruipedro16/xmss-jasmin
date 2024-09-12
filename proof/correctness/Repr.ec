@@ -3,7 +3,7 @@ pragma Goals : printall.
 require import AllCore List.
 from Jasmin require import JModel.
 
-require import Types Address Notation Primitives Wots XMSS_MT_PRF.
+require import Types Address Notation Primitives Wots XMSS_MT_PRF XMSS_Commons.
 require import Utils.
 require import XMSS_IMPL.
 
@@ -355,29 +355,35 @@ qed.
 lemma enc_dec_sk_r (x : W8.t Array136.t) (y : xmss_mt_sk) :
     size y.`sk_seed     = 32 /\
     size y.`sk_prf      = 32 /\
-    size y.`pub_seed_sk = 32 =>
+    size y.`pub_seed_sk = 32 /\ 
+    size y.`sk_root     = 32 =>
     y = EncodeSk x => x = DecodeSk y.
 proof.
-move => [#] H0 H1 H2 Hy.
+move => [#] H0 H1 H2 H3 Hy.
 rewrite /DecodeSk /EncodeSk. 
 rewrite tP.
 move => i Hi.
 rewrite get_of_list; 1:assumption. 
-rewrite !nth_cat !size_cat !size_W32toBytes H0 H1 H2 //=.
+rewrite !nth_cat !size_cat !size_W32toBytes H0 H1 H3 //=.
 case (i < 104); last by smt(@List @Array136). 
 move => ?; case (i < 72); last by smt(@List @Array136). 
 move => ?; case (i < 40); last by smt(@List @Array136). 
 move => ?; case (i < 8); last by smt(@List @Array136). 
-move => ?; case (i < 4); move => H. 
-  + admit.
-  + admit.
+move => ?; case (i < 4); move => H; rewrite /W32toBytes.
+  + rewrite (nth_map witness); [by rewrite size_chunk //= /# |].
+    rewrite /chunk nth_mkseq //= 1:/# /bits2w => />. 
+    admit. 
+  + rewrite (nth_map witness); [by rewrite size_chunk /# |].
+    rewrite /bits2w /chunk nth_mkseq 1:/# => />.
+    admit. 
 qed.
 
 
 lemma enc_dec_sk (x : W8.t Array136.t) (y : xmss_mt_sk) :
     size y.`sk_seed = 32 /\ 
     size y.`sk_prf = 32 /\ 
-    size y.`pub_seed_sk = 32 =>
+    size y.`pub_seed_sk = 32 /\ 
+    size y.`sk_root = 32 =>   
     x = DecodeSk y <=> y = EncodeSk x
-      by move => ?; split; [apply enc_dec_sk_l | apply enc_dec_sk_r; assumption]. 
+      by move => ?; split; [apply enc_dec_sk_l | apply enc_dec_sk_r => /#]. 
 
