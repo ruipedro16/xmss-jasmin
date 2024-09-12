@@ -6,7 +6,7 @@ require import BitEncoding.
 
 from Jasmin require import JModel.
 
-require import Types Params Util Utils Address.
+require import Types Params Util (* Utils *) Address.
 
 op Hash : W8.t list -> W8.t list.
 

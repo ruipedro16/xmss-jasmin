@@ -3,7 +3,7 @@ pragma Goals : printall.
 require import AllCore List Distr RealExp IntDiv DList.
 from Jasmin require import JModel.
 
-require import Types Params Notation Address Primitives Hash Params Utils.
+require import Types Params Notation Address Primitives Hash Params Util.
 
 require import Array8.
 

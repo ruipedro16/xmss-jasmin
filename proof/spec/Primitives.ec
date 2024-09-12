@@ -4,7 +4,7 @@ require import AllCore List RealExp IntDiv.
 require (*  *) Subtype. 
 from Jasmin require import JModel.
 
-require import Types Params Notation Address Hash Util Utils.
+require import Types Params Notation Address Hash Util.
 require import Array8.
 
 module Chain = {

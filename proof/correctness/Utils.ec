@@ -461,13 +461,6 @@ pred valid_ptr_i (p : W64.t) (o : int) =
   0 <= o => 
     0 <= to_uint p /\ to_uint (p) + o < W64.modulus.
 
-op BytesToBits (bytes : W8.t list) : bool list = flatten (map W8.w2bits bytes).
-op BitsToBytes (bits : bool list) : W8.t list = map W8.bits2w (chunk W8.size bits).
-op W64ToBytes (w : W64.t, outlen : int) : W8.t list. (* = BitsToBytes (W64.w2bits w). *)
-
-op addr_to_bytes (a : W32.t Array8.t) : W8.t list = 
-  let addr_bits : bool list = flatten (mkseq (fun (i : int) => W32.w2bits a.[i]) 8) in
-  BitsToBytes addr_bits.
 
 (** -------------------------------------------------------------------------------------------- **)
 
