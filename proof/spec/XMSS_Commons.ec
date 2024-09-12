@@ -6,7 +6,7 @@ require (*--*) Subtype.
 
 from Jasmin require import JModel.
  
-require import Types Params Notation Parameters Address Hash Primitives Wots Util.
+require import Types Params Notation Parameters Address Hash Primitives Wots Util Utils.
  
 import OTSKeys Three_NBytes AuthPath.
 import Array8.
@@ -31,7 +31,7 @@ module LTree = {
 
     while (1 < _len) { (* Same as _len > 1 *)
       i <- 0;
-      while (i < floor (_len%r / 2%r)) {
+      while (i < _floor_2 _len) {
         address <- set_tree_index address i;
         pk_i <- nth witness pk (2*i);
         tmp <- nth witness pk (2*i + 1);
@@ -42,10 +42,10 @@ module LTree = {
 
       if (_len %% 2 = 1) {
         pk_i <- nth witness pk (_len - 1);
-        pk <- put pk (floor (len%r / 2%r)) pk_i;
+        pk <- put pk (_floor_2 _len) pk_i;
       }
 
-      _len <- ceil (_len%r / 2%r);
+      _len <- _ceil_2 _len;
 
       tree_height <- get_tree_height address;
       address <- set_tree_height address (tree_height + 1);
@@ -67,7 +67,10 @@ auto => />.
 while (_len <= len) (floor (_len%r / 2%r) - i).
 auto => />; call rand_hash_ll. wp. skip => /> /#. 
 auto => /> &hr ?; do split.  admit. 
-move => *. do split; smt(@Real). 
+move => *; split => *. 
+  + rewrite /_floor_2 shr_1 of_uintK //= #smt:(@Real).  
+  + rewrite /_ceil_2 /is_even. 
+    rewrite shr_1 of_uintK /#. 
 qed.
 
 (**********************************************************************************************)
