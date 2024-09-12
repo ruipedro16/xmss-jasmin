@@ -89,14 +89,14 @@ module TreeHash = {
   (* Computes the root *)
   proc treehash(sk : xmss_mt_sk, s t : int, address : adrs) : nbytes * adrs = {
   var node : nbytes <- nseq n W8.zero;
-  var stack : nbytes list;
+  var stack : nbytes list <- [];
   var top_node : nbytes;
   var pub_seed : seed <- sk.`pub_seed_sk;
   var sk_seed : seed <- sk.`sk_seed;
   var pk : wots_pk;
   var i : int <- 0;
   var tree_index, tree_height: int;
-  var heights : int list <- nseq (h + 1) 0;
+  var heights : int list <- nseq (h %/d + 1) 0;
   var tmp : int;
   var offset : int <- 0;
     
