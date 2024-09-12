@@ -51,12 +51,14 @@ clone import Subtype as AuthPath with
 
 (******************************************************************************)
 
+(* Same as single tree variant *)
 type xmss_mt_sk = { idx : W32.t ;
                     sk_seed : nbytes ; (* secret *)
                     sk_prf : nbytes ;
                     pub_seed_sk : nbytes ; (* public *)
                     sk_root : nbytes }.
 
+(* Same as single tree variant *)
 type xmss_mt_pk = { pk_oid : W32.t ;
                     pk_root : nbytes ;
                     pk_pub_seed : nbytes }.

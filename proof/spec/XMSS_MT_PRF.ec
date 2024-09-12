@@ -12,54 +12,6 @@ require import XMSS_Commons.
 import OTSKeys Three_NBytes AuthPath.
 import Array8.
 
-module XMSS = {
-  proc rootFromSig(idx_sig : W32.t, sig_ots : wots_signature, auth : auth_path, M : nbytes, 
-                   _seed : seed, address : adrs) : nbytes = {
-    var pk_ots : wots_pk;
-    var k : int <- 0;
-    var nodes0, nodes1 : nbytes;
-    var index : int;
-    var auth_k : nbytes;
-    
-    address <- set_type address 0;
-    address <- set_ots_addr address (W32.to_uint idx_sig);
-
-    (pk_ots, address) <@ WOTS.pkFromSig(M, sig_ots, _seed, address);
-
-    address <- set_type address 1;
-    address <- set_ltree_addr address (W32.to_uint idx_sig);
-
-    (nodes0, address) <@ LTree.ltree(pk_ots, address, _seed);
-
-    address <- set_type address 2;
-    address <- set_tree_index address (W32.to_uint idx_sig);
-
-    while (k < h) {
-      address <- set_tree_height address k;
-
-      if (floor ((W32.to_uint idx_sig)%r / (2^k)%r) %% 2 = 0) {
-        index <- get_tree_index address;
-        address <- set_tree_index address (index %/ 2);
-
-        auth_k <- nth witness auth k;
-        (nodes1, address) <@ Hash.rand_hash (nodes0, auth_k, _seed, address);
-      } else {
-        index <- get_tree_index address;
-        address <- set_tree_index address ((index - 1) %/ 2);
-
-        auth_k <- nth witness auth k;
-        (nodes1, address) <@ Hash.rand_hash (auth_k, nodes0, _seed, address);
-      }
-
-      nodes0 <- nodes1;
-      k <- k+1;
-    }
-
-    return nodes0;
-  }
-
-}.
-
 module XMSS_MT_PRF = {
    (* Different from the spec because we use a secret seed instead of the full wots keys *)
    (* Algorithm 10 instead of 15 *)
@@ -120,53 +72,6 @@ module XMSS_MT_PRF = {
 
       return (sk, pk);
    }
-
-  
-   (* Algorithm 13 *)
-   proc rootFromSig(idx_sig : W32.t, sig_ots : wots_signature, auth : auth_path, M : nbytes, 
-                   _seed : seed, address : adrs) : nbytes = {
-    var pk_ots : wots_pk;
-    var k : int <- 0;
-    var nodes0, nodes1 : nbytes <- nseq n W8.zero;
-    var index : int;
-    var auth_k : nbytes;
-    
-    address <- set_type address 0;
-    address <- set_ots_addr address (W32.to_uint idx_sig);
-
-    (pk_ots, address) <@ WOTS.pkFromSig(M, sig_ots, _seed, address);
-
-    address <- set_type address 1;
-    address <- set_ltree_addr address (W32.to_uint idx_sig);
-
-    (nodes0, address) <@ LTree.ltree(pk_ots, address, _seed);
-
-    address <- set_type address 2;
-    address <- set_tree_index address (W32.to_uint idx_sig);
- 
-    while (k < h) {
-      address <- set_tree_height address k;
-
-      if (floor ((W32.to_uint idx_sig)%r / (2^k)%r) %% 2 = 0) {
-        index <- get_tree_index address;
-        address <- set_tree_index address (index %/ 2);
-
-        auth_k <- nth witness auth k;
-        (nodes1, address) <@ Hash.rand_hash(nodes0, auth_k, _seed, address);
-      } else {
-        index <- get_tree_index address;
-        address <- set_tree_index address ((index - 1) %/ 2);
-
-        auth_k <- nth witness auth k;
-        (nodes1, address) <@ Hash.rand_hash(auth_k, nodes0, _seed, address);
-      }
-
-      nodes0 <- nodes1;
-      k <- k+1;
-    }
-
-    return nodes0;
-  }
 
    (*
            +---------------------------------+
@@ -286,7 +191,7 @@ module XMSS_MT_PRF = {
        address <- set_layer_addr address 0;
        address <- set_tree_addr address (W32.to_uint idx_tree);
 
-       node <@ XMSS.rootFromSig(idx_leaf, _sig.`1, _sig.`2, _M', seed, address);
+       node <@ RootFromSig.rootFromSig(idx_leaf, _sig.`1, _sig.`2, _M', seed, address);
      
        j <- 1;
        while (j < d) {
@@ -298,14 +203,13 @@ module XMSS_MT_PRF = {
          address <- set_layer_addr address j;
          address <- set_tree_addr address (W32.to_uint idx_tree);
        
-         node <@ XMSS.rootFromSig(idx_leaf, _sig.`1, _sig.`2, _M', node, address);
+         node <@ RootFromSig.rootFromSig(idx_leaf, _sig.`1, _sig.`2, _M', node, address);
 
          j <- j + 1;
        }
 
-       
-           is_valid <- (node = root);
-           return is_valid;
+      is_valid <- (node = root);
+      return is_valid;
    }
 }.
 
@@ -333,17 +237,6 @@ proc.
 auto => /> ; call treehash_ll; wp.
 call sample_randomness_ll.
 by auto.
-qed.
-
-lemma root_from_sig_ll : islossless XMSS_MT_PRF.rootFromSig.
-proof.
-proc.
-while (0 <= k <= h) (h - k) ; auto => />.
-  + admit.
-  + admit.
-  + call ltree_ll ; auto => />. 
-    call wots_pkFromSig_ll ; auto => />.
-    smt(h_g0).
 qed.
 
 lemma xmss_mt_sign_ll : islossless XMSS_MT_PRF.sign.

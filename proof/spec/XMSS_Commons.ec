@@ -1,5 +1,6 @@
 pragma Goals : printall.
 
+
 require import AllCore List RealExp IntDiv Distr DList.
 require (*--*) Subtype. 
 
@@ -213,3 +214,65 @@ op append_sig (sig : sig_t) (r_sig : reduced_signature) : sig_t =
     {| sig with  r_sigs=new_sigs|}.
 
 (**********************************************************************************************)
+
+module RootFromSig = {
+  proc rootFromSig(idx_sig : W32.t, sig_ots : wots_signature, auth : auth_path, M : nbytes, 
+  _seed : seed, address : adrs) : nbytes = {
+    var pk_ots : wots_pk;
+    var k : int;
+    var nodes0, nodes1 : nbytes;
+    var index : int;
+    var auth_k : nbytes;
+    
+    address <- set_type address 0;
+    address <- set_ots_addr address (W32.to_uint idx_sig);
+
+    (pk_ots, address) <@ WOTS.pkFromSig(M, sig_ots, _seed, address);
+
+    address <- set_type address 1;
+    address <- set_ltree_addr address (W32.to_uint idx_sig);
+
+    (nodes0, address) <@ LTree.ltree(pk_ots, address, _seed);
+
+    address <- set_type address 2;
+    address <- set_tree_index address (W32.to_uint idx_sig);
+
+    k <- 0;
+    while (k < h) {
+      address <- set_tree_height address k;
+
+      if (floor ((W32.to_uint idx_sig)%r / (2^k)%r) %% 2 = 0) {
+        index <- get_tree_index address;
+        address <- set_tree_index address (index %/ 2);
+
+        auth_k <- nth witness auth k;
+        (nodes1, address) <@ Hash.rand_hash (nodes0, auth_k, _seed, address);
+      } else {
+        index <- get_tree_index address;
+        address <- set_tree_index address ((index - 1) %/ 2);
+
+        auth_k <- nth witness auth k;
+        (nodes1, address) <@ Hash.rand_hash (auth_k, nodes0, _seed, address);
+      }
+
+      nodes0 <- nodes1;
+      k <- k+1;
+    }
+
+    return nodes0;
+  }
+}.
+
+lemma root_from_sig_ll : islossless RootFromSig.rootFromSig.
+proof.
+proc.
+while (0 <= k <= h) (h - k) ; auto => />.
+  + wp; sp. if. 
+      * call rand_hash_ll. islossless. auto => /> &hr *; do split; admit. 
+      * call rand_hash_ll. islossless. auto => /> &hr *; do split; admit.
+  + auto => />; do split => /#.
+  + call ltree_ll ; auto => />. 
+    call wots_pkFromSig_ll ; auto => />.
+    smt(h_g0).
+qed.
+
