@@ -8,7 +8,7 @@ from Jasmin require import JModel.
 
 require import XMSS_IMPL Util.
 
-require import Array8 Array32 Array64 Array320 Array352.
+require import Array3 Array8 Array32 Array64 Array320 Array352.
 require import WArray96.
 
 require import Types Params Parameters Address Notation.
@@ -20,6 +20,35 @@ op W32ofBytes (bytes : W8.t list) : W32.t = W32.bits2w (concatMap W8.w2bits byte
 op W32toBytes (x : W32.t) : W8.t list = map W8.bits2w (chunk W8.size (W32.w2bits x)).
 
 (** -------------------------------------------------------------------------------------------- **)
+
+lemma  nth_chunk (x : 'a list) (n i : int):
+    0 <= i && i < size x %/ n =>
+      nth witness (chunk n x) i = take n (drop (n * i) x)
+        by move => ?; rewrite /chunk nth_mkseq //=.
+
+lemma all_size_chunk (x : W8.t list) (n : int): 
+    forall (t0 : W8.t list), t0 \in chunk n x => size t0 = n by smt(@BitChunking). 
+
+lemma size_nth_chunk (x : 'a list) (n : int) (i : int) :
+    0 <= i < size x %/ n =>
+      size (nth witness (chunk n x) i) = n
+        by smt(@BitChunking @List). 
+
+lemma array3_map_bounds (y : W32.t Array3.t) :
+    (forall (x : int), x \in map W32.to_uint (to_list y) => 0 <= x && x < w) =>
+    (forall (k : int), 0 <= k < 3 => 0 <= to_uint y.[k] < w).
+proof.
+move => E.
+have E0 : forall (k : int), 0 <= k < 3 => 0 <= nth witness (map W32.to_uint (to_list y)) k < w by smt(@List).
+move => k?.
+rewrite -get_to_list. 
+rewrite -(nth_map witness witness W32.to_uint). 
+  + by rewrite size_to_list. 
+apply E0 => //=. 
+qed.
+
+(** -------------------------------------------------------------------------------------------- **)
+
 lemma size_W32toBytes (x : W32.t) : size (W32toBytes x) = 4 
     by rewrite /W32toBytes size_map size_chunk //.
 
@@ -145,7 +174,6 @@ lemma all_take ['a] (x : 'a list) (p : 'a -> bool) (i : int) :
 
 (** -------------------------------------------------------------------------------------------- **)
 
-(* TODO: FIXME: Refactor the 32 out of this *)
 lemma size_size (x : W8.t list list) :
 	(forall (k : int), 0 <= k < size x => size (nth witness x k) = 32) => 
 		all (fun (s : W8.t list) => size s = 32) x

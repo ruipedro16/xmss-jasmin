@@ -17,12 +17,15 @@ op addr_to_bytes (a : W32.t Array8.t) : W8.t list =
   BitsToBytes addr_bits.
 
 
-pred  is_even (x : int) = x %% 2 = 0.
+pred is_even (x : int) = x %% 2 = 0.
 
 op _ceil_2 (a : int) : int = 
   if is_even a 
   then to_uint (W64.of_int a `>>` W8.one) 
   else to_uint (W64.of_int a `>>` W8.one) + 1.
+
+op _floor_2 (a : int) : int = 
+  to_uint (W64.of_int a `>>` W8.one).
 
 op nbytexor(a b : nbytes) : nbytes = 
     map (fun (ab : W8.t * W8.t) => ab.`1 `^` ab.`2) (zip a b).
