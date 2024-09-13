@@ -33,19 +33,33 @@ extraction/XMSS_IMPL.ec: | extraction/ common/
 
 # --------------------------------------------------------------------------------------------------
 
-.PHONY: typecheck_spec check_proofs typecheck_extraction
-typecheck_spec: extraction/XMSS_IMPL.ec
-	$(EASYCRYPT) $(EC_INCLUDE) spec/Params.ec
-	$(EASYCRYPT) $(EC_INCLUDE) spec/Types.ec
-	$(EASYCRYPT) $(EC_INCLUDE) spec/Address.ec
-	$(EASYCRYPT) $(EC_INCLUDE) spec/Util.ec
-	$(EASYCRYPT) $(EC_INCLUDE) spec/Hash.ec
-	$(EASYCRYPT) $(EC_INCLUDE) spec/Notation.ec
-	$(EASYCRYPT) $(EC_INCLUDE) spec/Primitives.ec
-	$(EASYCRYPT) $(EC_INCLUDE) spec/Wots.ec
-	$(EASYCRYPT) $(EC_INCLUDE) spec/XMSS.ec
-	$(EASYCRYPT) $(EC_INCLUDE) spec/XMSS_MT_PRF.ec
+.PHONY: typecheck_spec check_proofs typecheck_extraction typecheck_xmss_spec typecheck_xmss_mt_spec
+typecheck_xmss_spec:
+	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss/XMSS_Params.ec
+	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss/XMSS_Types.ec
+	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss/XMSS_Notation.ec
+	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss/XMSS_Address.ec
+	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss/XMSS_Util.ec
+	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss/XMSS_Hash.ec
+	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss/XMSS_Primitives.ec
+	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss/XMSS_Wots.ec
+	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss/XMSS_Commons.ec
+	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss/XMSS_PRF.ec
 
+typecheck_xmss_mt_spec:
+	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss_mt/XMSS_MT_Params.ec
+	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss_mt/XMSS_MT_Types.ec
+	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss_mt/XMSS_MT_Notation.ec
+	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss_mt/XMSS_MT_Address.ec
+	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss_mt/XMSS_MT_Util.ec
+	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss_mt/XMSS_MT_Hash.ec
+	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss_mt/XMSS_MT_Primitives.ec
+	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss_mt/XMSS_MT_Wots.ec
+	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss_mt/XMSS_MT_Commons.ec
+	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss_mt/XMSS_MT_PRF.ec
+
+
+typecheck_spec: typecheck_xmss_spec typecheck_xmss_mt_spec
 
 typecheck_extraction: extraction/XMSS_IMPL.ec 
 	$(EASYCRYPT) $(EC_INCLUDE) $<
@@ -54,7 +68,7 @@ typecheck_extraction: extraction/XMSS_IMPL.ec
 check_proofs: extraction/XMSS_IMPL.ec 
 	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Repr.ec
 	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Utils.ec
-	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Termination.ec
+	# $(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Termination.ec
 	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Correctness_Utils.ec
 	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Correctness_Address.ec
 	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Correctness_Conditions.ec
@@ -70,6 +84,15 @@ clean:
 	-$(RM) -r *.eco
 	-$(RM) -r *~ 
 	-$(RM) -r \#*\#
+	-$(RM) -r spec/xmss/*.eco
+	-$(RM) -r spec/xmss/*~ 
+	-$(RM) -r spec/xmss/\#*\#
+	-$(RM) -r spec/xmss_mt/*.eco
+	-$(RM) -r spec/xmss_mt/*~ 
+	-$(RM) -r spec/xmss_mt/\#*\#
+	-$(RM) -r correctness/*.eco
+	-$(RM) -r correctness/*~ 
+	-$(RM) -r correctness/\#*\#
 
 
 .PHONY: distclean

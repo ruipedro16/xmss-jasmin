@@ -5,7 +5,7 @@ from Jasmin require import JModel_x86.
 
 require import Array8.
 
-require import Types Notation Params.
+require import XMSS_Types XMSS_Notation XMSS_Params.
 
 (**********************************************************************************************************************)
 

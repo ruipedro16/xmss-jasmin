@@ -6,7 +6,7 @@ require (*--*) Subtype.
 
 from Jasmin require import JModel.
  
-require import Types Params Notation Parameters Address Hash Primitives Wots Util Utils.
+require import XMSS_Types XMSS_Params XMSS_Notation XMSS_Address XMSS_Hash XMSS_Primitives XMSS_Wots XMSS_Util.
  
 import OTSKeys Three_NBytes AuthPath.
 import Array8.
@@ -90,7 +90,7 @@ pred treehash_p (s t : int) = s %% (1 `<<` t) <> 0.
 *)
 module TreeHash = {
   (* Computes the root *)
-  proc treehash(sk : xmss_mt_sk, s t : int, address : adrs) : nbytes * adrs = {
+  proc treehash(sk : xmss_sk, s t : int, address : adrs) : nbytes * adrs = {
   var node : nbytes <- nseq n W8.zero;
   var stack : nbytes list <- [];
   var top_node : nbytes;
@@ -168,7 +168,7 @@ qed.
 
 module TreeSig = {
   (* Compute the authentication path for the i-th WOTS+ key pair *)
-  proc buildAuthPath(sk : xmss_mt_sk, idx : W32.t, address : adrs) : auth_path * adrs = {
+  proc buildAuthPath(sk : xmss_sk, idx : W32.t, address : adrs) : auth_path * adrs = {
     var authentication_path : auth_path <- nseq len (nseq n W8.zero);
     var j : int <- 0;
     var k : int;
@@ -185,7 +185,7 @@ module TreeSig = {
   }
 
   (* Generate a WOTS+ signature on a message with corresponding authentication path *)
-  proc treesig(M : nbytes, sk : xmss_mt_sk, idx : W32.t, address : adrs) : wots_signature * auth_path * adrs  = {
+  proc treesig(M : nbytes, sk : xmss_sk, idx : W32.t, address : adrs) : wots_signature * auth_path * adrs  = {
     var auth : auth_path <- nseq len (nseq n W8.zero);
     var sig_ots : wots_signature;
     var ots_sk : wots_sk;

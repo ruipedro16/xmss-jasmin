@@ -5,7 +5,7 @@ require (*--*) Subtype.
 
 from Jasmin require import JModel.
  
-require import Types Params Notation Parameters Address Hash Primitives Wots Util.
+require import XMSS_Types XMSS_Params XMSS_Notation XMSS_Address XMSS_Hash XMSS_Primitives XMSS_Wots XMSS_Util.
 
 require import XMSS_Commons.
 
@@ -23,9 +23,9 @@ module XMSS_PRF = {
     return (sk_seed, sk_prf, pub_seed);
   }
 
-   proc kg() : xmss_mt_keypair = {
-      var pk : xmss_mt_pk <- witness;
-      var sk : xmss_mt_sk <- witness;
+   proc kg() : xmss_keypair = {
+      var pk : xmss_pk <- witness;
+      var sk : xmss_sk <- witness;
 
       var sk_seed, sk_prf, pub_seed, root : nbytes <- nseq n W8.zero;
 
@@ -55,7 +55,7 @@ module XMSS_PRF = {
       return (sk, pk);
    }
 
-proc sign(sk : xmss_mt_sk, m : msg_t) : sig_t * xmss_mt_sk = {
+proc sign(sk : xmss_sk, m : msg_t) : sig_t * xmss_sk = {
     var idx : W32.t;
     var idx_new : W32.t;
     var address : adrs;
@@ -91,7 +91,7 @@ proc sign(sk : xmss_mt_sk, m : msg_t) : sig_t * xmss_mt_sk = {
     return (sig, sk);
   }
 
- proc verify(pk : xmss_mt_pk, m : msg_t, s : sig_t) : bool = {
+ proc verify(pk : xmss_pk, m : msg_t, s : sig_t) : bool = {
     var is_valid : bool;
     var idx_sig : W32.t;
     var idx_bytes : nbytes;

@@ -6,7 +6,7 @@ require import BitEncoding.
 
 from Jasmin require import JModel.
 
-require import Types Array8.
+require import XMSS_MT_Types Array8.
 
 op BytesToBits (bytes : W8.t list) : bool list = flatten (map W8.w2bits bytes).
 op BitsToBytes (bits : bool list) : W8.t list = map W8.bits2w (chunk W8.size bits).
@@ -29,6 +29,10 @@ op _floor_2 (a : int) : int =
 
 op nbytexor(a b : nbytes) : nbytes = 
     map (fun (ab : W8.t * W8.t) => ab.`1 `^` ab.`2) (zip a b).
+
+lemma shr_1 (x : W64.t) :
+    to_uint (x `>>` W8.one) = to_uint x %/ 2
+        by rewrite shr_div (: (to_uint W8.one %% 64) = 1) 1:#smt:(@W64) //=. 
 
 lemma size_nbyte_xor (a b : nbytes) :
     size a = size b =>

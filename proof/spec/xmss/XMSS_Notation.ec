@@ -4,7 +4,7 @@ require import AllCore List RealExp IntDiv.
 
 from Jasmin require import JModel.
 
-require import Params.
+require import XMSS_Params.
 
 (* prefix of big endian byte representation of a 32-bit word *)
 op toByte(x : W32.t, k : int) : W8.t list =  
