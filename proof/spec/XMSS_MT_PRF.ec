@@ -12,6 +12,7 @@ require import XMSS_Commons.
 import OTSKeys Three_NBytes AuthPath.
 import Array8.
 
+
 module XMSS_MT_PRF = {
    (* Different from the spec because we use a secret seed instead of the full wots keys *)
    (* Algorithm 10 instead of 15 *)
@@ -136,22 +137,22 @@ module XMSS_MT_PRF = {
       t <- _R ++ root ++ idx_nbytes; (* t = r || getRoot(SK_MT) || (toByte(idx_sig, n)) *)
       _M' <- H_msg t m;
 
-      idx_tree <- msb_w32_int idx (h - (h %/ d));
-      idx_leaf <- msb_w32_int idx (h %/ d);
+      idx_tree <- idx `>>>` (h %/ d);
+      idx_leaf <- idx `&` W32.of_int (2^(h %/ d) - 1);
 
       address <- set_layer_addr address 0;
       address <- set_tree_addr address (W32.to_uint idx_tree);
 
       (sig_tmp, auth, address) <@ TreeSig.treesig(_M', sk, idx_leaf, address);
      
-      sig <- {| sig with r_sigs = [(sig_tmp, auth)] |}; (* Sig_MT = Sig_MT || r || Sig_tmp; *)
+      sig <- {| sig_idx = idx_leaf; r = _R; r_sigs = [(sig_tmp, auth)] |};
 
       j <- 1;
       while (j < d) {
       (root, address) <@ TreeHash.treehash(sk, 0, h %/ d, address);
-      idx_leaf <- lsb_w32_int idx_tree (h %/ d);
-      idx_tree <- msb_w32_int idx_tree (h - (j * (h %/ d)));
-      
+      idx_leaf <- idx_tree `&` W32.of_int (2^(h %/ d) - 1);
+      idx_tree <- idx_tree `>>>` (h %/ d);
+
       address <- set_layer_addr address j;
       address <- set_tree_addr address (W32.to_uint idx_tree);
 
@@ -170,40 +171,49 @@ module XMSS_MT_PRF = {
   (* Algorithm 14 *)
    proc verify(pk : xmss_mt_pk, m : msg_t, s : sig_t) : bool = {
        var is_valid : bool;
-       var idx_sig : W32.t <- s.`sig_idx;
-       var seed : nbytes <- pk.`pk_pub_seed;
-       var idx_bytes : nbytes <- toByte idx_sig n;
+       var idx_sig : W32.t;
+       var seed : nbytes;
+       var idx_bytes : nbytes;
        var node, root, _R, _M': nbytes;
        var t : three_n_bytes;
-       var address : adrs <- zero_address;
+       var address : adrs;
+       var idx_leaf : W32.t;
+       var idx_tree : W32.t;
+       var sig_ots : wots_signature;
+       var auth : auth_path;
        var j : int;
      
-       var idx_leaf : W32.t <- lsb_w32_int idx_sig (h %/ d);
-       var idx_tree : W32.t <- msb_w32_int idx_sig (h - (h %/ d));
+       idx_sig <- s.`sig_idx;
+       seed <- pk.`pk_pub_seed;
+       idx_bytes <- toByte idx_sig n;
+       address <- zero_address;
+       idx_tree <- idx_sig `>>>` (h %/ d);
+       idx_leaf <- idx_sig `&` W32.of_int (2^(h %/ d) - 1);
      
-       var _sig : reduced_signature <- nth witness s.`r_sigs 0;
+       (auth,sig_ots) <- nth witness s.`r_sigs 0;
      
        (* M' = H_msg(getR(Sig_MT) || getRoot(PK_MT) || (toByte(idx_sig, n)), M); *)
        root <- pk.`pk_root;
+       _R <- s.`r;
        t <- _R ++ root ++ idx_bytes;
        _M' <- H_msg t m; 
 
        address <- set_layer_addr address 0;
        address <- set_tree_addr address (W32.to_uint idx_tree);
 
-       node <@ RootFromSig.rootFromSig(idx_leaf, _sig.`1, _sig.`2, _M', seed, address);
+       node <@ RootFromSig.rootFromSig(idx_leaf, sig_ots, auth, _M', seed, address);
      
        j <- 1;
        while (j < d) {
-         idx_leaf <- lsb_w32_int idx_tree (h %/ d);
-         idx_tree <- msb_w32_int idx_tree (h - (h %/ d));
+         idx_leaf <- idx_tree `&` W32.of_int (2^(h %/ d) - 1);
+         idx_tree <- idx_tree `>>>` (h %/ d);
 
-         _sig <- nth witness s.`r_sigs j;
+         (auth,sig_ots) <- nth witness s.`r_sigs j;
 
          address <- set_layer_addr address j;
          address <- set_tree_addr address (W32.to_uint idx_tree);
        
-         node <@ RootFromSig.rootFromSig(idx_leaf, _sig.`1, _sig.`2, _M', node, address);
+         node <@ RootFromSig.rootFromSig(idx_leaf, sig_ots, auth, _M', node, address);
 
          j <- j + 1;
        }

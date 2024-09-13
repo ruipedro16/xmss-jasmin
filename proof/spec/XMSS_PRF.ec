@@ -12,7 +12,7 @@ require import XMSS_Commons.
 import OTSKeys Three_NBytes AuthPath.
 import Array8.
 
-module XMSS = {
+module XMSS_PRF = {
     proc sample_randomness () : nbytes * nbytes * nbytes = {
     var sk_seed, sk_prf, pub_seed : nbytes;
 
@@ -30,7 +30,7 @@ module XMSS = {
       var sk_seed, sk_prf, pub_seed, root : nbytes <- nseq n W8.zero;
 
       var address : adrs <- zero_address;
-      address <- set_layer_addr address (d - 1);
+      address <- set_layer_addr address 0;
       
       (sk_seed, sk_prf, pub_seed) <@ sample_randomness();
 
@@ -70,6 +70,7 @@ proc sign(sk : xmss_mt_sk, m : msg_t) : sig_t * xmss_mt_sk = {
     var t : three_n_bytes;
     var sk_prf : nbytes <- sk.`sk_prf;
     
+    idx <- sk.`idx;
     idx_new <- sk.`idx + W32.one;
     sk <- {| sk with idx=idx_new |};
     address <- zero_address;
@@ -85,21 +86,27 @@ proc sign(sk : xmss_mt_sk, m : msg_t) : sig_t * xmss_mt_sk = {
 
     (ots_sig, auth, address) <@ TreeSig.treesig(_M', sk, idx, address);
 
-sig <- {| sig with r_sigs = [(ots_sig, auth)] |}; (* Sig_MT = Sig_MT || r || Sig_tmp; *)
+    sig <- {| sig_idx = idx; r = _R ; r_sigs = [(ots_sig, auth)] |}; 
   
     return (sig, sk);
   }
 
  proc verify(pk : xmss_mt_pk, m : msg_t, s : sig_t) : bool = {
     var is_valid : bool;
-    var idx_sig : W32.t <- s.`sig_idx;
-    var idx_bytes : nbytes <- toByte idx_sig n;
+    var idx_sig : W32.t;
+    var idx_bytes : nbytes;
     var node, root, _R, _M': nbytes;    
     var auth : auth_path;
     var sig_ots : wots_signature;
-    var _seed : seed <- pk.`pk_pub_seed;
-    var address : adrs <- zero_address;
+    var _seed : seed;
+    var address : adrs;
     var t : three_n_bytes;
+
+    idx_sig <- s.`sig_idx;
+    idx_bytes <- toByte idx_sig n;
+    _seed <- pk.`pk_pub_seed;
+    address <- zero_address;
+    (auth,sig_ots) <- nth witness s.`r_sigs 0;
 
     root <- pk.`pk_root;
     _R <- s.`r;

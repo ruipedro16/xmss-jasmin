@@ -76,8 +76,7 @@ op set_layer_addr (address : adrs, layer : int) : adrs =
 
 pred set_tree_addr_pre (tree_address : int) = 0 <= tree_address.
 op set_tree_addr (address : adrs, tree_address : int) : adrs = 
-    let t : W32.t = truncateu32 ((SHR_64 (W64.of_int tree_address) (W8.of_int 32)).`6) in
-       address.[1 <- t].[2 <- (truncateu32 (W64.of_int tree_address))].
+       address.[1 <- W32.of_int (tree_address %/ 2^32)].[2 <- W32.of_int (tree_address %% 2^32)].
 
 pred set_type_pre (_type : int) = 0 <= _type <= 2.
 op set_type (address : adrs, _type : int) : adrs = 
