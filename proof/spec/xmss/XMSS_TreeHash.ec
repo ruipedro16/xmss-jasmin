@@ -8,6 +8,7 @@ from Jasmin require import JModel.
  
 require import XMSS_Types Address LTree Hash.
 
+
 (**********************************************************************************************)
 
 (* It is REQUIRED that s % 2^t = 0, i.e., that the leaf at index s is a leftmost leaf of a sub-tree of height t. *)
@@ -26,16 +27,20 @@ pred treehash_p (s t : int) = s %% (1 `<<` t) <> 0.
 module TreeHash = {
   (* Computes the root *)
   proc treehash(pub_seed sk_seed : seed, s t : int, address : adrs) : nbytes * adrs = {
-  var node : nbytes <- nseq n W8.zero;
-  var stack : nbytes list <- [];
+  var node : nbytes <-witness;
+  var stack : nbytes list;
   var top_node : nbytes;
   var pk : wots_pk;
   var i : int <- 0;
   var tree_index, tree_height: int;
-  var heights : int list <- nseq (h  + 1) 0;
+  var heights : int list;
   var tmp : int;
   var offset : int <- 0;
     
+  stack <- [];
+  offset <- 0;
+  heights <- nseq (h  + 1) 0;
+
     while (i < 2^t) {
       (* ----------- not in the RFC ----------- *)
       offset <- offset + 1;
@@ -87,25 +92,15 @@ module TreeHash = {
   }
 }.
 
-lemma treehash_ll : islossless TreeHash.treehash.
-proof.
-proc.
-sp ; wp.
-while (true) (2^t - i); last by skip => /> /#.
-auto => />. sp.
-while (true) (offset - 1).
-  + auto => />; call rand_hash_ll; wp; skip => /> /#.
-  + wp; call ltree_ll; wp; call wots_pkGen_ll; wp. skip => /> *.
-    split; [ move => *; rewrite negb_and; left |]; smt().
-qed.
-
 module TreeSig = {
   (* Compute the authentication path for the i-th WOTS+ key pair *)
   proc buildAuthPath(pub_seed sk_seed : seed, idx : W32.t, address : adrs) : auth_path * adrs = {
-    var authentication_path : auth_path <- nseq len (nseq n W8.zero);
+    var authentication_path : nbytes list;
     var j : int <- 0;
     var k : int;
     var t : nbytes <- witness;
+ 
+    authentication_path <- nseq len witness;
 
     while (j < h) {
       k <- floor((W32.to_uint idx)%r / (2^j)%r);
@@ -114,12 +109,12 @@ module TreeSig = {
       j <- j + 1;
     }
 
-    return (authentication_path, address);
+    return (AuthPath.insubd authentication_path, address);
   }
 
   (* Generate a WOTS+ signature on a message with corresponding authentication path *)
   proc treesig(M : nbytes, pub_seed sk_seed : seed, idx : W32.t, address : adrs) : wots_signature * auth_path * adrs  = {
-    var auth : auth_path <- nseq len (nseq n W8.zero);
+    var auth : auth_path;
     var sig_ots : wots_signature;
     var ots_sk : wots_sk;
     var seed : nbytes;
@@ -128,28 +123,14 @@ module TreeSig = {
     address <- set_type address 0;
     address <- set_ots_addr address (W32.to_uint idx);
 
-    (sig_ots, address) <@ WOTS.sign_seed(M, sk_seed, pub_seed, address);
+    (sig_ots, address) <@ WOTS.sign_seed(val M, sk_seed, pub_seed, address);
     
     return (sig_ots, auth, address);
   }
 }.
 
-lemma buildAuthPath_ll : islossless TreeSig.buildAuthPath.
-proof.
-proc.
-while (0 <= j <= h) (h - j) ; auto => />; [call treehash_ll ; auto => /> /# | smt(h_g0) ]. 
-qed.
-
-lemma treesig_ll : islossless TreeSig.treesig
-    by proc; call wots_sign_seed_ll; auto => /> ; call buildAuthPath_ll; auto.
-
 (**********************************************************************************************)
 
-op append_sig (sig : sig_t) (r_sig : reduced_signature) : sig_t =    
-    let new_sigs: reduced_signature list = sig.`r_sigs ++ [r_sig] in
-    {| sig with  r_sigs=new_sigs|}.
-
-(**********************************************************************************************)
 
 module RootFromSig = {
   proc rootFromSig(idx_sig : W32.t, sig_ots : wots_signature, auth : auth_path, M : nbytes, 
@@ -181,13 +162,13 @@ module RootFromSig = {
         index <- get_tree_index address;
         address <- set_tree_index address (index %/ 2);
 
-        auth_k <- nth witness auth k;
+        auth_k <- nth witness (val auth) k;
         (nodes1, address) <@ Hash.rand_hash (nodes0, auth_k, _seed, address);
       } else {
         index <- get_tree_index address;
         address <- set_tree_index address ((index - 1) %/ 2);
 
-        auth_k <- nth witness auth k;
+        auth_k <- nth witness (val auth) k;
         (nodes1, address) <@ Hash.rand_hash (auth_k, nodes0, _seed, address);
       }
 
@@ -198,17 +179,3 @@ module RootFromSig = {
     return nodes0;
   }
 }.
-
-lemma root_from_sig_ll : islossless RootFromSig.rootFromSig.
-proof.
-proc.
-while (0 <= k <= h) (h - k) ; auto => />.
-  + wp; sp. if. 
-      * call rand_hash_ll. islossless. auto => /> &hr *; do split; admit. 
-      * call rand_hash_ll. islossless. auto => /> &hr *; do split; admit.
-  + auto => />; do split => /#.
-  + call ltree_ll ; auto => />. 
-    call wots_pkFromSig_ll ; auto => />.
-    smt(h_g0).
-qed.
-

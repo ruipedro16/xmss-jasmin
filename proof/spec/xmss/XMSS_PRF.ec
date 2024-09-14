@@ -9,13 +9,14 @@ require import XMSS_Types Address Hash WOTS LTree XMSS_TreeHash.
 import Params OTSKeys TheeNBytes AuthPath.
 import Array8.
 
+
 module XMSS_PRF = {
     proc sample_randomness () : nbytes * nbytes * nbytes = {
     var sk_seed, sk_prf, pub_seed : nbytes;
 
-    sk_seed <$ DList.dlist W8.dword n;
-    sk_prf <$ DList.dlist W8.dword n;
-    pub_seed <$ DList.dlist W8.dword n;
+    sk_seed <$ dmap (DList.dlist W8.dword n) NBytes.insubd;
+    sk_prf <$ dmap (DList.dlist W8.dword n) NBytes.insubd;
+    pub_seed <$ dmap (DList.dlist W8.dword n) NBytes.insubd;
 
     return (sk_seed, sk_prf, pub_seed);
   }
@@ -24,7 +25,7 @@ module XMSS_PRF = {
       var pk : xmss_pk <- witness;
       var sk : xmss_sk <- witness;
 
-      var sk_seed, sk_prf, pub_seed, root : nbytes <- nseq n W8.zero;
+      var sk_seed, sk_prf, pub_seed, root : nbytes;
 
       var address : adrs <- zero_address;
       address <- set_layer_addr address 0;
@@ -74,15 +75,15 @@ proc sign(sk : xmss_sk, m : msg_t) : sig_t * xmss_sk = {
     
     idx_bytes <- W4u8.Pack.to_list (W4u8.unpack8 idx);
 
-    _R <@ Hash.prf(sk_prf, idx_bytes);
+    _R <@ Hash.prf(idx_bytes, sk_prf);
 
     root <- sk.`sk_root;
-    t <- _R ++ root ++ idx_bytes;
+    t <- TheeNBytes.insubd (val _R ++ val root ++ idx_bytes);
     _M' <- H_msg t m;
 
     (ots_sig, auth, address) <@ TreeSig.treesig(_M', sk.`pub_seed_sk, sk.`sk_seed, idx, address);
 
-    sig <- {| sig_idx = idx; r = _R ; r_sigs = [(ots_sig, auth)] |}; 
+    sig <- {| sig_idx = idx; r = _R ; r_sig = (ots_sig, auth) |}; 
   
     return (sig, sk);
   }
@@ -90,7 +91,7 @@ proc sign(sk : xmss_sk, m : msg_t) : sig_t * xmss_sk = {
  proc verify(pk : xmss_pk, m : msg_t, s : sig_t) : bool = {
     var is_valid : bool;
     var idx_sig : W32.t;
-    var idx_bytes : nbytes;
+    var idx_bytes : W8.t list;
     var node, root, _R, _M': nbytes;    
     var auth : auth_path;
     var sig_ots : wots_signature;
@@ -102,11 +103,11 @@ proc sign(sk : xmss_sk, m : msg_t) : sig_t * xmss_sk = {
     idx_bytes <- W4u8.Pack.to_list (W4u8.unpack8 idx_sig);
     _seed <- pk.`pk_pub_seed;
     address <- zero_address;
-    (auth,sig_ots) <- nth witness s.`r_sigs 0;
+    (sig_ots,auth) <- s.`r_sig;
 
     root <- pk.`pk_root;
     _R <- s.`r;
-    t <- _R ++ root ++ idx_bytes;
+    t <- TheeNBytes.insubd (val _R ++ val root ++ idx_bytes);
     _M' <- H_msg t m;
     
     node <@ RootFromSig.rootFromSig(idx_sig, sig_ots, auth, _M', _seed, address);

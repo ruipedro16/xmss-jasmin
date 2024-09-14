@@ -54,12 +54,3 @@ pred base_w_pre (X : W8.t list, outlen : int) =
 pred base_w_post (X : W8.t list, outlen : int, base_w : int list) =
   size base_w = outlen /\
   all (fun x => 0 <= x <= w - 1) base_w.
-
-axiom base_w_pre_post : hoare [BaseW.base_w : base_w_pre X outlen ==> true (* base_w_post X outlen res *)].
-
-lemma base_w_spec_ll : islossless BaseW.base_w.
-proof.
-proc ; while (true) (outlen - consumed) ; auto => /> /#.
-qed.
-
-

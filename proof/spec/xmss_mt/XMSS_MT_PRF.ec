@@ -8,7 +8,7 @@ from Jasmin require import JModel.
 require import XMSS_MT_Types Address Hash WOTS LTree XMSS_MT_TreeHash.
 
 
-import XMSS_MT_Params Params OTSKeys TheeNBytes AuthPath.
+import Types XMSS_MT_Params Params OTSKeys TheeNBytes AuthPath.
 import Array8.
 
 
@@ -34,18 +34,18 @@ module XMSS_MT_PRF = {
   proc sample_randomness () : nbytes * nbytes * nbytes = {
     var sk_seed, sk_prf, pub_seed : nbytes;
 
-    sk_seed <$ DList.dlist W8.dword n;
-    sk_prf <$ DList.dlist W8.dword n;
-    pub_seed <$ DList.dlist W8.dword n;
+    sk_seed <$ dmap (DList.dlist W8.dword n) NBytes.insubd;
+    sk_prf <$ dmap (DList.dlist W8.dword n) NBytes.insubd;
+    pub_seed <$ dmap (DList.dlist W8.dword n) NBytes.insubd;
 
     return (sk_seed, sk_prf, pub_seed);
   }
 
-   proc kg() : xmss_mt_keypair = {
-      var pk : xmss_mt_pk <- witness;
-      var sk : xmss_mt_sk <- witness;
+   proc kg() : xmss_keypair = {
+      var pk : xmss_pk <- witness;
+      var sk : xmss_sk <- witness;
 
-      var sk_seed, sk_prf, pub_seed, root : nbytes <- nseq n W8.zero;
+      var sk_seed, sk_prf, pub_seed, root : nbytes;
 
       var address : adrs <- zero_address;
       address <- set_layer_addr address (d - 1);
@@ -105,12 +105,12 @@ module XMSS_MT_PRF = {
 
                              XMSS^MT Signature
    *)
-   proc sign(sk : xmss_mt_sk, m : msg_t) : sig_t * xmss_mt_sk = {
+   proc sign(sk : xmss_sk, m : msg_t) : sig_t * xmss_sk = {
       var sig : sig_t;
       var idx : W32.t <-sk.`idx;
       var idx_new : W32.t;
       var idx_bytes : W8.t list;
-      var idx_nbytes : nbytes <- nseq n W8.zero;
+      var idx_nbytes : nbytes;
       var idx_tree : W32.t;
       var idx_leaf : W32.t;
       var _R : nbytes;
@@ -124,11 +124,8 @@ module XMSS_MT_PRF = {
       var sig_tmp : wots_signature;
       var auth : auth_path;
     
-      _R <- nseq n W8.zero;
-      _M' <- nseq n W8.zero;
       address  <- zero_address;
       root  <- sk.`sk_root;
-      t  <- nseq (3*n) W8.zero;
       sk_prf <- sk.`sk_prf;
 
       (* Update the key index *)
@@ -136,9 +133,9 @@ module XMSS_MT_PRF = {
       sk <- {| sk with idx=idx_new |};
 
       idx_bytes <- W4u8.Pack.to_list (W4u8.unpack8 idx);
-      _R <@ Hash.prf(sk_prf, idx_bytes);
+      _R <@ Hash.prf(idx_bytes, sk_prf);
 
-      t <- _R ++ root ++ idx_bytes; (* t = r || getRoot(SK_MT) || (toByte(idx_sig, n)) *)
+      t <- TheeNBytes.insubd (val _R ++ val root ++ idx_bytes); (* t = r || getRoot(SK_MT) || (toByte(idx_sig, n)) *)
       _M' <- H_msg t m;
 
       idx_tree <- idx `>>>` (h %/ d);
@@ -173,11 +170,11 @@ module XMSS_MT_PRF = {
    }
 
   (* Algorithm 14 *)
-   proc verify(pk : xmss_mt_pk, m : msg_t, s : sig_t) : bool = {
+   proc verify(pk : xmss_pk, m : msg_t, s : sig_t) : bool = {
        var is_valid : bool;
        var idx_sig : W32.t;
        var seed : nbytes;
-       var idx_bytes : nbytes;
+       var idx_bytes : W8.t list;
        var node, root, _R, _M': nbytes;
        var t : threen_bytes;
        var address : adrs;
@@ -188,18 +185,18 @@ module XMSS_MT_PRF = {
        var j : int;
      
        idx_sig <- s.`sig_idx;
-       seed <- pk.`pk_pub_seed;
        idx_bytes <- W4u8.Pack.to_list (W4u8.unpack8 idx_sig);
+       seed <- pk.`pk_pub_seed;
        address <- zero_address;
        idx_tree <- idx_sig `>>>` (h %/ d);
        idx_leaf <- idx_sig `&` W32.of_int (2^(h %/ d) - 1);
      
-       (auth,sig_ots) <- nth witness s.`r_sigs 0;
+       (sig_ots,auth) <- nth witness s.`r_sigs 0;
      
        (* M' = H_msg(getR(Sig_MT) || getRoot(PK_MT) || (toByte(idx_sig, n)), M); *)
        root <- pk.`pk_root;
        _R <- s.`r;
-       t <- _R ++ root ++ idx_bytes;
+       t <- TheeNBytes.insubd (val _R ++ val root ++ idx_bytes);
        _M' <- H_msg t m; 
 
        address <- set_layer_addr address 0;
@@ -212,7 +209,7 @@ module XMSS_MT_PRF = {
          idx_leaf <- idx_tree `&` W32.of_int (2^(h %/ d) - 1);
          idx_tree <- idx_tree `>>>` (h %/ d);
 
-         (auth,sig_ots) <- nth witness s.`r_sigs j;
+         (sig_ots,auth) <- nth witness s.`r_sigs j;
 
          address <- set_layer_addr address j;
          address <- set_tree_addr address (W32.to_uint idx_tree);
@@ -226,39 +223,4 @@ module XMSS_MT_PRF = {
       return is_valid;
    }
 }.
-
-lemma sample_randomness_ll : islossless XMSS_MT_PRF.sample_randomness by proc; islossless.
-
-lemma sample_randomness_size :
-    hoare [XMSS_MT_PRF.sample_randomness : true ==> 
-      size res.`1 = n /\ size res.`2 = n /\ size res.`3 = n ].
-proof.
-proc.
-auto => />.
-do 3! (move => ?; rewrite supp_dlist; [ apply ge0_n |] => [#] ??).
-do split => //=.
-qed.
-
-lemma p_sample_randomness_size :
-    phoare [XMSS_MT_PRF.sample_randomness : true ==> 
-      size res.`1 = n /\ size res.`2 = n /\ size res.`3 = n ] = 1%r
-        by conseq sample_randomness_ll sample_randomness_size => //=.
-
-
-lemma xmss_mt_kg_ll : islossless XMSS_MT_PRF.kg.
-proof.
-proc.
-auto => /> ; call treehash_ll; wp.
-call sample_randomness_ll.
-by auto.
-qed.
-
-lemma xmss_mt_sign_ll : islossless XMSS_MT_PRF.sign.
-proof.
-proc.
-while (0 <= j <= d) (d - j) ; auto => />.
-  - call treesig_ll ; auto => />. call treehash_ll. skip => /> /#.
-  - progress => /#. 
-  - call treesig_ll; wp.  call prf_ll; wp.  skip => />; smt(ge0_d). 
-qed. 
 

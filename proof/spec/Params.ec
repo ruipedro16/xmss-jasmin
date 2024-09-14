@@ -28,22 +28,22 @@ axiom ge0_len1 : 0 <= len1.
 clone export Subtype as NBytes with 
    type T = W8.t list,
    op P = fun l => size l = n
-   rename "T" as "nbytes".
+   rename "sT" as "nbytes".
 
 clone export Subtype as LenNBytes with 
    type T = nbytes list,
    op P = fun l => size l = len
-   rename "T" as "len_nbytes".
+   rename "sT" as "len_nbytes".
 
 clone export Subtype as OneByte with 
    type T = W8.t list,
    op P = fun l => size l = 1
-   rename "T" as "onebyte".
+   rename "sT" as "onebyte".
 
 clone export Subtype as TheeNBytes with 
    type T = W8.t list,
    op P = fun l => size l = 3 * n
-   rename "T" as "threen_bytes"
+   rename "sT" as "threen_bytes"
    proof inhabited by (exists (nseq (3*n) W8.zero);smt(size_nseq ge0_n))
    proof *.
 
