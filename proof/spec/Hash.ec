@@ -1,14 +1,14 @@
 pragma Goals : printall.
 
-require import AllCore List Distr RealExp IntDiv.
+require import AllCore List Distr RealExp IntDiv FinType.
 require import BitEncoding.
 (*---*) import BitChunking.
 
 from Jasmin require import JModel.
 
-require import XMSS_MT_Types XMSS_MT_Params XMSS_MT_Util XMSS_MT_Address.
+require import Params Address.
 
-op Hash : W8.t list -> W8.t list.
+op Hash : W8.t list -> nbytes.
 
 op prf_padding_val : W64.t.
 op prf_kg_padding_val : W64.t.
@@ -20,13 +20,16 @@ axiom padding_len_ge0 : 0 <= padding_len.
 
 axiom size_hash (x : W8.t list) :  size (Hash x) = n. 
 
+op nbytexor(a b : nbytes) : nbytes = 
+    map (fun (ab : W8.t * W8.t) => ab.`1 `^` ab.`2) (zip a b).
+
 module Hash = {
   proc prf (in_0 : W8.t list, key : nbytes) : nbytes = {
     var r : nbytes;
     var padding : W8.t list;
     var buf : W8.t list;
 
-    padding <@ Util.w64_to_bytes (prf_padding_val, padding_len);
+    padding <- take padding_len (W8u8.Pack.to_list (W8u8.unpack8 prf_padding_val));
     buf <- padding ++ key ++ in_0;
 
     r <- Hash buf;
@@ -40,7 +43,7 @@ module Hash = {
     var padding : W8.t list;
     var buf : W8.t list;
 
-    padding <@ Util.w64_to_bytes (prf_kg_padding_val, padding_len);
+    padding <- take padding_len (W8u8.Pack.to_list (W8u8.unpack8 prf_padding_val));
     buf <- padding ++ key ++ in_0;
 
     r <- Hash buf;
@@ -55,7 +58,7 @@ module Hash = {
     var buf : W8.t list;
     var padding : W8.t list;
 
-    padding <@ Util.w64_to_bytes (F_padding_val, padding_len);
+    padding <- take padding_len (W8u8.Pack.to_list (W8u8.unpack8 prf_padding_val));
     buf <- padding ++ key ++ t;
 
     r <- Hash buf;
@@ -71,7 +74,7 @@ module Hash = {
       var addr_bytes : W8.t list;
       var r : W8.t list;
     
-      padding <@ Util.w64_to_bytes (rand_hash_padding, padding_len);
+      padding <- take padding_len (W8u8.Pack.to_list (W8u8.unpack8 prf_padding_val));
 
       address <- set_key_and_mask address 0;
       addr_bytes <- addr_to_bytes address;
@@ -96,16 +99,16 @@ module Hash = {
 (*---------------------------------------------------------------------------------------------------------*)
 
 lemma prf_ll : islossless Hash.prf
-    by proc; wp; call w64_to_bytes_ll; skip; smt(padding_len_ge0).
+    by proc; wp; skip; smt(padding_len_ge0).
 
 lemma prf_kg_ll : islossless Hash.prf_keygen
-    by proc; wp; call w64_to_bytes_ll; skip; smt(padding_len_ge0).
+    by proc; wp; skip; smt(padding_len_ge0).
 
 lemma f_ll : islossless Hash._F 
-    by proc; wp; call w64_to_bytes_ll; skip; smt(padding_len_ge0).
+    by proc; wp; skip; smt(padding_len_ge0).
 
 lemma rand_hash_ll : islossless Hash.rand_hash
-    by proc; wp; do ! (call prf_ll; wp); call w64_to_bytes_ll; skip; smt(padding_len_ge0).
+    by proc; wp; do ! (call prf_ll; wp); skip; smt(padding_len_ge0).
 
 (*---------------------------------------------------------------------------------------------------------*)
 

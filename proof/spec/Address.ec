@@ -3,12 +3,15 @@ pragma Goals : printall.
 require import AllCore List RealExp IntDiv.
 from Jasmin require import JModel_x86.
 
-require import Array8.
+require import Array8 BitEncoding.
+(*---*) import BitChunking.
 
-require import XMSS_Types XMSS_Notation XMSS_Params.
+
+(* require import XMSS_MT_Types XMSS_MT_Notation XMSS_MT_Params. *)
 
 (**********************************************************************************************************************)
 
+type adrs = W32.t Array8.t.
 op zero_address : adrs = Array8.init (fun _ => W32.zero).
 
 (* 4th-6th positions differ depending on the type of the address *)
@@ -114,3 +117,10 @@ pred set_key_and_mask_pre (key_and_mask : int) = 0 <= key_and_mask <= 2.
 op set_key_and_mask (address : adrs, key_and_mask : int) : adrs = 
     address.[7 <- W32.of_int key_and_mask].
 
+op BytesToBits (bytes : W8.t list) : bool list = flatten (map W8.w2bits bytes).
+op BitsToBytes (bits : bool list) : W8.t list = map W8.bits2w (chunk W8.size bits).
+op W64ToBytes (w : W64.t, outlen : int) : W8.t list. (* = BitsToBytes (W64.w2bits w). *)
+
+op addr_to_bytes (a : W32.t Array8.t) : W8.t list = 
+  let addr_bits : bool list = flatten (mkseq (fun (i : int) => W32.w2bits a.[i]) 8) in
+  BitsToBytes addr_bits.

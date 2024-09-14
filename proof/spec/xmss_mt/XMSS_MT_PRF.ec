@@ -5,11 +5,10 @@ require (*--*) Subtype.
 
 from Jasmin require import JModel.
  
-require import XMSS_MT_Types XMSS_MT_Params XMSS_MT_Notation XMSS_MT_Address XMSS_MT_Hash XMSS_MT_Primitives XMSS_MT_Wots XMSS_MT_Util.
+require import XMSS_MT_Types Address Hash WOTS LTree XMSS_MT_TreeHash.
 
-require import XMSS_MT_Commons.
 
-import OTSKeys Three_NBytes AuthPath.
+import XMSS_MT_Params Params OTSKeys TheeNBytes AuthPath.
 import Array8.
 
 
@@ -60,7 +59,7 @@ module XMSS_MT_PRF = {
                sk_root=witness;
              |};
 
-      (root, address) <@ TreeHash.treehash(sk, 0, h, address);
+      (root, address) <@ TreeHash.treehash(pub_seed, sk_seed, 0, h, address);
 
       sk <- {| idx=W32.zero;
                sk_seed=sk_seed;
@@ -114,27 +113,32 @@ module XMSS_MT_PRF = {
       var idx_nbytes : nbytes <- nseq n W8.zero;
       var idx_tree : W32.t;
       var idx_leaf : W32.t;
-      var _R : nbytes <- nseq n W8.zero;
-      var _M' : nbytes <- nseq n W8.zero;
-      var address : adrs <- zero_address;
-      var root : nbytes <- sk.`sk_root;
-      var t : three_n_bytes <- nseq (3*n) W8.zero;
-      var sk_prf : nbytes <- sk.`sk_prf;
+      var _R : nbytes;
+      var _M' : nbytes;
+      var address : adrs;
+      var root : nbytes;
+      var t : threen_bytes;
+      var sk_prf : nbytes;
       var j : int;
-      var pub_seed : nbytes <- sk.`pub_seed_sk;
+      var pub_seed : nbytes;
       var sig_tmp : wots_signature;
       var auth : auth_path;
     
+      _R <- nseq n W8.zero;
+      _M' <- nseq n W8.zero;
+      address  <- zero_address;
+      root  <- sk.`sk_root;
+      t  <- nseq (3*n) W8.zero;
+      sk_prf <- sk.`sk_prf;
 
       (* Update the key index *)
       idx_new <- idx + W32.one;
       sk <- {| sk with idx=idx_new |};
 
-      idx_bytes <- toByte idx 32;
+      idx_bytes <- W4u8.Pack.to_list (W4u8.unpack8 idx);
       _R <@ Hash.prf(sk_prf, idx_bytes);
 
-      idx_nbytes <- toByte idx n;
-      t <- _R ++ root ++ idx_nbytes; (* t = r || getRoot(SK_MT) || (toByte(idx_sig, n)) *)
+      t <- _R ++ root ++ idx_bytes; (* t = r || getRoot(SK_MT) || (toByte(idx_sig, n)) *)
       _M' <- H_msg t m;
 
       idx_tree <- idx `>>>` (h %/ d);
@@ -143,20 +147,20 @@ module XMSS_MT_PRF = {
       address <- set_layer_addr address 0;
       address <- set_tree_addr address (W32.to_uint idx_tree);
 
-      (sig_tmp, auth, address) <@ TreeSig.treesig(_M', sk, idx_leaf, address);
+      (sig_tmp, auth, address) <@ TreeSig.treesig(_M', sk.`pub_seed_sk, sk.`sk_seed , idx_leaf, address);
      
       sig <- {| sig_idx = idx_leaf; r = _R; r_sigs = [(sig_tmp, auth)] |};
 
       j <- 1;
       while (j < d) {
-      (root, address) <@ TreeHash.treehash(sk, 0, h %/ d, address);
+      (root, address) <@ TreeHash.treehash(sk.`pub_seed_sk, sk.`sk_seed, 0, h %/ d, address);
       idx_leaf <- idx_tree `&` W32.of_int (2^(h %/ d) - 1);
       idx_tree <- idx_tree `>>>` (h %/ d);
 
       address <- set_layer_addr address j;
       address <- set_tree_addr address (W32.to_uint idx_tree);
 
-      (sig_tmp, auth, address) <@ TreeSig.treesig(root, sk, idx_leaf, address);
+      (sig_tmp, auth, address) <@ TreeSig.treesig(root, sk.`pub_seed_sk, sk.`sk_seed, idx_leaf, address);
       
       sig <- append_sig sig (sig_tmp, auth);
       
@@ -175,7 +179,7 @@ module XMSS_MT_PRF = {
        var seed : nbytes;
        var idx_bytes : nbytes;
        var node, root, _R, _M': nbytes;
-       var t : three_n_bytes;
+       var t : threen_bytes;
        var address : adrs;
        var idx_leaf : W32.t;
        var idx_tree : W32.t;
@@ -185,7 +189,7 @@ module XMSS_MT_PRF = {
      
        idx_sig <- s.`sig_idx;
        seed <- pk.`pk_pub_seed;
-       idx_bytes <- toByte idx_sig n;
+       idx_bytes <- W4u8.Pack.to_list (W4u8.unpack8 idx_sig);
        address <- zero_address;
        idx_tree <- idx_sig `>>>` (h %/ d);
        idx_leaf <- idx_sig `&` W32.of_int (2^(h %/ d) - 1);

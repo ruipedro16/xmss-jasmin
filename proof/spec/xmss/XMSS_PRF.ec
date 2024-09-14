@@ -5,11 +5,8 @@ require (*--*) Subtype.
 
 from Jasmin require import JModel.
  
-require import XMSS_Types XMSS_Params XMSS_Notation XMSS_Address XMSS_Hash XMSS_Primitives XMSS_Wots XMSS_Util.
-
-require import XMSS_Commons.
-
-import OTSKeys Three_NBytes AuthPath.
+require import XMSS_Types Address Hash WOTS LTree XMSS_TreeHash.
+import Params OTSKeys TheeNBytes AuthPath.
 import Array8.
 
 module XMSS_PRF = {
@@ -41,7 +38,7 @@ module XMSS_PRF = {
                sk_root=witness;
              |};
 
-      (root, address) <@ TreeHash.treehash(sk, 0, h, address);
+      (root, address) <@ TreeHash.treehash(pub_seed, sk_seed, 0, h, address);
 
       sk <- {| idx=W32.zero;
                sk_seed=sk_seed;
@@ -67,7 +64,7 @@ proc sign(sk : xmss_sk, m : msg_t) : sig_t * xmss_sk = {
     var idx_bytes : W8.t list;
     var idx_nbytes : nbytes;
     var root : nbytes;
-    var t : three_n_bytes;
+    var t : threen_bytes;
     var sk_prf : nbytes <- sk.`sk_prf;
     
     idx <- sk.`idx;
@@ -75,16 +72,15 @@ proc sign(sk : xmss_sk, m : msg_t) : sig_t * xmss_sk = {
     sk <- {| sk with idx=idx_new |};
     address <- zero_address;
     
-    idx_bytes <- toByte idx 32;
+    idx_bytes <- W4u8.Pack.to_list (W4u8.unpack8 idx);
 
     _R <@ Hash.prf(sk_prf, idx_bytes);
 
-    idx_nbytes <- toByte idx n;
     root <- sk.`sk_root;
-    t <- _R ++ root ++ idx_nbytes;
+    t <- _R ++ root ++ idx_bytes;
     _M' <- H_msg t m;
 
-    (ots_sig, auth, address) <@ TreeSig.treesig(_M', sk, idx, address);
+    (ots_sig, auth, address) <@ TreeSig.treesig(_M', sk.`pub_seed_sk, sk.`sk_seed, idx, address);
 
     sig <- {| sig_idx = idx; r = _R ; r_sigs = [(ots_sig, auth)] |}; 
   
@@ -100,10 +96,10 @@ proc sign(sk : xmss_sk, m : msg_t) : sig_t * xmss_sk = {
     var sig_ots : wots_signature;
     var _seed : seed;
     var address : adrs;
-    var t : three_n_bytes;
+    var t : threen_bytes;
 
     idx_sig <- s.`sig_idx;
-    idx_bytes <- toByte idx_sig n;
+    idx_bytes <- W4u8.Pack.to_list (W4u8.unpack8 idx_sig);
     _seed <- pk.`pk_pub_seed;
     address <- zero_address;
     (auth,sig_ots) <- nth witness s.`r_sigs 0;

@@ -6,72 +6,8 @@ require (*--*) Subtype.
 
 from Jasmin require import JModel.
  
-require import XMSS_Types XMSS_Params XMSS_Notation XMSS_Address XMSS_Hash XMSS_Primitives XMSS_Wots XMSS_Util.
- 
-import OTSKeys Three_NBytes AuthPath.
-import Array8.
-
-op H : nbytes -> nbytes -> nbytes.
-op H_msg : three_n_bytes -> W8.t list -> nbytes.
-op impl_oid : W32.t.
-
-(* 4.1.5 L-Trees *)
-(* takes as input a WOTS+ public key pk and compresses it to a single 
-   n-byte value pk[0].
-*)
-module LTree = {
-  proc ltree (pk : wots_pk, address : adrs, _seed : seed) : nbytes * adrs = {
-    var pk_i : nbytes;
-    var tmp : nbytes;
-    var i : int <- witness;
-    var _len : int <- len;
-    var tree_height : int;
-
-    address <- set_tree_height address 0;
-
-    while (1 < _len) { (* Same as _len > 1 *)
-      i <- 0;
-      while (i < _floor_2 _len) {
-        address <- set_tree_index address i;
-        pk_i <- nth witness pk (2*i);
-        tmp <- nth witness pk (2*i + 1);
-        (pk_i, address) <@ Hash.rand_hash (pk_i, tmp, _seed, address);
-        pk <- put pk i pk_i;
-        i <- i + 1;
-      }
-
-      if (_len %% 2 = 1) {
-        pk_i <- nth witness pk (_len - 1);
-        pk <- put pk (_floor_2 _len) pk_i;
-      }
-
-      _len <- _ceil_2 _len;
-
-      tree_height <- get_tree_height address;
-      address <- set_tree_height address (tree_height + 1);
-    }
-
-    pk_i <- nth witness pk 0;
-
-    return (pk_i, address);
-  }
-}. 
-
-
-lemma ltree_ll : islossless LTree.ltree.
-proof.
-proc.
-islossless.
-while (true) (_len - 1); last by skip => /> /#.
-auto => />.
-while (_len <= len) (floor (_len%r / 2%r) - i).
-auto => />; call rand_hash_ll. wp. skip => /> /#. 
-auto => /> &hr ?; do split.  admit. 
-move => *; split => *. 
-  + rewrite /_floor_2 shr_1 of_uintK //= #smt:(@Real).  
-  + rewrite /_ceil_2 /is_even. 
-    rewrite shr_1 of_uintK /#. 
-qed.
+require import XMSS_MT_Types Address Hash LTree WOTS.
+import XMSS_MT_Params Params.
 
 (**********************************************************************************************)
 
@@ -81,6 +17,21 @@ pred leftmost_leaf (s t : int)  = s %% 2^t = 0.
 (* Precondition *)
 pred treehash_p (s t : int) = s %% (1 `<<` t) <> 0.
 
+(******************************************************************************)
+
+(* Stack operations *)
+op push (x : 'a list) (a : 'a) : 'a list = rcons x a. 
+
+op remove_last (x : 'a list) : 'a list = 
+with x = [] => []
+with x = h::t => if t = [] then [] else remove_last t.
+
+op pop (x : 'a list) : 'a list * 'a = 
+    let last_elem = last witness x in
+    let new_list = remove_last x in
+    (new_list, last_elem).
+
+(******************************************************************************)
 
 (* NOTE: In the Jasmin implementation, treehash (in xmss_core.c) computes both the authentication 
          path and the resulting root node *)
@@ -90,16 +41,14 @@ pred treehash_p (s t : int) = s %% (1 `<<` t) <> 0.
 *)
 module TreeHash = {
   (* Computes the root *)
-  proc treehash(sk : xmss_sk, s t : int, address : adrs) : nbytes * adrs = {
+  proc treehash(pub_seed sk_seed : seed, s t : int, address : adrs) : nbytes * adrs = {
   var node : nbytes <- nseq n W8.zero;
   var stack : nbytes list <- [];
   var top_node : nbytes;
-  var pub_seed : seed <- sk.`pub_seed_sk;
-  var sk_seed : seed <- sk.`sk_seed;
   var pk : wots_pk;
   var i : int <- 0;
   var tree_index, tree_height: int;
-  var heights : int list <- nseq (h %/d + 1) 0;
+  var heights : int list <- nseq (h %/ d + 1) 0;
   var tmp : int;
   var offset : int <- 0;
     
@@ -168,7 +117,7 @@ qed.
 
 module TreeSig = {
   (* Compute the authentication path for the i-th WOTS+ key pair *)
-  proc buildAuthPath(sk : xmss_sk, idx : W32.t, address : adrs) : auth_path * adrs = {
+  proc buildAuthPath(pub_seed sk_seed : seed, idx : W32.t, address : adrs) : auth_path * adrs = {
     var authentication_path : auth_path <- nseq len (nseq n W8.zero);
     var j : int <- 0;
     var k : int;
@@ -176,7 +125,7 @@ module TreeSig = {
 
     while (j < h) {
       k <- floor((W32.to_uint idx)%r / (2^j)%r);
-      (t, address) <@ TreeHash.treehash(sk, k * (2^j), j, address);
+      (t, address) <@ TreeHash.treehash(pub_seed, sk_seed , k * (2^j), j, address);
       authentication_path <- put authentication_path j t;
       j <- j + 1;
     }
@@ -185,17 +134,17 @@ module TreeSig = {
   }
 
   (* Generate a WOTS+ signature on a message with corresponding authentication path *)
-  proc treesig(M : nbytes, sk : xmss_sk, idx : W32.t, address : adrs) : wots_signature * auth_path * adrs  = {
+  proc treesig(M : nbytes, pub_seed sk_seed : seed, idx : W32.t, address : adrs) : wots_signature * auth_path * adrs  = {
     var auth : auth_path <- nseq len (nseq n W8.zero);
     var sig_ots : wots_signature;
     var ots_sk : wots_sk;
     var seed : nbytes;
     
-    (auth, address) <@ buildAuthPath (sk, idx, address);
+    (auth, address) <@ buildAuthPath (pub_seed, sk_seed, idx, address);
     address <- set_type address 0;
     address <- set_ots_addr address (W32.to_uint idx);
 
-    (sig_ots, address) <@ WOTS.sign_seed(M, sk.`sk_seed, sk.`pub_seed_sk, address);
+    (sig_ots, address) <@ WOTS.sign_seed(M, sk_seed, pub_seed, address);
     
     return (sig_ots, auth, address);
   }
@@ -278,4 +227,3 @@ while (0 <= k <= h) (h - k) ; auto => />.
     call wots_pkFromSig_ll ; auto => />.
     smt(h_g0).
 qed.
-

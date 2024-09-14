@@ -1,5 +1,5 @@
 from Jasmin require import JModel.
-require import XMSS_PRF XMSS_MT_PRF IntDiv Params Int Ring Address Array8.
+require import XMSS_PRF XMSS_MT_PRF IntDiv XMSS_Params XMSS_MT_Params Int Ring XMSS_Address  XMSS_MT_Address Array8.
 import IntID.
 
 equiv keygen : XMSS_PRF.kg ~ XMSS_MT_PRF.kg : d = 1 ==> ={res}. 

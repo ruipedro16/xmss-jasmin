@@ -3,9 +3,69 @@ pragma Goals : printall.
 require import AllCore List Distr RealExp IntDiv DList.
 from Jasmin require import JModel.
 
-require import XMSS_Types XMSS_Params XMSS_Notation XMSS_Address XMSS_Primitives XMSS_Hash XMSS_Params XMSS_Util.
+require import Params BaseW Address Hash.
 
-require import Array8.
+
+(******************************************************************************)
+
+type key = nbytes.
+type seed = nbytes.
+
+(******************************************************************************)
+
+type wots_message = nbytes.
+type wots_message_base_w = onebyte.
+type wots_signature = len_nbytes.
+type wots_pk = len_nbytes.
+type wots_sk = len_nbytes.
+type wots_keypair = wots_pk * wots_sk.
+
+
+(******************************************************************************)
+
+clone import Subtype as OTSKeys with 
+   type T = wots_sk list,
+   op P = fun l => size l = 2^h
+   rename "T" as "wots_ots_keys".
+
+module Chain = {
+   proc chain(X : nbytes, i s : int, _seed : seed, address : adrs) : nbytes * adrs = {
+      (*
+       *
+       * i: start index
+       * s: number of steps
+       *
+       *)
+    var t : nbytes <- X;
+    var chain_count : int <- 0;
+    var _key : key;
+    var bitmask : nbytes;
+    var addr_bytes : W8.t list;
+
+    (* case i + s <= w-1 is precondition *)
+    while (chain_count < s) {
+     address <- set_hash_addr address (i + chain_count);
+     address <- set_key_and_mask address 0;
+      
+      addr_bytes <- addr_to_bytes address;
+     _key <@ Hash.prf(addr_bytes, _seed);
+     
+     address <- set_key_and_mask address 1;
+      
+     addr_bytes <- addr_to_bytes address;
+     bitmask <@ Hash.prf(addr_bytes, _seed);
+
+     t <@ Hash._F (_key, (nbytexor t bitmask));
+     
+     chain_count <- chain_count + 1;
+    }
+    
+    return (t, address);
+   }
+}.
+
+pred chain_pre(X : nbytes, i s : int, _seed : seed, address : adrs) = 
+    0 <= s <= w-1.
 
 module WOTS = {
   (* In practise, we generate the private key from a secret seed *)
