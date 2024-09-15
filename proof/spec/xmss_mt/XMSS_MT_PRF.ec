@@ -132,7 +132,7 @@ module XMSS_MT_PRF = {
       idx_new <- idx + W32.one;
       sk <- {| sk with idx=idx_new |};
 
-      idx_bytes <- W4u8.Pack.to_list (W4u8.unpack8 idx);
+      idx_bytes <- lenbytes_be32 idx 4;
       _R <@ Hash.prf(idx_bytes, sk_prf);
 
       t <- TheeNBytes.insubd (val _R ++ val root ++ idx_bytes); (* t = r || getRoot(SK_MT) || (toByte(idx_sig, n)) *)
@@ -185,7 +185,7 @@ module XMSS_MT_PRF = {
        var j : int;
      
        idx_sig <- s.`sig_idx;
-       idx_bytes <- W4u8.Pack.to_list (W4u8.unpack8 idx_sig);
+       idx_bytes <- lenbytes_be32 idx_sig 4;
        seed <- pk.`pk_pub_seed;
        address <- zero_address;
        idx_tree <- idx_sig `>>>` (h %/ d);
