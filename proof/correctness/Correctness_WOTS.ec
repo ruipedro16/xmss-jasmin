@@ -4,18 +4,14 @@ require import AllCore List RealExp IntDiv.
 
 from Jasmin require import JModel JArray.
 
-require import Types Params Parameters Address Notation Primitives Hash Wots. 
+require import Params Hash BaseW WOTS. 
 
-require import Util.
-require import Properties.
-require import XMSS_IMPL.
+require import XMSS_IMPL Parameters.
 
 require import Array2 Array3 Array8 Array32 Array64 Array67 Array96 Array2144.
 
-require import Utils. (* valid ptr predicate & addr_to_bytes *)
-require import Correctness_Mem Correctness_Hash Correctness_Bytes. 
-
-require import Termination Repr.
+require import Correctness_Bytes Correctness_Mem Correctness_Address Correctness_Hash.
+require import Termination.
 
 require import BitEncoding.
 (*---*) import BitChunking.
@@ -23,7 +19,24 @@ require import BitEncoding.
 require import StdBigop. 
 (*---*) import Bigint.
 
-(*** BASE W : done ***)
+lemma nbyte_xor_val (a b : nbytes): 
+    val (nbytexor a b) = bytexor (val a) (val b).
+proof.
+rewrite /nbytexor NBytes.insubdK //= /P /bytexor size_map size_zip.
+rewrite (: (size (val a)) = n) 1:#smt:(NBytes.valP).
+rewrite (: (size (val b)) = n) 1:#smt:(NBytes.valP).
+smt(ge0_n).
+qed.
+
+lemma zip_fst (a b : W8.t list) (i : int):
+  0 <= i < min (size a) (size b) =>
+    (nth witness (zip a b) i).`1 = nth witness a i 
+      by smt(@List).
+
+lemma zip_snd (a b : W8.t list) (i : int):
+  0 <= i < min (size a) (size b) =>
+    (nth witness (zip a b) i).`2 = nth witness b i 
+      by smt(@List).
 
 lemma base_w_correctness_64 ( _in_ : W8.t Array32.t) :
     floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
@@ -36,8 +49,10 @@ proof.
 rewrite /XMSS_WOTS_LOG_W /XMSS_WOTS_W ; move => [logw_val w_val].
 proc.
 conseq (: _ ==> size base_w{2} = 64 /\ forall (k:int), 0 <= k < 64 => to_uint output{1}.[k] = nth witness base_w{2} k).
-  + move => &1 &2 /> *. apply (eq_from_nth witness). rewrite size_map size_to_list /#. 
-    move => *. rewrite  (nth_map witness) #smt:(Array64.size_to_list). 
+  + move => &1 &2 /> *. 
+    apply (eq_from_nth witness); [rewrite size_map size_to_list /# |]. 
+    move => *. 
+    rewrite (nth_map witness) #smt:(Array64.size_to_list). 
 sp.
 while (
   ={total, consumed} /\ 0 <= consumed{1} <= 64 /\
@@ -111,8 +126,10 @@ proof.
 rewrite /XMSS_WOTS_LOG_W /XMSS_WOTS_W ; move => [logw_val w_val].
 proc.
 conseq (: _ ==> size base_w{2} = 3 /\ forall (k:int), 0 <= k < 3 => to_uint output{1}.[k] = nth witness base_w{2} k).
-  + move => &1 &2 /> *. apply (eq_from_nth witness). rewrite size_map size_to_list /#. 
-    move => *. rewrite  (nth_map witness) #smt:(Array3.size_to_list).
+  + move => &1 &2 /> *. 
+    apply (eq_from_nth witness); [rewrite size_map size_to_list /# |]. 
+    move => *.  
+    rewrite (nth_map witness) #smt:(Array3.size_to_list).
 sp.
 while (
   ={total, consumed} /\ 0 <= consumed{1} <= 3 /\
@@ -174,8 +191,6 @@ move => [#] ??.
 admit.
 qed.
 
-(*** CHECKSUM: done ***)
-
 lemma wots_checksum_correctness (msg : W32.t Array64.t) :
     len1 = XMSS_WOTS_LEN1 /\  w = XMSS_WOTS_W =>
     equiv [M(Syscall).__csum ~ WOTS.checksum :
@@ -218,9 +233,8 @@ proof.
 admit.
 qed.
 
-(*** CHAIN: Done ***)
-
 lemma gen_chain_inplace_correct (_buf_ : W8.t Array32.t, _start_ _steps_ : W32.t, _addr_ : W32.t Array8.t, _pub_seed_ : W8.t Array32.t) :
+    n = XMSS_N /\
     w = XMSS_WOTS_W /\ 
     len = XMSS_WOTS_LEN /\
     prf_padding_val = XMSS_HASH_PADDING_PRF /\ 
@@ -229,31 +243,32 @@ lemma gen_chain_inplace_correct (_buf_ : W8.t Array32.t, _start_ _steps_ : W32.t
     equiv [
       M(Syscall).__gen_chain_inplace ~ Chain.chain : 
       arg{1}= (_buf_, _start_, _steps_, _pub_seed_, _addr_) /\
-      arg{2} = (to_list _buf_, to_uint _start_, to_uint _steps_, to_list _pub_seed_, _addr_) /\
+      arg{2} = (NBytes.insubd (to_list _buf_), to_uint _start_, to_uint _steps_, NBytes.insubd (to_list _pub_seed_), _addr_) /\
       0 <= to_uint _start_ <= XMSS_WOTS_W - 1/\
       0 <= to_uint _steps_ <= XMSS_WOTS_W - 1 /\
       0 <= to_uint (_start_ + _steps_) <= XMSS_WOTS_W - 1  
       ==> 
-      res{2}.`1 = to_list res{1}.`1 /\ 
+      val res{2}.`1 = to_list res{1}.`1 /\ 
       res{1}.`2 = res{2}.`2
     ].
-proof.
-move => [#] ?????. 
+proof. 
+rewrite /XMSS_N.
+move => [#] nval ?????. 
 proc => //=.
 swap {1} 1 2.
-seq 2 1 : (
+seq 2 1 : ( 
   0 <= to_uint start{1} <= XMSS_WOTS_W - 1/\
   0 <= to_uint steps{1} <= XMSS_WOTS_W - 1 /\
   0 <= to_uint (start{1} + steps{1}) <= XMSS_WOTS_W - 1 /\
 
   address{2} = addr{1} /\
-  t{2} = to_list out{1} /\
+  val t{2} = to_list out{1} /\
   i{2} = to_uint start{1} /\
   s{2} = to_uint steps{1} /\
-  _seed{2} = to_list pub_seed{1} /\
-  t{2} = to_list out{1} /\  
+  val _seed{2} = to_list pub_seed{1} /\
+  val t{2} = to_list out{1} /\  
   t{1} = start{1} + steps{1}
-); first by auto => />.
+); first by auto => /> *; do split; by rewrite NBytes.insubdK /P // size_to_list nval.
 while (
   #pre /\ 
   0 <= to_uint i{1} <= to_uint t{1} /\
@@ -263,18 +278,19 @@ while (
 wp 3 8.
 seq 2 2 : (#pre). 
     + inline {1}; auto => /> &1 &2 *. 
-      rewrite /set_hash_addr /set_key_and_mask; by have -> : (of_int (to_uint start{1} + chain_count{2}))%W32 = i{1} by smt(@W32 pow2_32).
-inline {1} M(Syscall).__thash_f_ M(Syscall)._thash_f M(Syscall).__thash_f; inline {2} Hash._F.
+      rewrite /set_hash_addr /set_key_and_mask.
+      by have -> : (of_int (to_uint start{1} + chain_count{2}))%W32 = i{1} by smt(@W32 pow2_32). 
+inline {1} M(Syscall).__thash_f_ M(Syscall)._thash_f M(Syscall).__thash_f.
+inline {2} Hash._F.
 seq 27 9 : (
-  (* #pre but without address{2} = addr{1} because at some point updates to the address are made through addr2{1} and not addr{1} *)
   (0 <= to_uint start{1} && to_uint start{1} <= XMSS_WOTS_W - 1) /\
   (0 <= to_uint steps{1} && to_uint steps{1} <= XMSS_WOTS_W - 1) /\
   (0 <= to_uint (start{1} + steps{1}) && to_uint (start{1} + steps{1}) <= XMSS_WOTS_W - 1) /\
-  t{2} = to_list out{1} /\
+  val t{2} = to_list out{1} /\
   i{2} = to_uint start{1} /\
   s{2} = to_uint steps{1} /\
-  _seed{2} = to_list pub_seed{1} /\
-  t{2} = to_list out{1} /\ 
+  val _seed{2} = to_list pub_seed{1} /\
+  val t{2} = to_list out{1} /\ 
   t{1} = start{1} + steps{1} /\
   (0 <= to_uint i{1} && to_uint i{1} <= to_uint t{1}) /\
   to_uint i{1} = i{2} + chain_count{2} /\
@@ -287,7 +303,6 @@ seq 27 9 : (
 ); last first.
     + inline {1} M(Syscall).__core_hash__96 M(Syscall)._core_hash_96; wp; sp; ecall {1} (hash_96 in_00{1}); auto => /> *. 
       do split; 3..5,8,9:smt(@W32 pow2_32); smt().
-auto => />.
 seq 17 1 : (
   #pre /\ 
   addr2{1} = addr{1} /\ 
@@ -296,28 +311,40 @@ seq 17 1 : (
   out2{1} = out{1}
 ); first by ecall {1} (addr_to_bytes_correctness addr{1}); auto => /> /#. 
 swap {2} 7 -6.
-seq 2 1 : (#pre /\ padding{2} = to_list padding{1}); first by call {1} (ull_to_bytes_correct W64.zero); auto => />.
+seq 2 1 : (#pre /\ padding{2} = to_list padding{1}); first by call {1} (ull_to_bytes_32_correct W64.zero); auto => /> /#.
+
 seq 1 0 : (
   #pre /\
   (forall (k : int), 0 <= k < 32 => buf{1}.[k] = padding{1}.[k])
 ); first by auto => /> *; smt(@Array96).
-seq 1 1 : (#pre /\ _key{2} = to_list aux{1}).
+
+seq 1 1 : (
+  #pre /\ 
+  val _key{2} = to_list aux{1}
+).
     + inline {1} M(Syscall).__prf_ M(Syscall)._prf; wp; sp.
-      exists * in_00{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_correctness _P1 _P2); skip => /> *.
-auto => />.
+      exists * in_00{1}, key0{1}; elim * => _P1 _P2.
+      call {1} (prf_correctness _P1 _P2) => [/# |]. 
+      skip => /> &1 &2 ??????? H *.
+      rewrite -H #smt:(@NBytes).
 seq 1 0 : (
   #pre /\
-  (forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = nth witness _key{2} k)
-); first by auto => /> *; smt(@Array96).
+  (forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = nth witness (val _key{2}) k)
+).
+    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16.
+      split => k??; rewrite initiE 1:/# => />.
+         * rewrite ifF 1:/#.
+           apply H15 => //.
+         * by rewrite ifT 1:/# H16 get_to_list.
 seq 1 1 : (
   (0 <= to_uint start{1} && to_uint start{1} <= XMSS_WOTS_W - 1) /\
   (0 <= to_uint steps{1} && to_uint steps{1} <= XMSS_WOTS_W - 1) /\
   (0 <= to_uint (start{1} + steps{1}) && to_uint (start{1} + steps{1}) <= XMSS_WOTS_W - 1) /\
-  t{2} = to_list out{1} /\
+  val t{2} = to_list out{1} /\
   i{2} = to_uint start{1} /\
   s{2} = to_uint steps{1} /\
-  _seed{2} = to_list pub_seed{1} /\
-  t{2} = to_list out{1} /\ 
+  val _seed{2} = to_list pub_seed{1} /\
+  val t{2} = to_list out{1} /\ 
   t{1} = start{1} + steps{1} /\
   (0 <= to_uint i{1} && to_uint i{1} <= to_uint t{1}) /\
   to_uint i{1} = i{2} + chain_count{2} /\
@@ -330,31 +357,65 @@ seq 1 1 : (
   padding{2} = to_list padding{1} /\
   (forall (k : int), 0 <= k && k < 32 => buf{1}.[k] = padding{1}.[k]) /\
   (forall (k : int), 0 <= k && k < 32 => buf{1}.[32 + k] = aux{1}.[k]) /\
-  _key{2} = to_list aux{1} /\
+  val _key{2} = to_list aux{1} /\
   out2{1} = out{1}
-); first by inline {1}; auto => />.
+).
+    + inline {1}.
+      auto => /> &1 &2 ??????????????? H0 H1 H2.
+      move => k??. 
+      by rewrite H2 //= H1 get_to_list.
 seq 1 1 : (#pre); first by ecall {1} (addr_to_bytes_correctness addr2{1}); auto => /> /#. 
-seq 1 1 : (#pre /\ bitmask{2} = to_list bitmask{1}).
+seq 1 1 : (#pre /\ val bitmask{2} = to_list bitmask{1}).
     + inline {1} M(Syscall).__prf_ M(Syscall)._prf; wp; sp.
-      exists * in_00{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_correctness _P1 _P2); skip => /> *. 
-auto => />.
-conseq (: _ ==> 
-  (forall (k : int), 0 <= k < 32 => buf{1}.[k] = padding{1}.[k]) /\
-  (forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = aux{1}.[k]) /\
-  (forall (k : int), 0 <= k < 32 => buf{1}.[64 + k] = out{1}.[k] `^` bitmask{1}.[k])
-); first by auto => /> &1 &2 *; rewrite /nbytexor /to_list /mkseq -iotaredE => /> /#.
+      exists * in_00{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_correctness _P1 _P2) => [/# |].
+      skip => /> &1 &2 ???????H*. 
+      rewrite -H #smt:(@NBytes). 
 while{1}  ( 
   #pre /\
   0 <= to_uint i0{1} <= 32 /\
   (forall (k : int), 0 <= k < to_uint i0{1} => buf{1}.[64 + k] = out{1}.[k] `^` bitmask{1}.[k])
-) (32 - to_uint i0{1}).
+) (32 - to_uint i0{1}). 
     + auto => /> &hr *; do split;3,4,6:smt(@W64 pow2_64).
         * move => *. rewrite get_setE 1:#smt:(@W64) ifF 1:#smt:(@W64 pow2_64) #smt:(@Array96).
         * move => *. rewrite get_setE 1:#smt:(@W64) ifF 1:#smt:(@W64 pow2_64) #smt:(@Array96).
         * move => k *. rewrite get_setE 1:#smt:(@W64). 
           case (64 + k = to_uint ((of_int 64)%W64 + i0{hr})); [move => ?; do congr |]; smt(@W64 pow2_64).
-    + auto => /> &hr *; split; first by smt(@Array96). move => ? i0 *; split; first by smt(@W64 pow2_64). 
-      move => ? _ _ ??. have ->: to_uint i0 = 32 by smt(@W64 pow2_64). smt().
+    + auto => /> &1 &2. 
+      move => H0 H1 H2 H3 H4 H5 H6 H7 H8 H9.
+      move => H10 H11 H12 H13 H14 H15 H16 H17 H18. 
+      split; first by smt(@Array96). 
+      move => bufL i0 *; split; first by smt(@W64 pow2_64). 
+      move => ?????. 
+      have ->: to_uint i0 = 32 by smt(@W64 pow2_64).
+      move => ?. 
+      apply (eq_from_nth witness).     
+           * rewrite !size_cat !size_to_list.
+             have ->: size (val _key{2}) = 32 by smt(NBytes.valP).
+             by have ->: size (val (nbytexor t{2} bitmask{2})) = 32 by smt(size_map size_zip NBytes.valP).
+      have ->:  size (to_list padding{1} ++ val _key{2} ++ val (nbytexor t{2} bitmask{2})) = 96.
+           * rewrite !size_cat !size_to_list.
+             have ->: size (val _key{2}) = 32 by smt(NBytes.valP).
+             by have ->: size (val (nbytexor t{2} bitmask{2})) = 32 by smt(size_map size_zip NBytes.valP).
+      move => j Hj.  
+      case (0 <= j < 32) => *.
+           * rewrite nth_cat. 
+             have ->: size (to_list padding{1} ++ val _key{2}) = 64.
+               - by rewrite size_cat size_to_list (: size (val _key{2}) = 32) 1:#smt:(NBytes.valP).
+             rewrite ifT 1:/# get_to_list nth_cat size_to_list ifT 1:/# get_to_list /#.
+      case (32 <= j < 64) => *.
+           * rewrite nth_cat. 
+             have ->: size (to_list padding{1} ++ val _key{2}) = 64.
+               - by rewrite size_cat size_to_list (: size (val _key{2}) = 32) 1:#smt:(NBytes.valP). 
+             rewrite ifT 1:/# get_to_list nth_cat size_to_list ifF 1:/# H17 get_to_list /#.
+      rewrite nth_cat. 
+      have ->: size (to_list padding{1} ++ val _key{2}) = 64.
+           * by rewrite size_cat size_to_list (: size (val _key{2}) = 32) 1:#smt:(NBytes.valP). 
+      rewrite ifF 1:/# get_to_list nbyte_xor_val H18 H6 /bytexor.
+      rewrite (nth_map witness); [rewrite size_zip !size_to_list /# |].
+      auto => />. 
+      rewrite zip_fst; [rewrite !size_to_list /# |]. 
+      rewrite zip_snd; [rewrite !size_to_list /# |]. 
+      rewrite !get_to_list /#. 
 qed.
 
 (*** Expand Seed : Done ***)
@@ -916,7 +977,7 @@ sig{2} = EncodeWotsSignature (load_sig mem sig_ptr{1}) /\
 (0 <= csum{2} && csum{2} <= len1 * (w - 1)) /\
 to_uint csum{1} = to_uint csum_32{2} /\
 to_list csum_bytes_p{1} = csum_bytes{2} /\
-csum_base_w{2} = map W32.to_uint (to_list csum_base_w{1}) /\
+-csum_base_w{2} = map W32.to_uint (to_list csum_base_w{1}) /\
 (forall (k0 : int), 0 <= k0 < 3 => 0 <= to_uint csum_base_w{1}.[k0] < w) /\
 map W32.to_uint (to_list lengths{1}) = msg{2} /\
 (forall (k0 : int), 0 <= k0 < 67 => 0 <= to_uint lengths{1}.[k0] < w) /\
