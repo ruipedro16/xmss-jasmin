@@ -6,7 +6,7 @@ from Jasmin require import JModel.
 
 require import Array4 Array32 Array64 Array128 Array2144.
 require import XMSS_IMPL.
-require import Utils. (* valid_ptr predicate *)
+require import Utils2. (* valid_ptr predicate *)
 require import Termination.
 
 (******************************************************************************)
@@ -23,8 +23,12 @@ while (
   value = v /\
   (forall (k : int), 0 <= k < to_uint i => (a.[k] = value))
 ); auto => /> *.
-- do split; 1,2: by smt(@W64). move => ???. rewrite get_setE ; smt(@W64).
-- split; 1:smt(). move => *. smt.
+- do split; 1,2: by smt(@W64). 
+  move => ???. 
+  rewrite get_setE #smt:(@W64).
+- split => [/# |]. 
+  move => ?i0???.   
+  (have ->: to_uint i0 = 4 by smt(@W64 pow2_64)) => /#. 
 qed.
 
 lemma p_memset_4_post (input : W8.t Array4.t, v : W8.t) :
@@ -44,8 +48,12 @@ while (
   value = v /\
   (forall (k : int), 0 <= k < to_uint i => (a.[k] = value))
 ); auto => /> *.
-- do split ; 1,2: by smt(@W64). move => ???. rewrite get_setE ; smt(@W64).
-- split; 1:smt(). move => *. smt.
+- do split ; 1,2: by smt(@W64). 
+  move => ???. 
+  rewrite get_setE #smt:(@W64).
+- split => [/# |]. 
+  move => ?i0???.   
+  (have ->: to_uint i0 = 128 by smt(@W64 pow2_64)) => /#.
 qed.
 
 lemma p_memset_128_post (input : W8.t Array128.t, v : W8.t) :
@@ -63,8 +71,12 @@ while (
   0 <= to_uint i <= 4 /\   
   (forall (k : int), 0 <= k < to_uint i => (a.[k] = W8.zero))
 ); auto => /> *.
-- do split ; 1,2: by smt(@W64). move => ???; rewrite get_setE; smt(@W64).
-- split; 1:smt(); move => *. smt.
+- do split ; 1,2: by smt(@W64).  
+  move => ???.
+  rewrite get_setE #smt:(@W64).
+- split => [/# |]. 
+  move => ?i0???.   
+  (have ->: to_uint i0 = 4 by smt(@W64 pow2_64)) => /#. 
 qed.
 
 lemma p_memset_zero_post :
@@ -87,9 +99,12 @@ while (
   0 <= to_uint i <= 4 /\
   forall (k : int), 0 <= k < to_uint i => a.[k] = W8.zero
 ). 
-    + auto => /> &hr *; do split; 1,2:smt(@W64).
-      move => ???. rewrite get_setE #smt:(@W64).
-    + auto => /> &hr; split; [smt() |]. move => ? i???. 
+    + auto => /> *.
+      do split; 1,2:smt(@W64).
+      move => ???. 
+      rewrite get_setE #smt:(@W64).
+    + auto => /> &hr ; split => [/# |]. 
+      move => ? i???. 
       have ->: to_uint i = 4 by smt(@W64 pow2_64).
       move => ?. 
       apply (eq_from_nth witness); [ rewrite size_to_list size_nseq //= |].
@@ -105,6 +120,17 @@ lemma memset_nseq :
 lemma load_store  (mem : global_mem_t) (ptr : W64.t) (v : W8.t) :
     loadW8 (storeW8 mem (to_uint ptr) v) (to_uint ptr) = v 
       by rewrite /storeW8 /loadW8 get_setE ifT.
+
+
+
+
+
+
+
+
+
+
+
 
 lemma memset_ptr_post (ptr : W64.t, len : W64.t, v : W8.t) :
     hoare [M(Syscall).__memset_u8_ptr : 

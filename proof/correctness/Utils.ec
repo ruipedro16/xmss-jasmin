@@ -477,9 +477,6 @@ lemma size_nth (x : W8.t list list) (a i : int) :
 
 (** -------------------------------------------------------------------------------------------- **)
 
-(* size a = 32 /\ size b = 32 *)
-op merge_nbytes_to_array (a b : nbytes) : W8.t Array64.t = 
-  Array64.init (fun i => if 0 <= i < 32 then nth witness a i else nth witness b (i - 32)).
 
 pred valid_ptr (p o : W64.t) = 
   0 <= to_uint o => 
