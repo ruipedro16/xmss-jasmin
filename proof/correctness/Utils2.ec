@@ -6,6 +6,8 @@ require import BitEncoding.
 
 from Jasmin require import JModel.
 
+require import Params.
+
 (** -------------------------------------------------------------------------------------------- **)
 
 pred valid_ptr (p o : W64.t) = 
@@ -17,3 +19,7 @@ pred valid_ptr_i (p : W64.t) (o : int) =
     0 <= to_uint p /\ to_uint (p) + o < W64.modulus.
 
 (** -------------------------------------------------------------------------------------------- **)
+
+lemma nbytes_eq:
+  forall (s1 s2 : nbytes), val s1 = val s2 <=> s1 = s2
+    by smt(@NBytes).
