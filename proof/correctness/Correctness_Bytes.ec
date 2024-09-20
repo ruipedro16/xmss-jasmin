@@ -5,9 +5,9 @@ from Jasmin require import JModel.
 
 require import XMSS_IMPL.
 
-require import Array32.
+require import Array2 Array32.
 
-require import Hash.
+require import Hash BaseW.
 require import Termination.
 
 (** -------------------------------------------------------------------------------------------- **)
@@ -24,11 +24,6 @@ lemma ull_to_bytes_32_correct (x : W64.t) :
       arg.`2 = x ==> to_list res = lenbytes_be64 x 32] = 1%r
         by conseq ull_to_bytes_32_ll (_ull_to_bytes_32_correct x).
 
-(** -------------------------------------------------------------------------------------------- **)
-
-
-
-(*
 lemma ull_to_bytes_2_correct (y : W64.t) :
     hoare [M(Syscall).__ull_to_bytes_2 : 
       arg.`2 = y ==> 
@@ -47,4 +42,3 @@ lemma ull_to_bytes_2_equiv (y : W64.t) :
         to_list res = toByte (W32.of_int (to_uint y)) 2] = 1%r
           by conseq ull_to_bytes_2_ll (ull_to_bytes_2_correct y) => //.
 
-*)

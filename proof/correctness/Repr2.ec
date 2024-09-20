@@ -6,6 +6,9 @@ from Jasmin require import JModel.
 
 (*****) import StdBigop.Bigint.
 
+require import BitEncoding.
+(*---*) import BitChunking.
+
 require import Params WOTS.
 
 require import Array2144.
@@ -33,6 +36,9 @@ op DecodeWotsSk (sk : wots_sk) : W8.t Array2144.t =
 
 op DecodeWotsPk (pk : wots_pk) : W8.t Array2144.t = 
   Array2144.of_list witness (nbytes_flatten (val pk)).
+
+op EncodeWotsSignature (s : W8.t Array2144.t) : wots_signature = 
+  LenNBytes.insubd (map NBytes.insubd (chunk 32 (to_list s))). 
 
 (** -------------------------------------------------------------------------------------------- **)
 
