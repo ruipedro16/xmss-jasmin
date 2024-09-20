@@ -69,20 +69,3 @@ module LTree = {
     return (pk_i, address);
   }
 }. 
-
-
-(******************************************************************************)
-
-(* Stack operations *)
-op push (x : 'a list) (a : 'a) : 'a list = rcons x a. 
-
-op remove_last (x : 'a list) : 'a list = 
-with x = [] => []
-with x = h::t => if t = [] then [] else remove_last t.
-
-op pop (x : 'a list) : 'a list * 'a = 
-    let last_elem = last witness x in
-    let new_list = remove_last x in
-    (new_list, last_elem).
-
-(******************************************************************************)
