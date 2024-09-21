@@ -13,6 +13,11 @@ require import Array3.
 
 (** -------------------------------------------------------------------------------------------- **)
 
+lemma not_and_or (a b c : int) : 
+    ! (a <= b && b < c) <=> (b < a \/ c <= b) by smt().
+
+(** -------------------------------------------------------------------------------------------- **)
+
 lemma nbyte_list_val_eq (a : W8.t list) (b :nbytes) : 
     size a = n => NBytes.insubd a = b => val b = a by 
       smt(@NBytes).
