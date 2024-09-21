@@ -69,6 +69,7 @@ module TreeHash = {
 
       stack <- put stack offset node; (* Same as Stack.push() *)
       offset <- offset + 1;
+      i <- i + 1;
     }
 
     node <- nth witness stack (offset - 1); 
