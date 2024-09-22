@@ -70,7 +70,7 @@ module Hash = {
     return r;
   }
 
-  proc rand_hash (_left _right : nbytes, _seed : nbytes, address : adrs) : nbytes * adrs = {
+  proc rand_hash (_left _right : nbytes, _seed : nbytes, address : adrs) : nbytes = {
       var padding : W8.t list;
       var key : nbytes;
       var bitmask_0, bitmask_1 : nbytes;
@@ -95,7 +95,7 @@ module Hash = {
       t <- bytexor (val _left ++ val _right) (val bitmask_0 ++ val bitmask_1);
       buf <- padding ++ val key ++ t;
   
-      return (Hash buf, address);
+      return Hash buf;
   }
 }.
 

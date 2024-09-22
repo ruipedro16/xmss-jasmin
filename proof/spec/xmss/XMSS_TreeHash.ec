@@ -25,7 +25,7 @@ pred treehash_p (s t : int) = s %% (1 `<<` t) <> 0.
 *)
 module TreeHash = {
   (* Computes the root *)
-  proc treehash(pub_seed sk_seed : seed, s t : int, address : adrs) : nbytes * adrs = {
+  proc treehash(pub_seed sk_seed : seed, s t : int, address : adrs) : nbytes = {
     var node : nbytes;
     var stack : nbytes list <- nseq ((h %/ d) + 1) (NBytes.insubd (nseq n W8.zero));
     var pk : wots_pk;
@@ -41,13 +41,13 @@ module TreeHash = {
       address <- set_ots_addr address (s + 1);
 
       (* Generate the public key from the secret seed *)
-      (pk, address) <@ WOTS.pkGen(sk_seed, pub_seed, address);
+      pk <@ WOTS.pkGen(sk_seed, pub_seed, address);
 
       address <- set_type address 1;
       address <- set_tree_addr address (s + i);
 
       (* compress the WOTS public key into a single N-byte value *)
-      (node, address) <@ LTree.ltree(pk, address, pub_seed); 
+      node <@ LTree.ltree(pk, address, pub_seed); 
 
       address <- set_type address 2;
       address <- set_tree_height address 0;
@@ -61,7 +61,7 @@ module TreeHash = {
           address <- set_tree_index address (ceil((tree_index - 1)%r / 2%r));
           
           top_node <- nth witness stack (offset - 1); (* Same as Stack.pop() *)
-          (node, address) <@ Hash.rand_hash (top_node, node, pub_seed, address);
+          node <@ Hash.rand_hash (top_node, node, pub_seed, address);
 
           j <- j + 1;
         }
@@ -73,13 +73,14 @@ module TreeHash = {
     }
 
     node <- nth witness stack (offset - 1); 
-    return (node, address);
+    return node;
   }
 }.
 
+
 module TreeSig = {
   (* Compute the authentication path for the i-th WOTS+ key pair *)
-  proc buildAuthPath(pub_seed sk_seed : seed, idx : W32.t, address : adrs) : auth_path * adrs = {
+  proc buildAuthPath(pub_seed sk_seed : seed, idx : W32.t, address : adrs) : auth_path = {
     var authentication_path : nbytes list;
     var j : int <- 0;
     var k : int;
@@ -89,28 +90,36 @@ module TreeSig = {
 
     while (j < h) {
       k <- floor((W32.to_uint idx)%r / (2^j)%r);
-      (t, address) <@ TreeHash.treehash(pub_seed,sk_seed, k * (2^j), j, address);
+      t <@ TreeHash.treehash(pub_seed,sk_seed, k * (2^j), j, address);
       authentication_path <- put authentication_path j t;
       j <- j + 1;
     }
 
-    return (AuthPath.insubd authentication_path, address);
+    return AuthPath.insubd authentication_path;
   }
 
-  (* Generate a WOTS+ signature on a message with corresponding authentication path *)
-  proc treesig(M : nbytes, pub_seed sk_seed : seed, idx : W32.t, address : adrs) : wots_signature * auth_path * adrs  = {
+  (*
+   Algorithm 11: treeSig - Generate a WOTS+ signature on a message with
+   corresponding authentication path
+
+     Input: n-byte message M', XMSS private key SK,
+            signature index idx_sig, ADRS
+     Output: Concatenation of WOTS+ signature sig_ots and
+             authentication path auth
+  *)
+  proc treesig(M : nbytes, pub_seed sk_seed : seed, idx : W32.t, address : adrs) : wots_signature * auth_path  = {
     var auth : auth_path;
     var sig_ots : wots_signature;
     var ots_sk : wots_sk;
     var seed : nbytes;
     
-    (auth, address) <@ buildAuthPath (pub_seed,sk_seed, idx, address);
+    auth <@ buildAuthPath (pub_seed,sk_seed, idx, address);
     address <- set_type address 0;
     address <- set_ots_addr address (W32.to_uint idx);
 
-    (sig_ots, address) <@ WOTS.sign_seed(val M, sk_seed, pub_seed, address);
+    sig_ots <@ WOTS.sign_seed(val M, sk_seed, pub_seed, address);
     
-    return (sig_ots, auth, address);
+    return (sig_ots, auth);
   }
 }.
 
@@ -129,12 +138,12 @@ module RootFromSig = {
     address <- set_type address 0;
     address <- set_ots_addr address (W32.to_uint idx_sig);
 
-    (pk_ots, address) <@ WOTS.pkFromSig(M, sig_ots, _seed, address);
+    pk_ots <@ WOTS.pkFromSig(M, sig_ots, _seed, address);
 
     address <- set_type address 1;
     address <- set_ltree_addr address (W32.to_uint idx_sig);
 
-    (nodes0, address) <@ LTree.ltree(pk_ots, address, _seed);
+    nodes0 <@ LTree.ltree(pk_ots, address, _seed);
 
     address <- set_type address 2;
     address <- set_tree_index address (W32.to_uint idx_sig);
@@ -148,13 +157,13 @@ module RootFromSig = {
         address <- set_tree_index address (index %/ 2);
 
         auth_k <- nth witness (val auth) k;
-        (nodes1, address) <@ Hash.rand_hash (nodes0, auth_k, _seed, address);
+        nodes1 <@ Hash.rand_hash (nodes0, auth_k, _seed, address);
       } else {
         index <- get_tree_index address;
         address <- set_tree_index address ((index - 1) %/ 2);
 
         auth_k <- nth witness (val auth) k;
-        (nodes1, address) <@ Hash.rand_hash (auth_k, nodes0, _seed, address);
+        nodes1 <@ Hash.rand_hash (auth_k, nodes0, _seed, address);
       }
 
       nodes0 <- nodes1;

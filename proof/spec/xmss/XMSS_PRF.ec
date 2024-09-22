@@ -39,7 +39,7 @@ module XMSS_PRF = {
                sk_root=witness;
              |};
 
-      (root, address) <@ TreeHash.treehash(pub_seed, sk_seed, 0, h, address);
+      root <@ TreeHash.treehash(pub_seed, sk_seed, 0, h, address);
 
       sk <- {| idx=W32.zero;
                sk_seed=sk_seed;
@@ -81,9 +81,9 @@ proc sign(sk : xmss_sk, m : msg_t) : sig_t * xmss_sk = {
     t <- TheeNBytes.insubd (val _R ++ val root ++ idx_bytes);
     _M' <- H_msg t m;
 
-    (ots_sig, auth, address) <@ TreeSig.treesig(_M', sk.`pub_seed_sk, sk.`sk_seed, idx, address);
+    (ots_sig, auth) <@ TreeSig.treesig(_M', sk.`pub_seed_sk, sk.`sk_seed, idx, address);
 
-    sig <- {| sig_idx = idx; r = _R ; r_sig = (ots_sig, auth) |}; 
+    sig <- {| sig_idx = idx; r = _R ; r_sig = witness (* (ots_sig, auth) *) |}; 
   
     return (sig, sk);
   }
@@ -103,7 +103,7 @@ proc sign(sk : xmss_sk, m : msg_t) : sig_t * xmss_sk = {
     idx_bytes <- lenbytes_be32 idx_sig 4;
     _seed <- pk.`pk_pub_seed;
     address <- zero_address;
-    (sig_ots,auth) <- s.`r_sig;
+(*    (sig_ots,auth) <- s.`r_sig; *)
 
     root <- pk.`pk_root;
     _R <- s.`r;

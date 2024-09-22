@@ -31,7 +31,7 @@ clone import Subtype as OTSKeys with
 op nbytexor(a b : nbytes) : nbytes =   NBytes.insubd (bytexor (val a) (val b)).
 
 module Chain = {
-   proc chain(X : nbytes, i s : int, _seed : seed, address : adrs) : nbytes * adrs = {
+   proc chain(X : nbytes, i s : int, _seed : seed, address : adrs) : nbytes = {
       (*
        *
        * i: start index
@@ -62,7 +62,7 @@ module Chain = {
      chain_count <- chain_count + 1;
     }
     
-    return (t, address);
+    return t;
    }
 }.
 
@@ -102,7 +102,7 @@ module WOTS = {
     confidentiality is security-critical.
 
   *)
-  proc pseudorandom_genSK(sk_seed : nbytes, seed : nbytes, address : adrs) : wots_sk * adrs= {
+  proc pseudorandom_genSK(sk_seed : nbytes, seed : nbytes, address : adrs) : wots_sk = {
     var sk : nbytes list;
     var sk_i : nbytes;
     var addr_bytes : W8.t list;
@@ -123,12 +123,12 @@ module WOTS = {
       i <- i + 1;
     }
 
-    return (insubd sk, address);
+    return insubd sk;
   }
 
   (* The len n-byte strings in the private key each define the start node for one hash chain. The public
   key consists of the end nodes of these hash chains *)
-  proc genPK(sk : wots_sk, _seed : seed, address : adrs) : wots_pk * adrs = {
+  proc genPK(sk : wots_sk, _seed : seed, address : adrs) : wots_pk = {
     var pk : nbytes list;
     var i : int;
     var pk_i, sk_i : nbytes;
@@ -139,16 +139,16 @@ module WOTS = {
     while (i < len) {
       address <- set_chain_addr address i;
       sk_i <- nth witness (val sk) i;
-      (pk_i, address) <@ Chain.chain (sk_i, 0, (w - 1), _seed, address);
+      pk_i <@ Chain.chain (sk_i, 0, (w - 1), _seed, address);
       pk <- put pk i pk_i;
       i <- i + 1;
     }
 
-    return (insubd pk, address);
+    return insubd pk;
   }
 
   (* Generates the key from the seed *)
-  proc pkGen(sk_seed : nbytes, _seed : seed, address : adrs) : wots_pk * adrs = {
+  proc pkGen(sk_seed : nbytes, _seed : seed, address : adrs) : wots_pk  = {
     var pk : nbytes list;
     var wots_skey : wots_sk;
     var i : int;
@@ -158,24 +158,24 @@ module WOTS = {
     i <- 0;
    
 
-    (wots_skey, address) <@ pseudorandom_genSK(sk_seed, _seed, address); (* Generate sk from the secret key *)
+    wots_skey <@ pseudorandom_genSK(sk_seed, _seed, address); (* Generate sk from the secret key *)
     while (i < len) {
       address <- set_chain_addr address i;
       sk_i <- nth witness (val wots_skey) i;
-      (pk_i, address) <@ Chain.chain (sk_i, 0, (w - 1), _seed, address);
+      pk_i <@ Chain.chain (sk_i, 0, (w - 1), _seed, address);
       pk <- put pk i pk_i;
       i <- i + 1;
     }
 
-    return (insubd pk, address);
+    return insubd pk;
   }
 
   proc kg(sk_seed : nbytes, _seed : seed, address : adrs) : wots_keypair = {
     var pk : wots_pk;
     var sk : wots_sk;
 
-    (sk, address) <@ pseudorandom_genSK(sk_seed, _seed, address);
-    (pk, address) <@ genPK(sk, _seed, address);
+    sk <@ pseudorandom_genSK(sk_seed, _seed, address);
+    pk <@ genPK(sk, _seed, address);
 
     return (pk, sk);
   }
@@ -214,7 +214,7 @@ module WOTS = {
                                 WOTS+ Signature
   *)
 
-  proc sign(M : wots_message, sk : wots_sk, _seed : seed, address : adrs) : wots_signature * adrs = {
+  proc sign(M : wots_message, sk : wots_sk, _seed : seed, address : adrs) : wots_signature = {
     var csum_32 : W32.t;
     var csum : int;
     var msg : int list;
@@ -250,15 +250,15 @@ module WOTS = {
       address <- set_chain_addr address i;
       msg_i <- nth witness msg i;
       sk_i <- nth witness (val sk) i;
-      (sig_i, address) <@ Chain.chain (sk_i, 0, msg_i, _seed, address);
+      sig_i <@ Chain.chain (sk_i, 0, msg_i, _seed, address);
       sig <- put sig i sig_i;
       i <- i + 1;
     }
 
-    return (insubd sig, address);
+    return insubd sig;
   }
 
-  proc sign_seed (M : W8.t list, sk_seed : seed, pub_seed : seed, address : adrs) : wots_signature * adrs = {
+  proc sign_seed (M : W8.t list, sk_seed : seed, pub_seed : seed, address : adrs) : wots_signature = {
     var wots_skey : wots_sk;
     var csum_32 : W32.t;
     var csum : int;
@@ -275,7 +275,7 @@ module WOTS = {
     sig <- nseq len witness;
 
     (* Generate sk from the secret seed *)
-    (wots_skey, address) <@ pseudorandom_genSK(sk_seed, pub_seed, address); 
+    wots_skey <@ pseudorandom_genSK(sk_seed, pub_seed, address); 
 
     (* Convert message to base w *)
     msg <@ BaseW.base_w(M, len1);
@@ -298,15 +298,15 @@ module WOTS = {
       address <- set_chain_addr address i;
       msg_i <- nth witness msg i;
       sk_i <- nth witness (val wots_skey) i;
-      (sig_i, address) <@ Chain.chain (sk_i, 0, msg_i, pub_seed, address);
+      sig_i <@ Chain.chain (sk_i, 0, msg_i, pub_seed, address);
       sig <- put sig i sig_i;
       i <- i + 1;
     }
 
-    return (insubd sig, address);
+    return insubd sig;
   }
 
-  proc pkFromSig(M : wots_message, sig : wots_signature, _seed : seed, address : adrs) : wots_pk * adrs = {
+  proc pkFromSig(M : wots_message, sig : wots_signature, _seed : seed, address : adrs) : wots_pk = {
     var tmp_pk : nbytes list;
     var csum_32 : W32.t;
     var csum : int;
@@ -341,17 +341,17 @@ module WOTS = {
       address <- set_chain_addr address i;
       msg_i <- nth witness msg i;
       sig_i <- nth witness (val sig) i;
-      (pk_i, address) <@ Chain.chain (sig_i, msg_i, (w - 1 - msg_i), _seed, address);
+      pk_i <@ Chain.chain (sig_i, msg_i, (w - 1 - msg_i), _seed, address);
       tmp_pk <- put tmp_pk i pk_i; 
       i <- i + 1;
     }
 
-    return (insubd tmp_pk, address);
+    return insubd tmp_pk;
   }
 
   proc verify(pk : wots_pk, M : wots_message, sig : wots_signature, _seed : seed, address : adrs) : bool = {
     var tmp_pk : wots_pk;
-    (tmp_pk, address) <@ pkFromSig(M, sig, _seed, address);
+    tmp_pk <@ pkFromSig(M, sig, _seed, address);
     return pk = tmp_pk;
   }
 }.
