@@ -5,7 +5,7 @@ require (*--*) Subtype.
 
 from Jasmin require import JModel.
  
-require import XMSS_Types Address Hash WOTS LTree XMSS_TreeHash.
+require import Types XMSS_Types Address Hash WOTS LTree XMSS_TreeHash.
 import Params OTSKeys TheeNBytes AuthPath.
 import Array8.
 
