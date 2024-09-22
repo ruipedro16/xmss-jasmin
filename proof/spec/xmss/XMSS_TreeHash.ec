@@ -17,7 +17,6 @@ pred leftmost_leaf (s t : int)  = s %% 2^t = 0.
 (* Precondition *)
 pred treehash_p (s t : int) = s %% (1 `<<` t) <> 0.
 
-
 (* NOTE: In the Jasmin implementation, treehash (in xmss_core.c) computes both the authentication 
          path and the resulting root node *)
 (* computation of the internal n-byte nodes of a Merkle tree *)
@@ -27,27 +26,18 @@ pred treehash_p (s t : int) = s %% (1 `<<` t) <> 0.
 module TreeHash = {
   (* Computes the root *)
   proc treehash(pub_seed sk_seed : seed, s t : int, address : adrs) : nbytes * adrs = {
-  var node : nbytes <-witness;
-  var stack : nbytes list;
-  var top_node : nbytes;
-  var pk : wots_pk;
-  var i : int <- 0;
-  var tree_index, tree_height: int;
-  var heights : int list;
-  var tmp : int;
-  var offset;
-    
-  stack <- [];
-  offset <- 0;
-  heights <- nseq (h  + 1) 0;
-  i <- 0;
+    var node : nbytes;
+    var stack : nbytes list;
+    var pk : wots_pk;
+    var offset : int;
+    var i, j : int;
+    var tree_index : int;
+    var top_node : nbytes;
 
+    stack <-  nseq ((h %/ d) + 1) (NBytes.insubd (nseq n W8.zero));
+    offset <- 0;
+    i <- 0;
     while (i < 2^t) {
-      (* ----------- not in the RFC ----------- *)
-      offset <- offset + 1;
-      heights <- put heights (offset - 1) 0; 
-      (* -------------------------------------- *)
-
       address <- set_type address 0;
       address <- set_ots_addr address (s + 1);
 
@@ -55,41 +45,36 @@ module TreeHash = {
       (pk, address) <@ WOTS.pkGen(sk_seed, pub_seed, address);
 
       address <- set_type address 1;
-      address <- set_tree_addr address (s + 1);
+      address <- set_tree_addr address (s + i);
 
+      (* compress the WOTS public key into a single N-byte value *)
       (node, address) <@ LTree.ltree(pk, address, pub_seed); 
 
       address <- set_type address 2;
       address <- set_tree_height address 0;
       address <- set_tree_index address (i + 1);
-      
-      top_node <- last witness stack;
 
-      (* While the top-most nodes are of equal height *)
-      (* offset >= 2 <=> 2 <= offset *)
-      
-      while (2 <= offset /\ ((nth witness heights (offset - 1)) = (nth witness heights (offset - 2)))) {
-        tree_index <- get_tree_index address;
-        address <- set_tree_index address (ceil((tree_index - 1)%r / 2%r));
-        (stack, top_node) <- pop stack;
+      (* while ( Top node on Stack has same height t' as node ) *)
+      if (1 < offset) {
+        j <- 0;
+        while (j < t) { (* The stack has at most t - 1 elements *)
+          tree_index <- get_tree_index address;
+          address <- set_tree_index address (ceil((tree_index - 1)%r / 2%r));
+          
+          top_node <- nth witness stack (offset - 1); (* Same as Stack.pop() *)
+          (node, address) <@ Hash.rand_hash (top_node, node, pub_seed, address);
 
-        (node, address) <@ Hash.rand_hash (top_node, node, pub_seed, address);
-        
-        (* ----------- not in the RFC ----------- *)
-        offset <- offset - 1;
-        tmp <- nth witness heights (offset - 1);
-        heights <- put heights (offset - 1) (t + 1);
-        (* -------------------------------------- *)
-
-        tree_height <- get_tree_height address;
-        address <- set_tree_height address (tree_height + 1); (* Move to the next tree *)
+          j <- j + 1;
+        }
       }
 
-      stack <- push stack node;
+      stack <- put stack offset node; (* Same as Stack.push() *)
+      offset <- offset + 1;
       i <- i + 1;
     }
-    
-  return (node, address);
+
+    node <- nth witness stack (offset - 1); 
+    return (node, address);
   }
 }.
 
