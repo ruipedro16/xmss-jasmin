@@ -35,11 +35,12 @@ module TreeHash = {
   var tree_index, tree_height: int;
   var heights : int list;
   var tmp : int;
-  var offset : int <- 0;
+  var offset;
     
   stack <- [];
   offset <- 0;
   heights <- nseq (h  + 1) 0;
+  i <- 0;
 
     while (i < 2^t) {
       (* ----------- not in the RFC ----------- *)
