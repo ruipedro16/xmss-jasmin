@@ -13,11 +13,6 @@ require import Array3.
 
 (** -------------------------------------------------------------------------------------------- **)
 
-lemma not_and_or (a b c : int) : 
-    ! (a <= b && b < c) <=> (b < a \/ c <= b) by smt().
-
-(** -------------------------------------------------------------------------------------------- **)
-
 lemma nbyte_list_val_eq (a : W8.t list) (b :nbytes) : 
     size a = n => NBytes.insubd a = b => val b = a by 
       smt(@NBytes).
@@ -38,6 +33,9 @@ lemma nbytes_eq:
   forall (s1 s2 : nbytes), val s1 = val s2 <=> s1 = s2
     by smt(@NBytes).
 
+lemma len_nbytes_eq:
+  forall (s1 s2 : len_nbytes), val s1 = val s2 <=> s1 = s2
+    by smt(@LenNBytes).
 (** -------------------------------------------------------------------------------------------- **)
 
 lemma simplify_pow (a b : int) : 
@@ -76,4 +74,22 @@ rewrite -get_to_list.
 rewrite -(nth_map witness witness W32.to_uint). 
   + by rewrite size_to_list. 
 apply E0 => //=. 
+qed.
+
+(** -------------------------------------------------------------------------------------------- **)
+
+lemma truncate_1_and_63 :
+    truncateu8 (W256.one `&` W256.of_int(63)) = W8.one
+        by rewrite (: 63 = 2 ^ 6 - 1) 1:/# and_mod //=.
+
+lemma shr_1 (x : W64.t) :
+    to_uint (x `>>` W8.one) = to_uint x %/ 2
+        by rewrite shr_div (: (to_uint W8.one %% 64) = 1) 1:#smt:(@W64) //=. 
+
+lemma and_1_mod_2 (x : W64.t):
+    x `&` W64.one <> W64.zero <=> to_uint x %% 2 = 1.
+proof.
+split; rewrite (: 1 = 2 ^ 1 - 1) 1:/# and_mod //=; [smt(foo) |].
+move => H.
+rewrite foo //= #smt:(@W64). 
 qed.

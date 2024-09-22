@@ -366,3 +366,37 @@ while (
     + move => ???. rewrite get_setE. split ; 1:smt(). move => ?. admit. admit.
 qed.
 
+lemma nbytes_copy_inplace_correct (x : W8.t Array2144.t, oo oi : W64.t) :
+    hoare [
+      M(Syscall).__nbytes_copy_inplace_2144 :
+      arg=(x, oo, oi) /\
+      0 <= to_uint oo /\
+      to_uint oo + 32 < 2144 /\
+      0 <= to_uint oi /\
+      to_uint oi + 32 < 2144
+      ==>
+      (forall (k : int), 0 <= k < 32 => res.[to_uint oo + k] = x.[to_uint oi + k]) /\ (* changed regions *)
+
+      (* values outside the range offset_out to offset_out + n - 1 remain unchanged *)
+      (forall (k : int), 0 <= k < 2144 => 
+          (k < to_uint oo \/ to_uint oo + 32 <= k) =>
+             res.[k] = x.[k])
+
+    ].
+proof.
+proc.
+while (
+  #pre /\
+  0 <= i <= 32 /\
+  (forall (k : int), 0 <= k < i => out.[to_uint offset_out + k] = out.[to_uint offset_in + k])
+); last by auto => /> /#.  
+auto => /> &hr H0 H1 H2 H3 H4 H5 H6 H7. 
+do split; 2,3: by smt().
+    + rewrite tP => j?. 
+      (* rewrite get_setE. *)
+      admit. 
+    + move => k??. 
+      rewrite get_setE; [rewrite to_uintD_small of_uintK #smt:(modz_small) |].
+      rewrite get_setE; [rewrite to_uintD_small of_uintK #smt:(modz_small) |].
+      admit. 
+qed.
