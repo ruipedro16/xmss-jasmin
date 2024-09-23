@@ -18,8 +18,10 @@ lemma sub_ext (x : W8.t Array64.t) (y : W8.t Array2144.t) (i : int) :
       to_list x = sub y i 64 =>
        forall (k : int), 0 <= k < 64 => x.[k] = y.[i + k].
 proof.
-move => ?. 
-admit.
+simplify => ?.
+rewrite /sub => H k?.
+have ->: x.[k] = nth witness (to_list x) k by smt(get_to_list).
+by rewrite H nth_mkseq. 
 qed.
 
 (** -------------------------------------------------------------------------------------------- **)
