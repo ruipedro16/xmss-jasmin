@@ -422,9 +422,6 @@ inline fn __xmssmt_core_sign_open(
     // const unsigned char *pub_seed = pk + params->n;
     pub_seed = pk[XMSS_N : XMSS_N];
 
-    // unsigned long long idx = 0;
-    idx = 0;
-
     () = #spill(mlen_ptr, m_ptr, sm_ptr, pub_seed, pub_root);
 
     // uint32_t ots_addr[8] = {0};
@@ -471,7 +468,7 @@ inline fn __xmssmt_core_sign_open(
     idx_hash = idx;
 
     // NOTE: We use root instead of mhash because mhash is just a pointer to root
-    #declassify root = __hash_message(root, buf, pk[0 : XMSS_N], idx_hash, t64, bytes);
+    #declassify root = __hash_message(root, buf, pub_root, idx_hash, t64, bytes);
 
     // sm += params->index_bytes + params->n;
     t64 = XMSS_INDEX_BYTES + XMSS_N;
