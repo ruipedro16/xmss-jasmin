@@ -211,7 +211,7 @@ op merge_nbytes_to_array (a b : nbytes) : W8.t Array64.t =
                          then nth witness (val a) i 
                          else nth witness (val b) (i - 32)).
 
-lemma rand_hash_correct (i0 i1: nbytes, _pub_seed : W8.t Array32.t, _in : W8.t Array64.t, a : W32.t Array8.t) :
+lemma rand_hash_correct (i0 i1: nbytes, _pub_seed : W8.t Array32.t, a : W32.t Array8.t) :
     padding_len = XMSS_PADDING_LEN /\ 
     prf_padding_val = XMSS_HASH_PADDING_PRF /\
     padding_len = XMSS_PADDING_LEN /\ 

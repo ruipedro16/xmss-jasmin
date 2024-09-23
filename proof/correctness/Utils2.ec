@@ -9,7 +9,18 @@ from Jasmin require import JModel.
 
 require import Params.
 
-require import Array3.
+require import Array3 Array64 Array2144.
+
+(** -------------------------------------------------------------------------------------------- **)
+
+lemma sub_ext (x : W8.t Array64.t) (y : W8.t Array2144.t) (i : int) :
+    0 <= i < 2144 - 64 =>
+      to_list x = sub y i 64 =>
+       forall (k : int), 0 <= k < 64 => x.[k] = y.[i + k].
+proof.
+move => ?. 
+admit.
+qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 

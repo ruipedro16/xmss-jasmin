@@ -9,6 +9,69 @@ require import XMSS_IMPL.
 require import Utils2. (* valid_ptr predicate *)
 require import Termination.
 
+lemma _memcpy_u8u8_2_32_2144_post (_in : W8.t Array2144.t, oi :W64.t):
+    hoare [
+      M(Syscall).__memcpy_u8u8_2_32_2144 : 
+      arg.`2 = _in /\
+      arg.`3 = oi /\
+      arg.`4 = W64.of_int 32 /\
+      0 <= to_uint oi < W32.max_uint /\
+      0 <= to_uint (oi + W64.of_int 32) < 2144
+      ==>
+      to_list res.`1 = sub _in (to_uint oi) 32
+    ].
+proof.
+proc => //=.
+while ( 
+  in_0 = _in /\ 
+  bytes = (of_int 32)%W64 /\
+  (0 <= to_uint oi < 2144) /\
+
+  0 <= to_uint i <= 32 /\
+  forall (k : int), 0 <= k < to_uint i => out.[k] = in_0.[to_uint in_offset + k]
+).
+    + auto => /> &hr H0 H1 H2 H3 H4 H5.  
+      do split; 1,2: smt(@W64). 
+      move => k??.
+      rewrite get_setE 1:#smt:(@W64).
+      case (k = to_uint i{hr}) => *. 
+      admit.
+      admit. 
+    + auto => /> &hr ????.
+      admit.
+qed.
+
+lemma memcpy_u8u8_2_32_2144_post (_in : W8.t Array2144.t, oi :W64.t):
+    phoare [
+      M(Syscall).__memcpy_u8u8_2_32_2144 : 
+      arg.`2 = _in /\
+      arg.`3 = oi /\
+      arg.`4 = W64.of_int 32 /\
+      0 <= to_uint oi < W32.max_uint /\
+      0 <= to_uint (oi + W64.of_int 32) < 2144
+      ==>
+      to_list res.`1 = sub _in (to_uint oi) 32
+    ] = 1%r.
+proof.
+admit.
+qed.
+
+lemma memcpy_u8u8_2_64_2144_post (_in : W8.t Array2144.t, oi : W64.t):
+    phoare [
+      M(Syscall).__memcpy_u8u8_2_64_2144 : 
+      arg.`2 = _in /\
+      arg.`3 = oi /\
+      arg.`4 = W64.of_int 64 /\
+      0 <= to_uint oi < W32.max_uint /\
+      0 <= to_uint (oi + W64.of_int 64) < 2144
+      ==>
+      to_list res.`1 = sub _in (to_uint oi) 64
+    ] = 1%r.
+proof.
+admit.
+qed.
+
+
 (** -------------------------------------------------------------------------------------------- **)
 
 lemma or_zero(w0 w1 : W8.t) : 
@@ -344,9 +407,14 @@ qed.
 (* 0 <= offset <= 2112 *)
 (* same as memcpy(out + offset, in, sizeof(in)); *)
 lemma memcpy_offset_1 (_out_ : W8.t Array2144.t, _offset_ : W64.t, _in_ : W8.t Array32.t) :
-    hoare [M(Syscall).__memcpy_u8u8_offset : 
-      arg.`2=_offset_ /\ arg.`3=_in_ /\  0 <= to_uint _offset_ <= 2122 ==>
-        (forall (k : int), 0 <= k < 32 => (res.[to_uint _offset_ + k] = _in_.[k]))].
+    hoare [
+      M(Syscall).__memcpy_u8u8_offset : 
+      arg.`2=_offset_ /\ 
+      arg.`3=_in_ /\  
+      0 <= to_uint _offset_ <= 2122 
+      ==>
+      (forall (k : int), 0 <= k < 32 => (res.[to_uint _offset_ + k] = _in_.[k]))
+    ].
 proof.
 proc.
 sp.
