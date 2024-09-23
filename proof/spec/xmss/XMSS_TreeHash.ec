@@ -27,13 +27,14 @@ module TreeHash = {
   (* Computes the root *)
   proc treehash(pub_seed sk_seed : seed, s t : int, address : adrs) : nbytes * adrs = {
     var node : nbytes;
-    var stack : nbytes list <- nseq ((h %/ d) + 1) (NBytes.insubd (nseq n W8.zero));
+    var stack : nbytes list;
     var pk : wots_pk;
     var offset : int;
     var i, j : int;
     var tree_index : int;
     var top_node : nbytes;
 
+    stack <-  nseq ((h %/ d) + 1) (NBytes.insubd (nseq n W8.zero));
     offset <- 0;
     i <- 0;
     while (i < 2^t) {
