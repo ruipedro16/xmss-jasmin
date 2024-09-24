@@ -3,7 +3,10 @@ from Jasmin require import JModel.
 
 require (****) XMSS_TW.
 require import XMSS_PRF.
-import Params Types XMSS_Types Hash WOTS Address LTree BaseW. print Params.
+import Params Types XMSS_Types Hash WOTS Address LTree BaseW.
+
+(* Get checksum from XMXX_Checksum and then plug those results
+   here *)
 clone import XMSS_TW as XMSS_ABSTRACT with
    type mseed <- nbytes,
    op dmseed <- (dmap ((dlist W8.dword n)) NBytes.insubd),
@@ -20,6 +23,7 @@ clone import XMSS_TW as XMSS_ABSTRACT with
           let padding = lenbytes_be64 prf_padding_val padding_len in
           let in_0 = lenbytes_be32 (W32.of_int (FLXMSSTWL.SA.Index.val i)) 4 in   
           (Hash (padding ++ val ms ++ in_0),FLXMSSTWL.SA.Index.val i)).
+print XMSS_TW.
 
 import   FLXMSSTWL SA WTW.
 import HtS Repro MCORO. 
@@ -50,7 +54,8 @@ op pkrel(apk : pkXMSSTW, pk : xmss_pk) =
    (* ??? = pk.`pk_oid I guess abstract proofs fon't care about oid *).
 
 equiv kg_eq : XMSS_TW(FakeRO).keygen ~ XMSS_PRF.kg : ={arg} ==> pkrel res{1}.`1 res{2}.`2 /\ skrel res{1}.`2 res{2}.`1.
-proc; inline *.
+proc. inline {1} 2. inline {1} 5.
+inline {2} 5. inline {1} 8. inline {2} 10.
 admitted.
 
 (* Signature type is abused with two index copies because I need this to simulate

@@ -1,10 +1,9 @@
 from Jasmin require import JModel.
 require import List DList IntDiv Int Ring.
-require import Address Hash XMSS_Params  XMSS_Types  XMSS_TreeHash XMSS_PRF  XMSS_MT_Params XMSS_MT_TreeHash XMSS_MT_Types XMSS_MT_PRF.
+require import Address Types Hash XMSS_Params  XMSS_Types  XMSS_TreeHash XMSS_PRF  XMSS_MT_Params XMSS_MT_TreeHash XMSS_MT_Types XMSS_MT_PRF.
 import IntID.
 
 require import Array8.
-
 
 equiv keygen : XMSS_PRF.kg ~ XMSS_MT_PRF.kg : XMSS_Params.impl_oid = XMSS_MT_Params.impl_oid /\ d = 1 ==> ={res}. 
 proof. 
@@ -42,7 +41,7 @@ call(: d=1 /\ ={arg} /\ 0 < to_uint idx{1} /\ to_uint idx{2} < 2 ^ h - 1 ==> ={r
   wp => /=. 
   call(: d=1 /\ ={arg} /\ 0 < to_uint idx{1} /\ to_uint idx{2} < 2 ^ h - 1 ==> ={res}).
   +  proc => /=. 
-     while (#post /\ d = 1 /\ ={authentication_path, pub_seed,sk_seed,t,j,idx} /\ 0 <= j{1} <= h /\
+     while (#post /\ d = 1 /\ ={address,authentication_path, pub_seed,sk_seed,t,j,idx} /\ 0 <= j{1} <= h /\
        0 < to_uint idx{1} /\ to_uint idx{2} < 2 ^ h - 1). 
      + auto => />; conseq (:  ={authentication_path, j,t,address});1:smt().
      call(:d=1); 1: by conseq />;sim;auto => /> /#.
@@ -51,6 +50,8 @@ call(: d=1 /\ ={arg} /\ 0 < to_uint idx{1} /\ to_uint idx{2} < 2 ^ h - 1 ==> ={r
 by auto => />.
 
 wp;call(:true); 1: by sim.
+
+
 auto => /> &1 ? -> /= *; do split. 
 + rewrite and_mod;1:smt(ge0_h).
   by rewrite modz_small /=; smt(). 
@@ -62,7 +63,8 @@ auto => /> &1 ? -> /= *; do split.
   by rewrite initiE 1:/# /=.
 
 + rewrite and_mod;1:smt(ge0_h).
-  by rewrite modz_small /=; smt(). 
+  by rewrite modz_small /=; smt().
+
 qed.
 
 equiv verify : XMSS_PRF.verify ~ XMSS_MT_PRF.verify : 

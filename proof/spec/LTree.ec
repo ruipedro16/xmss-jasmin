@@ -8,7 +8,6 @@ from Jasmin require import JModel.
  
 require import Params Address Hash WOTS.
  
-
 op H : nbytes -> nbytes -> nbytes.
 op H_msg : threen_bytes -> W8.t list -> nbytes.
 
@@ -30,7 +29,7 @@ clone export Subtype as AuthPath with
    n-byte value pk[0].
 *)
 module LTree = {
-  proc ltree (pk : wots_pk, address : adrs, _seed : seed) : nbytes * adrs = {
+  proc ltree (pk : wots_pk, address : adrs, _seed : seed) : nbytes = {
     var pks : nbytes list;
     var pk_i : nbytes;
     var tmp : nbytes;
@@ -48,7 +47,7 @@ module LTree = {
         address <- set_tree_index address i;
         pk_i <- nth witness pks (2*i);
         tmp <- nth witness pks (2*i + 1);
-        (pk_i, address) <@ Hash.rand_hash (pk_i, tmp, _seed, address);
+        pk_i <@ Hash.rand_hash (pk_i, tmp, _seed, address);
         pks <- put pks i pk_i;
         i <- i + 1;
       }
@@ -66,6 +65,6 @@ module LTree = {
 
     pk_i <- nth witness pks 0;
 
-    return (pk_i, address);
+    return pk_i;
   }
 }. 

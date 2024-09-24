@@ -25,16 +25,16 @@ op lenbytes_be64(val : W64.t, len : int) =
    rev (take len (BitsToBytes (W64.w2bits val))).
 
 op lenbytes_be32(val : W32.t, len : int) =  
-   rev (take len (BitsToBytes (W32.w2bits val))).
+   rev (mkseq (fun i => nth W8.zero (BitsToBytes (W32.w2bits val)) i) len).
 
 module Hash = {
-  proc prf (in_0 : W8.t list, key : nbytes) : nbytes = {
+  proc prf (in_0  key : nbytes) : nbytes = {
     var r : nbytes;
     var padding : W8.t list;
     var buf : W8.t list;
 
     padding <- lenbytes_be64 prf_padding_val padding_len;
-    buf <- padding ++ val key ++ in_0;
+    buf <- padding ++ val key ++ val in_0;
 
     r <- Hash buf;
 
@@ -70,12 +70,12 @@ module Hash = {
     return r;
   }
 
-  proc rand_hash (_left _right : nbytes, _seed : nbytes, address : adrs) : nbytes * adrs = {
+  proc rand_hash (_left _right : nbytes, _seed : nbytes, address : adrs) : nbytes = {
       var padding : W8.t list;
       var key : nbytes;
       var bitmask_0, bitmask_1 : nbytes;
       var buf, t : W8.t list; 
-      var addr_bytes : W8.t list;
+      var addr_bytes : nbytes;
       var r : W8.t list;
     
       padding <- lenbytes_be64 rand_hash_padding  padding_len;
@@ -95,7 +95,7 @@ module Hash = {
       t <- bytexor (val _left ++ val _right) (val bitmask_0 ++ val bitmask_1);
       buf <- padding ++ val key ++ t;
   
-      return (Hash buf, address);
+      return Hash buf;
   }
 }.
 

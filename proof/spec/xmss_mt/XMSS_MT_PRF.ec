@@ -7,10 +7,8 @@ from Jasmin require import JModel.
  
 require import Types XMSS_MT_Types Address Hash WOTS LTree XMSS_MT_TreeHash.
 
-
 import XMSS_MT_Params Params OTSKeys TheeNBytes AuthPath.
 import Array8.
-
 
 module XMSS_MT_PRF = {
    (* Different from the spec because we use a secret seed instead of the full wots keys *)
@@ -59,7 +57,7 @@ module XMSS_MT_PRF = {
                sk_root=witness;
              |};
 
-      (root, address) <@ TreeHash.treehash(pub_seed, sk_seed, 0, h, address);
+      root <@ TreeHash.treehash(pub_seed, sk_seed, 0, h, address);
 
       sk <- {| idx=W32.zero;
                sk_seed=sk_seed;
@@ -109,8 +107,7 @@ module XMSS_MT_PRF = {
       var sig : sig_t;
       var idx : W32.t <-sk.`idx;
       var idx_new : W32.t;
-      var idx_bytes : W8.t list;
-      var idx_nbytes : nbytes;
+      var idx_bytes : nbytes;
       var idx_tree : W32.t;
       var idx_leaf : W32.t;
       var _R : nbytes;
@@ -132,10 +129,10 @@ module XMSS_MT_PRF = {
       idx_new <- idx + W32.one;
       sk <- {| sk with idx=idx_new |};
 
-      idx_bytes <- lenbytes_be32 idx 4;
+      idx_bytes <- NBytes.insubd (lenbytes_be32 idx n);
       _R <@ Hash.prf(idx_bytes, sk_prf);
 
-      t <- TheeNBytes.insubd (val _R ++ val root ++ idx_bytes); (* t = r || getRoot(SK_MT) || (toByte(idx_sig, n)) *)
+      t <- TheeNBytes.insubd (val _R ++ val root ++ val idx_bytes); (* t = r || getRoot(SK_MT) || (toByte(idx_sig, n)) *)
       _M' <- H_msg t m;
 
       idx_tree <- idx `>>>` (h %/ d);
@@ -144,22 +141,22 @@ module XMSS_MT_PRF = {
       address <- set_layer_addr address 0;
       address <- set_tree_addr address (W32.to_uint idx_tree);
 
-      (sig_tmp, auth, address) <@ TreeSig.treesig(_M', sk.`pub_seed_sk, sk.`sk_seed , idx_leaf, address);
+      (sig_tmp, auth) <@ TreeSig.treesig(_M', sk.`pub_seed_sk, sk.`sk_seed , idx_leaf, address);
      
-      sig <- {| sig_idx = idx_leaf; r = _R; r_sigs = [(sig_tmp, auth)] |};
+      sig <- {| sig_idx = idx_leaf; r = _R; r_sigs = [ (sig_tmp, auth) ] |};
 
       j <- 1;
       while (j < d) {
-      (root, address) <@ TreeHash.treehash(sk.`pub_seed_sk, sk.`sk_seed, 0, h %/ d, address);
+      root <@ TreeHash.treehash(sk.`pub_seed_sk, sk.`sk_seed, 0, h %/ d, address);
       idx_leaf <- idx_tree `&` W32.of_int (2^(h %/ d) - 1);
       idx_tree <- idx_tree `>>>` (h %/ d);
 
       address <- set_layer_addr address j;
       address <- set_tree_addr address (W32.to_uint idx_tree);
 
-      (sig_tmp, auth, address) <@ TreeSig.treesig(root, sk.`pub_seed_sk, sk.`sk_seed, idx_leaf, address);
+      (sig_tmp, auth) <@ TreeSig.treesig(root, sk.`pub_seed_sk, sk.`sk_seed, idx_leaf, address);
       
-      sig <- append_sig sig (sig_tmp, auth);
+      sig <- append_sig sig (sig_tmp, auth); 
       
        
       j <- j+1;
@@ -174,7 +171,7 @@ module XMSS_MT_PRF = {
        var is_valid : bool;
        var idx_sig : W32.t;
        var seed : nbytes;
-       var idx_bytes : W8.t list;
+       var idx_bytes : nbytes;
        var node, root, _R, _M': nbytes;
        var t : threen_bytes;
        var address : adrs;
@@ -185,18 +182,18 @@ module XMSS_MT_PRF = {
        var j : int;
      
        idx_sig <- s.`sig_idx;
-       idx_bytes <- lenbytes_be32 idx_sig 4;
+       idx_bytes <- NBytes.insubd (lenbytes_be32 idx_sig n);
        seed <- pk.`pk_pub_seed;
        address <- zero_address;
        idx_tree <- idx_sig `>>>` (h %/ d);
        idx_leaf <- idx_sig `&` W32.of_int (2^(h %/ d) - 1);
      
-       (sig_ots,auth) <- nth witness s.`r_sigs 0;
+       (sig_ots,auth) <- nth witness s.`r_sigs 0; 
      
        (* M' = H_msg(getR(Sig_MT) || getRoot(PK_MT) || (toByte(idx_sig, n)), M); *)
        root <- pk.`pk_root;
        _R <- s.`r;
-       t <- TheeNBytes.insubd (val _R ++ val root ++ idx_bytes);
+       t <- TheeNBytes.insubd (val _R ++ val root ++ val idx_bytes);
        _M' <- H_msg t m; 
 
        address <- set_layer_addr address 0;
@@ -209,7 +206,7 @@ module XMSS_MT_PRF = {
          idx_leaf <- idx_tree `&` W32.of_int (2^(h %/ d) - 1);
          idx_tree <- idx_tree `>>>` (h %/ d);
 
-         (sig_ots,auth) <- nth witness s.`r_sigs j;
+         (sig_ots,auth) <- nth witness s.`r_sigs j; 
 
          address <- set_layer_addr address j;
          address <- set_tree_addr address (W32.to_uint idx_tree);
