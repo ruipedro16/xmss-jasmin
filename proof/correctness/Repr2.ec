@@ -149,3 +149,14 @@ lemma wots_sk_size (sk : wots_sk) : size (val sk) = len by smt(LenNBytes.valP).
 lemma wotS_sk_ssize (sk : wots_sk) :
     forall (t : nbytes), t \in val sk => size (val t) = n
       by smt(NBytes.valP).
+
+(** -------------------------------------------------------------------------------------------- **)
+
+require import Types XMSS_MT_Types.
+require import Array64.
+
+op EncodePkNoOID (x : W8.t Array64.t) : xmss_pk = {| pk_oid      = witness;
+                                                     pk_root     = NBytes.insubd (sub x 0 32); 
+                                                     pk_pub_seed = NBytes.insubd (sub x 32 32);
+                                                   |}. 
+                                             

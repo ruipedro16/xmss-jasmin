@@ -11,7 +11,8 @@ require import XMSS_IMPL Parameters.
 require import Array2 Array3 Array8 Array32 Array64 Array67 Array96 Array2144.
 
 require import Correctness_Bytes Correctness_Mem Correctness_Address Correctness_Hash.
-require import Repr2 Utils2.
+require import Repr2 Utils2 Properties2.
+require import Termination.
 
 require import BitEncoding.
 (*---*) import BitChunking.
@@ -29,10 +30,7 @@ op load_sig (mem : global_mem_t) (ptr : W64.t) : W8.t Array2144.t =
 lemma nbyte_xor_val (a b : nbytes): 
     val (nbytexor a b) = bytexor (val a) (val b).
 proof.
-rewrite /nbytexor NBytes.insubdK //= /P /bytexor size_map size_zip.
-rewrite (: (size (val a)) = n) 1:#smt:(NBytes.valP).
-rewrite (: (size (val b)) = n) 1:#smt:(NBytes.valP).
-smt(ge0_n).
+rewrite /nbytexor NBytes.insubdK //= /P /bytexor size_map size_zip !valP //.
 qed.
 
 lemma zip_fst (a b : W8.t list) (i : int):
@@ -226,6 +224,28 @@ while (
       by rewrite !to_uint_zeroextu64 to_uintD_small /= /#.
 qed.
 
+lemma aux_wots_checksum_results (msg : W32.t Array64.t) :
+    len1 = XMSS_WOTS_LEN1 /\  w = XMSS_WOTS_W =>
+    equiv [
+      M(Syscall).__csum ~ WOTS.checksum :
+      (forall (k : int), 0 <= k < 64 => 0 <= to_uint msg.[k] <= 15) /\ (* 15 = w - 1 *)
+      arg{1} = msg /\ arg{2} = map (W32.to_uint) (to_list msg) 
+      ==>
+      0 <= res{2} <= len1 * (w - 1) 
+    ].
+proof.
+rewrite /XMSS_WOTS_W.
+move => [#] ? w_val. 
+proc *.
+call {2} p_checksum_bounds; first by smt().
+call {1} (: true ==> true); first by smt(csum_ll).
+auto => /> H. 
+split. 
+  + by rewrite size_map size_to_list.
+rewrite w_val.
+admit.
+qed.
+
 lemma wots_checksum_results (msg : W32.t Array64.t) :
     len1 = XMSS_WOTS_LEN1 /\  w = XMSS_WOTS_W =>
     equiv [
@@ -237,6 +257,11 @@ lemma wots_checksum_results (msg : W32.t Array64.t) :
         0 <= res{2} <= len1 * (w - 1) 
     ].
 proof.
+move => [#] ??.
+conseq (wots_checksum_correctness msg _) _ (checksum_bounds _); 2,3: by smt().
+auto => />  H. 
+split.
+  + rewrite size_map size_to_list //.
 admit.
 qed.
 
