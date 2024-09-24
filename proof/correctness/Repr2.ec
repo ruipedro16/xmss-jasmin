@@ -9,10 +9,10 @@ from Jasmin require import JModel.
 require import BitEncoding.
 (*---*) import BitChunking.
 
-require import Params WOTS.
+require import Params Types XMSS_MT_Types WOTS.
 require import Utils2.
 
-require import Array2144.
+require import Array64 Array2144.
 
 (* Encode : impl -> spec *)
 (* Decode : spec -> impl *)
@@ -40,6 +40,9 @@ op DecodeWotsPk (pk : wots_pk) : W8.t Array2144.t =
 
 op EncodeWotsSignature (s : W8.t Array2144.t) : wots_signature = 
   LenNBytes.insubd (map NBytes.insubd (chunk 32 (to_list s))). 
+
+op EncodeWotsSignatureList (s : W8.t list) : wots_signature = 
+  LenNBytes.insubd (map NBytes.insubd (chunk 32 s)). 
 
 op EncodeWotsPk (pk : W8.t Array2144.t) : wots_pk = 
   LenNBytes.insubd (map NBytes.insubd (chunk 32 (to_list pk))). 
@@ -115,7 +118,6 @@ move => [#] ??.
 split; [apply enc_dec_wots_pk_l | apply enc_dec_wots_pk_r] => /#.
 qed.
 
-
 lemma enc_comp_dec_pk (x : W8.t Array2144.t) :
     len = 67 /\ n = 32 =>
     x = DecodeWotsPk (EncodeWotsPk x).
@@ -152,11 +154,39 @@ lemma wotS_sk_ssize (sk : wots_sk) :
 
 (** -------------------------------------------------------------------------------------------- **)
 
-require import Types XMSS_MT_Types.
-require import Array64.
+require import LTree. (* AuthPath *)
 
 op EncodePkNoOID (x : W8.t Array64.t) : xmss_pk = {| pk_oid      = witness;
                                                      pk_root     = NBytes.insubd (sub x 0 32); 
                                                      pk_pub_seed = NBytes.insubd (sub x 32 32);
                                                    |}. 
-                                             
+
+
+(* 
+  signed message = msg || signature
+
+  signature bytes = 2500
+  msg = smlen - 2500
+  
+*)
+
+op load_buf (mem : global_mem_t) (ptr : W64.t) (inlen : W64.t) =
+  mkseq (fun (i : int) => mem.[to_uint ptr + i]) (to_uint inlen).
+
+op concatMap  (f : 'a -> 'b list) (a : 'a list): 'b list = flatten (map f a).
+op W32ofBytes (bytes : W8.t list) : W32.t = W32.bits2w (concatMap W8.w2bits bytes).
+op sub_list (x : 'a list) (k len : int) : 'a list = mkseq (fun (i : int) => nth witness x (k + i)) len.
+
+op EncodeAuthPath (x : W8.t list) : auth_path = AuthPath.insubd [NBytes.insubd (sub_list x 0 32)].
+
+op EncodeReducedSignature (x : W8.t list) : reduced_signature =
+  (EncodeWotsSignatureList (sub_list x 0 2144), EncodeAuthPath (sub_list x 2144 32)).
+
+op EncodeSignedMessage (mem : global_mem_t) (sm_ptr smlen : W64.t) : sig_t =
+  let mlen : W64.t  = smlen - W64.of_int 2500 in 
+  let sig_ptr : W64.t = sm_ptr + mlen in 
+  let signature : W8.t list =  load_buf mem sig_ptr (W64.of_int 2500) in
+  {| sig_idx = W32ofBytes (sub_list signature 0 4);
+     r       = NBytes.insubd (sub_list signature 4 32);
+     r_sigs  = map EncodeReducedSignature (chunk 2176 (sub_list signature 36 (36 - 2500)));
+  |}.

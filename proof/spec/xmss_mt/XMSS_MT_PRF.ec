@@ -11,6 +11,10 @@ require import Types XMSS_MT_Types Address Hash WOTS LTree XMSS_MT_TreeHash.
 import XMSS_MT_Params Params OTSKeys TheeNBytes AuthPath.
 import Array8.
 
+(* Add leading zero bytes to a byte list so that is has n bytes *)
+op zero_ext_to_nbyte_list (x : W8.t list) : W8.t list =
+  mkseq (fun (i : int) => if 0 <= i < n - size x then W8.zero else (nth witness x (n - i))) n.
+
 
 module XMSS_MT_PRF = {
    (* Different from the spec because we use a secret seed instead of the full wots keys *)
@@ -185,7 +189,7 @@ module XMSS_MT_PRF = {
        var j : int;
      
        idx_sig <- s.`sig_idx;
-       idx_bytes <- lenbytes_be32 idx_sig 4;
+       idx_bytes <-  zero_ext_to_nbyte_list (lenbytes_be32 idx_sig 4);
        seed <- pk.`pk_pub_seed;
        address <- zero_address;
        idx_tree <- idx_sig `>>>` (h %/ d);

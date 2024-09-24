@@ -13,7 +13,4 @@ require export Params.
 const d : { int | 0 < h /\ h %% d = 0 } as d_g0.
 axiom ge0_d : 0 < d.
 
-(* XMSS_FULL_HEIGHT in the implementation *)
-op full_height (h d : int) : int = h * d.
-
 op impl_oid : W32.t.

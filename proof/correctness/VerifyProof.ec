@@ -10,11 +10,12 @@ require import BitEncoding.
 require import Types Parameters Params Address Hash XMSS_MT_Params XMSS_MT_Types XMSS_MT_TreeHash XMSS_MT_PRF.
 require import XMSS_IMPL.
 
-require import Array32 Array64.
+require import Array8 Array32 Array64.
 
 require import Correctness_Address.
 
 require import Repr2.
+require import Termination.
 
 (*
   args{1}:
@@ -23,7 +24,7 @@ require import Repr2.
   reg u64 sm_ptr smlen,
   reg ptr u8[XMSS_PK_BYTES] pk
 
-  returns 0
+  returns 0 or -1
 *)
 
 (*
@@ -32,13 +33,11 @@ require import Repr2.
   m : msg_t
   s : sig_t
   
-  returns true
+  returns true or false
 *)
 
 op load_buf (mem : global_mem_t) (ptr : W64.t) (inlen : W64.t) : W8.t list =
   mkseq (fun (i : int) => mem.[to_uint ptr + i]) (to_uint inlen).
-
-op sig_size_bytes : int = 2500.
 
 lemma size_bits_to_bytes (x : bool list):
     size (BitsToBytes x) = size x %/ 8.
@@ -55,26 +54,66 @@ qed.
 lemma load_store_W64 (mem : global_mem_t) (a : address) (v : W64.t) :
     loadW64 (storeW64 mem a v) a = v.
 proof.
-rewrite /loadW64 pack8E /storeW64. 
-admit.
+rewrite /loadW64 /storeW64 wordP => j?.
+rewrite pack8E /stores initiE // => />. 
+rewrite initiE 1:/# => />. 
+rewrite get_setE.
+  + case (a + j %/ 8 = a + 7) => *; [rewrite /(\bits8) initiE /# |].
+rewrite get_setE.
+  + case (a + j %/ 8 = a + 6) => *; [rewrite /(\bits8) initiE /# |].
+rewrite get_setE.
+  + case (a + j %/ 8 = a + 5) => *; [rewrite /(\bits8) initiE /# |].
+rewrite get_setE.
+  + case (a + j %/ 8 = a + 4) => *; [rewrite /(\bits8) initiE /# |].
+rewrite get_setE.
+  + case (a + j %/ 8 = a + 3) => *; [rewrite /(\bits8) initiE /# |].
+rewrite get_setE.
+  + case (a + j %/ 8 = a + 2) => *; [rewrite /(\bits8) initiE /# |].
+rewrite get_setE.
+  + case (a + j %/ 8 = a + 1) => *; [rewrite /(\bits8) initiE /# |].
+rewrite get_setE.
+  + rewrite ifT 1:/# /(\bits8) initiE /#.
 qed.
+ 
+lemma set_result_post (eq : W8.t) :
+    hoare[
+      M(Syscall).__set_result :
+      arg.`1 = eq
+      ==>
+      (eq = W8.zero) => res = W64.zero /\
+      (eq <> W8.zero) => res = W64.of_int (-1)
+    ].
+proof.
+proc.
+auto => />.
+case (eq = W8.zero). 
+  + rcondf 1; first by skip => [#] ?? => /#.
+    call (: true ==> true); last by auto.
+    proc; inline; wp; sp; while (true); auto => />. 
+  + rcondt 1; first by skip => [#] ?? => /#. 
+    auto => />. 
+qed.
+       
 
 lemma verify_correct (mem : global_mem_t) (mptr mlenptr smptr _smlen : W64.t, pkey : W8.t Array64.t):
     n = XMSS_N /\
-    d = XMSS_D =>
+    d = XMSS_D /\
+    h = XMSS_FULL_HEIGHT =>
     equiv[
         M(Syscall).__xmssmt_core_sign_open ~ XMSS_MT_PRF.verify : 
         Glob.mem{1} = mem /\
         Glob.mem{2} = mem /\
         arg{1} = (mptr, mlenptr, smptr, _smlen, pkey) /\
         arg{2}.`1 = EncodePkNoOID pkey /\
-        arg{2}.`2 = load_buf mem mptr (loadW64 mem (to_uint mlenptr))
+        arg{2}.`2 = load_buf mem mptr (loadW64 mem (to_uint mlenptr)) /\
+        arg{2}.`3 = EncodeSignedMessage mem smptr _smlen
         ==> 
-        res{2} <=> res{1} = W64.zero
+        res{2}  <=> res{1} = W64.zero /\
+        (!res{2} <=> res{1} = W64.of_int (-1))
     ].
 proof.
-rewrite /XMSS_N /XMSS_D.
-move => [#] n_val d_val. 
+rewrite /XMSS_N /XMSS_D /XMSS_FULL_HEIGHT.
+move => [#] n_val d_val h_val. 
 proc.
 seq 9 0 : #pre; first by auto.
 seq 3 0 : (
@@ -122,6 +161,8 @@ seq 1 0 : (
 seq 5 0 : (
 (*  Glob.mem{1} = mem /\
   Glob.mem{2} = mem /\
+  
+  * The memories are no longer equal
 *)
   m_ptr{1} = mptr /\
   mlen_ptr{1} = mlenptr /\
@@ -156,27 +197,22 @@ seq 0 1 : (#pre /\ val seed{2} = sub pk{1} 32 32).
       rewrite nth_sub // /EncodePkNoOID => />.
       rewrite insubdK; [by rewrite /P size_sub // n_val |].
       rewrite nth_sub //.
-
 seq 4 0 : (
   #pre /\
   load_buf Glob.mem{1} m_ptr{1} (of_int 2500)%W64 = load_buf Glob.mem{1} sm_ptr{1} (of_int 2500)%W64
 ).
     + admit.
-seq 0 1 : (#pre /\ idx_bytes{2} = lenbytes_be32 idx_sig{2} 4); first by auto.
-
+seq 0 1 : (#pre /\ idx_bytes{2} = zero_ext_to_nbyte_list (lenbytes_be32 idx_sig{2} 4)); first by auto.
 seq 3 0 : (
   #pre /\
   to_list buf{1} = val s{2}.`XMSS_MT_Types.r
 ).
-    + admit. (* This requires the operator EncodeSignature *)
-
+    + admit.
 seq 0 2 : (
   #pre /\
-  idx_tree{2} = idx_sig{2} `>>>` h /\
-  idx_leaf{2} = idx_sig{2} `&` (of_int (2^h - 1))%W32
-).
-    + auto =>/> &1 &2 *.
-      rewrite d_val //=.
+  idx_tree{2} = idx_sig{2} `>>>` 10 /\
+  idx_leaf{2} = idx_sig{2} `&` (of_int (2^10 - 1))%W32
+); first by auto =>/> &1 &2 *; rewrite d_val h_val //=.
 seq 2 0 : (
   m_ptr{1} = mptr /\
   mlen_ptr{1} = mlenptr /\
@@ -196,13 +232,14 @@ seq 2 0 : (
   to_uint idx{1} = to_uint idx_sig{2} /\
   val seed{2} = sub pk{1} 32 32 /\
   load_buf Glob.mem{1} m_ptr{1} ((of_int 2500))%W64 = load_buf Glob.mem{1} sm_ptr{1} ((of_int 2500))%W64 /\
-  idx_bytes{2} = lenbytes_be32 idx_sig{2} 4 /\
+  idx_bytes{2} = zero_ext_to_nbyte_list (lenbytes_be32 idx_sig{2} 4) /\
   to_list buf{1} = val s{2}.`r /\
-  idx_tree{2} = idx_sig{2} `>>>` h /\
-  idx_leaf{2} = idx_sig{2} `&` (of_int (2 ^ h - 1))%W32 /\
+  idx_tree{2} = idx_sig{2} `>>>` 10 /\
+  idx_leaf{2} = idx_sig{2} `&` (of_int (2 ^ 10 - 1))%W32 /\
 
   t64{1} = m_ptr{1} + W64.of_int 2372
 ); first by auto => />.
+
 seq 0 3 : (
   #pre /\ 
   val root{2} = (sub pk{1} 0 32) /\
@@ -219,7 +256,9 @@ seq 2 1 : (
   val t{2} = (val _R{2} ++ val root{2} ++ idx_bytes{2})
 ).
     + auto => /> &1 &2 *.
-      admit.
+      apply (eq_from_nth witness); first by rewrite !size_cat !valP /zero_ext_to_nbyte_list size_mkseq /#. 
+      rewrite valP n_val //= => j?.       
+      rewrite insubdK // /P !size_cat !valP /zero_ext_to_nbyte_list size_mkseq /#. 
 seq 1 1 : (#pre /\ to_list root{1} = val _M'{2}). (* This root is the hash of the message *)
     + admit.
 
@@ -242,10 +281,10 @@ seq 2 0 : (
      val seed{2} = sub pk{1} 32 32 /\
      load_buf Glob.mem{1} m_ptr{1} ((of_int 2500))%W64 =
      load_buf Glob.mem{1} sm_ptr{1} ((of_int 2500))%W64 /\
-     idx_bytes{2} = lenbytes_be32 idx_sig{2} 4 /\
+     idx_bytes{2} = zero_ext_to_nbyte_list (lenbytes_be32 idx_sig{2} 4) /\
      to_list buf{1} = val s{2}.`r /\
-     idx_tree{2} = idx_sig{2} `>>>` h /\
-     idx_leaf{2} = idx_sig{2} `&` (of_int (2 ^ h - 1))%W32 /\
+     idx_tree{2} = idx_sig{2} `>>>` 10 /\
+     idx_leaf{2} = idx_sig{2} `&` (of_int (2 ^ 10 - 1))%W32 /\
     val root{2} = sub pk{1} 0 32 /\
     (sig_ots{2}, auth{2}) = nth witness s{2}.`r_sigs 0 /\ _R{2} = s{2}.`r /\
    bytes{1} = loadW64 Glob.mem{1} (to_uint mlen_ptr{1}) /\
@@ -253,15 +292,16 @@ seq 2 0 : (
    val t{2} = val _R{2} ++ val root{2} ++ idx_bytes{2} /\
   to_list root{1} = val _M'{2}
 ).
-    + auto => /> &1 &2 H *.
-      rewrite to_uintD H of_uintK /#.  
+    + auto => /> &1 &2 H *; rewrite to_uintD H of_uintK /#.  
 (* handle the results here *)
 seq 2 5 : (
   pk{2} = EncodePkNoOID pk{1} /\
   to_list pub_root{1} = sub pk{1} 0 32 /\
   to_list root{1} = val root{2}
-); last first.
-    + admit.
+); last first. 
+    + seq 1 0 : (#pre); first by admit.
+      admit.
+
 seq 0 2 : (
   m_ptr{1} = mptr /\
   mlen_ptr{1} = mlenptr /\
@@ -280,10 +320,10 @@ seq 0 2 : (
   val seed{2} = sub pk{1} 32 32 /\
   load_buf Glob.mem{1} m_ptr{1} ((of_int 2500))%W64 =
   load_buf Glob.mem{1} sm_ptr{1} ((of_int 2500))%W64 /\
-  idx_bytes{2} = lenbytes_be32 idx_sig{2} 4 /\
+  idx_bytes{2} = zero_ext_to_nbyte_list (lenbytes_be32 idx_sig{2} 4) /\
   to_list buf{1} = val s{2}.`r /\
-  idx_tree{2} = idx_sig{2} `>>>` h /\
-  idx_leaf{2} = idx_sig{2} `&` (of_int (2 ^ h - 1))%W32 /\
+  idx_tree{2} = idx_sig{2} `>>>` 10 /\
+  idx_leaf{2} = idx_sig{2} `&` (of_int (2 ^ 10 - 1))%W32 /\
   val root{2} = sub pk{1} 0 32 /\
   (sig_ots{2}, auth{2}) = nth witness s{2}.`r_sigs 0 /\
   _R{2} = s{2}.`r /\
@@ -294,4 +334,188 @@ seq 0 2 : (
 
   address{2} = set_tree_addr (set_layer_addr zero_addr 0) (to_uint idx_tree{2})
 ); first by auto => />.
+
+
+(* Unroll the first iteration on the left side *)
+unroll {1} 2. 
+(* ------------------------------------------------------------------------------- *)
+(* The first iteration starts here                                                 *)
+(* ------------------------------------------------------------------------------- *)
+seq 2 1 : (#pre); last by admit.
+inline{2} RootFromSig.rootFromSig. 
+sp 0 6.
+rcondt {1} 2; first by auto => />. 
+seq 4 0 : (
+  (* #pre but without the the conditions about idx_leaf *)
+  sig_ots0{2} = sig_ots{2} /\
+  auth0{2} = auth{2} /\
+  M{2} = _M'{2} /\
+  _seed{2} = seed{2} /\
+  address0{2} = address{2} /\
+  m_ptr{1} = mptr /\
+  mlen_ptr{1} = mlenptr /\
+  sm_ptr{1} = smptr /\
+  smlen{1} = _smlen /\
+  pk{1} = pkey /\
+  pk{2} = EncodePkNoOID pkey /\
+  m{2} = (load_buf mem mptr (loadW64 mem (to_uint mlenptr))) /\
+  to_uint sm_offset{1} = 36 /\
+  to_list pub_seed{1} = val pk{2}.`pk_pub_seed /\
+  ots_addr{1} = set_type zero_address 0 /\
+  ltree_addr{1} = set_type zero_address 1 /\
+  node_addr{1} = set_type zero_address 2 /\
+  loadW64 Glob.mem{1} (to_uint mlen_ptr{1}) = smlen{1} - (of_int 2500)%W64 /\
+  val seed{2} = sub pk{1} 32 32 /\
+  (load_buf Glob.mem{1} m_ptr{1} ((of_int 2500))%W64) =
+  (load_buf Glob.mem{1} sm_ptr{1} ((of_int 2500))%W64) /\
+  idx_bytes{2} = zero_ext_to_nbyte_list (lenbytes_be32 idx_sig{2} 4) /\
+  to_list buf{1} = val s{2}.`r /\
+  idx_tree{2} = idx_sig{2} `>>>` 10 /\
+  val root{2} = sub pk{1} 0 32 /\
+  (sig_ots{2}, auth{2}) = nth witness s{2}.`r_sigs 0 /\
+  _R{2} = s{2}.`r /\
+  bytes{1} = loadW64 Glob.mem{1} (to_uint mlen_ptr{1}) /\
+  val t{2} = val _R{2} ++ val root{2} ++ idx_bytes{2} /\
+  to_list root{1} = val _M'{2} /\
+  address{2} =
+  set_tree_addr (set_layer_addr zero_addr 0) (to_uint idx_tree{2}) /\
+
+  i{1} = W32.zero /\
+  idx_leaf{1} = (of_int ((1 `<<` 10) - 1))%W32 `&` truncateu32 idx_hash{1} /\
+  idx{1} = idx_hash{1} `>>` truncateu8 ((of_int 10)%W256 `&` (of_int 63)%W256)
+); first by auto.
+
+swap {1} 15 -7.
+seq 6 0 : (
+  (* #pre but without the the conditions about addresses *)
+  sig_ots0{2} = sig_ots{2} /\
+  auth0{2} = auth{2} /\
+  M{2} = _M'{2} /\
+  _seed{2} = seed{2} /\
+  address0{2} = address{2} /\
+  m_ptr{1} = mptr /\
+  mlen_ptr{1} = mlenptr /\
+  sm_ptr{1} = smptr /\
+  smlen{1} = _smlen /\
+  pk{1} = pkey /\
+  pk{2} = EncodePkNoOID pkey /\
+  m{2} = (load_buf mem mptr (loadW64 mem (to_uint mlenptr))) /\
+  to_uint sm_offset{1} = 36 /\
+  to_list pub_seed{1} = val pk{2}.`pk_pub_seed /\
+  loadW64 Glob.mem{1} (to_uint mlen_ptr{1}) = smlen{1} - (of_int 2500)%W64 /\
+  val seed{2} = sub pk{1} 32 32 /\
+  (load_buf Glob.mem{1} m_ptr{1} ((of_int 2500))%W64) =
+  (load_buf Glob.mem{1} sm_ptr{1} ((of_int 2500))%W64) /\
+  idx_bytes{2} = zero_ext_to_nbyte_list (lenbytes_be32 idx_sig{2} 4) /\
+  to_list buf{1} = val s{2}.`r /\
+  idx_tree{2} = idx_sig{2} `>>>` 10 /\
+  val root{2} = sub pk{1} 0 32 /\
+  (sig_ots{2}, auth{2}) = nth witness s{2}.`r_sigs 0 /\
+  _R{2} = s{2}.`r /\
+  bytes{1} = loadW64 Glob.mem{1} (to_uint mlen_ptr{1}) /\
+  val t{2} = val _R{2} ++ val root{2} ++ idx_bytes{2} /\
+  to_list root{1} = val _M'{2} /\
+  address{2} =
+  set_tree_addr (set_layer_addr zero_addr 0) (to_uint idx_tree{2}) /\
+
+  i{1} = W32.zero /\
+  idx_leaf{1} = (of_int ((1 `<<` 10) - 1))%W32 `&` truncateu32 idx_hash{1} /\
+  idx{1} = idx_hash{1} `>>` truncateu8 ((of_int 10)%W256 `&` (of_int 63)%W256) /\
+
+  ots_addr{1} = set_tree_addr (set_layer_addr (set_type zero_address 0) 0) (to_uint idx{1}) /\
+  ltree_addr{1} = set_tree_addr (set_layer_addr (set_type zero_address 1) 0) (to_uint idx{1}) /\
+  node_addr{1} = set_tree_addr (set_layer_addr (set_type zero_address 2) 0) (to_uint idx{1})
+).
+    + inline {1}; auto => /> *.
+      rewrite /set_type /set_tree_addr /set_layer_addr.
+      do split; do congr; by admit.
+seq 2 0 : (
+  (* #pre but without the the conditions about addresses *)
+  sig_ots0{2} = sig_ots{2} /\
+  auth0{2} = auth{2} /\
+  M{2} = _M'{2} /\
+  _seed{2} = seed{2} /\
+  address0{2} = address{2} /\
+  m_ptr{1} = mptr /\
+  mlen_ptr{1} = mlenptr /\
+  sm_ptr{1} = smptr /\
+  smlen{1} = _smlen /\
+  pk{1} = pkey /\
+  pk{2} = EncodePkNoOID pkey /\
+  m{2} = (load_buf mem mptr (loadW64 mem (to_uint mlenptr))) /\
+  to_uint sm_offset{1} = 36 /\
+  to_list pub_seed{1} = val pk{2}.`pk_pub_seed /\
+  loadW64 Glob.mem{1} (to_uint mlen_ptr{1}) = smlen{1} - (of_int 2500)%W64 /\
+  val seed{2} = sub pk{1} 32 32 /\
+  (load_buf Glob.mem{1} m_ptr{1} ((of_int 2500))%W64) =
+  (load_buf Glob.mem{1} sm_ptr{1} ((of_int 2500))%W64) /\
+  idx_bytes{2} = zero_ext_to_nbyte_list (lenbytes_be32 idx_sig{2} 4) /\
+  to_list buf{1} = val s{2}.`r /\
+  idx_tree{2} = idx_sig{2} `>>>` 10 /\
+  val root{2} = sub pk{1} 0 32 /\
+  (sig_ots{2}, auth{2}) = nth witness s{2}.`r_sigs 0 /\
+  _R{2} = s{2}.`r /\
+  bytes{1} = loadW64 Glob.mem{1} (to_uint mlen_ptr{1}) /\
+  val t{2} = val _R{2} ++ val root{2} ++ idx_bytes{2} /\
+  to_list root{1} = val _M'{2} /\
+  address{2} =
+  set_tree_addr (set_layer_addr zero_addr 0) (to_uint idx_tree{2}) /\
+
+  i{1} = W32.zero /\
+  idx_leaf{1} = (of_int ((1 `<<` 10) - 1))%W32 `&` truncateu32 idx_hash{1} /\
+  idx{1} = idx_hash{1} `>>` truncateu8 ((of_int 10)%W256 `&` (of_int 63)%W256) /\
+
+  ots_addr{1} = set_ots_addr (set_tree_addr (set_layer_addr (set_type zero_address 0) 0) (to_uint idx{1})) (to_uint idx_leaf{1}) /\
+  ltree_addr{1} = set_ltree_addr (set_tree_addr (set_layer_addr (set_type zero_address 1) 0) (to_uint idx{1})) (to_uint idx_leaf{1}) /\
+  node_addr{1} = set_tree_addr (set_layer_addr (set_type zero_address 2) 0) (to_uint idx{1})
+); first by inline {1}; auto.
+
+seq 3 2 : (
+  (* #pre but without the condition  address0{2} = address{2} because it no longer holds *)
+  sig_ots0{2} = sig_ots{2} /\
+  auth0{2} = auth{2} /\
+  M{2} = _M'{2} /\
+  _seed{2} = seed{2} /\
+  m_ptr{1} = mptr /\
+  mlen_ptr{1} = mlenptr /\
+  sm_ptr{1} = smptr /\
+  smlen{1} = _smlen /\
+  pk{1} = pkey /\
+  pk{2} = EncodePkNoOID pkey /\
+  m{2} = (load_buf mem mptr (loadW64 mem (to_uint mlenptr))) /\
+  to_uint sm_offset{1} = 36 /\
+  to_list pub_seed{1} = val pk{2}.`pk_pub_seed /\
+  loadW64 Glob.mem{1} (to_uint mlen_ptr{1}) = smlen{1} - (of_int 2500)%W64 /\
+  val seed{2} = sub pk{1} 32 32 /\
+  (load_buf Glob.mem{1} m_ptr{1} ((of_int 2500))%W64) =
+  (load_buf Glob.mem{1} sm_ptr{1} ((of_int 2500))%W64) /\
+  idx_bytes{2} = zero_ext_to_nbyte_list (lenbytes_be32 idx_sig{2} 4) /\
+  to_list buf{1} = val s{2}.`r /\
+  idx_tree{2} = idx_sig{2} `>>>` 10 /\
+  val root{2} = sub pk{1} 0 32 /\
+  (sig_ots{2}, auth{2}) = nth witness s{2}.`r_sigs 0 /\
+  _R{2} = s{2}.`r /\
+  bytes{1} = loadW64 Glob.mem{1} (to_uint mlen_ptr{1}) /\
+  val t{2} = val _R{2} ++ val root{2} ++ idx_bytes{2} /\
+  to_list root{1} = val _M'{2} /\
+  address{2} =
+  set_tree_addr (set_layer_addr zero_addr 0) (to_uint idx_tree{2}) /\
+
+  i{1} = W32.zero /\
+  idx_leaf{1} = (of_int ((1 `<<` 10) - 1))%W32 `&` truncateu32 idx_hash{1} /\
+  idx{1} = idx_hash{1} `>>` truncateu8 ((of_int 10)%W256 `&` (of_int 63)%W256) /\
+
+  ots_addr{1} = set_ots_addr (set_tree_addr (set_layer_addr (set_type zero_address 0) 0) (to_uint idx{1})) (to_uint idx_leaf{1}) /\
+  ltree_addr{1} = set_ltree_addr (set_tree_addr (set_layer_addr (set_type zero_address 1) 0) (to_uint idx{1})) (to_uint idx_leaf{1}) /\
+  node_addr{1} = set_tree_addr (set_layer_addr (set_type zero_address 2) 0) (to_uint idx{1}) /\
+
+  t64{1} = sm_ptr{1} + sm_offset{1} /\
+  address0{2} = set_ots_addr (set_type address{2} 0) (to_uint idx_sig0{2})
+); first by auto.
+(* ------------------------------------------------------------------------------- *)
+(* The while loop starts here                                                      *)
+(* ------------------------------------------------------------------------------- *)
+seq 0 1 : (#pre /\ to_uint i{1} = j{2}).
+    + admit.
+
 qed.
