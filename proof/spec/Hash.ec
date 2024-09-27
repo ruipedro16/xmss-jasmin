@@ -22,7 +22,7 @@ op bytexor(a b : W8.t list) : W8.t list =
    map (fun (ab : W8.t * W8.t) => ab.`1 `^` ab.`2) (zip a b).
 
 op lenbytes_be64(val : W64.t, len : int) = 
-   rev (take len (BitsToBytes (W64.w2bits val))).
+   rev (mkseq (fun i => nth W8.zero (BitsToBytes (W64.w2bits val)) i) len).
 
 op lenbytes_be32(val : W32.t, len : int) =  
    rev (mkseq (fun i => nth W8.zero (BitsToBytes (W32.w2bits val)) i) len).
