@@ -4,14 +4,15 @@ require import AllCore List RealExp IntDiv.
 
 from Jasmin require import JModel JArray.
 
-require import Params Hash BaseW WOTS. 
+require import Params Address Hash BaseW WOTS. 
 
 require import XMSS_IMPL Parameters.
 
 require import Array2 Array3 Array8 Array32 Array64 Array67 Array96 Array2144.
 
-require import Correctness_Bytes Correctness_Mem Correctness_Address Correctness_Hash.
-require import Repr2 Utils2.
+require import Correctness_Bytes Correctness_Mem Correctness_Address Correctness_Hash. 
+require import Repr2.
+require import Utils2.
 
 require import BitEncoding.
 (*---*) import BitChunking.
@@ -19,14 +20,21 @@ require import BitEncoding.
 require import StdBigop. 
 (*---*) import Bigint.
 
+
+(** -------------------------------------------------------------------------------------------- **)
+
+op load_sig (mem : global_mem_t) (ptr : W64.t) : W8.t Array2144.t =
+  Array2144.init(fun i => loadW8 mem (to_uint ptr + i)).
+
+(** -------------------------------------------------------------------------------------------- **)
+
 lemma nbyte_xor_val (a b : nbytes): 
     val (nbytexor a b) = bytexor (val a) (val b).
 proof.
-rewrite /nbytexor NBytes.insubdK //= /P /bytexor size_map size_zip.
-rewrite (: (size (val a)) = n) 1:#smt:(NBytes.valP).
-rewrite (: (size (val b)) = n) 1:#smt:(NBytes.valP).
-smt(ge0_n).
+rewrite /nbytexor NBytes.insubdK //= /P /bytexor size_map size_zip !valP //.
 qed.
+
+(** -------------------------------------------------------------------------------------------- **)
 
 lemma zip_fst (a b : W8.t list) (i : int):
   0 <= i < min (size a) (size b) =>
@@ -38,7 +46,27 @@ lemma zip_snd (a b : W8.t list) (i : int):
     (nth witness (zip a b) i).`2 = nth witness b i 
       by smt(@List).
 
-lemma base_w_correctness_64 ( _in_ : W8.t Array32.t) :
+(** -------------------------------------------------------------------------------------------- **)
+
+lemma simplify_pow (a b : int) : 
+    0 < a /\ 0 < b => 
+      a%r ^ b%r = (a ^ b)%r.
+proof.
+move => [#] ??.
+rewrite -RField.fromintXn 1:/# #smt:(@RealExp).
+qed.
+
+hint simplify simplify_pow. 
+
+lemma log2_16 : log2 16%r = 4%r.
+proof.
+have ->: 16%r = 2%r ^ 4%r by simplify.
+rewrite /log2 logK /#.
+qed.
+
+(** -------------------------------------------------------------------------------------------- **)
+
+lemma base_w_correctness_64 (_in_ : W8.t Array32.t) :
     floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
     w = XMSS_WOTS_W => 
       equiv[M(Syscall).__base_w_64_32 ~ BaseW.base_w :
@@ -46,13 +74,13 @@ lemma base_w_correctness_64 ( _in_ : W8.t Array32.t) :
         arg{2} = (to_list _in_, 64) ==>
          res{2} = map (W32.to_uint) (to_list res{1})].
 proof.
-rewrite /XMSS_WOTS_LOG_W /XMSS_WOTS_W ; move => [logw_val w_val].
+rewrite /XMSS_WOTS_LOG_W /XMSS_WOTS_W  => [#] logw_val w_val.
 proc.
 conseq (: _ ==> size base_w{2} = 64 /\ forall (k:int), 0 <= k < 64 => to_uint output{1}.[k] = nth witness base_w{2} k).
-  + move => &1 &2 /> *. 
+  + move => &1 &2 /> ?? H *. 
     apply (eq_from_nth witness); [rewrite size_map size_to_list /# |]. 
-    move => *. 
-    rewrite (nth_map witness) #smt:(Array64.size_to_list). 
+    rewrite H => ??. 
+    rewrite (nth_map witness) 2:/# size_to_list //. 
 sp.
 while (
   ={total, consumed} /\ 0 <= consumed{1} <= 64 /\
@@ -66,37 +94,54 @@ while (
   bits{2} = consumed{2} %% 2 * 4 /\
   _in{2} = to_uint in_0{1} /\ _in{2} = (consumed{2} + 1) %/ 2 /\
   (forall (j : int), 0 <= j < to_uint out{1} => (to_uint output{1}.[j]) = nth witness base_w{2} j)
-).
-(* First subgoal of while *)
-    + if.
-        * auto => /> &1 &2 *; smt(@W64).
-        * admit. (* auto => /> &1 &2 *; do split;1..11:smt(@W64 @IntDiv pow2_64 size_put).
-            - move => j Hj *. rewrite get_setE 1:/# //= nth_put ; 1:smt(size_nseq).
-              case (j = to_uint out{1}); last first.
-                + move => *. rewrite ifF 1:/#. smt(@W64).
-                + move => -> //=. rewrite logw_val w_val /=.  
-                  have -> : 15 = 2 ^ 4 - 1 by smt().
-                  rewrite and_mod // and_mod // shr_div shr_div //=. 
+); last by skip => /> *; smt(size_nseq).
+if.
+    + auto => /> &1 &2 *; smt(@W64).
+    + auto => /> &1 &2 ?? H0 ??? H1 H2 *.
+      do split. 
+         * smt(). 
+         * smt(). 
+         * by rewrite size_put H0. 
+         * rewrite to_uintD_small // /#. 
+         * rewrite to_uintD_small // /#. 
+         * rewrite to_uintD_small // /#. 
+         * rewrite to_uintD_small // /#. 
+         * by rewrite logw_val. 
+         * rewrite logw_val /= /#. 
+         * rewrite to_uintD_small // /#. 
+         * rewrite H1 /#.
+         * move => j *.
+           rewrite get_setE // nth_put 1:/#.
+           case (j = to_uint out{1}) => [-> | *].
+                + rewrite w_val ifT //=.  
+                  have ->: 15 = 2 ^ 4 - 1 by smt(). 
+                  rewrite and_mod //  and_mod // shr_div shr_div //=. 
                   have -> : 31 = 2 ^ 5 - 1 by smt().
-                  rewrite and_mod //= to_uint_truncateu8 to_uint_zeroextu32 //=. 
-                  admit. (* smt(@W64 @W8 @W32 pow2_32 pow2_64 pow2_8 @IntDiv). *)
-            *)
-        * auto => /> &1 &2 *; do split;1..7:smt(@W64 pow2_64 size_put).
-            - rewrite logw_val //= to_uintB #smt:(@W64 pow2_64).
-            - rewrite logw_val // #smt:(@W64 pow2_64 @IntDiv).
-            - smt(@W64 pow2_64 @IntDiv).
-            - move => j Hj *. rewrite get_setE 1:/# //= nth_put 1:#smt:(size_nseq).
-              case (j = to_uint out{1}); last first. 
-                + move => *; rewrite ifF 1:/# #smt:(@W64).
-                + move => -> //=. rewrite logw_val w_val /=. 
+                  rewrite and_mod //= to_uint_truncateu8 to_uint_zeroextu32 //= log2_16 from_int_floor of_uintK /#.
+                + rewrite ifF 1:/# H2 // #smt:(@W64). 
+    + auto => /> &1 &2 ????? H0 H1 H2*.
+      do split.
+         * smt(). 
+         * smt(). 
+         * by rewrite size_put.  
+         * rewrite to_uintD_small // /#. 
+         * rewrite to_uintD_small // /#. 
+         * rewrite to_uintD_small // /#. 
+         * rewrite to_uintD_small // /#. 
+         * by rewrite logw_val //= to_uintB 1:#smt:(@W64 pow2_64 modz_small)  of_uintK /=.  
+         * rewrite logw_val H0 #smt:(@W64 pow2_64 @IntDiv). 
+         * rewrite H1 #smt:(@W64 pow2_64 @IntDiv).  
+         * move => j ??. 
+           rewrite get_setE // nth_put 1:/#. 
+           case (j = to_uint out{1}) => [-> | *].
+                + rewrite ifT // logw_val w_val /=.
                   have -> : 15 = 2 ^ 4 - 1 by smt().
                   rewrite and_mod // and_mod // shr_div shr_div //=. 
                   have -> : 31 = 2 ^ 5 - 1 by smt().
                   rewrite and_mod //= to_uint_truncateu8 to_uint_zeroextu32 //=. 
                   rewrite to_uintB 1:#smt:(@W64) //=. 
-                  admit. (* smt(@W64 @W8 @W32 pow2_32 pow2_64 pow2_8 @IntDiv). *) (* This call to smt fails sometimes *)
-(* Last subgoal of while *)
-    + skip => /> *; do split;2,3:smt(@W64 pow2_64). by rewrite size_nseq.
+                  rewrite !of_uintK //= #smt:(@W64 @IntDiv). 
+                + rewrite ifF 1:/# H2 // #smt:(@W64). 
 qed.
 
 lemma base_w_results_64 ( _in_ : W8.t Array32.t) :
@@ -114,7 +159,6 @@ proof.
 admit. (* correctness + bounds *)
 qed.
 
-
 lemma base_w_correctness_3 ( _in_ : W8.t Array2.t) :
     floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
     w = XMSS_WOTS_W => 
@@ -123,13 +167,13 @@ lemma base_w_correctness_3 ( _in_ : W8.t Array2.t) :
         arg{2} = (to_list _in_, 3) ==>
          res{2} = map (W32.to_uint) (to_list res{1})].
 proof.
-rewrite /XMSS_WOTS_LOG_W /XMSS_WOTS_W ; move => [logw_val w_val].
+rewrite /XMSS_WOTS_LOG_W /XMSS_WOTS_W  => [#] logw_val w_val.
 proc.
 conseq (: _ ==> size base_w{2} = 3 /\ forall (k:int), 0 <= k < 3 => to_uint output{1}.[k] = nth witness base_w{2} k).
-  + move => &1 &2 /> *. 
+  + move => &1 &2 /> ?? H *. 
     apply (eq_from_nth witness); [rewrite size_map size_to_list /# |]. 
-    move => *.  
-    rewrite (nth_map witness) #smt:(Array3.size_to_list).
+    rewrite H => ??. 
+    rewrite (nth_map witness) 2:/# size_to_list //. 
 sp.
 while (
   ={total, consumed} /\ 0 <= consumed{1} <= 3 /\
@@ -143,36 +187,55 @@ while (
   bits{2} = consumed{2} %% 2 * 4 /\
   _in{2} = to_uint in_0{1} /\ _in{2} = (consumed{2} + 1) %/ 2 /\
   (forall (j : int), 0 <= j < to_uint out{1} => (to_uint output{1}.[j]) = nth witness base_w{2} j)
-).
+); last by skip => /> *; smt(size_nseq).
 (* First subgoal of while *)
-    + if.
-        * auto => /> &1 &2 *; smt(@W64).
-        * auto => /> &1 &2 *; do split;1..11:smt(@W64 @IntDiv pow2_64 size_put).
-            - move => j Hj *. rewrite get_setE 1:/# //= nth_put 1:#smt:(size_nseq).
-              case (j = to_uint out{1}); last first.
-                + move => *. rewrite ifF 1:/# #smt:(@W64).
-                + move => -> //=. rewrite logw_val w_val /=. 
-                  have -> : 15 = 2 ^ 4 - 1 by smt().
-                  rewrite and_mod // and_mod // shr_div shr_div //=. 
+if.
+    + auto => /> &1 &2 *; smt(@W64).
+    + auto => /> &1 &2 ?? H0 ??? H1 H2 *.
+      do split. 
+         * smt(). 
+         * smt(). 
+         * by rewrite size_put H0. 
+         * rewrite to_uintD_small // /#. 
+         * rewrite to_uintD_small // /#. 
+         * rewrite to_uintD_small // /#. 
+         * rewrite to_uintD_small // /#. 
+         * by rewrite logw_val. 
+         * rewrite logw_val /= /#. 
+         * rewrite to_uintD_small // /#. 
+         * rewrite H1 /#.
+         * move => j *.
+           rewrite get_setE // nth_put 1:/#.
+           case (j = to_uint out{1}) => [-> | *].
+                + rewrite w_val ifT //=.  
+                  have ->: 15 = 2 ^ 4 - 1 by smt(). 
+                  rewrite and_mod //  and_mod // shr_div shr_div //=. 
                   have -> : 31 = 2 ^ 5 - 1 by smt().
-                  rewrite and_mod //= to_uint_truncateu8 to_uint_zeroextu32 //=. 
-                  admit. (* smt(@W64 @W8 @W32 pow2_32 pow2_64 pow2_8 @IntDiv). *)
-        * auto => /> &1 &2 *; do split;1..7:smt(@W64 pow2_64 size_put).
-            - rewrite logw_val //= to_uintB #smt:(@W64 pow2_64).
-            - rewrite logw_val // #smt:(@W64 pow2_64 @IntDiv).
-            - smt(@W64 pow2_64 @IntDiv).
-            - move => j Hj *. rewrite get_setE 1:/# //= nth_put 1:#smt:(size_nseq).
-              case (j = to_uint out{1}); last first. 
-                + move => *. rewrite ifF 1:/# #smt:(@W64).
-                + move => -> //=. rewrite logw_val w_val /=. 
+                  rewrite and_mod //= to_uint_truncateu8 to_uint_zeroextu32 //= log2_16 from_int_floor of_uintK /#.
+                + rewrite ifF 1:/# H2 // #smt:(@W64). 
+    + auto => /> &1 &2 ????? H0 H1 H2*.
+      do split.
+         * smt(). 
+         * smt(). 
+         * by rewrite size_put.  
+         * rewrite to_uintD_small // /#. 
+         * rewrite to_uintD_small // /#. 
+         * rewrite to_uintD_small // /#. 
+         * rewrite to_uintD_small // /#. 
+         * by rewrite logw_val //= to_uintB 1:#smt:(@W64 pow2_64 modz_small)  of_uintK /=.  
+         * rewrite logw_val H0 #smt:(@W64 pow2_64 @IntDiv). 
+         * rewrite H1 #smt:(@W64 pow2_64 @IntDiv).  
+         * move => j ??. 
+           rewrite get_setE // nth_put 1:/#. 
+           case (j = to_uint out{1}) => [-> | *].
+                + rewrite ifT // logw_val w_val /=.
                   have -> : 15 = 2 ^ 4 - 1 by smt().
                   rewrite and_mod // and_mod // shr_div shr_div //=. 
                   have -> : 31 = 2 ^ 5 - 1 by smt().
                   rewrite and_mod //= to_uint_truncateu8 to_uint_zeroextu32 //=. 
                   rewrite to_uintB 1:#smt:(@W64) //=. 
-                  admit. (* smt(@W64 @W8 @W32 pow2_32 pow2_64 pow2_8 @IntDiv). *) (* this call to smt fails sometimes *)
-(* Last subgoal of while *)
-    + skip => /> *; do split;2,3:smt(@W64 pow2_64). by rewrite size_nseq.
+                  rewrite !of_uintK //= #smt:(@W64 @IntDiv). 
+                + rewrite ifF 1:/# H2 // #smt:(@W64). 
 qed.
 
 lemma base_w_results_3 ( _in_ : W8.t Array2.t) :
@@ -248,8 +311,7 @@ lemma gen_chain_inplace_correct (_buf_ : W8.t Array32.t, _start_ _steps_ : W32.t
       0 <= to_uint _steps_ <= XMSS_WOTS_W - 1 /\
       0 <= to_uint (_start_ + _steps_) <= XMSS_WOTS_W - 1  
       ==> 
-      val res{2}.`1 = to_list res{1}.`1 /\ 
-      res{1}.`2 = res{2}.`2
+      val res{2} = to_list res{1}.`1
     ].
 proof. 
 rewrite /XMSS_N.
@@ -306,7 +368,7 @@ seq 27 9 : (
 seq 17 1 : (
   #pre /\ 
   addr2{1} = addr{1} /\ 
-  addr_bytes{2} = to_list addr_as_bytes{1} /\
+  val addr_bytes{2} = to_list addr_as_bytes{1} /\
   pub_seed2{1} = pub_seed{1} /\
   out2{1} = out{1}
 ); first by ecall {1} (addr_to_bytes_correctness addr{1}); auto => /> /#. 
@@ -331,11 +393,11 @@ seq 1 0 : (
   #pre /\
   (forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = nth witness (val _key{2}) k)
 ).
-    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16.
+    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 ->.
       split => k??; rewrite initiE 1:/# => />.
          * rewrite ifF 1:/#.
-           apply H15 => //.
-         * by rewrite ifT 1:/# H16 get_to_list.
+           apply H16 => //.
+         * by rewrite ifT 1:/# //.
 seq 1 1 : (
   (0 <= to_uint start{1} && to_uint start{1} <= XMSS_WOTS_W - 1) /\
   (0 <= to_uint steps{1} && to_uint steps{1} <= XMSS_WOTS_W - 1) /\

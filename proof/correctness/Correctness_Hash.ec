@@ -5,7 +5,8 @@ from Jasmin require import JModel.
 
 require import XMSS_IMPL Parameters.
 require import Params Address Hash.
-require import Correctness_Mem Correctness_Address.
+require import Correctness_Bytes Correctness_Mem Correctness_Address.
+require import Utils2.
 
 require import Array8 Array32 Array64 Array96 Array128.
 
@@ -38,15 +39,16 @@ lemma prf_correctness (a b : W8.t Array32.t) :
     val res{2} = to_list res{1}
     ].
 proof.
-rewrite /XMSS_N /XMSS_HASH_PADDING_PRF /XMSS_PADDING_LEN => [#] n_val ??.
+rewrite /XMSS_N /XMSS_HASH_PADDING_PRF /XMSS_PADDING_LEN => [#] n_val pval plen.
 proc.
 seq 9 2 : (buf{2} = to_list buf{1}); last first.
   + inline M(Syscall).__core_hash__96 M(Syscall)._core_hash_96; wp; sp.
     ecall {1} (hash_96 buf{1}); auto => /> /#.
-seq 3 0 : (#pre); 1:auto.
+seq 3 0 : (#pre); 1:auto. 
 seq 1 1 : (#pre /\ padding{2} = to_list padding_buf{1}).
-  + admit.
-    (* FIXME: Used to be call {1} (ull_to_bytes_correct (of_int 3)%W64); auto => />. *) 
+  + call {1} (ull_to_bytes_32_correct (of_int 3)%W64). 
+    auto => /> ? ->. 
+    by rewrite plen pval.
 seq 1 0 : (
   val key{2} = to_list key{1} /\
   val in_0{2} = to_list in_0{1} /\
@@ -105,14 +107,12 @@ case (0 <= i < 32).
 case (32 <= i < 64).
     + move => ?_.
       rewrite nth_cat size_cat !size_to_list ifT 1:/# nth_cat size_to_list ifF 1:/# -H0 /#. 
-(* At this point, we know that 64 <= k < 96 *)
 move => ??.
 rewrite nth_cat size_cat !size_to_list ifF 1:/# H5 // /#. 
 qed.
 
 lemma prf_keygen_correctness (a : W8.t Array64.t, b : W8.t Array32.t) :
     n = XMSS_N /\
-    prf_padding_val = XMSS_HASH_PADDING_PRF /\
     prf_kg_padding_val = XMSS_HASH_PADDING_PRF_KEYGEN /\ 
     padding_len = XMSS_PADDING_LEN =>
     equiv [
@@ -124,15 +124,16 @@ lemma prf_keygen_correctness (a : W8.t Array64.t, b : W8.t Array32.t) :
       val res{2} = to_list res{1}
     ].
 proof.
-rewrite /XMSS_N /XMSS_HASH_PADDING_PRF_KEYGEN /XMSS_PADDING_LEN.
-move => [#] n_val ???.
+rewrite /XMSS_N /XMSS_HASH_PADDING_PRF_KEYGEN /XMSS_PADDING_LEN => [#] n_val pval plen.
 proc => //=.
 seq 9 2 : (buf{2} = to_list buf{1}); last first.
   + inline M(Syscall).__core_hash__128 M(Syscall)._core_hash_128; wp; sp.
     ecall {1} (hash_128 buf{1}); auto => /> /#.
 seq 3 0 : (#pre); 1:auto.
 seq 1 1 : (#pre /\ padding{2} = to_list padding_buf{1}).
-  + admit. (* call {1} (ull_to_bytes_correct (of_int 4)%W64); auto => />.*)
+  + call {1} (ull_to_bytes_32_correct (of_int 4)%W64). 
+    auto => /> ? ->. 
+    by rewrite pval plen.
 seq 1 0 : (
   val key{2} = to_list key{1} /\
   in_0{2} = to_list in_0{1} /\
@@ -224,14 +225,14 @@ lemma rand_hash_correct (i0 i1: nbytes, _pub_seed : W8.t Array32.t, _in : W8.t A
       res{1}.`2 = set_key_and_mask a 2
     ].
 proof.
-rewrite /XMSS_PADDING_LEN /XMSS_HASH_PADDING_PRF /XMSS_PADDING_LEN /XMSS_N => [#] ??? nval.
+rewrite /XMSS_PADDING_LEN /XMSS_HASH_PADDING_PRF /XMSS_PADDING_LEN /XMSS_N => [#] plen pval pprfval nval.
 proc.
 seq 3 0 : (#pre); 1:auto. 
 seq 1 1 : (#pre /\ padding{2} = to_list aux{1} /\ size padding{2} = 32).
-    + admit. 
-(* by call {1} (ull_to_bytes_correct W64.one); skip => /> &1 &2 *; rewrite size_to_list. *)
+    + call {1} (ull_to_bytes_32_correct W64.one). 
+      auto => /> ? ->; split => [/# |]. 
+      rewrite size_lenbytes_be64 /#.   
 swap {1} [2..3] -1.
-
 (* conseq to rewrite #pre *)
 conseq (: 
   addr{1} = address{2} /\

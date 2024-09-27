@@ -6,7 +6,7 @@ require import BitEncoding.
 
 from Jasmin require import JModel.
 
-require import Params.
+require import Params Address Hash.
 
 (** -------------------------------------------------------------------------------------------- **)
 
@@ -23,3 +23,26 @@ pred valid_ptr_i (p : W64.t) (o : int) =
 lemma nbytes_eq:
   forall (s1 s2 : nbytes), val s1 = val s2 <=> s1 = s2
     by smt(@NBytes).
+
+(** -------------------------------------------------------------------------------------------- **)
+
+lemma size_bits_to_bytes (bits : bool list) :
+    size (BitsToBytes bits) = (size bits) %/ 8
+        by rewrite /BitsToBytes size_map size_chunk.
+
+
+lemma size_lenbytes_be64 (val : W64.t, len : int) : 
+    0 <= len =>
+      size (lenbytes_be64 val len) = len.
+proof.
+move => ?.
+rewrite /lenbytes_be64 size_rev size_mkseq /#.
+qed.
+
+lemma size_lenbytes_be32 (val : W32.t, len : int) : 
+    0 <= len =>
+      size (lenbytes_be32 val len) = len.
+proof.
+move => ?.
+rewrite /lenbytes_be64 size_rev size_mkseq /#.
+qed.
