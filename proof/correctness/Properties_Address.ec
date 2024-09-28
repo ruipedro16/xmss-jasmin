@@ -8,7 +8,7 @@ require import AllCore IntDiv.
 require import Parameters XMSS_IMPL.
 require import Address.
 
-require import Array8.
+require import Array8 Array32 Array64 Array2144.
 
 from Jasmin require import JModel.
 
@@ -62,9 +62,10 @@ $ ./addr.py 456 -l left -r right prints
 
 lemma addr_prop_thash_f (a : W32.t Array8.t): 
     hoare[
-      M(Syscall).__thash_h : 
-      arg.`4 = a 
+      M(Syscall).__thash_f : 
+      arg.`3 = a 
       ==> 
+      res.`2.[0] = a.[0] /\
       res.`2.[1] = a.[1] /\
       res.`2.[2] = a.[2] /\
       res.`2.[3] = a.[3] /\
@@ -75,14 +76,10 @@ lemma addr_prop_thash_f (a : W32.t Array8.t):
 proof.
 proc => /=.
 call (: true) => //.
-seq 4 : #pre; first by call (: true) => //; auto.
-seq 2 : #post; first by inline; auto.
-seq 3 : #pre; first by auto; do call (: true) => //.
-seq 1 : #pre; first by inline; auto.
-seq 3 : #pre; first by auto; do call (: true) => //.
-seq 1 : #pre; first by inline; auto.
-seq 3 : #pre; first by auto; do call (: true) => //.
-while (0 <= to_uint i <= 64 /\ #pre); last by auto. 
+seq 10 : #pre; first by do (auto; call (: true) => //).
+seq 1 : #post; first by inline; auto.
+seq 2 : #pre; first by do call (: true) => //.
+while (0 <= to_uint i <= 32 /\ #pre); last by auto. 
 auto => /> &hr *; split => [| *]. 
   + rewrite to_uintD_small /#.
   + rewrite to_uintD_small 1:/# #smt:(@W64).
@@ -93,6 +90,7 @@ lemma addr_prop_thash_h (a : W32.t Array8.t):
       M(Syscall).__thash_h : 
       arg.`4 = a 
       ==> 
+      res.`2.[0] = a.[0] /\
       res.`2.[1] = a.[1] /\
       res.`2.[2] = a.[2] /\
       res.`2.[3] = a.[3] /\
@@ -118,106 +116,173 @@ qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 
-lemma addr_prop_gen_chain (a : adrs) (_start_ _steps_ : W32.t) :
+lemma addr_prop_gen_chain (a : W32.t Array8.t) (_start_ _steps_ : W32.t) :
     hoare [
       M(Syscall).__gen_chain_inplace : 
-      arg.`2 = _start_ /\
-      arg.`3 = _steps_ /\
-      arg.`5 = a /\
-      0 <= to_uint _start_ <= XMSS_WOTS_W - 1/\
-      0 <= to_uint _steps_ <= XMSS_WOTS_W - 1 /\
-      0 <= to_uint (_start_ + _steps_) <= XMSS_WOTS_W - 1  
+      arg.`5 = a 
       ==>  
-      res.`2 = (set_key_and_mask (set_hash_addr a (to_uint (_start_ + _steps_) - 1)) 1)
+      res.`2.[0] = a.[0] /\
+      res.`2.[1] = a.[1] /\
+      res.`2.[2] = a.[2] /\
+      res.`2.[3] = a.[3] /\
+      res.`2.[4] = a.[4] /\
+      res.`2.[5] = a.[5]
     ].
 proof.
-proc.  
-while (
-  0 <= to_uint start <= 15 /\
-  0 <= to_uint steps <= 15 /\
-  0 <= to_uint (start + steps) <= 15 /\
-  t = start + steps /\
-  0 <= to_uint i <= to_uint t /\
-  addr = (set_key_and_mask (set_hash_addr a (to_uint i - 1)) 1)
-).
-    + auto.
-      inline M(Syscall).__thash_f_ M(Syscall)._thash_f.
-      auto.
-      ecall (addr_prop_thash_h addr). 
-      inline *; auto => /> &hr H0 H1 H2 H3 H4 H5 H6 H7 H8 ? ->. 
-      do split. 
-          + rewrite to_uintD /#. 
-          + smt(@W32 pow2_32).
-          + rewrite !set_key_and_mask_comp /set_key_and_mask /set_hash_addr tP => j?.
-            case (j = 0); first by smt(@Array8).
-            case (j = 1); first by smt(@Array8).
-            case (j = 2); first by smt(@Array8).
-            case (j = 3); first by smt(@Array8).
-            case (j = 4); first by smt(@Array8).
-            case (j = 5); first by smt(@Array8).
-            case (j = 6).
-              + move => ? _ _ _ _ _ _. 
-                rewrite get_setE // ifF 1:/# get_setE // ifT 1:/# get_setE // ifF 1:/# get_setE // ifT //.
-                by rewrite to_uintD_small 1:#smt:(@W64) of_uintK /=.  
-            (* At this point, j=7 *)
-            move => ???????. 
-            have ->: j = 7 by smt(). 
-            rewrite get_setE // ifT // get_setE // ifT //.
-    + auto => />.
-      rewrite /XMSS_WOTS_W /= => H0 H1 H2 H3 H4 H5; do split. 
-          + smt(@W32 pow2_32).
-          + admit. (* Sem informacao sobre a??? *)
-      move => i. 
-      rewrite ultE => H6 H7 H8 H9 H10 H11. 
-      do congr. 
-      smt(@W32 pow2_32).
+proc => /=.   
+while (#post); last by auto => /> *; smt(@W32 pow2_32).
+wp.
+inline M(Syscall).__thash_f_ M(Syscall)._thash_f.
+auto.
+ecall (addr_prop_thash_f addr). 
+auto; inline.
+auto => /> /#. 
 qed.
 
-
-lemma addr_prop_expand_seed (a : adrs) :
+lemma addr_prop_expand_seed (a : W32.t Array8.t) :
     hoare [
         M(Syscall).__expand_seed : 
         arg.`4 = a 
         ==> 
-        res.`2 = set_hash_addr (set_key_and_mask (set_chain_addr a (XMSS_WOTS_LEN) ) 0) 0
+        res.`2.[0] = a.[0] /\
+        res.`2.[1] = a.[1] /\
+        res.`2.[2] = a.[2] /\
+        res.`2.[3] = a.[3] /\
+        res.`2.[4] = a.[4]
     ].
 proof.
-proc.
-seq 5 : (addr = set_key_and_mask (set_hash_addr a 0) 0); first by inline; auto.
-seq 2 : #pre; first by auto => />; call (: true).
-while (
-  0 <= i <= 67 /\
-  addr = set_chain_addr (set_key_and_mask (set_hash_addr a 0) 0) i
-).
-    + inline M(Syscall).__set_chain_addr.
-      do (auto; call (: true) => //). 
-      auto => /> &hr *; split => [/# |]. 
-      rewrite /set_chain_addr /set_key_and_mask /set_hash_addr tP => j?.
-      rewrite get_setE //.
-      case (j = 0); first by smt(@Array8).
-      case (j = 1); first by smt(@Array8).
-      case (j = 2); first by smt(@Array8).
-      case (j = 3); first by smt(@Array8).
-      case (j = 4); first by smt(@Array8).
-      case (j = 5) => [-> _ _ _ _ _ /> |]. 
-          + admit.
-      case (j = 6); first by smt(@Array8).
-      smt(@Array8).     
-auto => />; split.
-    * admit.
-move => j???.
-have ->: j = 67 by smt(). 
-rewrite /XMSS_WOTS_LEN /=.
-rewrite /set_chain_addr /set_hash_addr /set_key_and_mask tP => i?.
-      case (i = 0); first by smt(@Array8).
-      case (i = 1); first by smt(@Array8).
-      case (i = 2); first by smt(@Array8).
-      case (i = 3); first by smt(@Array8).
-      case (i = 4); first by smt(@Array8).
-      case (i = 5) => [-> |].
-         + move => *; by rewrite get_setE.
-      case (i = 6) => [-> |]; first by auto => />.
-      move => ???????. 
-      have ->: i = 7 by smt(). 
-      move => *; auto => />. 
+proc => /=.
+seq 3 : #pre; first by auto.
+seq 2 : #post; first by inline; auto.
+seq 2 : #pre; first by auto; call (: true) => //.
+while (#post); last by auto.
+seq 1 : #pre; first by inline; auto.
+do (auto; call (: true) => //). 
 qed.
+
+lemma addr_prop_pkgen (a : W32.t Array8.t) :
+    hoare [
+      M(Syscall).__wots_pkgen :
+      arg.`4 = a 
+      ==>
+      res.`2.[0] = a.[0] /\
+      res.`2.[1] = a.[1] /\
+      res.`2.[2] = a.[2] /\
+      res.`2.[3] = a.[3] /\
+      res.`2.[4] = a.[4]
+    ].
+proof.
+proc => /=.
+seq 2 : #post.
+  + inline M(Syscall).__expand_seed_ M(Syscall)._expand_seed.
+    wp.
+    ecall (addr_prop_expand_seed addr).
+    auto => />.
+while (#post); last by auto.
+seq 2 : #pre; first by inline; auto. 
+seq 2 : #pre.
+  + inline M(Syscall).__gen_chain_inplace_ M(Syscall)._gen_chain_inplace.
+    wp.
+    ecall (addr_prop_gen_chain addr1 start0 steps0).
+    auto => /> /#.
+auto => /> /#.
+qed.
+
+lemma addr_prop_pk_from_sig (a : W32.t Array8.t) :
+    hoare [
+      M(Syscall).__wots_pk_from_sig :
+      arg.`5 = a
+      ==>
+      res.`2.[0] = a.[0] /\
+      res.`2.[1] = a.[1] /\
+      res.`2.[2] = a.[2] /\
+      res.`2.[3] = a.[3] /\
+      res.`2.[4] = a.[4]
+    ].
+proof.
+proc => /=.
+inline M(Syscall).__chain_lengths_ M(Syscall)._chain_lengths M(Syscall).__chain_lengths.
+seq 21 : #pre; first by do (auto; call (: true) => //).
+while (#post); last by auto.
+inline M(Syscall).__gen_chain_inplace_ M(Syscall)._gen_chain_inplace.
+wp. 
+ecall (addr_prop_gen_chain addr1 start1 steps1).
+auto; call (: true) => //.
+inline; auto => /> /#. 
+qed.
+
+(** -------------------------------------------------------------------------------------------- **)
+
+lemma addr_prop_ltree (a : W32.t Array8.t) :
+    hoare [
+      M(Syscall).__l_tree :
+      arg.`4 = a
+      ==>
+      res.`3.[0] = a.[0] /\
+      res.`3.[1] = a.[1] /\
+      res.`3.[2] = a.[2] /\
+      res.`3.[3] = a.[3] /\
+      res.`3.[4] = a.[4]
+    ].
+proof.
+proc => //.
+seq 7 : #post; last by call (: true) => //; auto.
+seq 3 : #pre; first by auto.
+seq 3 : (#post /\ l = W64.of_int 67); first by inline; auto.
+while (#post); last by auto.
+seq 4 : #post; last first.
+  + seq 3 : #post; last by inline; auto.
+    seq 2 : #post; first by auto.    
+    if; [ auto; call (: true) => //= |]; auto. 
+seq 2 : #post; first by auto.
+while (#post); last by auto.
+auto.
+call (: true) => //.
+auto.
+ecall (addr_prop_thash_h addr).
+do 2! (call (: true) => //; auto).
+inline; auto => /> /#. 
+qed.
+
+lemma addr_prop_compute_root (a : W32.t Array8.t) :
+    hoare [
+      M(Syscall).__compute_root :
+      arg.`6 = a
+      ==>
+      res.`2.[0] = a.[0] /\
+      res.`2.[1] = a.[1] /\
+      res.`2.[2] = a.[2] /\
+      res.`2.[3] = a.[3] /\
+      res.`2.[4] = a.[4]
+    ].    
+proof.
+proc => /=.
+ecall (addr_prop_thash_h addr).
+seq 5 : #pre; first by auto.
+seq 1 : #pre.
+  + if; last by auto; do 2! (call (: true) => //). 
+    do 2! (auto; call (: true) => //).
+seq 1 : #pre; first by auto. 
+conseq  (: _ ==> 
+  addr.[0] = a.[0] /\
+  addr.[1] = a.[1] /\
+  addr.[2] = a.[2] /\
+  addr.[3] = a.[3] /\
+  addr.[4] = a.[4]
+); first by auto => /> /#.
+seq 2 : #post; last by inline; auto. 
+while (#post); last by auto.
+seq 7 : #post; last by auto.
+seq 6 : #post; first by inline; auto.
+if.
+    + auto; call (: true) => //.
+      auto. 
+      ecall (addr_prop_thash_h addr). 
+      auto => /> /#.
+    + auto; call (: true) => //.
+      auto. 
+      ecall (addr_prop_thash_h addr). 
+      auto => /> /#.
+qed.
+
+(* TODO: Do we also need a lemma for gen leaf wots??? *)
