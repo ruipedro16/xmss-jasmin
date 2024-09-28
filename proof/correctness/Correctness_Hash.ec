@@ -221,8 +221,7 @@ lemma rand_hash_correct (i0 i1: nbytes, _pub_seed : W8.t Array32.t, _in : W8.t A
       arg{1}.`4 = a /\
       arg{2} = (i0, i1, NBytes.insubd(to_list _pub_seed), a)
       ==>
-      to_list res{1}.`1 = val res{2} /\
-      res{1}.`2 = set_key_and_mask a 2
+      to_list res{1}.`1 = val res{2}
     ].
 proof.
 rewrite /XMSS_PADDING_LEN /XMSS_HASH_PADDING_PRF /XMSS_PADDING_LEN /XMSS_N => [#] plen pval pprfval nval.
@@ -233,10 +232,8 @@ seq 1 1 : (#pre /\ padding{2} = to_list aux{1} /\ size padding{2} = 32).
       auto => /> ? ->; split => [/# |]. 
       rewrite size_lenbytes_be64 /#.   
 swap {1} [2..3] -1.
-(* conseq to rewrite #pre *)
 conseq (: 
   addr{1} = address{2} /\
-  addr{1} = a /\
   to_list in_0{1} = (val _left{2}) ++ (val _right{2}) /\
   val _seed{2} = to_list pub_seed{1} /\ 
   padding{2} = to_list aux{1} /\   
@@ -260,8 +257,7 @@ seq 2 2 : (
   padding{2} = to_list aux{1} /\ 
   size padding{2} = 32 /\
 
-  val addr_bytes{2} = to_list addr_as_bytes{1} /\
-  addr{1} = set_key_and_mask a 0
+  val addr_bytes{2} = to_list addr_as_bytes{1} 
 ).
     + inline {1} M(Syscall).__set_key_and_mask.
       ecall {1} (addr_to_bytes_correctness addr{1}).
@@ -272,7 +268,6 @@ seq 1 0 : (
   forall (k : int), 0 <= k < 32 => buf{1}.[k] = nth witness padding{2} k
 ); first by auto => /> *; rewrite initE ifT 1:/#; auto => /> /#.
 seq 1 1 : (
-  addr{1} = set_key_and_mask a 0 /\
   to_list in_0{1} = (val _left{2}) ++ (val _right{2}) /\
   val _seed{2} = to_list pub_seed{1} /\ 
   address{2} = addr{1} /\
@@ -286,11 +281,9 @@ seq 1 1 : (
       call {1} (prf_correctness _P1 _P2) => [/# |].  
       skip => /> &1 &2 ? H0 *.
       rewrite -H0 #smt:(@NBytes).
-(* Remove hash from #post *)
 seq 11 6 : (
   addr{1} = address{2} /\
-  to_list buf{1} = padding{2} ++ (val key{2}) ++ bytexor ((val _left{2}) ++ (val _right{2})) ((val bitmask_0{2}) ++ (val bitmask_1{2})) /\
-  address{2} = set_key_and_mask a 2
+  to_list buf{1} = padding{2} ++ (val key{2}) ++ bytexor ((val _left{2}) ++ (val _right{2})) ((val bitmask_0{2}) ++ (val bitmask_1{2}))
 ); last first. 
     + inline {1}  M(Syscall)._core_hash_128. 
       wp. 
@@ -304,7 +297,6 @@ seq 1 0 : (
          * rewrite ifF /#.                       
          * by rewrite ifT 1:/# H get_to_list.
 seq 2 2 : (
-  addr{1} = set_key_and_mask a 1 /\
   to_list in_0{1} = val _left{2} ++ val _right{2} /\
   val _seed{2} = to_list pub_seed{1} /\
   address{2} = addr{1} /\
@@ -317,7 +309,6 @@ seq 2 2 : (
     + inline {1} M(Syscall).__set_key_and_mask.
       ecall {1} (addr_to_bytes_correctness addr{1}); auto => /> /#.
 seq 2 1 : (
-  addr{1} = set_key_and_mask a 1 /\
   to_list in_0{1} = val _left{2} ++ val _right{2} /\
   val _seed{2} = to_list pub_seed{1} /\ 
   address{2} = addr{1} /\
@@ -335,7 +326,6 @@ seq 2 1 : (
       rewrite initE ifT 1:/# => />.
       by rewrite ifT //= H0 get_to_list.
 seq 2 2 : (
-  addr{1} = set_key_and_mask a 2 /\
   to_list in_0{1} = val _left{2} ++ val _right{2} /\
   val _seed{2} = to_list pub_seed{1} /\
   address{2} = addr{1} /\
@@ -352,7 +342,7 @@ seq 2 1 : (
   (forall (k : int), 0 <= k < 32 => bitmask{1}.[32 + k] = nth witness (val bitmask_1{2}) k)
 ). 
     + inline {1} M(Syscall).__prf_ M(Syscall)._prf; wp; sp.
-      exists * in_01{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_correctness _P1 _P2); first by smt().
+      exists * in_01{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_correctness _P1 _P2) => [/# |].
       skip => /> &1 &2 ?H H0 H1 H2 H3 H4.
       do split => [| | H5 H6 rL rR H7]. 
          * rewrite -H0 #smt:(@NBytes). 
@@ -361,11 +351,9 @@ seq 2 1 : (
               - rewrite ifF 1:/#. 
                 by apply H2.
               - by rewrite ifT 1:/# H7 get_to_list. 
-(* Conseq to simplify #post *) 
 conseq (: _ ==>
   size padding{2} = 32 /\
   addr{1} = address{2} /\ 
-  address{2} = set_key_and_mask a 2 /\
   (forall (k : int), 0 <= k < 32 => buf{1}.[k] = nth witness padding{2} k) /\
   (forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = nth witness (val key{2}) k) /\
   (forall (k : int), 0 <= k < 64 => buf{1}.[64 + k] = nth witness (bytexor (val _left{2} ++ val _right{2}) (val bitmask_0{2} ++ val bitmask_1{2})) k)
@@ -390,7 +378,6 @@ while {1} (
   0 <= to_uint i{1} <= 64 /\
   size padding{2} = 32 /\ 
   addr{1} = address{2} /\
-  address{2} = set_key_and_mask a 2 /\
   to_list in_0{1} = val _left{2} ++ val _right{2} /\
   to_list bitmask{1} = val bitmask_0{2} ++ val bitmask_1{2} /\
   (forall (k : int), 0 <= k < 32 => buf{1}.[k] = nth witness padding{2} k) /\

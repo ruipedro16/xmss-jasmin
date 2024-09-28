@@ -97,6 +97,7 @@ op set_ltree_addr (address : adrs, ltree_addr : int) : adrs =
 
 op set_tree_height (address : adrs, tree_height : int) : adrs = 
     address.[5 <- W32.of_int tree_height].
+    
 op get_tree_height (address : adrs) : int =
   W32.to_uint (address.[5]).
 

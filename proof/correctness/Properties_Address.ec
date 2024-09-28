@@ -12,24 +12,111 @@ require import Array8.
 
 from Jasmin require import JModel.
 
-lemma set_key_and_mask_comp (a : adrs) (v0 v1 : int) :
-    set_key_and_mask (set_key_and_mask a v0) v1 = set_key_and_mask a v1.
+(*
+
+set_layer_addr 		updates a.[0]
+set_tree_addr 		updates a.[1] and a.[2]
+set_type	 		updates a.[3]
+set_ots_addr 		updates a.[4]
+set_chain_addr 		updates a.[5]
+set_hash_addr 		updates a.[6]
+set_ltree_addr 		updates a.[4]
+set_tree_height 	updates a.[5]
+set_tree_index 		updates a.[6]
+set_key_and_mask 	updates a.[7]
+
+*)
+
+(*
+
+Note about addr.py script
+
+
+$ ./addr.py 123 prints 
+
+    addr.[1] = a.[1] /\ 
+    addr.[2] = a.[2] /\ 
+    addr.[3] = a.[3]
+
+$ ./addr.py 456 -l left prints
+
+    left.[4] = a.[4] /\ 
+    left.[5] = a.[5] /\ 
+    left.[6] = a.[6]
+
+$ ./addr.py 456 -r right prints
+
+    addr.[4] = right.[4] /\ 
+    addr.[5] = right.[5] /\ 
+    addr.[6] = right.[6]
+
+$ ./addr.py 456 -l left -r right prints
+
+    left.[4] = right.[4]/\ 
+    left.[5] = right.[5]/\ 
+    left.[6] = right.[6]
+
+*)
+
+(** -------------------------------------------------------------------------------------------- **)
+
+lemma addr_prop_thash_f (a : W32.t Array8.t): 
+    hoare[
+      M(Syscall).__thash_h : 
+      arg.`4 = a 
+      ==> 
+      res.`2.[1] = a.[1] /\
+      res.`2.[2] = a.[2] /\
+      res.`2.[3] = a.[3] /\
+      res.`2.[4] = a.[4] /\
+      res.`2.[5] = a.[5] /\
+      res.`2.[6] = a.[6]
+    ].
 proof.
-rewrite /set_key_and_mask tP => j?.
-case (j = 7) => [-> | /#].
-by rewrite get_setE //. 
+proc => /=.
+call (: true) => //.
+seq 4 : #pre; first by call (: true) => //; auto.
+seq 2 : #post; first by inline; auto.
+seq 3 : #pre; first by auto; do call (: true) => //.
+seq 1 : #pre; first by inline; auto.
+seq 3 : #pre; first by auto; do call (: true) => //.
+seq 1 : #pre; first by inline; auto.
+seq 3 : #pre; first by auto; do call (: true) => //.
+while (0 <= to_uint i <= 64 /\ #pre); last by auto. 
+auto => /> &hr *; split => [| *]. 
+  + rewrite to_uintD_small /#.
+  + rewrite to_uintD_small 1:/# #smt:(@W64).
 qed.
 
-lemma addr_prop_thash_h (a : adrs) :
-    hoare [M(Syscall).__thash_f : arg.`3 = a ==> res.`2 = set_key_and_mask a 1].
+lemma addr_prop_thash_h (a : W32.t Array8.t): 
+    hoare[
+      M(Syscall).__thash_h : 
+      arg.`4 = a 
+      ==> 
+      res.`2.[1] = a.[1] /\
+      res.`2.[2] = a.[2] /\
+      res.`2.[3] = a.[3] /\
+      res.`2.[4] = a.[4] /\
+      res.`2.[5] = a.[5] /\
+      res.`2.[6] = a.[6]
+    ].
 proof.
-proc.
-seq 10 : (addr = a); first by do 3! (auto; call (: true) => //); auto.
-seq 1 : (addr = set_key_and_mask a 1); first by inline; auto => />.
+proc => /=.
 call (: true) => //.
-while (#pre); auto => />.
-by call (: true).
+seq 5 : #pre; first by auto; call (: true) => //; auto.
+seq 1 : #post; first by inline; auto.
+seq 3 : #pre; first by auto; do call (: true) => //.
+seq 1 : #pre; first by inline; auto.
+seq 3 : #pre; first by auto; do call (: true) => //.
+seq 1 : #pre; first by inline; auto.
+seq 3 : #pre; first by auto; do call (: true) => //.
+while (0 <= to_uint i <= 64 /\ #pre); last by auto. 
+auto => /> &hr *; split => [| *]. 
+  + rewrite to_uintD_small /#.
+  + rewrite to_uintD_small 1:/# #smt:(@W64).
 qed.
+
+(** -------------------------------------------------------------------------------------------- **)
 
 lemma addr_prop_gen_chain (a : adrs) (_start_ _steps_ : W32.t) :
     hoare [
