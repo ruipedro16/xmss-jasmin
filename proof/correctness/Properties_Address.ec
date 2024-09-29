@@ -6,7 +6,7 @@ require import AllCore IntDiv.
 (* Thash_f = RandHash => Handled in Correctness Hash *)
 
 require import Parameters XMSS_IMPL.
-require import Address.
+require import Termination.
 
 require import Array8 Array32 Array64 Array2144.
 
@@ -138,6 +138,26 @@ ecall (addr_prop_thash_f addr).
 auto; inline.
 auto => /> /#. 
 qed.
+
+lemma p_addr_prop_gen_chain (a : W32.t Array8.t) (_start_ _steps_ : W32.t) :
+    phoare [
+      M(Syscall).__gen_chain_inplace : 
+      arg.`5 = a /\
+      0 <= to_uint start /\
+      0 <= to_uint steps <= XMSS_WOTS_W /\
+      0 <= to_uint (start + steps) <= XMSS_WOTS_W
+      ==>  
+      res.`2.[0] = a.[0] /\
+      res.`2.[1] = a.[1] /\
+      res.`2.[2] = a.[2] /\
+      res.`2.[3] = a.[3] /\
+      res.`2.[4] = a.[4] /\
+      res.`2.[5] = a.[5]
+    ] = 1%r.
+proof.
+by conseq gen_chain_inplace_ll (addr_prop_gen_chain a _start_ _steps_);  auto.
+qed.
+
 
 lemma addr_prop_expand_seed (a : W32.t Array8.t) :
     hoare [

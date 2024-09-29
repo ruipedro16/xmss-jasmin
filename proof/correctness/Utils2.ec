@@ -30,7 +30,6 @@ lemma size_bits_to_bytes (bits : bool list) :
     size (BitsToBytes bits) = (size bits) %/ 8
         by rewrite /BitsToBytes size_map size_chunk.
 
-
 lemma size_lenbytes_be64 (val : W64.t, len : int) : 
     0 <= len =>
       size (lenbytes_be64 val len) = len.
@@ -46,3 +45,10 @@ proof.
 move => ?.
 rewrite /lenbytes_be64 size_rev size_mkseq /#.
 qed.
+
+(** -------------------------------------------------------------------------------------------- **)
+
+lemma nseq_nth (x : W8.t list) (i : int) (v : W8.t) :
+    x = nseq i v => forall (k : int), 0 <= k < i => nth witness x k = v
+        by smt(@List).
+
