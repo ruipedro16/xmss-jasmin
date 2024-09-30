@@ -14,7 +14,7 @@ require import Params Address.
 require import XMSS_IMPL.
 
 op zero_addr : adrs = Array8.init (fun _ => W32.zero). 
-op W32toBytes (x : W32.t) : W8.t list = map W8.bits2w (chunk W8.size (W32.w2bits x)).
+op W32toBytes (x : W32.t) : W8.t list = map W8.bits2w (chunk W8.size (W32.w2bits x)). (* FIXME: Move to Utils *)
 
 lemma zero_addr_op_impl (address : adrs) :
     hoare[M(Syscall)._zero_address : true ==> res = zero_addr].

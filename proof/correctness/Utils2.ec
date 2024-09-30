@@ -8,6 +8,25 @@ from Jasmin require import JModel.
 
 require import Params Address Hash.
 
+require import Correctness_Address. (* FIXME: This should not be imported here ==> move W32toBytes to Utils *)
+
+
+(** -------------------------------------------------------------------------------------------- **)
+
+(* 
+  m1 and m2 are memories whose contect is equal except for the indices in the 
+  ptr_dif list
+ *)
+pred mem_dif (m1 m2 : global_mem_t) (ptrs_dif : int list) = 
+  forall (k : int), 0 <= k /\ ! (k \in ptrs_dif) => 
+    m1.[k] = m2.[k].
+
+
+(** -------------------------------------------------------------------------------------------- **)
+
+op concatMap  (f: 'a -> 'b list) (a: 'a list): 'b list = flatten (map f a).
+op W32ofBytes (bytes : W8.t list) : W32.t = W32.bits2w (concatMap W8.w2bits bytes).
+
 (** -------------------------------------------------------------------------------------------- **)
 
 pred valid_ptr (p o : W64.t) = 
@@ -45,6 +64,13 @@ proof.
 move => ?.
 rewrite /lenbytes_be64 size_rev size_mkseq /#.
 qed.
+
+lemma sizeW32toBytes (x : W32.t) :
+    size (W32toBytes x) = 4.
+proof.
+rewrite /W32toBytes size_map size_chunk // size_w2bits.
+qed.
+
 
 (** -------------------------------------------------------------------------------------------- **)
 

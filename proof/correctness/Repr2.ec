@@ -8,7 +8,7 @@ from Jasmin require import JModel.
 
 require import Params Types WOTS XMSS_Params XMSS_MT_Types.
 
-require import Array64 Array68 Array132 Array136 Array2144.
+require import Array32 Array64 Array68 Array132 Array136 Array2144.
 
 require import BitEncoding.
 (*---*) import BitChunking.
@@ -31,7 +31,6 @@ move => H.
 rewrite /W32toBytes.
 rewrite (nth_map witness).
   + by rewrite size_chunk.
-print w2bits. 
 have ->: w2bits W32.zero = nseq 32 false.
   + apply (eq_from_nth false); [ by rewrite size_w2bits size_nseq |].
     rewrite size_w2bits => j?.
@@ -56,6 +55,28 @@ apply (eq_from_nth false).
   + rewrite size_nseq /int2bs size_mkseq //=.
 rewrite size_nseq (: max 0 8 = 8) 1:/# => j?.  
 rewrite nth_nseq //= /int2bs nth_mkseq //=.
+qed.
+
+(** -------------------------------------------------------------------------------------------- **)
+
+(* W8 list w/32 elements loaded from memory *)
+op load_mem_w8_list32 (mem : global_mem_t) (ptr : W64.t) : W8.t list =
+    mkseq (fun (i : int) => loadW8 mem (to_uint ptr + i)) 32.
+
+lemma size_load_mem_w8_list32  (mem : global_mem_t) (ptr : W64.t) : 
+    size (load_mem_w8_list32 mem ptr) = 32.
+proof.
+by rewrite /load_mem_w8_list32 size_mkseq.
+qed.
+
+op load_mem_w8_array32 (mem : global_mem_t) (ptr : W64.t) : W8.t Array32.t =
+    Array32.init (fun (i : int) => loadW8 mem (to_uint ptr + i)).
+
+lemma load_mem_list_array_32 (mem : global_mem_t) (ptr : W64.t) :
+    load_mem_w8_list32 mem ptr = to_list (load_mem_w8_array32 mem ptr).
+proof.
+rewrite /load_mem_w8_list32 /load_mem_w8_array32.
+apply (eq_from_nth witness) ; [ rewrite /to_list !size_mkseq //= | smt(@List @Array32) ].
 qed.
 
 (** -------------------------------------------------------------------------------------------- **)

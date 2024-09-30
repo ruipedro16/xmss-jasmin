@@ -59,7 +59,6 @@ move => H.
 rewrite /W32toBytes.
 rewrite (nth_map witness).
   + by rewrite size_chunk.
-print w2bits. 
 have ->: w2bits W32.zero = nseq 32 false.
   + apply (eq_from_nth false); [ by rewrite size_w2bits size_nseq |].
     rewrite size_w2bits => j?.

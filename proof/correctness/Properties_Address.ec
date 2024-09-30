@@ -27,37 +27,6 @@ set_key_and_mask 	updates a.[7]
 
 *)
 
-(*
-
-Note about addr.py script
-
-
-$ ./addr.py 123 prints 
-
-    addr.[1] = a.[1] /\ 
-    addr.[2] = a.[2] /\ 
-    addr.[3] = a.[3]
-
-$ ./addr.py 456 -l left prints
-
-    left.[4] = a.[4] /\ 
-    left.[5] = a.[5] /\ 
-    left.[6] = a.[6]
-
-$ ./addr.py 456 -r right prints
-
-    addr.[4] = right.[4] /\ 
-    addr.[5] = right.[5] /\ 
-    addr.[6] = right.[6]
-
-$ ./addr.py 456 -l left -r right prints
-
-    left.[4] = right.[4]/\ 
-    left.[5] = right.[5]/\ 
-    left.[6] = right.[6]
-
-*)
-
 (** -------------------------------------------------------------------------------------------- **)
 
 lemma addr_prop_thash_f (a : W32.t Array8.t): 
@@ -304,5 +273,3 @@ if.
       ecall (addr_prop_thash_h addr). 
       auto => /> /#.
 qed.
-
-(* TODO: Do we also need a lemma for gen leaf wots??? *)
