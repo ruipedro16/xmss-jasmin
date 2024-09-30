@@ -423,7 +423,7 @@ inline fn __xmssmt_core_sign_open(
     pub_seed = pk[XMSS_N : XMSS_N];
 
     // unsigned long long idx = 0;
-    idx = 0;
+    // idx = 0; // This assignemnt is dead
 
     () = #spill(mlen_ptr, m_ptr, sm_ptr, pub_seed, pub_root);
 
