@@ -406,7 +406,7 @@ inline fn __xmssmt_core_sign_open(
     reg ptr u8[XMSS_N] pub_root pub_seed;
 
     reg u32 idx_leaf;
-    reg u64 idx idx_hash;
+    reg u64 idx;
     reg u64 t64 offset_in offset_out bytes;
     reg u8 are_equal;
     reg u64 res;
@@ -468,10 +468,8 @@ inline fn __xmssmt_core_sign_open(
 
     #declassify bytes = (u64) [mlen_ptr];
     
-    idx_hash = idx;
-
     // NOTE: We use root instead of mhash because mhash is just a pointer to root
-    #declassify root = __hash_message(root, buf, pk[0 : XMSS_N], idx_hash, t64, bytes);
+    #declassify root = __hash_message(root, buf, pk[0 : XMSS_N], idx, t64, bytes);
 
     // sm += params->index_bytes + params->n;
     t64 = XMSS_INDEX_BYTES + XMSS_N;
@@ -487,7 +485,7 @@ inline fn __xmssmt_core_sign_open(
         idx_leaf &= idx;   
 
         // idx = idx >> params->tree_height;
-        idx >>= (XMSS_TREE_HEIGHT & 63); // ?{}, idx = #SHR_64(idx,  XMSS_TREE_HEIGHT);
+        idx >>= (XMSS_TREE_HEIGHT & 63);
         () = #spill(idx, idx_leaf);
 
         // set_layer_addr(ots_addr, i);
