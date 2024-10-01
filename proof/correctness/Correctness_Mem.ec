@@ -400,7 +400,6 @@ while (
       smt(@Array32). 
 qed.
 
-
 (* INLEN = 32 /\ OUTLEN = 2144 *)
 (* pre: copying all elements of in does not write out of bounds in out *)
 (* 0 <= offset + 32 <= 2144 *)

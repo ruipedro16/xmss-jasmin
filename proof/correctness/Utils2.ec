@@ -10,6 +10,7 @@ require import Params Address Hash.
 
 require import Correctness_Address. (* FIXME: This should not be imported here ==> move W32toBytes to Utils *)
 
+require import Array8.
 
 (** -------------------------------------------------------------------------------------------- **)
 
@@ -26,6 +27,15 @@ pred mem_dif (m1 m2 : global_mem_t) (ptrs_dif : int list) =
 
 op concatMap  (f: 'a -> 'b list) (a: 'a list): 'b list = flatten (map f a).
 op W32ofBytes (bytes : W8.t list) : W32.t = W32.bits2w (concatMap W8.w2bits bytes).
+
+(** -------------------------------------------------------------------------------------------- **)
+
+lemma zero_addr_i :
+    forall (k : int), 0 <= k < 8 => zero_addr.[k] = W32.zero.
+proof.
+move => k?.
+rewrite /zero_addr initiE // /#.
+qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 
