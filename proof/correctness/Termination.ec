@@ -66,6 +66,21 @@ wp.
 while (0 <= to_uint i <= 32) (32 - to_uint i); auto => /> *; smt(@W64 pow2_64).
 qed.
 
+lemma memcmpy_u8u8_2_23_2144_ll : 
+    phoare[
+      M(Syscall).__memcpy_u8u8_2_32_2144 :
+      0 < to_uint bytes < W64.max_uint 
+      ==>
+      true
+    ] = 1%r.
+proof.
+proc => /=.
+while (0 <= to_uint i <= to_uint bytes /\ 0 < to_uint bytes < W64.max_uint) (to_uint bytes - to_uint i).
+  + auto => /> &hr *; do split; rewrite to_uintD /#.
+  + auto => /> &hr *; split => [/# |*].
+    rewrite ultE /#.
+qed.
+
 lemma memcpy_ptr_ll : islossless M(Syscall).__memcpy_u8u8p.
 proof.
 proc.

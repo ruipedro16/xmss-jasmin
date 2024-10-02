@@ -9,7 +9,7 @@ require import XMSS_IMPL.
 require import Utils2. (* valid_ptr predicate *)
 require import Termination.
 
-lemma _memcpy_u8u8_2_32_2144_post (_in : W8.t Array2144.t, oi :W64.t):
+lemma _memcpy_u8u8_2_32_2144_post (_in : W8.t Array2144.t, oi : W64.t):
     hoare [
       M(Syscall).__memcpy_u8u8_2_32_2144 : 
       arg.`2 = _in /\
@@ -22,23 +22,35 @@ lemma _memcpy_u8u8_2_32_2144_post (_in : W8.t Array2144.t, oi :W64.t):
     ].
 proof.
 proc => //=.
-while ( 
+while (  
   in_0 = _in /\ 
   bytes = (of_int 32)%W64 /\
   (0 <= to_uint oi < 2144) /\
 
   0 <= to_uint i <= 32 /\
-  forall (k : int), 0 <= k < to_uint i => out.[k] = in_0.[to_uint in_offset + k]
+  in_offset = oi + i /\
+
+  (forall (k : int), 0 <= k < to_uint i => out.[k] = in_0.[to_uint oi + k]) 
 ).
     + auto => /> &hr H0 H1 H2 H3 H4 H5.  
-      do split; 1,2: smt(@W64). 
-      move => k??.
-      rewrite get_setE 1:#smt:(@W64).
-      case (k = to_uint i{hr}) => *. 
-      admit.
-      admit. 
-    + auto => /> &hr ????.
-      admit.
+      do split.
+          * rewrite to_uintD /= #smt:(modz_small).
+          * move => ?. 
+            rewrite to_uintD /= #smt:(@W64 pow2_64).
+          * ring.
+          * move => k??.
+            rewrite get_setE 1:#smt:(@W64).
+            case (k = to_uint i{hr}) => H; first by rewrite H to_uintD /#.
+            rewrite H4 // #smt:(@W64).
+    + auto => /> &hr ????; do split.
+          * smt(@W64 pow2_64). 
+          * smt().  
+          * move => i0 out0 ????. 
+            have ->: to_uint i0 = 32 by smt(@W64 pow2_64). 
+            move => H. 
+            apply (eq_from_nth witness); first by rewrite size_to_list size_sub.
+            rewrite size_to_list => j?.
+            by rewrite get_to_list H // nth_sub.
 qed.
 
 lemma memcpy_u8u8_2_32_2144_post (_in : W8.t Array2144.t, oi :W64.t):
@@ -56,6 +68,51 @@ proof.
 admit.
 qed.
 
+lemma _memcpy_u8u8_2_64_2144_post (_in : W8.t Array2144.t, oi : W64.t):
+    hoare [
+      M(Syscall).__memcpy_u8u8_2_64_2144 : 
+      arg.`2 = _in /\
+      arg.`3 = oi /\
+      arg.`4 = W64.of_int 64 /\
+      0 <= to_uint oi < W32.max_uint /\
+      0 <= to_uint (oi + W64.of_int 64) < 2144
+      ==>
+      to_list res.`1 = sub _in (to_uint oi) 64
+    ].
+proof.
+proc => //=.
+while (  
+  in_0 = _in /\ 
+  bytes = (of_int 64)%W64 /\
+  (0 <= to_uint oi < 2144) /\
+
+  0 <= to_uint i <= 64 /\
+  in_offset = oi + i /\
+
+  (forall (k : int), 0 <= k < to_uint i => out.[k] = in_0.[to_uint oi + k]) 
+).
+    + auto => /> &hr H0 H1 H2 H3 H4 H5.  
+      do split.
+          * rewrite to_uintD /= #smt:(modz_small).
+          * move => ?. 
+            rewrite to_uintD /= #smt:(@W64 pow2_64).
+          * ring.
+          * move => k??.
+            rewrite get_setE 1:#smt:(@W64).
+            case (k = to_uint i{hr}) => H; first by rewrite H to_uintD /#.
+            rewrite H4 // #smt:(@W64).
+    + auto => /> &hr ????; do split.
+          * smt(@W64 pow2_64). 
+          * smt().  
+          * move => i0 out0 ????. 
+            have ->: to_uint i0 = 64 by smt(@W64 pow2_64). 
+            move => H. 
+            apply (eq_from_nth witness); first by rewrite size_to_list size_sub.
+            rewrite size_to_list => j?.
+            by rewrite get_to_list H // nth_sub.
+qed.
+
+
 lemma memcpy_u8u8_2_64_2144_post (_in : W8.t Array2144.t, oi : W64.t):
     phoare [
       M(Syscall).__memcpy_u8u8_2_64_2144 : 
@@ -70,7 +127,6 @@ lemma memcpy_u8u8_2_64_2144_post (_in : W8.t Array2144.t, oi : W64.t):
 proof.
 admit.
 qed.
-
 
 (** -------------------------------------------------------------------------------------------- **)
 
@@ -370,6 +426,16 @@ proc.
 while(0 <= to_uint i <= 32 /\ a = b /\ acc = W8.zero) ; auto => /> *; smt(@W64).
 qed.
 
+lemma p_memcmp_true (x y : W8.t Array32.t) :
+    x = y => 
+        phoare[M(Syscall).__memcmp : arg = (x, y) ==> res = W8.zero] = 1%r.
+proof.
+move => H.
+(* conseq (memcmp_ll)  (memcmp_true x y). doesnt work *)
+admit.
+qed.
+
+
 lemma memcmp_false (x y : W8.t Array32.t) :
     x <> y => 
         hoare[M(Syscall).__memcmp : arg = (x, y) ==> res <> W8.zero].
@@ -386,7 +452,7 @@ while (
     + auto => /> &hr i0???H0. 
       rewrite ultE of_uintK (: 32 %% W64.modulus = 32) 1:/# => ?. 
       do split; 1,2: smt(@W64).       
-         * move => H. 
+         * move => ?. 
            have E1 : acc{hr} = W8.zero by smt(or_zero). 
            have E2 : x.[to_uint i{hr}] `^` y.[to_uint i{hr}] = W8.zero by smt(or_zero).
            have E3 : x.[to_uint i{hr}] = y.[to_uint i{hr}] by smt(xor_eq).
@@ -394,10 +460,17 @@ while (
            rewrite to_uintD_small /#.
          * rewrite to_uintD_small 1:/# (: to_uint W64.one = 1) 1:/# => H.
            rewrite or_zero; split; [rewrite H0 | rewrite H ] => /#.
-    + auto => />; split => [/# | acc0 i0]. 
-      rewrite ultE -lezNgt of_uintK //= => [?i1??? ->].
+    + auto => />; split => [/# | ?i0]. 
+      rewrite ultE -lezNgt of_uintK //= => [????? ->].
       have ->: to_uint i0 = 32 by smt(). 
       smt(@Array32). 
+qed.
+
+lemma p_memcmp_false (x y : W8.t Array32.t) :
+    x <> y => 
+        phoare[M(Syscall).__memcmp : arg = (x, y) ==> res <> W8.zero] = 1%r.
+proof.
+admit.
 qed.
 
 (* INLEN = 32 /\ OUTLEN = 2144 *)

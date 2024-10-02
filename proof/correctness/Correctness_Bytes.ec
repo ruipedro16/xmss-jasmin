@@ -10,6 +10,8 @@ require import Array2 Array32.
 require import Hash.
 require import Termination.
 
+require import Utils2.
+
 (** -------------------------------------------------------------------------------------------- **)
 
 lemma _ull_to_bytes_32_correct (x : W64.t) : 
@@ -26,6 +28,33 @@ lemma ull_to_bytes_32_correct (x : W64.t) :
 
 (** -------------------------------------------------------------------------------------------- **)
 
+lemma _bytes_to_ull_ptr_correct (mem : global_mem_t) (ptr : W64.t) :
+    hoare[
+      M(Syscall).__bytes_to_ull_ptr :
+      valid_ptr_i ptr 4 /\ arg=ptr 
+      ==> 
+      res = W64ofBytes (mkseq (fun i => loadW8 mem (to_uint ptr + i)) 4)
+    ].
+proof.
+proc => /=.
+while (
+  #pre /\
+  0 <= to_uint i <= 4 (* /\ ?????? *)
+).
+    + admit.
+    + admit.
+qed.
+
+lemma bytes_to_ull_ptr_correct (mem : global_mem_t) (ptr : W64.t) :
+    phoare[
+      M(Syscall).__bytes_to_ull_ptr :
+      valid_ptr_i ptr 4 /\ arg=ptr 
+      ==> 
+      res = W64ofBytes (mkseq (fun i => loadW8 mem (to_uint ptr + i)) 4)
+    ] = 1%r.
+proof.
+by conseq bytes_to_ull_ptr_ll (_bytes_to_ull_ptr_correct mem ptr). 
+qed.
 
 (*
 lemma ull_to_bytes_2_correct (y : W64.t) :

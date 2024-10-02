@@ -26,6 +26,20 @@ axiom hash_128 (x : W8.t Array128.t) :
       to_list res = val (Hash (to_list x))
     ] = 1%r.
 
+op load_buf (mem : global_mem_t) (ptr : W64.t) (len : int) : W8.t list =
+  mkseq (fun i => loadW8 mem (to_uint ptr + i)) len.
+
+axiom hash_ptr_correct (mem : global_mem_t) (ptr len : W64.t) :
+  phoare[
+      M(Syscall).__core_hash_in_ptr_ :
+      valid_ptr_i ptr (to_uint len) /\
+      arg.`2 = ptr /\
+      arg.`3 = len 
+      ==>
+      to_list res = val (Hash (load_buf mem ptr (to_uint len)))
+  ] = 1%r.
+
+
 lemma prf_correctness (a b : W8.t Array32.t) :
     n = XMSS_N /\
     prf_padding_val = XMSS_HASH_PADDING_PRF /\ 
@@ -425,4 +439,45 @@ while {1} (
                have ->: (nth witness (zip (val _left{2} ++ val _right{2}) (val bitmask_0{2} ++ val bitmask_1{2})) k).`2 = nth witness (val bitmask_0{2} ++ val bitmask_1{2}) k by smt(@List @NBytes). 
                apply H14.
                smt(@W64 pow2_64).
+qed.
+
+lemma hash_message_correct (mem : global_mem_t) (R _root : W8.t Array32.t) (_idx msg_ptr _mlen : W64.t) :
+    hoare [
+      M(Syscall).__hash_message :
+
+      valid_ptr msg_ptr _mlen /\
+      0 < to_uint _mlen /\
+
+      arg.`2 = R /\
+      arg.`3 = _root /\
+      arg.`4 = _idx /\
+      arg.`5 = msg_ptr /\
+      arg.`6 = mlen /\
+      Glob.mem = mem
+      ==>
+      false
+    ].
+proof.
+proc => /=.
+seq 2 : #pre; first by auto.
+seq 1 : (#pre /\ to_list buf = lenbytes_be64 (of_int 2)%W64 32).
+  + (* call {1} (ull_to_bytes_32_correct ((of_int 2)%W64)) doesnt work *)
+    admit.
+
+seq 9 : (
+  valid_ptr_i m_with_prefix_ptr (to_uint len + 128) /\
+  load_buf Glob.mem m_with_prefix_ptr (to_uint len + 128) = 
+  (lenbytes_be64 (of_int 2)%W64 32) ++ to_list r ++ to_list root ++ (lenbytes_be64 idx 32) ++ load_buf Glob.mem m_with_prefix_ptr (to_uint len)
+); first by admit.
+
+seq 2 : (#pre /\ to_uint len = to_uint mlen + 128).
+    + auto => /> &hr.  
+      rewrite /valid_ptr_i => [#] *.
+      split.
+
+        * admit.
+        * rewrite to_uintD_small. 
+            - admit.
+          by rewrite of_uintK /=.
+admit.
 qed.
