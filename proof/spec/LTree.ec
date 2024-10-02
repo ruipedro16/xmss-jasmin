@@ -7,9 +7,12 @@ require (*--*) Subtype.
 from Jasmin require import JModel.
  
 require import Params Address Hash WOTS.
- 
-op H : nbytes -> nbytes -> nbytes.
-op H_msg : threen_bytes -> W8.t list -> nbytes.
+
+op H_msg_padding_val : W64.t.
+
+op H_msg (t : threen_bytes) (M : W8.t list) : nbytes =
+  let padding : W8.t list = lenbytes_be64 H_msg_padding_val padding_len in
+  Hash (padding ++ val t ++ M).
 
 clone export Subtype as WOTSKeys with 
    type T = wots_sk list,
