@@ -38,7 +38,7 @@ module TreeHash = {
     i <- 0;
     while (i < 2^t) {
       address <- set_type address 0;
-      address <- set_ots_addr address (s + 1);
+      address <- set_ots_addr address (s + i);
 
       (* Generate the public key from the secret seed *)
       pk <@ WOTS.pkGen(sk_seed, pub_seed, address);
