@@ -96,145 +96,119 @@ lemma xmss_kg_no_oid :
       res{1}.`2 = DecodeSkNoOID res{2}.`1
     ].
 proof.
-rewrite /XMSS_N /XMSS_D => [#] n_val *. 
-proc. 
-seq 3 2 : (true); first by auto. 
-swap {2} 3 -2. 
-seq 1 1 : (to_list seed_p{1} = val sk_seed{2} ++ val sk_prf{2} ++ val pub_seed{2}).
-  + call random_bytes_equiv => //=.
+rewrite /XMSS_N /XMSS_D => [#] n_val d_val. 
+proc => /=. 
+sp 3 4.
+seq 1 1 : (
+  address{2} = set_layer_addr zero_address (d - 1) /\ 
+  to_list seed_p{1} = val sk_seed{2} ++ val sk_prf{2} ++ val pub_seed{2}
+); first by call random_bytes_equiv. 
+
 inline {1} M(Syscall).__xmssmt_core_seed_keypair. 
-seq 12 0 : (#pre /\ pk0{1} = pk{1} /\  sk0{1} = sk{1} /\ seed0{1} = seed_p{1}); first by auto. 
-seq 0 0 : (
-  #pre /\
-  (forall (k : int), 0 <= k < 32 => seed_p{1}.[k] = nth witness (val sk_seed{2}) k) /\
-  (forall (k : int), 0 <= k < 32 => seed_p{1}.[32+k] = nth witness (val sk_prf{2}) k) /\
-  (forall (k : int), 0 <= k < 32 => seed_p{1}.[64+k] = nth witness (val pub_seed{2}) k)
+sp 12 0.
+  
+conseq (:
+  pk0{1} = pk{1} /\
+  sk0{1} = sk{1} /\
+  seed0{1} = seed_p{1} /\
+  address{2} = set_layer_addr zero_address (d - 1) /\
+  to_list seed_p{1} = val sk_seed{2} ++ val sk_prf{2} ++ val pub_seed{2} /\
+  val sk_seed{2}  = sub seed_p{1} 0 n /\
+  val sk_prf{2}   = sub seed_p{1} n n /\
+  val pub_seed{2} = sub seed_p{1} (2*n) n
+  ==>
+  _
 ).
-    + auto => /> &1 &2 H.
-      do split => k??; rewrite -get_to_list H.      
-        * rewrite nth_cat size_cat !valP n_val /= ifT 1:/# nth_cat valP n_val /= ifT //.
-        * rewrite nth_cat size_cat !valP n_val /= ifT 1:/# nth_cat valP n_val /= ifF 1:/# //.
-        * rewrite nth_cat size_cat !valP n_val /= ifF 1:/# //.  
-seq 1 1 : (#pre /\ address{2} = top_tree_addr{1}).
-    + inline M(Syscall).__zero_address_; wp; sp.
+    + auto => /> &1 &2 H; do split.
+           * apply (eq_from_nth witness); first by rewrite valP size_sub n_val.
+             rewrite valP n_val => i?.
+             rewrite nth_sub // -get_to_list H nth_cat ifT; [by rewrite size_cat !valP n_val /= /# |].
+             rewrite nth_cat ifT // valP n_val /#. 
+           * apply (eq_from_nth witness); first by rewrite valP size_sub n_val.
+             rewrite valP n_val => i?.
+             rewrite nth_sub // -get_to_list H nth_cat ifT; [by rewrite size_cat !valP n_val /= /# |].
+             rewrite nth_cat ifF // valP n_val /#. 
+           * apply (eq_from_nth witness); first by rewrite valP size_sub n_val.
+             rewrite valP n_val => i?.
+             rewrite nth_sub // -get_to_list H nth_cat ifF; [by rewrite size_cat !valP n_val /= /# |].
+             by rewrite size_cat !valP n_val.
+
+seq 2 0 : (
+    #{/~address{2} = set_layer_addr zero_address (d - 1)}pre /\
+    address{2} = top_tree_addr{1}
+).
+    + inline {1} 2; wp.
+      inline {1} 1; wp; sp.
       exists * top_tree_addr{1}; elim * => _P. 
-      call {1} (zero_addr_res _P); auto. (* NOTE: This requires zero_addr to be phoare because on the right hand side we have an operator and on the left hand side we have a procedure call *)
-seq 1 1 : (#pre); first by inline {1}; auto => /> *; rewrite /set_layer_addr /#. 
-seq 2 0 : (#pre /\ to_list idx{1} = nseq 4 W8.zero).
-    + call {1} memset_nseq; auto. 
-seq 1 0 : (
-  to_list seed_p{1} = val sk_seed{2} ++ val sk_prf{2} ++ val pub_seed{2} /\
-  pk0{1} = pk{1} /\ 
-  seed0{1} = seed_p{1} /\
-  address{2} = top_tree_addr{1} /\
-  to_list idx{1} = nseq 4 W8.zero /\
-  (forall (k : int), 0 <= k < 4 => sk0{1}.[k] = W8.zero) /\
-  (forall (k : int), 0 <= k < 32 => seed_p{1}.[k] = nth witness (val sk_seed{2}) k) /\
-  (forall (k : int), 0 <= k < 32 => seed_p{1}.[32+k] = nth witness (val sk_prf{2}) k) /\
-  (forall (k : int), 0 <= k < 32 => seed_p{1}.[64+k] = nth witness (val pub_seed{2}) k)
-).
-    + auto => /> &1 &2 ???? H???. 
+      call {1} (zero_addr_res _P). (* NOTE: This requires zero_addr to be phoare because on the right hand side we have an operator and on the left hand side we have a procedure call *)
+      skip => /> &1 &2 *.
+      by rewrite /set_layer_addr d_val /=.
+
+seq 2 0 : (#pre /\ to_list idx{1} = nseq 4 W8.zero); first by call {1} memset_nseq; auto. 
+
+seq 1 0 : (#{/~sk0{1} = sk{1}}pre /\ (forall (k : int), 0 <= k < 4 => sk0{1}.[k] = W8.zero)).
+    + auto => /> &1 &2 *. 
       rewrite initE ifT 1:/# => />. 
-      rewrite ifT //. 
       have E : forall (k : int), 0 <= k < 4 => nth witness (to_list idx{1}) k = W8.zero by apply (nseq_nth (to_list idx{1}) 4 W8.zero); assumption.
-      rewrite -get_to_list. 
-      by apply E.
-seq 2 0 : (
-  #pre /\
-  forall (k : int), 0 <= k < 64 => buf1{1}.[k] = seed_p{1}.[k]
-); first by auto => /> *; smt(@Array64).
+      by rewrite ifT // -get_to_list E. 
+
+seq 2 0 : (#pre /\ (forall (k : int), 0 <= k < 64 => buf1{1}.[k] = seed_p{1}.[k])); first by auto => /> *; rewrite initiE.
 seq 1 0 : (#pre /\ buf0{1} = buf1{1}); first by ecall {1} (_x_memcpy_u8u8_64_post buf1{1}); skip => />. 
+
 seq 1 0 : (
-  to_list seed_p{1} = val sk_seed{2} ++ val sk_prf{2} ++ val pub_seed{2} /\
-  pk0{1} = pk{1} /\
-  seed0{1} = seed_p{1} /\
-  address{2} = top_tree_addr{1} /\
-
-  (forall (k : int), 0 <= k < 32 => seed_p{1}.[k] = nth witness (val sk_seed{2}) k) /\
-  (forall (k : int), 0 <= k < 32 => seed_p{1}.[32 + k] = nth witness (val sk_prf{2}) k) /\
-  (forall (k : int), 0 <= k < 32 => seed_p{1}.[64 + k] = nth witness (val pub_seed{2}) k) /\
-
-  to_list idx{1} = nseq 4 W8.zero /\
-
-  (forall (k : int), 0 <= k < 4 => sk0{1}.[k] = W8.zero) /\
-  (forall (k : int), 0 <= k < 32 => sk0{1}.[4 + k] = nth witness (val sk_seed{2}) k) /\
-  (forall (k : int), 0 <= k < 32 => sk0{1}.[4 + 32 + k] = nth witness (val sk_prf{2}) k)
+  #{/~forall (k : int), 0 <= k && k < 64 => buf1{1}.[k] = seed_p{1}.[k]}
+   {/~buf0{1} = buf1{1}}pre /\
+   (forall (k : int), 0 <= k < 32 => sk0{1}.[4 + k] = nth witness (val sk_seed{2}) k) /\
+   (forall (k : int), 0 <= k < 32 => sk0{1}.[4 + 32 + k] = nth witness (val sk_prf{2}) k)
 ).
-    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6; do split => k ??.
-        * rewrite initiE 1:/#; auto => />; rewrite ifF 1:/#.
-          by apply H2.
-        * rewrite initiE 1:/#; auto => />; rewrite ifT 1:/# H6 1:/#. 
-          by apply H3.
-        * rewrite initiE 1:/#; auto => />; rewrite ifT 1:/# H6 1:/#. 
-          by apply H4.
+    + auto => /> &1 &2 ?H0 H1 ??? H2; do split => *.
+        * rewrite initiE 1:/#; auto => />; rewrite ifF /#.
+        * by rewrite initiE 1:/#; auto => />; rewrite ifT 1:/# H2 1:/# H0 n_val nth_sub. 
+        * by rewrite initiE 1:/#; auto => />; rewrite ifT 1:/# H2 1:/# H1 n_val nth_sub.
+ 
+seq 2 0 : (#pre /\ (forall (k : int), 0 <= k < 32 => bufn1{1}.[k] = seed_p{1}.[64 + k])); first by auto => /> *; rewrite initiE.
+seq 1 0 : (#pre /\ bufn0{1} = bufn1{1}); first by ecall {1} (_x_memcpy_u8u8_post bufn1{1}); skip => />.
+ 
 seq 2 0 : (
-  #pre /\
-  forall (k : int), 0 <= k < 32 => bufn1{1}.[k] = seed_p{1}.[64 + k]
-); first by auto => /> *; smt(@Array32).
-seq 1 0 : (#pre /\ bufn0{1} = bufn1{1}); first by ecall {1} (_x_memcpy_u8u8_post bufn1{1}); skip => />. 
-seq 1 0 : (
-  to_list seed_p{1} = val sk_seed{2} ++ val sk_prf{2} ++ val pub_seed{2} /\
-  pk0{1} = pk{1} /\
-  seed0{1} = seed_p{1} /\
-  address{2} = top_tree_addr{1} /\
-
-  (forall (k : int), 0 <= k < 32 => seed_p{1}.[k] = nth witness (val sk_seed{2}) k) /\
-  (forall (k : int), 0 <= k < 32 => seed_p{1}.[32 + k] = nth witness (val sk_prf{2}) k) /\
-  (forall (k : int), 0 <= k < 32 => seed_p{1}.[64 + k] = nth witness (val pub_seed{2}) k) /\
-
-  to_list idx{1} = nseq 4 W8.zero /\
-
-  (forall (k : int), 0 <= k < 4 => sk0{1}.[k] = W8.zero) /\
-  (forall (k : int), 0 <= k < 32 => sk0{1}.[4 + k] = nth witness (val sk_seed{2}) k) /\
-  (forall (k : int), 0 <= k < 32 => sk0{1}.[4 + 32 + k] = nth witness (val sk_prf{2}) k) /\
-  (forall (k : int), 0 <= k < 32 => sk0{1}.[4 + 3 * 32 + k] = nth witness (val pub_seed{2}) k)
+  #{/~forall (k : int), 0 <= k && k < 32 => bufn1{1}.[k] = seed_p{1}.[64 + k]}
+   {/~bufn0{1} = bufn1{1}}pre /\
+   (forall (k : int), 0 <= k < 32 => sk0{1}.[4 + 3 * 32 + k] = nth witness (val pub_seed{2}) k)
 ).
-    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8. 
-      do split => k??; rewrite initiE 1:/#; auto => />; first by smt().
-       * by rewrite ifF 1:/# H6.  
-       * by rewrite ifF 1:/# -H7.
-       * by rewrite ifT 1:/# -H3 //= H8. 
-seq 2 0 : (
-  #pre /\
-  (forall (k : int), 0 <= k < 32 => bufn1{1}.[k] = sk0{1}.[100 + k]) 
-); first by auto => /> *; rewrite initiE /#. 
+    + auto => /> &1 &2 ???->????H. 
+    (* A seta refere-se a hipotese val pub_seed{2} = sub seed_p{1} (2 * n) n *)
+      do split => *; rewrite initiE 1:/#; auto => />; first by smt().
+        * by rewrite ifF /#.  
+        * by rewrite ifF /#.
+        * by rewrite ifT 1:/# //= H // n_val /= nth_sub. 
+
+seq 1 0 : (#pre /\ (forall (k : int), 0 <= k < 32 => bufn1{1}.[k] = sk0{1}.[100 + k])); first by auto => /> *; rewrite initiE. 
 seq 1 0 : (#pre /\ bufn0{1} = bufn1{1}); first by ecall {1} (_x_memcpy_u8u8_post bufn1{1}); skip => />. 
+ 
 seq 1 0 : (
-  to_list seed_p{1} = val sk_seed{2} ++ val sk_prf{2} ++ val pub_seed{2} /\
-  seed0{1} = seed_p{1} /\
-  address{2} = top_tree_addr{1} /\
+  #{/~forall (k : int), 0 <= k && k < 32 => bufn1{1}.[k] = sk0{1}.[100 + k]}
+   {/~bufn0{1} = bufn1{1}}
+   {/~pk0{1} = pk{1}}pre /\
+   (forall (k : int), 0 <= k < 32 => pk0{1}.[32 + k] = nth witness (val pub_seed{2}) k)
+). 
+    + auto => /> &1 &2 ???->???? H0 H1 => *.
+      (* A seta refere se a hipotese val pub_seed{2} = sub seed_p{1} (2 * n) n *)
+      by rewrite initiE 1:/# nth_sub 1:/# n_val /= ifT 1:/# H1 // H0 // nth_sub 1:/# n_val.
 
-  (forall (k : int), 0 <= k < 32 => seed_p{1}.[k] = nth witness (val sk_seed{2}) k) /\
-  (forall (k : int), 0 <= k < 32 => seed_p{1}.[32 + k] = nth witness (val sk_prf{2}) k) /\
-  (forall (k : int), 0 <= k < 32 => seed_p{1}.[64 + k] = nth witness (val pub_seed{2}) k) /\
-
-  to_list idx{1} = nseq 4 W8.zero /\
-
-
-  (forall (k : int), 0 <= k < 4 => sk0{1}.[k] = W8.zero) /\
-  (forall (k : int), 0 <= k < 32 => sk0{1}.[4 + k] = nth witness (val sk_seed{2}) k) /\
-  (forall (k : int), 0 <= k < 32 => sk0{1}.[4 + 32 + k] = nth witness (val sk_prf{2}) k) /\
-  (forall (k : int), 0 <= k < 32 => sk0{1}.[4 + 3 * 32 + k] = nth witness (val pub_seed{2}) k) /\
-
-  (forall (k : int), 0 <= k < 32 => pk0{1}.[32 + k] = nth witness (val pub_seed{2}) k) (* this is the pub seed *)
-).
-    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 k??.
-      rewrite initE ifT 1:/# => />.
-      by rewrite ifT 1:/# -H8 1:/# H9.  
 seq 2 0 : (
   #pre /\
   to_list bufn0{1} = val sk_seed{2} /\
   to_list bufn1{1} = val pub_seed{2}
 ).
-    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9; split.
+    + auto => /> &1 &2 ??????H0??H1; split.
         - apply (eq_from_nth witness); [by rewrite valP size_to_list n_val |].
           rewrite size_to_list => i?.
           rewrite get_to_list initiE 1:/# => />. 
-          by rewrite -H6.
+          by rewrite -H0.
         - apply (eq_from_nth witness); [by rewrite valP size_to_list n_val |].
           rewrite size_to_list => i?.
           rewrite get_to_list initiE 1:/# => />. 
-          by apply H9.
+          by apply H1.
+
 seq 0 1 : (
     #pre /\ 
     toByte sk{2}.`idx 4     = sub sk0{1} 0  4  /\ 
@@ -261,6 +235,7 @@ seq 0 1 : (
       * apply (eq_from_nth witness); [by rewrite size_sub // valP n_val |]. 
         rewrite valP n_val => ??.
         by rewrite -H8 // nth_sub.
+
 seq 1 1 : (#pre /\ val root{2} = to_list root{1}).
     + admit. (* call to treehash lemma *)
 
@@ -268,63 +243,14 @@ seq 1 0  : (
   #pre /\
   (forall (k : int), 0 <= k < 32 => pk0{1}.[k] = nth witness (val root{2}) k)
 ).
-    + inline {1}. 
-      wp.
-      while {1}  
-      (
-        #pre /\  
-        0 <= i{1} <= 32 /\ 
-        offset_out{1} = W64.zero /\
-        offset_in{1} = W64.zero /\
-        in_0{1} = root{1} /\
-        out{1} = pk0{1} /\
-        (forall (k : int), 0 <= k < i{1} => out{1}.[k] = root{1}.[k])
-      ) 
-      (32 - i{1}); last first. (* FIXME: TODO: Remover lemmas de pk0 da #pre *)
-        - auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 *; split => [/# | iL];  split => [/# | ???]. 
-          have ->: iL = 32 by smt(). 
-          move => H17 k??.
-          rewrite H16 get_to_list /#.
-        - auto => /> &hr *; do split; 1,2,5:smt().  
-             * rewrite tP => j?.
-               rewrite get_setE; first by rewrite of_uintK /#.  
-               rewrite of_uintK (: i{hr} %% W64.modulus  = i{hr}) 1:/#. 
-               case (j = i{hr}) => ? //.
-               admit.
-             * move => k??; rewrite get_setE; [by split; by rewrite of_uintK /# |]. 
-               rewrite of_uintK (: i{hr} %% W64.modulus = i{hr}) /#.  
+    + admit.
+
 seq 1 0 : (
   #pre /\
   (forall (k : int), 0 <= k < 32 => sk0{1}.[4 + 2 * 32 + k] = nth witness (val root{2}) k)
 ).
-    + inline {1}.  
-      wp.
-      while {1} 
-      (
-        #pre /\ 
-        0 <= i{1} <= 32 /\ 
-        offset_in{1} = W64.zero /\
-        to_uint offset_out{1} = 68 /\
-        out{1} = sk0{1} /\
-        in_0{1} = root{1} /\
-        (forall (k : int), 0 <= k < i{1} => out{1}.[4 + 2 * 32 + k] = in_0{1}.[k])
-      ) 
-      (32 - i{1}); last first.
-          * auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17. 
-            do 2! (split => [/# | *]). 
-            rewrite H16 get_to_list /#. 
-      auto => /> &hr H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 *. 
-      do split;1,2,5:smt(). 
-          * rewrite tP => j?.  
-            rewrite get_setE 1:#smt:(@W64 pow2_64).
-            case (j = to_uint (offset_out{hr} + (of_int i{hr})%W64)) => ? //.
-            rewrite of_uintK (: i{hr} %% W64.modulus = i{hr}) 1:/#. 
-            admit.
-          * move => k??.
-            rewrite get_setE 1:#smt:(@W64 pow2_64). 
-            case (68 + k = to_uint (offset_out{hr} + (of_int i{hr})%W64)) => ?. 
-                - admit.
-                - admit.
+    + admit.
+
 
 auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18; split.
     + rewrite /DecodePkNoOID => />; rewrite tP => i Hi.
@@ -333,8 +259,7 @@ auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H
         + move => ?.
           by rewrite nth_cat valP n_val ifT 1:/#  H17.  
         + move => ?. 
-          rewrite nth_cat valP n_val ifF 1:/#.
-          admit.
+          rewrite nth_cat valP n_val ifF 1:/# -H9 // 1:/#.
     + rewrite /DecodeSkNoOID => />; rewrite tP => i Hi. 
       rewrite -!get_to_list.
       case (0 <= i < 4).

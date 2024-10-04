@@ -22,7 +22,7 @@ inline fn __set_tree_addr(reg ptr u32[8] addr, reg u64 tree) -> reg ptr u32[8] {
     reg u64 t;
 
     t = tree;
-    ?{}, t = #SHR(t, 32);
+    t >>= (32 & 63);
 
     addr[1] = (32u) t;
     addr[2] = (32u) tree;
