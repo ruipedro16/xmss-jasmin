@@ -12,36 +12,97 @@ require import Correctness_Address. (* FIXME: This should not be imported here =
 
 require import Array8.
 
+(*****) import StdBigop.Bigint.
+
 (** -------------------------------------------------------------------------------------------- **)
 
 (* from MLKEM proof *)
+
+(* m and m' are memories that differ on the contents of addresses in the range [p; p+len[ *)
 pred touches (m m' : global_mem_t) (p : address) (len : int) =
     forall (i : int), !(0 <= i < len) => m'.[p + i] = m.[p + i].
 
-pred touches2 (m m' : global_mem_t) (p1 : address) (len1 : int) (p2 : address) (len2 : int) =
-  forall (a : int), ! (p1 <=  a < p1+len1) =>  ! (p2 <=  a < p2+len2) => m'.[a] = m.[a].
+(* m and m' are memories that differ on the contents of addresses 
+   in the range [p1; p1+len1[ and 
+   in the range [p2; p2+len2[
+*)
+pred touches2 (m m' : global_mem_t) (p1 p2 : address) (len1 len2 : int) =
+  forall (a : int), ! (p1 <= a < p1 + len1) =>  
+                    ! (p2 <= a < p2 + len2) => 
+                        m'.[a] = m.[a].
 
-(*  m1 and m2 are memories that differ on the contents off address p *)
+lemma touches_touches2 (m m' : global_mem_t) (p1 p2 : address) (len1 len2 : int) :
+    touches m m' p1 len1 /\ touches m m' p2 len2 =>
+       touches2 m m' p1 p2 len1 len2 by smt().
+
+(*  m and m' are memories that differ on the contents of address p *)
 pred mem_dif (m m' : global_mem_t) (p : int) = m.[p] <> m'.[p].
 
 (** -------------------------------------------------------------------------------------------- **)
 
 op concatMap  (f: 'a -> 'b list) (a: 'a list): 'b list = flatten (map f a).
+
 op W32ofBytes (bytes : W8.t list) : W32.t = W32.bits2w (concatMap W8.w2bits bytes).
-op W64ofBytes (bytes : W8.t list) : W64.t = W64.bits2w (concatMap W8.w2bits bytes).
+op W64ofBytes (bytes : W8.t list) : W64.t = W64.bits2w (concatMap W8.w2bits bytes). (* isto ja faz zero ext *)
+
+lemma foo (t : W8.t list) :
+    0 < size t <= 4 => 
+         forall (k : int), 32 <= k < 64 => (zeroextu64 (W32ofBytes t)).[k] = false.
+proof.
+move => ?k?.
+rewrite /W32ofBytes zeroextu64E pack2E initiE 1:/# => />.
+rewrite initiE 1:/# => />.
+by rewrite ifF 1:/#.
+qed.
+
+lemma foo2 (t : W8.t list) :
+    0 < size t <= 4 => 
+         forall (k : int), 32 <= k < 64 => (W64ofBytes t).[k] = false.
+proof.
+move => ?k?.
+rewrite /W64ofBytes /bits2w initiE 1:/# => />.
+rewrite nth_out //. 
+have ?: size (concatMap W8.w2bits t) <= 32.
+  + rewrite /concatMap size_flatten. 
+    rewrite sumzE BIA.big_map /(\o) //= -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 8)); last first.
+        * rewrite big_constz count_predT size_map /#.
+    auto => />.
+    have ?: (forall (k : int), 0 <= k < size t => size (nth witness (map W8.w2bits t) k) = 8) by move => *; rewrite (nth_map witness).
+    smt(@List).
+smt(). 
+qed.
+
+lemma bar (t : W8.t list) :
+    0 < size t <= 4 => 
+         forall (k : int), 0 <= k < 32 => (zeroextu64 (W32ofBytes t)).[k] = (W64ofBytes t).[k].
+proof.
+move => ?k?.
+rewrite /W32ofBytes /W64ofBytes zeroextu64E pack2E initiE 1:/# => />.
+rewrite initiE 1:/# => />.
+rewrite ifT 1:/# (: k %% 32 = k) 1:/#.
+by rewrite !bits2wE initiE 1:/# initiE 1:/#.
+qed.
 
 lemma W64_W32_of_bytes (t : W8.t list) :
     0 < size t <= 4 => 
        zeroextu64 (W32ofBytes t) = W64ofBytes t.
 proof.
 move => H.
-rewrite /W64ofBytes /W32ofBytes /concatMap.
-rewrite wordP => j?.
-admit.
+rewrite wordP => i?.
+
+case (0 <= i < 32) => ?; first by apply bar.
+rewrite foo // 1:/# foo2 // /#.
+qed.
+
+lemma W64_W32_of_bytes2 (t : W8.t list) : 
+    0 < size t <= 4 => 
+       to_uint (W32ofBytes t) = to_uint (W64ofBytes t).
+proof.
+move => ?.
+by rewrite -W64_W32_of_bytes // to_uint_zeroextu64.
 qed.
 
 (** -------------------------------------------------------------------------------------------- **)
-
 lemma zero_addr_i :
     forall (k : int), 0 <= k < 8 => zero_addr.[k] = W32.zero.
 proof.
