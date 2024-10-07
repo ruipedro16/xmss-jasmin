@@ -29,8 +29,8 @@ inline fn __set_tree_addr(reg ptr u32[8] addr, reg u64 tree) -> reg ptr u32[8] {
     return addr;
 }
 
-inline fn __set_type(reg ptr u32[8] addr, reg u32 type) -> reg ptr u32[8] {
-    addr[3] = type;
+inline fn __set_type(reg ptr u32[8] addr, reg u32 _type) -> reg ptr u32[8] {
+    addr[3] = _type;
     return addr;
 }
 

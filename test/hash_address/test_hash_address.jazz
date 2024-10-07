@@ -26,12 +26,12 @@ export fn set_tree_addr_jazz(
 
 export fn set_type_jazz(
     reg ptr u32[8] addr, 
-    #transient reg u32 type
+    #transient reg u32 _type
 ) -> reg ptr u32[8]
 {
     _ = #init_msf();
 
-    addr = __set_type(addr, type);
+    addr = __set_type(addr, _type);
 
     return addr;
 }

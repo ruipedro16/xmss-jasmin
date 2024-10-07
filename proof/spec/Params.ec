@@ -10,7 +10,7 @@ const h : { int | 0 < h } as h_g0.
 (*  A tree of height h has 2^h leaf nodes *)
 op nr_leaves (h : int) : int = 2^h.
 
-(* Length the digest *)
+(* Length of the digest *)
 const n : { int | 0 <= n } as ge0_n.
 
 (* Winternitz parameter: the range of indices into a wots chain *)
