@@ -5,9 +5,10 @@ EC_INCLUDE ?= -I common -I extraction -I spec -I correctness
 EC_FN      ?= -ec xmss_keypair_jazz -ec xmss_sign_jazz -ec xmss_sign_open_jazz
 EC_FLAGS   ?= -pragmas Proofs:weak
  
-JASMIN   ?= jasminc
-JFLAGS   ?= -nowarning ${JADDFLAGS}
-JINCLUDE ?= -I XMSS:../ref-jasmin/ -I Stdlib:../ref-jasmin/stdlib
+JASMIN    ?= jasminc
+JASMIN2EC ?= jasmin2ec
+JFLAGS    ?= -nowarning ${JADDFLAGS}
+JINCLUDE  ?= -I XMSS:../ref-jasmin/ -I Stdlib:../ref-jasmin/stdlib
 
 JASMIN_SRC := ../ref-jasmin
 TEST_SRC   := ../test
@@ -26,9 +27,7 @@ extract: extraction/XMSS_IMPL.ec
 extraction/XMSS_IMPL.ec: | extraction/ common/
 	$(MAKE) -C $(TEST_SRC)/xmss/ clean bin/test_xmss_xmss-sha2_10_256.jazz
 	cp $(TEST_SRC)/xmss/bin/test_xmss_xmss-sha2_10_256.jazz $(@:.ec=.jazz)
-	$(JASMIN) $(JFLAGS) $(EC_FN) -oec $@ $(@:.ec=.jazz)
-	mv Array*.ec common/
-	mv WArray*.ec common/
+	$(JASMIN2EC) $(@:.ec=.jazz) --output-array common/ > $@
 	-$(RM) extraction/XMSS_IMPL.jazz
 
 # --------------------------------------------------------------------------------------------------
