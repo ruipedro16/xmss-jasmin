@@ -45,7 +45,7 @@ inline fn __treehash(
     reg ptr u8[XMSS_N] root,
     reg ptr u8[XMSS_N] sk_seed,
     reg ptr u8[XMSS_N] pub_seed,
-    reg u32 s t, // start index and target node height
+    reg u32 s target_height, // start index and target node height
     reg ptr u32[8] subtree_addr
 ) -> reg ptr u8[XMSS_N]
 {
@@ -54,6 +54,7 @@ inline fn __treehash(
     stack u32[8] ots_addr ltree_addr node_addr;
 
     stack u8[XMSS_N] buf;
+
     reg u64 index;
     inline int j;
 
@@ -93,9 +94,11 @@ inline fn __treehash(
     ltree_addr = __set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
     node_addr = __set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
 
+    target_height = target_height; // move to rdx register
+
     i = 0;
     upper_bound = 1;
-    upper_bound <<= (t & 31);
+    upper_bound <<= (target_height & 31);
 
     while (i < upper_bound) {
         () = #spill(i, upper_bound);
@@ -125,7 +128,7 @@ inline fn __treehash(
         
         // heights[offset - 1] = 0;
         index = offset; index -= 1;
-        heights[index] = 0; 
+        heights[index] = 0; // FIXME: TODO: maybe this is S  
 
         () = #spill(offset);
 
@@ -153,8 +156,7 @@ inline fn __treehash(
             node_addr = __set_tree_height(node_addr, heights[offset - 1]);
 
             () = #unspill(s, i);
-            t32 = s; t32 += i;
-            node_addr = __set_tree_index(node_addr, t32); // NOTE: This is different than the reference implementation
+            node_addr = __set_tree_index(node_addr, tree_idx); // NOTE: This is different than the reference implementation
                                                           // Should become // ADRS.setTreeIndex((ADRS.getTreeIndex() - 1) / 2);
                                                           // FIXME: this is wrong
 
@@ -178,9 +180,9 @@ inline fn __treehash(
             // heights[offset - 1]++;
             index = offset;
             index -= 1;
-            t = heights[index];
-            t += 1;
-            heights[index] = t;
+            t = heights[index]; 
+            t += 1; 
+            heights[index] = t; 
         }
 
         /////////////////////////////// INNER LOOP /////////////////////////////
