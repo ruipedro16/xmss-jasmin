@@ -128,7 +128,8 @@ inline fn __treehash(
         
         // heights[offset - 1] = 0;
         index = offset; index -= 1;
-        heights[index] = 0; // FIXME: TODO: maybe this is S  
+        () = #unspill(s);
+        heights[index] = s; // FIXME: TODO: check if this is right. it works for kg  
 
         () = #spill(offset);
 
@@ -156,9 +157,7 @@ inline fn __treehash(
             node_addr = __set_tree_height(node_addr, heights[offset - 1]);
 
             () = #unspill(s, i);
-            node_addr = __set_tree_index(node_addr, tree_idx); // NOTE: This is different than the reference implementation
-                                                          // Should become // ADRS.setTreeIndex((ADRS.getTreeIndex() - 1) / 2);
-                                                          // FIXME: this is wrong
+            node_addr = __set_tree_index(node_addr, tree_idx); 
 
             // thash_h(params, stack + (offset-2)*params->n, stack + (offset-2)*params->n, pub_seed, node_addr);
             // 1) Load input to buf2
@@ -404,3 +403,10 @@ inline fn __build_auth_path_(
 
     return auth_path;
 }
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// treesig
+// sign
+// open 
