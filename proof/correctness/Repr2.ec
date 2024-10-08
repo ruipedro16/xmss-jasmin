@@ -101,7 +101,7 @@ qed.
 op nbytes_flatten (x : nbytes list) : W8.t list =
   flatten (map (NBytes.val) x).
 
-lemma size_nbytes_flatten (x : nbytes list) :
+lemma size_nbytes_flatten_2 (x : nbytes list) :
     size (nbytes_flatten x) = n * size x.
 proof.
 rewrite /nbytes_flatten size_flatten sumzE BIA.big_map /(\o) //=. 
@@ -170,8 +170,10 @@ op DecodeSkNoOID (x : xmss_sk) : W8.t Array132.t =
 (** -------------------------------------------------------------------------------------------- **)
 
 (* FIXME: Does this work for d > 1? *)
+print chunk.
+print AuthPath.
 op EncodeAuthPath (x : W8.t list) : auth_path = 
-  AuthPath.insubd [NBytes.insubd (sub_list x 0 32)].
+  AuthPath.insubd (map NBytes.insubd (chunk n x)).
 
 op EncodeReducedSignature (x : W8.t list) :  wots_signature * auth_path =
   (EncodeWotsSignatureList (sub_list x 0 2144), EncodeAuthPath (sub_list x 2144 32)).

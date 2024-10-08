@@ -6,7 +6,7 @@ require import BitEncoding.
 
 from Jasmin require import JModel.
 
-require import Params Address Hash.
+require import Params Address Hash LTree.
 
 require import Correctness_Address. (* FIXME: This should not be imported here ==> move W32toBytes to Utils *)
 
@@ -149,6 +149,11 @@ lemma nbytes_eq:
   forall (s1 s2 : nbytes), val s1 = val s2 <=> s1 = s2
     by smt(@NBytes).
 
+lemma auth_path_eq:
+  forall (s1 s2 : auth_path), val s1 = val s2 <=> s1 = s2
+    by smt(@AuthPath).
+
+
 (** -------------------------------------------------------------------------------------------- **)
 
 lemma size_bits_to_bytes (bits : bool list) :
@@ -184,3 +189,14 @@ lemma nseq_nth (x : W8.t list) (i : int) (v : W8.t) :
     x = nseq i v => forall (k : int), 0 <= k < i => nth witness x k = v
         by smt(@List).
 
+lemma size_singleton ['a] (x : 'a) : size [x] = 1 by smt(@List).
+
+lemma size_nbytes_flatten (x : nbytes list) :
+    size (flatten (map NBytes.val x)) = n * size x.
+proof.
+rewrite size_flatten sumzE BIA.big_map /(\o) //= -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => n)) /=. 
+  + move => *.
+    have ?: forall (k : int), 0 <= k < size x => size (nth witness (map NBytes.val x) k) = n by move => *; rewrite (nth_map witness) 1:/# valP.
+    smt(@List).
+by rewrite big_constz count_predT size_map.
+qed.
