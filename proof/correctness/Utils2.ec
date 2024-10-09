@@ -153,6 +153,9 @@ lemma auth_path_eq:
   forall (s1 s2 : auth_path), val s1 = val s2 <=> s1 = s2
     by smt(@AuthPath).
 
+lemma len_n_bytes_eq : 
+  forall (s1 s2 : len_nbytes), val s1 = val s2 <=> s1 = s2
+    by smt(@LenNBytes).
 
 (** -------------------------------------------------------------------------------------------- **)
 

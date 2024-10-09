@@ -13,7 +13,7 @@ require import Params XMSS_MT_Params Types Address BaseW WOTS LTree XMSS_MT_Tree
 require import XMSS_IMPL Parameters.
 require import Repr2 Utils2.
 
-require import Array8 Array11 Array32 Array320 Array352.
+require import Array8 Array11 Array32 Array132 Array320 Array352 Array2144 Array2464.
 
 require import Correctness_Address.
 
@@ -251,3 +251,145 @@ case (j{2} * 32 <= k && k < j{2} * 32 + 32) => H2.
      by rewrite (nth_map witness) 1:/#.
 qed.
  
+
+lemma sub_sub_list (x : W8.t t) (k l : int) :
+    0 <= l /\ 0 <= k =>
+    sub x k l = sub_list (to_list x) k l.
+proof.
+move => [#] ??.
+apply (eq_from_nth witness); first by rewrite size_sub // size_sub_list.
+rewrite size_sub // => i?.
+by rewrite nth_sub // /sub_list nth_mkseq.
+qed.
+
+
+lemma treesig_correct :
+    n = XMSS_N /\
+    len = XMSS_WOTS_LEN /\ 
+    d = XMSS_D /\
+    h = XMSS_FULL_HEIGHT =>
+    equiv [
+      M(Syscall).__tree_sig ~ TreeSig.treesig:
+      true 
+      ==>
+      res{2} = EncodeReducedSignature (to_list res{1}.`1)
+    ].
+proof.
+rewrite /XMSS_N /XMSS_WOTS_LEN /XMSS_D /XMSS_FULL_HEIGHT => [#] n_val len_val d_val h_val.
+proc => /=.
+seq 4 0 : #pre; first by auto.
+seq 2 0 : (
+  #pre /\ 
+  to_list pub_seed{1} = sub sk{1} (4 + 3*32) 32 /\
+  to_list sk_seed{1} = sub sk{1} 4 32
+).
+    + auto => /> *; split.
+         * apply (eq_from_nth witness); first by rewrite size_to_list size_sub.
+           rewrite size_to_list => i?.
+           by rewrite get_to_list initiE // nth_sub.
+         * apply (eq_from_nth witness); first by rewrite size_to_list size_sub.
+           rewrite size_to_list => i?.
+           by rewrite get_to_list initiE // nth_sub.
+
+conseq (: _ ==>
+  sub sig{1} 0 (67*32)       = DecodeWotsSignature_List sig_ots{2} /\
+  sub sig{1} (67*32) (10*32) = DecodeAuthPath_List auth{2}
+).
+
+(** -------------------------------------------------------------------------------------------- **)
+(** -------------------------------------------------------------------------------------------- **)
+(** -------------------------------------------------------------------------------------------- **)
+
+
+auto => /> &1 H0 H1 sigL authR redSig H2 H3.
+rewrite /EncodeReducedSignature /EncodeWotsSignatureList /EncodeAuthPath => />; split.
+    * apply len_n_bytes_eq.
+      rewrite insubdK.
+        - by rewrite /P size_map size_chunk // size_sub_list // len_val.
+      apply (eq_from_nth witness); first by rewrite valP len_val size_map size_chunk // size_sub_list.
+      rewrite valP len_val => i?.
+      rewrite -sub_sub_list 1:/# H2 /DecodeWotsSignature_List (nth_map witness).
+        - by rewrite size_chunk // size_nbytes_flatten valP n_val len_val /=.
+      rewrite /chunk nth_mkseq.
+        - by rewrite size_nbytes_flatten valP n_val len_val /=.
+      auto => />.
+      apply nbytes_eq.
+      rewrite insubdK.
+        - rewrite /P size_take // n_val size_drop 1:/# size_nbytes_flatten n_val valP len_val /#.
+      apply (eq_from_nth witness); first by rewrite valP n_val size_take // size_drop 1:/# size_nbytes_flatten n_val valP len_val /#.
+      rewrite valP n_val => j?.
+      rewrite nth_take // 1:/# nth_drop 1,2:/# /nbytes_flatten (nth_flatten witness n).
+        - pose P := (fun (s : W8.t list) => size s = n).
+          pose L := (map NBytes.val (val redSig)).
+          rewrite -(all_nthP P L witness) /L /P size_map valP len_val => k?. 
+          rewrite (nth_map witness).
+              + by rewrite valP len_val.
+          by rewrite valP.
+      rewrite (nth_map witness). 
+        - rewrite valP len_val n_val /= /#.
+      smt().
+    * apply auth_path_eq.
+      rewrite AuthPath.insubdK. 
+        - rewrite /P size_map size_chunk 1:/# size_sub_list // n_val h_val /=. (* A definicao de auth path nao mal! *)
+          admit. 
+      apply (eq_from_nth witness).
+        - rewrite valP size_map size_chunk n_val // size_sub_list // h_val /=. (* Same as before *)
+          admit.
+      rewrite valP h_val => j?.
+      rewrite (nth_map witness).
+        - rewrite size_chunk 1:/# size_sub_list // n_val. admit.
+      apply nbytes_eq.
+      rewrite insubdK. 
+        - rewrite /P /chunk nth_mkseq => />.  
+              + rewrite size_sub_list // n_val /=. admit.
+          rewrite size_take 1:/# size_drop 1:/# size_sub_list // n_val. admit.
+      rewrite /chunk nth_mkseq => />. 
+        - split => [/# |?]; rewrite size_sub_list //. admit.
+      admit.
+
+      
+
+(** -------------------------------------------------------------------------------------------- **)
+(** -------------------------------------------------------------------------------------------- **)
+(** -------------------------------------------------------------------------------------------- **)
+
+seq 1 1 : (#pre /\ EncodeAuthPath (to_list auth_path{1}) = auth{2}).
+    + admit.
+
+seq 2 2 : #pre; first by inline; auto.
+
+seq 1 1 : (#pre /\ sig_ots{2} = EncodeWotsSignature sig_ots{1}).
+    + admit.
+
+seq 3 0 : (#pre /\ sub sig{1} 0 (67*32) = DecodeWotsSignature_List sig_ots{2}); last by admit.
+    + while {1} 
+      (#pre /\
+       forall (k : int), 0 <= k < 2144 => sig{1}.[k] = nth witness (DecodeWotsSignature_List sig_ots{2}) k)
+      (2144 - i{1}); last first.
+          * auto => /> &1 &2 *; split => *.
+                 - rewrite /DecodeWotsSignature_List /nbytes_flatten.
+                   rewrite (nth_flatten witness n).
+                       + admit.
+                   rewrite (nth_map witness). 
+                       + rewrite valP /#. 
+                   rewrite /EncodeWotsSignature insubdK.
+                       + by rewrite /P size_map size_chunk // size_to_list len_val.
+                   rewrite (nth_map witness).
+                       + rewrite size_chunk // size_to_list /#.
+                   rewrite insubdK.
+                       + rewrite /P /chunk nth_mkseq.
+                            * rewrite size_to_list /#.
+                         rewrite size_take // size_drop 1:/# size_to_list /#.
+                   rewrite /chunk nth_mkseq.
+                       + rewrite size_to_list /#.
+                   rewrite nth_take // 1:/# nth_drop 1,2:/# get_to_list.
+                   admit.
+                  - split => [/# | ?H].
+                   apply (eq_from_nth witness); first by rewrite size_sub // /DecodeWotsSignature_List size_nbytes_flatten n_val valP len_val.                   
+                   rewrite size_sub // => j?.                    
+                   rewrite nth_sub //= -H //. 
+          * auto => /> &hr *; split => [k??| /#].
+            rewrite get_setE. admit.
+            admit.
+qed.
+

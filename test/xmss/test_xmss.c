@@ -18,7 +18,7 @@
 #endif
 
 #ifndef TESTS
-#define TESTS 1
+#define TESTS 100
 #endif
 
 #ifndef MAX_MSG_LEN
@@ -196,6 +196,10 @@ void test_xmss_sign(void) {
 
     for (int i = 0; i < TESTS; i++) {
         for (size_t mlen = 1; mlen <= MAX_MSG_LEN; mlen++) {
+
+            memset(sm_ref, 0, p.sig_bytes + MAX_MSG_LEN);
+            memset(sm_jasmin, 0, p.sig_bytes + MAX_MSG_LEN);
+
             if (debug) {
                 printf("[xmss sign] Test %d/%d (msg len = %ld/%d)\n", i + 1, TESTS, mlen, MAX_MSG_LEN);
             }
@@ -211,6 +215,12 @@ void test_xmss_sign(void) {
             assert(res_ref == res_jasmin);
             assert(memcmp(sk, sk0, XMSS_OID_LEN + p.sk_bytes) == 0);
             assert(smlen_jasmin == smlen_ref);
+
+            if ((memcmp(sm_ref, sm_jasmin, p.sig_bytes + mlen) != 0) && true) {
+                print_str_u8("reference", sm_ref, p.sig_bytes + mlen);
+                print_str_u8("jasmin", sm_jasmin, p.sig_bytes + mlen);
+            }
+
             assert(memcmp(sm_ref, sm_jasmin, p.sig_bytes + mlen) == 0);
         }
     }
@@ -288,11 +298,12 @@ void test_xmss_sign_open(void) {
     size_t smlen;
     size_t _mlen_ref, _mlen_jasmin;
     int res_ref, res_jasmin;
+    
 
-    for (int i = 0; i < TESTS; i++) {
+    for (int i = 0; i < 5; i++) { /* i < TESTS takes too long */
         for (size_t mlen = 1; mlen <= MAX_MSG_LEN; mlen++) {
             if (debug) {
-                printf("[xmss sign open] Test %d/%d (msg len = %ld/%d)\n", i + 1, TESTS, mlen, MAX_MSG_LEN);
+                printf("[xmss sign open] Test %d/%d (msg len = %ld/%d)\n", i + 1, 5, mlen, MAX_MSG_LEN);
             }
 
             // First we need to generate a keypair and a valid signature
@@ -307,6 +318,17 @@ void test_xmss_sign_open(void) {
             assert(_mlen_jasmin == _mlen_ref);
             assert(res_ref == 0);
             assert(res_jasmin == 0);
+            assert(res_jasmin == res_ref);
+
+            // Flip one bit which invalidates the signature
+            bitflip(sm, p.sig_bytes + mlen);
+
+            // The signature is invalid so res should be != 0
+            res_ref = xmss_sign_open_jazz(m, &_mlen_ref, sm, smlen, pk);
+            res_jasmin = xmss_sign_open_jazz(m, &_mlen_jasmin, sm, smlen, pk);
+
+            assert(res_ref != 0);
+            assert(res_jasmin != 0);
             assert(res_jasmin == res_ref);
         }
     }
@@ -335,6 +357,7 @@ void test_xmssmt_sign_open(void) {
     size_t smlen;
     size_t _mlen_ref, _mlen_jasmin;
     int res_ref, res_jasmin;
+    
 
     for (int i = 0; i < TESTS; i++) {
         for (size_t mlen = 1; mlen <= MAX_MSG_LEN; mlen++) {
@@ -400,9 +423,9 @@ void test_xmss_api(void) {
             randombytes(m, XMSS_MLEN);
 
             // xmss_sign_jazz(sk, sm, &smlen, m, mlen);  // sk is updated here
-            xmss_sign(sk, sm, &smlen, m, mlen);  // sk is updated here
+            xmss_sign(sk, sm, (long long unsigned int *)&smlen, m, mlen);  // sk is updated here
             // res = xmss_sign_open_jazz(m, &mlen, sm, smlen, pk);
-            res = xmss_sign_open(m, &mlen, sm, smlen, pk);
+            res = xmss_sign_open(m, (long long unsigned int *)&mlen, sm, smlen, pk);
 
 #ifdef DEBUG_TEST
             if (res != 0) {
@@ -701,6 +724,7 @@ int main(void) {
     test_randombytes();
 
     if (starts_with(xstr(IMPL), "XMSSMT")) {
+        puts("Multi tree variant");
         // test XMSSMT Variant
         test_xmssmt_keypair();
         test_xmssmt_sign();
@@ -709,11 +733,12 @@ int main(void) {
         test_xmssmt_sk_reuse();
         test_xmssmt_invalid_signature();
     } else {
+        puts("Single tree variant");
         // test XMSS Variant
-        // test_xmss_keypair();
-        // test_xmss_sign();
-        // test_xmss_sign_open();
-        test_xmss_api();
+        // test_xmss_keypair();     // OK
+        test_xmss_sign();           // Should fail (sign not implemented yet)
+        test_xmss_sign_open();      // OK
+        // test_xmss_api();
         // test_xmss_sk_reuse();
         // test_xmss_invalid_signature();
     }

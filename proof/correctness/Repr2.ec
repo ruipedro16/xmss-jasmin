@@ -125,6 +125,8 @@ op EncodeWotsSignature (s : W8.t Array2144.t) : wots_signature =
 op EncodeWotsSignatureList (s : W8.t list) : wots_signature = 
   LenNBytes.insubd (map NBytes.insubd (chunk 32 s)). 
 
+op DecodeWotsSignature_List (s : wots_signature) : W8.t list = nbytes_flatten (val s).
+
 (** -------------------------------------------------------------------------------------------- **)
 
 lemma wots_sk_ssize (sk : wots_sk) :
@@ -169,14 +171,16 @@ op DecodeSkNoOID (x : xmss_sk) : W8.t Array132.t =
 
 (** -------------------------------------------------------------------------------------------- **)
 
-(* FIXME: Does this work for d > 1? *)
-print chunk.
-print AuthPath.
 op EncodeAuthPath (x : W8.t list) : auth_path = 
   AuthPath.insubd (map NBytes.insubd (chunk n x)).
 
+op DecodeAuthPath_List (ap : auth_path) : W8.t list = nbytes_flatten (val ap).
+
+
 op EncodeReducedSignature (x : W8.t list) :  wots_signature * auth_path =
   (EncodeWotsSignatureList (sub_list x 0 2144), EncodeAuthPath (sub_list x 2144 32)).
+
+
 
 (* sm = m || sig 
    we use mlen to skip the m part

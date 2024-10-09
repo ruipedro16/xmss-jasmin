@@ -87,10 +87,11 @@ module TreeSig = {
     var k : int;
     var t : nbytes <- witness;
  
-    authentication_path <- nseq len witness;
+    authentication_path <- nseq h witness;
 
     while (j < h) {
-      k <- floor((W32.to_uint idx)%r / (2^j)%r);
+      (* k <- floor((W32.to_uint idx)%r / (2^j)%r); XOR ONE *)
+      k <- to_uint ((idx `>>` (of_int j)%W8) `^` W32.one); (* Does this make sense ???? I think so *)
       t <@ TreeHash.treehash(pub_seed,sk_seed, k * (2^j), j, address);
       authentication_path <- put authentication_path j t;
       j <- j + 1;

@@ -21,7 +21,7 @@ clone export Subtype as WOTSKeys with
 
 clone export Subtype as AuthPath with
   type T = nbytes list,
-  op P = fun l => size l = h
+  op P = fun l => size l = h (* Section 4.1.8. of the RFC *)
   rename "sT" as "auth_path"
   proof inhabited by (exists (nseq h witness);smt(size_nseq ge0_h))
   proof *.

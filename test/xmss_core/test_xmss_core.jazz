@@ -1,7 +1,10 @@
 from XMSS require "xmss_core/xmss_core.jtmpl"
 
+/* These exported functions are just for testing */
+
 /////////////////////////////////// TREEHASH ///////////////////////////////////////////////////////
 
+/*
 export fn treehash_jazz(
     reg ptr u8[XMSS_N] root,
     reg ptr u8[XMSS_N] sk_seed,
@@ -76,3 +79,28 @@ export fn build_auth_path_jazz(
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export fn tree_sig_jazz(
+    reg ptr u8[(XMSS_WOTS_LEN * XMSS_N) + (XMSS_TREE_HEIGHT * XMSS_N)] sig, // wots signature + auth_path
+    reg ptr u32[8] addr,
+    reg ptr u8[XMSS_N] M,
+    reg ptr u8[XMSS_SK_BYTES] sk,
+    reg u32 idx_sig
+) -> reg ptr u8[(XMSS_WOTS_LEN * XMSS_N) + (XMSS_TREE_HEIGHT * XMSS_N)], 
+     reg ptr u32[8] 
+{
+    sig, addr = __tree_sig_(sig, M, sk, idx_sig, addr);
+    return sig, addr;
+}
+
+*/
+
+export fn xmssmt_core_sign_jazz(
+    reg ptr u8[XMSS_SK_BYTES] sk,
+    reg u64 sm_ptr smlen_ptr m_ptr mlen
+) -> reg ptr u8[XMSS_SK_BYTES], reg u64
+{
+    reg u64 r;
+    sk, r = __xmssmt_core_sign_(sk, sm_ptr, smlen_ptr, m_ptr, mlen);
+    return sk, r;
+}

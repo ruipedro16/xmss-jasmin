@@ -13,7 +13,7 @@ LDLIBS   = -lcrypto
 
 JASMIN   ?= jasminc
 JAZZCT   ?= jazzct
-JFLAGS   ?= ${JADDFLAGS}
+JFLAGS   ?= -nowarning ${JADDFLAGS}
 JINCLUDE ?= -I XMSS:../../ref-jasmin/ -I Stdlib:../../ref-jasmin/stdlib
 
 JPP          ?= ../../submodules/jasmin-preprocessor/jpp
@@ -94,7 +94,7 @@ bin/zeroization_unroll_%.s: bin/%.jazz
 
 $(TESTS):
 bin/%: bin/%.s | bin/
-	$(CC) $(CFLAGS) -o $@ -I../common -I../ -DIMPL=$(GET_IMPL_UPPER_CASE) -DTEST_XMSS -DDEBUG_TEST \
+	$(CC) $(CFLAGS) -o $@ -I../common -I../ -DIMPL=$(GET_IMPL_UPPER_CASE) -DTEST_XMSS -DDEBUG_TEST -DDEBUG \
 	$(SOURCES) $(REF_SOURCES) $< $(LDLIBS) -lm
 
 $(OBJ_FILES):
