@@ -1,0 +1,7 @@
+from XMSS require "treehash/treehash_condition.jinc"
+
+export 
+fn treehash_cond_jazz(reg ptr u32[(XMSS_TREE_HEIGHT + 1)] heights, reg u64 offset) -> reg u8 {
+    reg u8 res = __treehash_cond(heights, offset);
+    return res;
+}
