@@ -735,9 +735,9 @@ int main(void) {
     } else {
         puts("Single tree variant");
         // test XMSS Variant
-        // test_xmss_keypair();     // OK
-        test_xmss_sign();           // Should fail (sign not implemented yet)
-        test_xmss_sign_open();      // OK
+        test_xmss_keypair();     // OK
+        // test_xmss_sign();           // Should fail (sign not implemented yet)
+        // test_xmss_sign_open();      // OK
         // test_xmss_api();
         // test_xmss_sk_reuse();
         // test_xmss_invalid_signature();

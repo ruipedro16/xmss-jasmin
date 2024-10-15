@@ -1,7 +1,54 @@
-from XMSS require "treehash/treehash_condition.jinc"
+from XMSS require "treehash/treehash.jinc"
 
 export 
-fn treehash_cond_jazz(reg ptr u32[(XMSS_TREE_HEIGHT + 1)] heights, reg u64 offset) -> reg u8 {
+fn treehash_cond_jazz(reg ptr u32[XMSS_TREE_HEIGHT + 1] heights, reg u64 offset) -> reg u8 {
     reg u8 res = __treehash_cond(heights, offset);
     return res;
+}
+
+export 
+fn treehash_jazz(reg ptr u8[XMSS_N] root sk_seed pub_seed,
+                 reg u32 start_index target_height,
+                 reg ptr u32[8] subtree_addr
+                 ) -> reg ptr u8[XMSS_N] 
+{
+    root = root;
+    sk_seed = sk_seed;
+    pub_seed = pub_seed;
+    start_index = start_index;
+    target_height = target_height;
+    subtree_addr = subtree_addr;
+
+    root = __treehash_(root, sk_seed, pub_seed, start_index, target_height, subtree_addr);
+
+    root = root;
+
+    return root;
+}
+
+export 
+fn build_auth_path_jazz(
+    reg ptr u8[XMSS_TREE_HEIGHT * XMSS_N] auth_path,
+    reg ptr u8[XMSS_N] sk_seed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg u32 i,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_TREE_HEIGHT * XMSS_N]
+{
+    auth_path = __build_auth_path(auth_path, sk_seed, pub_seed, i, addr);
+    return auth_path;
+}
+
+export 
+fn treesig_jazz(
+    reg ptr u8[XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N)] sig, // wots signature + auth_path
+    reg ptr u32[8] addr,
+    reg ptr u8[XMSS_N] M,
+    reg ptr u8[XMSS_SK_BYTES] sk,
+    reg u32 idx_sig
+) -> reg ptr u8[XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N)], 
+     reg ptr u32[8]
+{
+    sig, addr = __tree_sig_(sig, M, sk, idx_sig, addr);
+    return sig, addr;
 }

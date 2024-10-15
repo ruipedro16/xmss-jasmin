@@ -4,17 +4,6 @@ from XMSS require "xmss_core/xmss_core.jtmpl"
 
 /////////////////////////////////// TREEHASH ///////////////////////////////////////////////////////
 
-/*
-export fn treehash_jazz(
-    reg ptr u8[XMSS_N] root,
-    reg ptr u8[XMSS_N] sk_seed,
-    reg ptr u8[XMSS_N] pub_seed,
-    reg ptr u32[8] subtree_addr
-) -> reg ptr u8[XMSS_N]
-{
-    root = __treehash_(root, sk_seed, pub_seed, 0, XMSS_FULL_HEIGHT, subtree_addr);
-    return root;
-}
 
 export fn xmssmt_core_seed_keypair_jazz(
     reg ptr u8[XMSS_PK_BYTES] pk, 
@@ -64,6 +53,7 @@ export fn xmss_core_keypair_jazz(
     return pk, sk, res;
 }
 
+/*
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 export fn build_auth_path_jazz(
@@ -95,6 +85,7 @@ export fn tree_sig_jazz(
 
 */
 
+/*
 export fn xmssmt_core_sign_jazz(
     reg ptr u8[XMSS_SK_BYTES] sk,
     reg u64 sm_ptr smlen_ptr m_ptr mlen
@@ -104,3 +95,4 @@ export fn xmssmt_core_sign_jazz(
     sk, r = __xmssmt_core_sign_(sk, sm_ptr, smlen_ptr, m_ptr, mlen);
     return sk, r;
 }
+*/

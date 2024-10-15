@@ -3,6 +3,3 @@ venv
 
 flake.nix
 flake.lock
-
-jazz/
-bench-old/

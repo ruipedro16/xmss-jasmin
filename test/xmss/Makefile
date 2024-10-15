@@ -94,7 +94,7 @@ bin/zeroization_unroll_%.s: bin/%.jazz
 
 $(TESTS):
 bin/%: bin/%.s | bin/
-	$(CC) $(CFLAGS) -o $@ -I../common -I../ -DIMPL=$(GET_IMPL_UPPER_CASE) -DTEST_XMSS -DDEBUG_TEST -DDEBUG \
+	$(CC) $(CFLAGS) -o $@ -I../common -I../ -DIMPL=$(GET_IMPL_UPPER_CASE) -DTEST_XMSS -DDEBUG_TEST \
 	$(SOURCES) $(REF_SOURCES) $< $(LDLIBS) -lm
 
 $(OBJ_FILES):

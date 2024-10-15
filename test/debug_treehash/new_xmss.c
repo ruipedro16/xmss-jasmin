@@ -18,7 +18,15 @@
 #include "wots.h"
 #include "xmss_commons.h"
 
-bool debug_treehash = true;
+bool debug = true;
+
+extern void treehash_jazz(uint8_t *root, const uint8_t *sk_seed, const uint8_t *pub_seed, uint32_t start_index,
+                          uint32_t target_height, const uint32_t *subtree_addr);
+
+extern void build_auth_path_jazz(uint8_t *auth_path, const uint8_t *sk_seed, const uint8_t *pub_seed, uint32_t i,
+                                 uint32_t *addr);
+
+extern void treesig_jazz(uint8_t *sig, uint32_t *addr, const uint8_t *M, const uint8_t *sk, uint32_t idx_sig);
 
 void treehash_new(const xmss_params *params, unsigned char *root, const unsigned char *sk_seed,
                   const unsigned char *pub_seed, uint32_t start_index, /* leaf_idx in the old impl */
@@ -32,14 +40,13 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
     uint32_t tree_idx;
 
     /* We need all three types of addresses in parallel. */
-    uint32_t ots_addr[8] = {0};
-    uint32_t ltree_addr[8] = {0};
-    uint32_t node_addr[8] = {0};
+    uint32_t ots_addr[8];
+    uint32_t ltree_addr[8];
+    uint32_t node_addr[8];
 
-    /* Select the required subtree. */
-    copy_subtree_addr(ots_addr, subtree_addr);
-    copy_subtree_addr(ltree_addr, subtree_addr);
-    copy_subtree_addr(node_addr, subtree_addr);
+    memcpy(ots_addr, subtree_addr, 8 * sizeof(uint32_t));
+    memcpy(ltree_addr, subtree_addr, 8 * sizeof(uint32_t));
+    memcpy(node_addr, subtree_addr, 8 * sizeof(uint32_t));
 
     set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
     set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
@@ -84,9 +91,9 @@ void build_auth_path(const xmss_params *params,
                      uint32_t *addr) {
     uint32_t k;
     for (unsigned int j = 0; j < params->tree_height; j++) {
-        k = (i >> j) ^ 1;
+        k = ((i >> j) ^ 1) << j;
 
-        treehash_new(params, auth_path, sk_seed, pub_seed, k << j, j, addr);
+        treehash_new(params, auth_path, sk_seed, pub_seed, k, j, addr);
         auth_path += params->n;
     }
 }
@@ -106,7 +113,15 @@ void treesig(const xmss_params *params, unsigned char *sig /* reduced signature 
     wots_sign(params, sig_ots, M, sk_seed, pub_seed, addr);
     memcpy(sig, sig_ots, params->wots_sig_bytes);
 
+#ifdef TEST_AUTH_PATH
+    if (debug) {
+        puts("Running Jasmin implementation of build auth path");
+    }
+    build_auth_path_jazz(auth_path, sk_seed, pub_seed, idx_sig, addr);
+#else
     build_auth_path(params, auth_path, sk_seed, pub_seed, idx_sig, addr);
+#endif
+
     memcpy(sig + params->wots_sig_bytes, auth_path, params->tree_height * params->n);
 }
 
@@ -131,7 +146,14 @@ int xmssmt_core_seed_keypair_new(const xmss_params *params, unsigned char *pk, u
     memcpy(sk + 3 * params->n, seed + 2 * params->n, params->n);
     memcpy(pk + params->n, sk + 3 * params->n, params->n);
 
+#ifdef TEST_TREEHASH
+    if (debug) {
+        puts("Running Jasmin implementation of treehash");
+    }
+    treehash_jazz(pk, sk, pk + params->n, 0, params->tree_height, top_tree_addr);
+#else
     treehash_new(params, pk, sk, pk + params->n, 0, params->tree_height, top_tree_addr);
+#endif
 
     memcpy(sk + 2 * params->n, pk, params->n);
 
@@ -187,7 +209,18 @@ int xmssmt_core_sign_new(const xmss_params *params, unsigned char *sk, unsigned 
 
     // Sig_tmp = treeSig(M', SK, idx_leaf, ADRS);
     sm += params->index_bytes + params->n;
+
+#ifdef TEST_TREESIG
+    if (debug) {
+        puts("Running Jasmin implementation of treesig");
+    }
+
+    treesig_jazz(sm, ots_addr, mhash, sk,
+                 idx_leaf); /* The second argument is the addr because in jasmin, mutable arrays must come first */
+#else
     treesig(params, sm, mhash, sk, idx_leaf, ots_addr);
+#endif
+
     sm += params->wots_sig_bytes + params->tree_height * params->n;
 
     // Sig_MT = Sig_MT || r || Sig_tmp;
