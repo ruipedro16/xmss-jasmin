@@ -22,7 +22,7 @@ IMPL_STR := $(foreach impl,$(IMPLS),$(shell echo $(impl) | tr '[:upper:]' '[:low
 
 # --------------------------------------------------------------------------------------------------
 
-TESTS := bin/test_conditions $(addprefix bin/test_mem_, $(IMPL_STR))
+TESTS := $(addprefix bin/test_mem_, $(IMPL_STR))
 OUT   := $(addsuffix .out, $(TESTS))
 
 # --------------------------------------------------------------------------------------------------
@@ -53,10 +53,6 @@ sct: $(CHECK_SCT)
 # --------------------------------------------------------------------------------------------------
 
 $(JPP_FILES):
-bin/test_conditions.jpp: bin/
-	cp test_conditions.jazz $@
-	$(JPP) $(JINCLUDE) -in $@ -out $@
-
 # TODO: FIXME: improve this rule
 bin/test_mem_xmss-sha2_10_256.jpp: bin/
 	echo "from XMSS require \"params/params-xmss-sha2_10_256.jinc\"\n" > $@
@@ -70,9 +66,6 @@ bin/%.s: bin/%.jpp
 	$(JASMIN) $(JFLAGS) $(JINCLUDE) $< -o $@
 
 $(TESTS):
-bin/test_conditions: bin/test_conditions.s | bin/
-	$(CC) $(CFLAGS) -o $@ -I../common -I../ test_conditions.c ../common/notrandombytes.c $<
-
 # TODO: FIXME: improve this rule
 bin/test_mem_xmss-sha2_10_256: bin/test_mem_xmss-sha2_10_256.s | bin/
 	$(CC) $(CFLAGS) -o $@ -I../common -I../ test_mem.c $(wildcard ../*.c) ../common/notrandombytes.c -DIMPL=XMSS-SHA2_10_256 $< -lcrypto

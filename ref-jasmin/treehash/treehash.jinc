@@ -32,6 +32,7 @@ fn __treehash_cond(reg ptr u32[XMSS_TREE_HEIGHT + 1] heights,
     if (bc1 == 0) { 
         res = bc1;
     } else {
+        // At this point, we know that offset >=2, so these memory accesses are safe
         a = heights[offset - 1];
         b = heights[offset - 2];
 
@@ -113,7 +114,7 @@ fn __treehash(
         heights[offset - 1] = 0;
         () = #spill(offset);
 
-        while { cond = __treehash_cond(heights, offset); } (cond == TRUE) { /* TODO: TRUE is a param int, replace this in the end (should not affect EC Extraction) */
+        while { cond = __treehash_cond(heights, offset); } (cond == 1) {
             // tree_idx = ((start_index + i) >> (heights[offset - 1] + 1));
             () = #unspill(start_index, i); /* At this point, offset should be live so we dont need to unspill it */
             tree_idx = start_index;
