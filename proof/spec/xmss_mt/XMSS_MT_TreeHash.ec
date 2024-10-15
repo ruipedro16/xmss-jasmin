@@ -17,22 +17,18 @@ pred leftmost_leaf (s t : int)  = s %% 2^t = 0.
 (* Precondition *)
 pred treehash_p (s t : int) = s %% (1 `<<` t) <> 0.
 
-(* NOTE: In the Jasmin implementation, treehash (in xmss_core.c) computes both the authentication 
-         path and the resulting root node *)
-(* computation of the internal n-byte nodes of a Merkle tree *)
-(* The treeHash algorithm returns the root node of a tree of height t with the leftmost 
-   leaf being the hash of the WOTS+ pk with index s.  
-*)
 module TreeHash = {
   (* Computes the root *)
   proc treehash(pub_seed sk_seed : seed, s t : int, address : adrs) : nbytes = {
     var node : nbytes;
     var stack : nbytes list <- nseq ((h %/ d) + 1) (NBytes.insubd (nseq n W8.zero));
+    var heights : int list <- nseq (h %/ d) witness; (* Used to manage the height of nodes *)
     var pk : wots_pk;
     var offset : int;
     var i, j : int;
-    var tree_index : int;
-    var top_node : nbytes;
+    var tree_index : W32.t;
+    var node0, node1, new_node : nbytes;
+    
 
     offset <- 0;
     i <- 0;
@@ -49,26 +45,33 @@ module TreeHash = {
       (* compress the WOTS public key into a single N-byte value *)
       node <@ LTree.ltree(pk, address, pub_seed); 
 
-      address <- set_type address 2;
-      address <- set_tree_height address 0;
-      address <- set_tree_index address (i + 1);
-
-      (* while ( Top node on Stack has same height t' as node ) *)
-      if (1 < offset) {
-        j <- 0;
-        while (j < t) { (* The stack has at most t - 1 elements *)
-          tree_index <- get_tree_index address;
-          address <- set_tree_index address (ceil((tree_index - 1)%r / 2%r));
-          
-          top_node <- nth witness stack (offset - 1); (* Same as Stack.pop() *)
-          node <@ Hash.rand_hash (top_node, node, pub_seed, address);
-
-          j <- j + 1;
-        }
-      }
-
-      stack <- put stack offset node; (* Same as Stack.push() *)
+      stack <- put stack offset node; (* Push the node onto the stack *)
       offset <- offset + 1;
+      heights <- put heights (offset - 1) 0;
+      
+      while (
+          2 <= offset /\ (* The stack needs to have at least two nodes *)
+          nth witness heights (offset - 1) = nth witness heights (offset - 2)
+      ) {
+
+        tree_index <- W32.of_int(s + i) `>>>` ((nth witness heights (offset - 1)) + 1);
+        
+        address <- set_tree_height address (nth witness heights (offset - 1));
+        address <- set_tree_index address (W32.to_uint tree_index);
+
+        node0 <- nth witness stack (offset - 2);
+        node1 <- nth witness stack (offset - 1);
+
+        new_node <@ Hash.rand_hash(node0, node1, pub_seed, address);
+
+        stack <- put stack (offset - 2) new_node; (* push new node onto the stack *)
+
+        offset <- offset - 1; (* One less node on the stack (removed node0 and node1 and added new_node *)
+        heights <- put heights (offset - 1) (nth witness heights (offset - 1));
+
+      }
+      
+
       i <- i + 1;
     }
 
