@@ -1,5 +1,4 @@
 from Stdlib require "bytes/bytes.jtmpl"
-from Stdlib require "conditions/conditions.jinc"
 from Stdlib require "memset/memset.jtmpl"
 from Stdlib require "memcpy/memcpy.jtmpl"
 
@@ -116,27 +115,24 @@ fn __xmssmt_core_sign(
     reg u64 sm_ptr smlen_ptr m_ptr mlen
 ) -> reg ptr u8[XMSS_SK_BYTES], reg u64
 {
+    reg u32 i idx_leaf; 
+    reg u64 r t64 idx idx_tree;
+
     reg ptr u8[XMSS_N] sk_seed sk_prf pub_root pub_seed node;
+    reg ptr u8[XMSS_INDEX_BYTES] idx_bytes;
 
-    reg u32 i idx_leaf;
-    reg u64 idx idx_hash t64 r;
-
-    stack u8 exit;
-
-    stack u8[32] idx_bytes;
+    stack u8[XMSS_N] buf mhash root;
+    stack u8[32] index_bytes;
     stack u32[8] ots_addr;
+    stack u8[XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N)] reduced_sig; // WOTS signature || Authentication path 
 
-    stack u8[XMSS_N] root M;
-    stack u8[XMSS_N] buf;
-    stack u8[XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N)] sig_tmp;
+    stack u8 exit = FALSE;
+
     inline int j;
 
-    exit = 0;
-
     // uint32_t ots_addr[8] = {0};
-    ots_addr = __zero_address_(ots_addr);
-
     // set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
+    ots_addr = __zero_address_(ots_addr);
     ots_addr = __set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
 
     // memcpy(sm + params->sig_bytes, m, mlen);
@@ -146,122 +142,137 @@ fn __xmssmt_core_sign(
     t64 = mlen; t64 += XMSS_SIG_BYTES;
     (u64) [smlen_ptr] = t64;
 
-    () = #spill(mlen);
+    () = #spill(mlen, idx, sk, sm_ptr);
 
     // idx = (unsigned long)bytes_to_ull(sk, params->index_bytes);
-    idx = __bytes_to_ull(sk[0 : XMSS_INDEX_BYTES]);
+    idx_bytes = sk[0 : XMSS_INDEX_BYTES];
+    idx = __bytes_to_ull(idx_bytes);
 
-    // PROOF: rcondf in the proof
     if (idx >= ((1 << XMSS_FULL_HEIGHT) - 1)) {
         // memset(sk, 0xFF, params->index_bytes);
-        sk[0 : XMSS_INDEX_BYTES] =  __memset_u8<XMSS_INDEX_BYTES>(sk[0 : XMSS_INDEX_BYTES], 0xFF);
+        idx_bytes =  __memset_u8<XMSS_INDEX_BYTES>(idx_bytes, 0xFF);
+        sk[0 : XMSS_INDEX_BYTES] = idx_bytes;
 
         // memset(sk + params->index_bytes, 0, (params->sk_bytes - params->index_bytes));
         sk[XMSS_INDEX_BYTES : XMSS_SK_BYTES - XMSS_INDEX_BYTES] = 
             __memset_u8<XMSS_SK_BYTES - XMSS_INDEX_BYTES>(sk[XMSS_INDEX_BYTES : XMSS_SK_BYTES - XMSS_INDEX_BYTES], 0);
 
         if (idx > ((1 << XMSS_FULL_HEIGHT) - 1)) { 
-            exit = 1; 
+            exit = TRUE; 
+            r = -2;
         } else if ((idx == ((1 << XMSS_FULL_HEIGHT) - 1)) && XMSS_FULL_HEIGHT == 64) { 
-            exit = 1; 
+            exit = TRUE; 
+            r = -2;
         }
+
+        () = #spill(sk);
     }
 
-    // PROOF: rcondt in the proof
-    if (exit != 1) {
+    if (exit != TRUE) { 
         // memcpy(sm, sk, params->index_bytes);
-        sm_ptr, _ = _x_memcpy_u8pu8<XMSS_INDEX_BYTES>(sm_ptr, 0, sk[0 : XMSS_INDEX_BYTES]);
+        sm_ptr, _ = _x_memcpy_u8pu8<XMSS_INDEX_BYTES>(sm_ptr, 0, idx_bytes);
+        () = #spill(sm_ptr, idx);
 
+        // Increment the index
         // ull_to_bytes(sk, params->index_bytes, idx + 1);
         t64 = idx; t64 += 1;
         sk[0 : XMSS_INDEX_BYTES] = __ull_to_bytes<XMSS_INDEX_BYTES>(sk[0 : XMSS_INDEX_BYTES], t64);
+        () = #spill(sk);
 
         // ull_to_bytes(idx_bytes_32, 32, idx);
-        idx_bytes = __ull_to_bytes<32>(idx_bytes, idx);
+        index_bytes = __ull_to_bytes<32>(index_bytes, idx);
 
-        () = #spill(idx, sk, sm_ptr);
-
-    // ---------------------------------------------------------------------------------------------------------------------------------------------------------------- 
-
-    // Message compression
-    // byte[n] r = PRF(SK_PRF, toByte(idx_sig, 32));
-    // byte[n] M' = H_msg(r || getRoot(SK_MT) || (toByte(idx_sig, n)), M);  
-
-        // prf(params, sm + params->index_bytes, idx_bytes_32, sk_prf);
-        sk_prf = sk[XMSS_INDEX_BYTES + XMSS_N : XMSS_N];   
-        buf = __prf_(buf, idx_bytes, sk_prf); // prf kills sm_ptr and sk
+            // Message compression
+            // byte[n] r = PRF(SK_PRF, toByte(idx_sig, 32));
+            // byte[n] M' = H_msg(r || getRoot(SK_MT) || (toByte(idx_sig, n)), M);  
         
+        // prf(params, sm + params->index_bytes, idx_bytes_32, sk_prf);
+        // This computes R and writes it to the signature
+        sk_prf = sk[XMSS_INDEX_BYTES + XMSS_N : XMSS_N];   
+        buf = __prf_(buf, index_bytes, sk_prf); // prf kills sm_ptr and sk
+
         () = #unspill(sm_ptr, sk); 
-        sm_ptr, _ = _x_memcpy_u8pu8<XMSS_N>(sm_ptr, XMSS_INDEX_BYTES, buf);
+        sm_ptr, _ = _x_memcpy_u8pu8<XMSS_N>(sm_ptr, XMSS_INDEX_BYTES, buf); // Write R to the signature 
+        () = #spill(sm_ptr); /* TODO: FIXME: Nao ha necessidade de o ptr ser retornado
+                                Este spill podia ser evitado se o memcpy nao retornasse o sm_ptr */
 
         // hash_message(params, mhash, sm + params->index_bytes, pub_root, idx, sm + params->sig_bytes - 
+        // Compute the message hash 
         pub_root = sk[XMSS_INDEX_BYTES + 2*XMSS_N : XMSS_N];
         for j=0 to XMSS_N { buf[j] = (u8) [sm_ptr + XMSS_INDEX_BYTES + j]; } // copy the 2nd argument of hash message to buf
         t64 = sm_ptr; t64 += XMSS_SIG_BYTES - XMSS_PADDING_LEN - 3*XMSS_N;
-
         () = #unspill(mlen, idx);
+        mhash = __hash_message(mhash, buf, pub_root, idx, t64, mlen); // this function is not used anywhere else so we can use the inline
 
-        M = __hash_message(M, buf, pub_root, idx, t64, mlen); // this function is not used anywhere else so we can use the inline
-        root = #copy(M);
-        root = #randombytes(root);
-    // ---------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+        ots_addr = __set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
+        ots_addr = __set_layer_addr(ots_addr, 0);
 
-        // sm += params->index_bytes + params->n;
-        // () = #unspill(sm_ptr);
-        sm_ptr += XMSS_INDEX_BYTES + XMSS_N;
+        // idx_leaf = (idx & ((1 << params->tree_height) - 1));
+        () = #unspill(idx);
+        idx_leaf = ((1 << XMSS_TREE_HEIGHT) - 1);
+        idx_leaf &= idx;   
+
+        // idx_tree = idx >> params->tree_height;
+        idx_tree = idx >> XMSS_TREE_HEIGHT;
+
+        // set_tree_addr(ots_addr, idx_tree);
+        ots_addr = __set_tree_addr(ots_addr, idx_tree);
+
+        // Sig_tmp = treeSig(M', SK, idx_leaf, ADRS);
+        () = #unspill(sk);
+        reduced_sig, ots_addr = __tree_sig_(reduced_sig, mhash, sk, idx_leaf, ots_addr);
+
+        // Copy the result to the signature
+        () = #unspill(sm_ptr);
+        for j=0 to XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N) { 
+            (u8) [sm_ptr + XMSS_INDEX_BYTES /* index */ + XMSS_N /* R */ + j] = reduced_sig[j]; 
+        }
+
+        sm_ptr += XMSS_INDEX_BYTES + XMSS_N + XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N);
         () = #spill(sm_ptr);
 
-        // set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
-        ots_addr = __set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
-
-        i = 0;
+        i = 1;
         while (i < XMSS_D) {
             () = #spill(i);
-            () = #unspill(sk);
 
-            // root = treeHash(SK, 0, h / d, ADRS);
+            // treehash_new(params, root, sk_seed, pub_seed, 0, params->tree_height, ots_addr);
+            () = #unspill(sk);
             sk_seed = sk[XMSS_INDEX_BYTES : XMSS_N];
             pub_seed = sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N];
             root = __treehash_(root, sk_seed, pub_seed, 0, XMSS_TREE_HEIGHT, ots_addr);
 
-            // idx_leaf = (idx & ((1 << params->tree_height)-1));
+            // idx_leaf = (idx & ((1 << params->tree_height) - 1));
+            // idx = idx >> params->tree_height;  // idx_tree
             () = #unspill(idx);
             idx_leaf = ((1 << XMSS_TREE_HEIGHT) - 1);
-            idx_leaf &= idx;   
-
-            // idx = idx >> params->tree_height;
-            ?{}, idx = #SHR_64(idx,  XMSS_TREE_HEIGHT);
-            () = #spill(idx, idx_leaf);
+            idx_leaf &= idx;  
+            idx >>= XMSS_TREE_HEIGHT;
+            () = #spill(idx);
 
             // set_layer_addr(ots_addr, i);
-            // set_tree_addr(ots_addr, idx);
-            // set_ots_addr(ots_addr, idx_leaf);
+            // set_tree_addr(ots_addr, idx_tree);
             () = #unspill(i);
             ots_addr = __set_layer_addr(ots_addr, i);
-            ots_addr = __set_tree_addr(ots_addr, idx);
-            ots_addr = __set_ots_addr(ots_addr, idx_leaf);
-
-            // // Sig_tmp = treeSig(root, SK, idx_leaf, ADRS);
-            () = #unspill(sk, idx_leaf);
-            sig_tmp, ots_addr = __tree_sig(sig_tmp, root, sk, idx_leaf, ots_addr);
+            ots_addr = __set_tree_addr(ots_addr, idx); /* if this turns out to be idx_tree, we need another unspill here */
+            
+            // treesig(params, sm, root, sk, idx_leaf, ots_addr);
+            () = #unspill(sk);
+            reduced_sig, ots_addr = __tree_sig_(reduced_sig, root, sk, idx_leaf, ots_addr);
 
             () = #unspill(sm_ptr);
-            for j=0 to XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N) {
-                (u8)[sm_ptr + j] = sig_tmp[j];
-            }
-
+            for j=0 to XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N) { (u8) [sm_ptr + j] = reduced_sig[j]; }
             sm_ptr += XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N);
             () = #spill(sm_ptr);
-            
 
-            () = #unspill(i, idx_leaf);
+            () = #unspill(i);
             i += 1;
         }
 
-        () = #unspill(sk);
+        ?{}, r = #set0();
     }
 
-    ?{}, r = #set0();
+    () = #unspill(sk);
+
     return sk, r;
 }
 

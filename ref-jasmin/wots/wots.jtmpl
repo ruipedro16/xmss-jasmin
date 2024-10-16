@@ -1,9 +1,8 @@
-from Stdlib require "conditions/conditions.jinc"
-
 from XMSS require "hash_address/hash_address.jinc"
 from XMSS require "hash/hash.jtmpl"
 
-inline fn __expand_seed(
+inline
+fn __expand_seed(
     reg ptr u8[XMSS_WOTS_LEN * XMSS_N] outseeds,
     reg ptr u8[XMSS_N] inseed,
     reg ptr u8[XMSS_N] pub_seed,
@@ -62,7 +61,8 @@ fn _expand_seed(
     return outseeds, addr;
 }
 
-inline fn __expand_seed_(
+inline 
+fn __expand_seed_(
     reg ptr u8[XMSS_WOTS_LEN * XMSS_N] outseeds,
     reg ptr u8[XMSS_N] inseed,
     reg ptr u8[XMSS_N] pub_seed,
@@ -84,7 +84,8 @@ inline fn __expand_seed_(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline fn __gen_chain_inplace(
+inline
+fn __gen_chain_inplace(
     reg ptr u8[XMSS_N] out, // Also in
     reg u32 start steps, 
     reg ptr u8[XMSS_N] pub_seed,
@@ -133,7 +134,8 @@ fn _gen_chain_inplace(
     return out, addr;
 }
 
-inline fn __gen_chain_inplace_(
+inline
+fn __gen_chain_inplace_(
     reg ptr u8[XMSS_N] out,
     reg u32 start steps,
     reg ptr u8[XMSS_N] pub_seed,
@@ -156,7 +158,8 @@ inline fn __gen_chain_inplace_(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline fn __base_w<OUTLEN, INLEN>(
+inline
+fn __base_w<OUTLEN, INLEN>(
   reg ptr u32[OUTLEN] output,
   reg ptr u8[INLEN] input
 ) -> reg ptr u32[OUTLEN]
@@ -208,7 +211,8 @@ fn _base_w<OUTLEN, INLEN>(
     return output;
 }//<>
 
-inline fn __base_w_<OUTLEN, INLEN>(
+inline
+fn __base_w_<OUTLEN, INLEN>(
     reg ptr u32[OUTLEN] output,
     reg ptr u8[INLEN] input
 ) -> reg ptr u32[OUTLEN]
@@ -226,7 +230,8 @@ inline fn __base_w_<OUTLEN, INLEN>(
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Just computes the checksum
-inline fn __csum(reg ptr u32[XMSS_WOTS_LEN1] msg_base_w) -> reg u64
+inline
+fn __csum(reg ptr u32[XMSS_WOTS_LEN1] msg_base_w) -> reg u64
 {
     reg u64 csum i t u;
 
@@ -245,7 +250,8 @@ inline fn __csum(reg ptr u32[XMSS_WOTS_LEN1] msg_base_w) -> reg u64
     return csum;
 }
 
-inline fn __wots_checksum(
+inline
+fn __wots_checksum(
     reg ptr u32[XMSS_WOTS_LEN2] csum_base_w,
     reg ptr u32[XMSS_WOTS_LEN] msg_base_w
 ) -> reg ptr u32[XMSS_WOTS_LEN2]
@@ -288,7 +294,8 @@ fn _wots_checksum(
     return csum_base_w;
 }
 
-inline fn __wots_checksum_(
+inline
+fn __wots_checksum_(
     reg ptr u32[XMSS_WOTS_LEN2] csum_base_w,
     reg ptr u32[XMSS_WOTS_LEN] msg_base_w
 ) -> reg ptr u32[XMSS_WOTS_LEN2]
@@ -305,7 +312,8 @@ inline fn __wots_checksum_(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline fn __chain_lengths(
+inline
+fn __chain_lengths(
     reg ptr u32[XMSS_WOTS_LEN] lengths,
     reg ptr u8[XMSS_N] msg
 ) -> reg ptr u32[XMSS_WOTS_LEN]
@@ -335,7 +343,8 @@ fn _chain_lengths(
     return lengths;
 }//<>
 
-inline fn __chain_lengths_(
+inline
+fn __chain_lengths_(
     reg ptr u32[XMSS_WOTS_LEN] lengths,
     reg ptr u8[XMSS_N] msg
 ) -> reg ptr u32[XMSS_WOTS_LEN]
@@ -352,7 +361,8 @@ inline fn __chain_lengths_(
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-inline fn __wots_pkgen(
+inline
+fn __wots_pkgen(
     reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk,
     reg ptr u8[XMSS_N] seed,
     reg ptr u8[XMSS_N] pub_seed,
@@ -390,7 +400,8 @@ inline fn __wots_pkgen(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline fn __wots_sign(
+inline
+fn __wots_sign(
     reg ptr u8[XMSS_WOTS_LEN * XMSS_N] sig,
     reg ptr u8[XMSS_N] msg,
     reg ptr u8[XMSS_N] seed,
@@ -436,7 +447,8 @@ fn _wots_sign(
     return sig, addr;
 }
 
-inline fn __wots_sign_(
+inline
+fn __wots_sign_(
     reg ptr u8[XMSS_WOTS_LEN * XMSS_N] sig,
     reg ptr u8[XMSS_N] msg,
     reg ptr u8[XMSS_N] seed,
@@ -460,7 +472,8 @@ inline fn __wots_sign_(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline fn __wots_pk_from_sig(
+inline
+fn __wots_pk_from_sig(
     reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk,
     reg u64 sig_ptr,
     reg ptr u8[XMSS_N] msg,
@@ -510,7 +523,8 @@ fn _wots_pk_from_sig(
     return pk, addr;
 }
 
-inline fn __wots_pk_from_sig_(
+inline
+fn __wots_pk_from_sig_(
     reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk, 
     reg u64 sig_ptr,
     reg ptr u8[XMSS_N] msg,

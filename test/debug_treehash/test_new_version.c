@@ -14,20 +14,8 @@
 #include "xmss_core.h"
 
 #ifndef TESTS
-#define TESTS 10
+#define TESTS 50
 #endif
-
-/*
-static void clearFile(const char *filename) {
-    FILE *file = fopen(filename, "w");
-    if (file == NULL) {
-        perror("Error opening file");
-        return;
-    }
-
-    fclose(file);
-}
-*/
 
 static int starts_with(const char *str, const char *prefix) { return strncmp(str, prefix, strlen(prefix)) == 0; }
 

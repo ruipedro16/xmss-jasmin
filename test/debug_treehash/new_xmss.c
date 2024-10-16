@@ -186,6 +186,22 @@ int xmssmt_core_sign_new(const xmss_params *params, unsigned char *sk, unsigned 
 
     idx = (unsigned long)bytes_to_ull(sk, params->index_bytes);
 
+    // Check if we can still sign with this sk.
+    if (idx >= ((1ULL << params->full_height) - 1)) {
+        // Delete secret key here. We only do this in memory, production code
+        // has to make sure that this happens on disk.
+        memset(sk, 0xFF, params->index_bytes);
+        memset(sk + params->index_bytes, 0, (params->sk_bytes - params->index_bytes));
+        if (idx > ((1ULL << params->full_height) - 1)) {  // We already used all one-time keys
+            return -2;
+        }
+        
+        if ((params->full_height == 64) &&
+            (idx == ((1ULL << params->full_height) - 1))) {  // We already used all one-time keys
+            return -2;
+        }
+    }
+
     memcpy(sm, sk, params->index_bytes);  // Writes idx to the signature
 
     /* Increment the index in the secret key. */
@@ -234,7 +250,7 @@ int xmssmt_core_sign_new(const xmss_params *params, unsigned char *sk, unsigned 
         idx = idx >> params->tree_height;  // idx_tree
 
         set_layer_addr(ots_addr, i);
-        set_tree_addr(ots_addr, idx_tree);
+        set_tree_addr(ots_addr, idx);
         // set_ots_addr(ots_addr, idx_leaf); this is done in treesig
 
         treesig(params, sm, root, sk, idx_leaf, ots_addr);
