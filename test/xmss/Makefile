@@ -21,17 +21,19 @@ PREPROCESSOR ?= ../../submodules/jasmin-preprocessor/preprocessor
 
 # ----------------------------------------------------------------------------------------------------------------------
 
-IMPLS := XMSS-SHA2_10_256
-IMPL_STR := $(foreach impl,$(IMPLS),$(shell echo $(impl) | tr '[:upper:]' '[:lower:]'))
+IMPL ?= # XMSS-SHA2_10_192  XMSS-SHA2_10_256 XMSSMT-SHA2_20/2_256 XMSSMT-SHA2_20/4_256
+IMPL_STR := $(foreach impl,$(IMPL),$(shell echo $(impl) | tr '[:upper:]' '[:lower:]')) # TODO: Remove the foreach 
 
 SPACE = $(space) $(space)
 
-GET_IMPL = $(subst $(SPACE),_,$(wordlist 3, 5, $(subst _, ,$*)))
-GET_IMPL_UPPER_CASE = $(shell echo $(subst $(SPACE),_,$(wordlist 3, 5, $(subst _, ,$*))) | tr '[:lower:]' '[:upper:]')
+GET_IMPL = $(subst /,_,$(subst $(SPACE),_,$(wordlist 3,$(words $(subst _, ,$*)), $(subst _, ,$*))))
+GET_IMPL_UPPER_CASE = $(shell echo $(IMPL_STR) | tr '[:lower:]' '[:upper:]')
+# $(IMPL_STR) # $(shell echo $(subst $(SPACE),_,$(wordlist 3,$(words $(subst _, ,$*)), $(subst _, ,$*))) | tr '[:lower:]' '[:upper:]')
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 
-TESTS := $(addprefix bin/test_xmss_, $(IMPL_STR))
+TESTS := $(addprefix bin/test_xmss_, $(subst /,_, $(IMPL_STR)))
 OUT   := $(addsuffix .out, $(TESTS))
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -70,9 +72,8 @@ sct: $(CHECK_SCT)
 $(JPP_FILES):
 .PRECIOUS: bin/%.jpp
 bin/%.jpp: | bin/
-	echo "from XMSS require \"params/params-$(GET_IMPL).jinc\"\n" > $@
-	echo "from XMSS require \"core_hash/core_hash_$(GET_IMPL).jtmpl\"\n\n" >> $@
-	cat test_xmss.jazz  >> $@
+	../scripts/import_params_hash.py "$(GET_IMPL)" > $@
+	cat test_xmss.jazz >> $@
 	$(JPP) $(JINCLUDE) -in $@ -out $@
 
 $(JAZZ_FILES):
@@ -94,7 +95,7 @@ bin/zeroization_unroll_%.s: bin/%.jazz
 
 $(TESTS):
 bin/%: bin/%.s | bin/
-	$(CC) $(CFLAGS) -o $@ -I../common -I../ -DIMPL=$(GET_IMPL_UPPER_CASE) -DTEST_XMSS -DDEBUG_TEST \
+	$(CC) $(CFLAGS) -o $@ -I../common -I../ -DIMPL="$(GET_IMPL_UPPER_CASE)" -DTEST_XMSS -DDEBUG_TEST \
 	$(SOURCES) $(REF_SOURCES) $< $(LDLIBS) -lm
 
 $(OBJ_FILES):
@@ -125,3 +126,6 @@ clean:
 .PHONY: clean_executables
 clean_executables:
 	find bin/ -type f -executable -delete || true
+
+debug:
+	@echo $(TESTS)

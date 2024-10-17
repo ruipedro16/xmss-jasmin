@@ -1,5 +1,5 @@
 from XMSS require "params.jinc"
-from XMSS require "core_hash/core_hash_shake256_out_64.jtmpl"
+from XMSS require "core_hash/core_hash_shake256_out_64.jtmpl" /* FIXME: This file doesnt exist anymore */
 
 
 export fn core_hash_shake256_out_64_jazz<INLEN>(

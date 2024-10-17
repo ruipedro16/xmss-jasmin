@@ -195,7 +195,7 @@ int xmssmt_core_sign_new(const xmss_params *params, unsigned char *sk, unsigned 
         if (idx > ((1ULL << params->full_height) - 1)) {  // We already used all one-time keys
             return -2;
         }
-        
+
         if ((params->full_height == 64) &&
             (idx == ((1ULL << params->full_height) - 1))) {  // We already used all one-time keys
             return -2;
@@ -219,8 +219,8 @@ int xmssmt_core_sign_new(const xmss_params *params, unsigned char *sk, unsigned 
     set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
     set_layer_addr(ots_addr, 0);
 
-    idx_leaf = (idx & ((1 << params->tree_height) - 1));
-    idx_tree = idx >> params->tree_height;
+    idx_tree = idx >> params->tree_height;               /* (h - h / d) most significant bits of idx_sig */
+    idx_leaf = (idx & ((1 << params->tree_height) - 1)); /* (h - h / d) least significant bits of idx_sig */
     set_tree_addr(ots_addr, idx_tree);
 
     // Sig_tmp = treeSig(M', SK, idx_leaf, ADRS);
@@ -246,12 +246,11 @@ int xmssmt_core_sign_new(const xmss_params *params, unsigned char *sk, unsigned 
 
     for (unsigned int i = 1; i < params->d; i++) {
         treehash_new(params, root, sk_seed, pub_seed, 0, params->tree_height, ots_addr);
-        idx_leaf = (idx & ((1 << params->tree_height) - 1));
-        idx = idx >> params->tree_height;  // idx_tree
+        idx_tree = idx_tree >> params->tree_height;          /* (h - h / d) most significant bits of idx_sig */
+        idx_leaf = (idx_tree & ((1 << params->tree_height) - 1)); /* (h - h / d) least significant bits of idx_sig */
 
         set_layer_addr(ots_addr, i);
         set_tree_addr(ots_addr, idx);
-        // set_ots_addr(ots_addr, idx_leaf); this is done in treesig
 
         treesig(params, sm, root, sk, idx_leaf, ots_addr);
         sm += params->wots_sig_bytes + params->tree_height * params->n;

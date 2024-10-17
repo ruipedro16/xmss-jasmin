@@ -6,7 +6,8 @@ from XMSS require "treehash/treehash.jinc"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline fn __xmssmt_core_seed_keypair(
+inline
+fn __xmssmt_core_seed_keypair(
     reg ptr u8[XMSS_PK_BYTES] pk, 
     reg ptr u8[XMSS_SK_BYTES] sk,
     reg ptr u8[3 * XMSS_N] seed
@@ -65,7 +66,8 @@ inline fn __xmssmt_core_seed_keypair(
 
 /////////////////////////////////// KEY PAIR ///////////////////////////////////
 
-inline fn __xmssmt_core_keypair(
+inline
+fn __xmssmt_core_keypair(
     reg ptr u8[XMSS_PK_BYTES] pk, 
     reg ptr u8[XMSS_SK_BYTES] sk
 ) -> reg ptr u8[XMSS_PK_BYTES], reg ptr u8[XMSS_SK_BYTES]
@@ -91,7 +93,8 @@ fn _xmssmt_core_keypair(
     return pk, sk;
 }
 
-inline fn __xmssmt_core_keypair_(
+inline
+fn __xmssmt_core_keypair_(
     reg ptr u8[XMSS_PK_BYTES] pk, 
     reg ptr u8[XMSS_SK_BYTES] sk
 ) -> reg ptr u8[XMSS_PK_BYTES], reg ptr u8[XMSS_SK_BYTES]
@@ -207,13 +210,12 @@ fn __xmssmt_core_sign(
         ots_addr = __set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
         ots_addr = __set_layer_addr(ots_addr, 0);
 
-        // idx_leaf = (idx & ((1 << params->tree_height) - 1));
+        // idx_tree = idx >> params->tree_height;               /* (h - h / d) most significant bits of idx_sig */
+        // idx_leaf = (idx & ((1 << params->tree_height) - 1)); /* (h - h / d) least significant bits of idx_sig */
         () = #unspill(idx);
-        idx_leaf = ((1 << XMSS_TREE_HEIGHT) - 1);
-        idx_leaf &= idx;   
-
-        // idx_tree = idx >> params->tree_height;
-        idx_tree = idx >> XMSS_TREE_HEIGHT;
+        idx_tree = idx; idx_tree >>= XMSS_TREE_HEIGHT;
+        idx_leaf = ((1 << XMSS_TREE_HEIGHT) - 1); idx_leaf &= idx;   
+        () = #spill(idx_tree);
 
         // set_tree_addr(ots_addr, idx_tree);
         ots_addr = __set_tree_addr(ots_addr, idx_tree);
@@ -241,19 +243,18 @@ fn __xmssmt_core_sign(
             pub_seed = sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N];
             root = __treehash_(root, sk_seed, pub_seed, 0, XMSS_TREE_HEIGHT, ots_addr);
 
-            // idx_leaf = (idx & ((1 << params->tree_height) - 1));
-            // idx = idx >> params->tree_height;  // idx_tree
-            () = #unspill(idx);
-            idx_leaf = ((1 << XMSS_TREE_HEIGHT) - 1);
-            idx_leaf &= idx;  
-            idx >>= XMSS_TREE_HEIGHT;
-            () = #spill(idx);
+            // idx_tree = idx_tree >> params->tree_height;          /* (h - h / d) most significant bits of idx_sig */
+            // idx_leaf = (idx_tree & ((1 << params->tree_height) - 1)); /* (h - h / d) least significant bits of idx_sig */
+            () = #unspill(idx_tree);
+            idx_tree >>= XMSS_TREE_HEIGHT;
+            idx_leaf = ((1 << XMSS_TREE_HEIGHT) - 1); idx_leaf &= idx_tree;  
+            () = #spill(idx_tree);
 
             // set_layer_addr(ots_addr, i);
             // set_tree_addr(ots_addr, idx_tree);
             () = #unspill(i);
             ots_addr = __set_layer_addr(ots_addr, i);
-            ots_addr = __set_tree_addr(ots_addr, idx); /* if this turns out to be idx_tree, we need another unspill here */
+            ots_addr = __set_tree_addr(ots_addr, idx_tree);
             
             // treesig(params, sm, root, sk, idx_leaf, ots_addr);
             () = #unspill(sk);

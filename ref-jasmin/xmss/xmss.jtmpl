@@ -1,11 +1,11 @@
-from XMSS require "params.jinc"
 from XMSS require "xmss_core/xmss_core.jtmpl"
 
 // This file provides wrapper functions that take keys that include OIDs to
 // identify the parameter set to be used. After setting the parameters accordingly
 // it falls back to the regular XMSS core functions.
 
-inline fn  __xmss_keypair(
+inline
+fn  __xmss_keypair(
     reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk, 
     reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES] sk
 ) -> reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES],
@@ -25,7 +25,8 @@ inline fn  __xmss_keypair(
     return pk, sk;
 }
 
-inline fn  __xmssmt_keypair(
+inline
+fn  __xmssmt_keypair(
     reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk, 
     reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES] sk
 ) -> reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES],
@@ -45,7 +46,8 @@ inline fn  __xmssmt_keypair(
     return pk, sk;
 }
 
-inline fn __xmss_sign(
+inline
+fn __xmss_sign(
     reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES] sk,
     reg u64 sm_ptr smlen_ptr,
     reg u64 m_ptr mlen
@@ -59,7 +61,8 @@ inline fn __xmss_sign(
     return sk, res;
 }
 
-inline fn __xmssmt_sign(
+inline
+fn __xmssmt_sign(
     reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES] sk,
     reg u64 sm_ptr smlen_ptr,
     reg u64 m_ptr mlen
@@ -73,7 +76,8 @@ inline fn __xmssmt_sign(
     return sk, res;
 }
 
-inline fn __xmss_sign_open(
+inline
+fn __xmss_sign_open(
     reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk,
     reg u64 m_ptr mlen_ptr sm_ptr smlen
 ) -> reg u64
@@ -84,7 +88,8 @@ inline fn __xmss_sign_open(
     return res;
 }
 
-inline fn __xmssmt_sign_open(
+inline
+fn __xmssmt_sign_open(
     reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk,
     reg u64 m_ptr mlen_ptr sm_ptr smlen
 ) -> reg u64

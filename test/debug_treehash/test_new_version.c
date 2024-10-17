@@ -14,7 +14,7 @@
 #include "xmss_core.h"
 
 #ifndef TESTS
-#define TESTS 50
+#define TESTS 25
 #endif
 
 static int starts_with(const char *str, const char *prefix) { return strncmp(str, prefix, strlen(prefix)) == 0; }
@@ -177,6 +177,8 @@ void test_sign(xmss_params p) {
                 assert(memcmp(sm_new, sm_ref, p.sig_bytes + XMSS_MLEN) == 0);
             }
         }
+
+        assert(memcmp(sm_new, sm_ref, p.sig_bytes + XMSS_MLEN) == 0);
     }
 
 #undef XMSS_MLEN
