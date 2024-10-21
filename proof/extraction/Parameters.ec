@@ -1,6 +1,8 @@
 from Jasmin require import JModel.
 
 op XMSS_OID_LEN : int = 4.
+op XMSS_SHA2 : int = 0.
+op XMSS_SHAKE128 : int = 1.
 op XMSS_SHAKE256 : int = 2.
 op XMSS_ADDR_TYPE_OTS : int = 0.
 op XMSS_ADDR_TYPE_LTREE : int = 1.
@@ -20,10 +22,10 @@ op XMSS_WOTS_LEN1 : int = 64.
 op XMSS_WOTS_LEN2 : int = 3.
 op XMSS_WOTS_LEN : int = 67.
 op XMSS_WOTS_SIG_BYTES : int = 2144.
-op XMSS_FULL_HEIGHT : int = 10.
+op XMSS_FULL_HEIGHT : int = 20.
 op XMSS_TREE_HEIGHT : int = 10.
-op XMSS_D : int = 1.
-op XMSS_INDEX_BYTES : int = 4.
-op XMSS_SIG_BYTES : int = 2500.
+op XMSS_D : int = 2.
+op XMSS_INDEX_BYTES : int = 3.
+op XMSS_SIG_BYTES : int = 4963.
 op XMSS_PK_BYTES : int = 64.
-op XMSS_SK_BYTES : int = 132.
+op XMSS_SK_BYTES : int = 131.

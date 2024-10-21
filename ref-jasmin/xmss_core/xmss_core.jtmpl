@@ -151,6 +151,8 @@ fn __xmssmt_core_sign(
     idx_bytes = sk[0 : XMSS_INDEX_BYTES];
     idx = __bytes_to_ull(idx_bytes);
 
+    // Check if we can still sign with this sk.
+    // If not, return -2
     if (idx >= ((1 << XMSS_FULL_HEIGHT) - 1)) {
         // memset(sk, 0xFF, params->index_bytes);
         idx_bytes =  __memset_u8<XMSS_INDEX_BYTES>(idx_bytes, 0xFF);

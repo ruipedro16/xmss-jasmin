@@ -1,0 +1,3 @@
+## TODO
+
+- [ ] Ha 3 declaracoes do operador `W32toBytes` em ficheiros diferentes. Deixar isto apenas no Utils ou no Repr2.

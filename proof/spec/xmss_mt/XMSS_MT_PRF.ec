@@ -30,13 +30,13 @@ module XMSS_MT_PRF = {
    *)
 
   proc sample_randomness () : nbytes * nbytes * nbytes = {
-    var sk_seed, sk_prf, pub_seed : nbytes;
+    var sk_seed, sk_prf, pub_seed : W8.t list;
 
-    sk_seed <$ dmap (DList.dlist W8.dword n) NBytes.insubd;
-    sk_prf <$ dmap (DList.dlist W8.dword n) NBytes.insubd;
-    pub_seed <$ dmap (DList.dlist W8.dword n) NBytes.insubd;
+    sk_seed  <$ DList.dlist W8.dword n;
+    sk_prf   <$ DList.dlist W8.dword n;
+    pub_seed <$ DList.dlist W8.dword n;
 
-    return (sk_seed, sk_prf, pub_seed);
+    return (NBytes.insubd sk_seed, NBytes.insubd sk_prf, NBytes.insubd pub_seed);
   }
 
    proc kg() : xmss_keypair = {

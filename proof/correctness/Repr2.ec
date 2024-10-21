@@ -8,7 +8,7 @@ from Jasmin require import JModel.
 
 require import Params Parameters Types WOTS XMSS_MT_Params LTree XMSS_MT_Types.
 
-require import Array32 Array64 Array68 Array132 Array136 Array2144.
+require import Array32 Array64 Array68 Array131 Array2144.
 
 require import BitEncoding.
 (*---*) import BitChunking.
@@ -161,12 +161,12 @@ op EncodePkNoOID (x : W8.t Array64.t) : xmss_pk = {| pk_oid      = witness;
                                                      pk_pub_seed = NBytes.insubd (sub x 32 32);
                                                    |}. 
 
-op DecodeSk (x : xmss_sk) : W8.t Array136.t = 
-  Array136.of_list witness (W32toBytes impl_oid ++ W32toBytes x.`idx ++ val x.`sk_seed ++ 
+op DecodeSk (x : xmss_sk) : W8.t Array131.t = 
+  Array131.of_list witness (W32toBytes impl_oid ++ W32toBytes x.`idx ++ val x.`sk_seed ++ 
                             val x.`sk_prf ++ val x.`sk_root ++ val x.`pub_seed_sk).
 
-op DecodeSkNoOID (x : xmss_sk) : W8.t Array132.t = 
-  Array132.of_list witness (W32toBytes x.`idx ++ val x.`sk_seed ++ val x.`sk_prf ++ 
+op DecodeSkNoOID (x : xmss_sk) : W8.t Array131.t = 
+  Array131.of_list witness (W32toBytes x.`idx ++ val x.`sk_seed ++ val x.`sk_prf ++ 
                             val x.`sk_root ++ val  x.`pub_seed_sk).
 
 (** -------------------------------------------------------------------------------------------- **)
@@ -175,7 +175,6 @@ op EncodeAuthPath (x : W8.t list) : auth_path =
   AuthPath.insubd (map NBytes.insubd (chunk n x)).
 
 op DecodeAuthPath_List (ap : auth_path) : W8.t list = nbytes_flatten (val ap).
-
 
 op EncodeReducedSignature (x : W8.t list) :  wots_signature * auth_path =
   (EncodeWotsSignatureList (sub_list x 0 2144), EncodeAuthPath (sub_list x 2144 32)).
@@ -191,7 +190,7 @@ op load_signature_mem (mem : global_mem_t) (sm_ptr mlen : W64.t) : W8.t list =
   mkseq (fun (i : int) => loadW8 mem (to_uint (sm_ptr + mlen) + i)) XMSS_SIG_BYTES.
 
 op EncodeSignature (sig_bytes : W8.t list) : sig_t =
-  {| sig_idx  = W32ofBytes (sub_list sig_bytes 0 4);
-     r        = NBytes.insubd (sub_list sig_bytes 4 32);
+  {| sig_idx  = W32ofBytes (sub_list sig_bytes 0 3);
+     r        = NBytes.insubd (sub_list sig_bytes 3 32);
      r_sigs   = map EncodeReducedSignature (chunk 2176 (sub_list sig_bytes 36 (36 - 2500)));
   |}.

@@ -9,10 +9,10 @@ require import XMSS_IMPL Parameters.
 require import Repr2. 
 require import Utils2.
 
-require import Array4 Array8 Array32 Array64 Array68 Array96 Array132 Array136 Array352 Array2144.
-require import WArray32 WArray96 WArray136.
+require import Array3 Array8 Array32 Array64 Array68 Array96 Array131 Array352 Array2144.
+require import WArray32 WArray96 WArray131.
 
-require import Correctness_Address Correctness_Mem Correctness_Hash.
+require import Correctness_Address Correctness_Bytes Correctness_Mem Correctness_Hash.
 require import DistrUtils.
 
 require import BitEncoding.
@@ -32,6 +32,47 @@ arg{1}.`5 => mlen   (* length of the message *)
 arg{2}.`1 => sk
 arg{2}.`2 => msg
 *)
+
+lemma sign_invalid_idx :
+    hoare [
+      M(Syscall).__xmssmt_core_sign :
+      2^XMSS_FULL_HEIGHT < to_uint (W64ofBytes (sub sk 0 3))
+      ==> 
+      res.`2 <> W64.zero 
+    ].
+proof.
+proc => /=.
+seq 18 : #pre.
+  + inline; auto; while (true); auto => />; while (true); auto => />.
+
+seq 1 : (#pre /\ to_list idx_bytes = sub sk 0 3).
+  + auto => /> &hr *.
+    apply (eq_from_nth witness); first by rewrite size_to_list size_sub.
+    rewrite size_to_list => j?.
+    by rewrite get_to_list initiE // nth_sub.
+
+seq 1 : (#pre /\ idx = W64ofBytes (sub sk 0 3)); first by ecall (ull_to_bytes_correct_ idx_bytes); auto => /> /#.
+
+conseq (: 2 ^ XMSS_FULL_HEIGHT < to_uint idx /\  to_list idx_bytes = sub sk 0 3 /\ idx = W64ofBytes (sub sk 0 3) ==> _).
+  + by auto => /> &hr ? <-.
+
+rcondt 1.
+  + auto => /> &hr.
+    rewrite /XMSS_FULL_HEIGHT /= => H?. 
+    rewrite uleE of_uintK /(`<<`) ifT //= /#.
+
+seq 4 : (2 ^ XMSS_FULL_HEIGHT < to_uint idx).
+  + wp. 
+    call (: true); first by while (true); auto => />.
+    wp.
+    call (: true); first by while (true); auto => />.
+    by skip.
+
+seq 1 : (#pre /\ #post /\ exit_0 = W8.one); last by rcondf 1; auto.
+ 
+rcondt 1; auto => /> ?; rewrite /XMSS_FULL_HEIGHT /= => ?; last by smt(@W64 pow2_64).
+rewrite /(`<<`) ifT // ultE /= /#.
+qed.
 
 
 op load_message (mem : global_mem_t) (ptr : W64.t) (mlen : W64.t) =
@@ -57,56 +98,9 @@ lemma sign_correct (mem : global_mem_t) (_sk : xmss_sk, _sm_ptr _smlen_ptr _m_pt
       arg{2}.`2 = load_message mem _m_ptr _mlen /\
 
       valid_ptr_i arg{1}.`5 2500 /\
-      2^XMSS_FULL_HEIGHT - 1 <= to_uint sk{2}.`idx (* the maximum number of signatures was reached *)
-      ==>
-      res{1}.`2 <> W64.zero
-    ].
-proof.
-rewrite /XMSS_N => [#] n_val ??.
-proc => /=.
-
-seq 11 5 : (
-  #pre /\
-  idx{2} = sk{2}.`Types.idx /\
-  2^XMSS_FULL_HEIGHT - 1 <= to_uint idx{1} /\
-  idx{2} = W32ofBytes (sub sk{1} 0 4) /\
-  exit_0{1} = W8.zero
-).
-    + admit.
-seq 7 0 : (#pre /\ to_uint idx{1} = to_uint idx{2}).
-    + admit.
-rcondt {1} 1.
-    + auto => /> &hr ?? H0 H1 ? H2. 
-      rewrite uleE of_uintK /(`<<`) // ifT //=.
-
-admit.
-qed.
-
-
-
-lemma sign_correct (mem : global_mem_t) (_sk : xmss_sk, _sm_ptr _smlen_ptr _m_ptr _mlen : W64.t) :
-    n = XMSS_N /\ 
-    prf_padding_val = XMSS_HASH_PADDING_PRF /\ 
-    padding_len = XMSS_PADDING_LEN =>
-    equiv [
-      M(Syscall).__xmssmt_core_sign ~ XMSS_MT_PRF.sign :
-      Glob.mem{1} = mem /\
-      Glob.mem{2} = mem /\
-
-      arg{1}.`1 = DecodeSkNoOID _sk /\
-      arg{1}.`2 = _sm_ptr /\
-      arg{1}.`3 = _smlen_ptr /\
-      arg{1}.`4 = _m_ptr /\
-      arg{1}.`5 = _mlen  /\
-
-      arg{2}.`1 =_sk /\
-      arg{2}.`2 = load_message mem _m_ptr _mlen /\
-
-      valid_ptr_i arg{1}.`5 2500 /\
       0 <= to_uint sk{2}.`idx < 2^XMSS_FULL_HEIGHT - 1 (* ensures that the maximum number of signatures was not yet reached *)
       ==>
-(*      res{2}.`2 = DecodeSkNoOID res{2}.`1 *)
-      false
+      res{2}.`2 = DecodeSkNoOID res{2}.`1
     ].
 proof.
 rewrite /XMSS_N => [#] n_val ??.

@@ -103,6 +103,7 @@ by rewrite -W64_W32_of_bytes // to_uint_zeroextu64.
 qed.
 
 (** -------------------------------------------------------------------------------------------- **)
+
 lemma zero_addr_i :
     forall (k : int), 0 <= k < 8 => zero_addr.[k] = W32.zero.
 proof.
@@ -202,4 +203,20 @@ rewrite size_flatten sumzE BIA.big_map /(\o) //= -(StdBigop.Bigint.BIA.eq_big_se
     have ?: forall (k : int), 0 <= k < size x => size (nth witness (map NBytes.val x) k) = n by move => *; rewrite (nth_map witness) 1:/# valP.
     smt(@List).
 by rewrite big_constz count_predT size_map.
+qed.
+
+(** -------------------------------------------------------------------------------------------- **)
+
+lemma shl_zero (w0 : W32.t) : w0 `<<` W8.zero = w0.
+proof.
+rewrite /(`<<`) /(`<<<`).
+rewrite wordP => ??.
+by rewrite initiE.
+qed.
+
+lemma shr_zero (w0 : W32.t) : w0 `>>` W8.zero = w0.
+proof.
+rewrite /(`>>`) /(`>>>`).
+rewrite wordP => ??.
+by rewrite initiE.
 qed.

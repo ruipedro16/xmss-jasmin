@@ -4,7 +4,7 @@ require import AllCore List RealExp IntDiv.
 
 from Jasmin require import JModel.
 
-require import Array4 Array32 Array64 Array128 Array2144.
+require import Array3 Array32 Array64 Array128 Array2144.
 require import XMSS_IMPL.
 require import Utils2. (* valid_ptr predicate *)
 require import Termination.
@@ -65,7 +65,40 @@ lemma memcpy_u8u8_2_32_2144_post (_in : W8.t Array2144.t, oi :W64.t):
       to_list res.`1 = sub _in (to_uint oi) 32
     ] = 1%r.
 proof.
-admit.
+proc => //=.
+while (  
+  in_0 = _in /\ 
+  bytes = (of_int 32)%W64 /\
+  (0 <= to_uint oi < 2144) /\
+
+  0 <= to_uint i <= 32 /\
+  in_offset = oi + i /\
+
+  (forall (k : int), 0 <= k < to_uint i => out.[k] = in_0.[to_uint oi + k]) 
+)
+(32 - to_uint i).
+
+    + auto => /> &hr H0 H1 H2 H3 H4 H5.  
+      do split.
+          * rewrite to_uintD /= #smt:(modz_small).
+          * move => ?. 
+            rewrite to_uintD /= #smt:(@W64 pow2_64).
+          * ring.
+          * move => k??.
+            rewrite get_setE 1:#smt:(@W64).
+            case (k = to_uint i{hr}) => H; first by rewrite H to_uintD /#.
+            rewrite H4 // #smt:(@W64).
+          * rewrite to_uintD /#.
+    + auto => /> &hr ????; do split.
+          * smt(@W64 pow2_64). 
+          * smt().  
+          * move => i0 out0. 
+            split => ????; [by rewrite ultE of_uintK /# |].
+            have ->: to_uint i0 = 32 by smt(@W64 pow2_64). 
+            move => H. 
+            apply (eq_from_nth witness); first by rewrite size_to_list size_sub.
+            rewrite size_to_list => j?.
+            by rewrite get_to_list H // nth_sub.
 qed.
 
 lemma _memcpy_u8u8_2_64_2144_post (_in : W8.t Array2144.t, oi : W64.t):
@@ -153,13 +186,13 @@ lemma xor_eq (w0 w1 : W8.t) :
 (******************               MEMSET                          *************)
 (******************************************************************************)
 
-lemma memset_4_post (input : W8.t Array4.t, v : W8.t) :
-    hoare [M(Syscall).__memset_u8_4 : arg=(input, v) ==> 
-     (forall (k : int), 0 <= k < 4 => (res.[k] = v))].
+lemma memset_4_post (input : W8.t Array3.t, v : W8.t) :
+    hoare [M(Syscall).__memset_u8_3 : arg=(input, v) ==> 
+     (forall (k : int), 0 <= k < 3 => (res.[k] = v))].
 proof.
 proc.
 while (
-  0 <= to_uint i <= 4 /\ 
+  0 <= to_uint i <= 3 /\ 
   value = v /\
   (forall (k : int), 0 <= k < to_uint i => (a.[k] = value))
 ); auto => /> *.
@@ -168,12 +201,12 @@ while (
   rewrite get_setE #smt:(@W64).
 - split => [/# |]. 
   move => ?i0???.   
-  (have ->: to_uint i0 = 4 by smt(@W64 pow2_64)) => /#. 
+  (have ->: to_uint i0 = 3 by smt(@W64 pow2_64)) => /#. 
 qed.
 
-lemma p_memset_4_post (input : W8.t Array4.t, v : W8.t) :
-    phoare [M(Syscall).__memset_u8_4 : arg=(input, v) ==> 
-     (forall (k : int), 0 <= k < 4 => (res.[k] = v))] = 1%r.
+lemma p_memset_4_post (input : W8.t Array3.t, v : W8.t) :
+    phoare [M(Syscall).__memset_u8_3 : arg=(input, v) ==> 
+     (forall (k : int), 0 <= k < 3 => (res.[k] = v))] = 1%r.
 proof.
 by conseq memset_4_ll (memset_4_post input v); auto => />.
 qed.
@@ -204,11 +237,11 @@ conseq memset_128_ll (memset_128_post input v); auto => />.
 qed.
 
 lemma memset_zero_post :
-    hoare [M(Syscall).__memset_zero_u8 : true ==> forall (k : int), 0 <= k < 4 => (res.[k] = W8.zero)].
+    hoare [M(Syscall).__memset_zero_u8 : true ==> forall (k : int), 0 <= k < 3 => (res.[k] = W8.zero)].
 proof.
 proc.
 while (
-  0 <= to_uint i <= 4 /\   
+  0 <= to_uint i <= 3 /\   
   (forall (k : int), 0 <= k < to_uint i => (a.[k] = W8.zero))
 ); auto => /> *.
 - do split ; 1,2: by smt(@W64).  
@@ -216,11 +249,12 @@ while (
   rewrite get_setE #smt:(@W64).
 - split => [/# |]. 
   move => ?i0???.   
-  (have ->: to_uint i0 = 4 by smt(@W64 pow2_64)) => /#. 
+  (have ->: to_uint i0 = 3 by smt(@W64 pow2_64)) => /#. 
 qed.
 
 lemma p_memset_zero_post :
-    phoare[M(Syscall).__memset_zero_u8 : true ==> forall (k : int), 0 <= k < 4 => (res.[k] = W8.zero)] = 1%r.
+    phoare[M(Syscall).__memset_zero_u8 : true ==> 
+      forall (k : int), 0 <= k < 3 => (res.[k] = W8.zero)] = 1%r.
 proof.
 conseq memset_zero_ll memset_zero_post.
 auto => />.
@@ -231,12 +265,12 @@ lemma _memset_nseq :
       M(Syscall).__memset_zero_u8 :
       true
       ==>
-      to_list res = nseq 4 W8.zero
+      to_list res = nseq 3 W8.zero
     ].
 proof.
 proc.
 while (
-  0 <= to_uint i <= 4 /\
+  0 <= to_uint i <= 3 /\
   forall (k : int), 0 <= k < to_uint i => a.[k] = W8.zero
 ). 
     + auto => /> *.
@@ -245,7 +279,7 @@ while (
       rewrite get_setE #smt:(@W64).
     + auto => /> &hr ; split => [/# |]. 
       move => ? i???. 
-      have ->: to_uint i = 4 by smt(@W64 pow2_64).
+      have ->: to_uint i = 3 by smt(@W64 pow2_64).
       move => ?. 
       apply (eq_from_nth witness); [ rewrite size_to_list size_nseq //= |].
       rewrite size_to_list => *. 
@@ -254,7 +288,7 @@ qed.
 
 lemma memset_nseq : 
     phoare [ M(Syscall).__memset_zero_u8 : true ==>
-       to_list res = nseq 4 W8.zero] = 1%r
+       to_list res = nseq 3 W8.zero] = 1%r
           by conseq memset_zero_ll _memset_nseq; auto.
 
 lemma memset_ptr_post (ptr : W64.t, len : W64.t, v : W8.t) :
@@ -278,7 +312,8 @@ while (
       have ->: (to_uint (ptr + (of_int k)%W64)) = (to_uint ptr + k).
          + rewrite to_uintD of_uintK.  
            have ->: k %% W64.modulus = k by admit.
-           admit. 
+           admit.
+
       apply H6 => //=.
 
     + auto => /> &hr H0 H1 H2 H3 H4 H5 H6 H7; do split. 
@@ -426,13 +461,15 @@ proc.
 while(0 <= to_uint i <= 32 /\ a = b /\ acc = W8.zero) ; auto => /> *; smt(@W64).
 qed.
 
+
+(* conseq is not working here so i wrote the proof twice *)
 lemma p_memcmp_true (x y : W8.t Array32.t) :
     x = y => 
         phoare[M(Syscall).__memcmp : arg = (x, y) ==> res = W8.zero] = 1%r.
 proof.
-move => H.
-(* conseq (memcmp_ll)  (memcmp_true x y). doesnt work *)
-admit.
+move => ?.
+proc.
+while(0 <= to_uint i <= 32 /\ a = b /\ acc = W8.zero) (32 - to_uint i); auto => /> *; smt(@W64).
 qed.
 
 
@@ -470,7 +507,32 @@ lemma p_memcmp_false (x y : W8.t Array32.t) :
     x <> y => 
         phoare[M(Syscall).__memcmp : arg = (x, y) ==> res <> W8.zero] = 1%r.
 proof.
-admit.
+move => ?. 
+have E : exists (i : int), 0 <= i < 32 => x.[i] <> y.[i] by smt(@Array32). 
+proc.
+while (
+  #pre /\
+  (exists (i : int), 0 <= i && i < 32 => x.[i] <> y.[i]) /\
+  0 <= to_uint i <= 32 /\ 
+  (acc = W8.zero <=> forall (k : int), 0 <= k < to_uint i => x.[k] = y.[k])
+)
+(32 - to_uint i). 
+    + auto => /> &hr i0???H0. 
+      rewrite ultE of_uintK (: 32 %% W64.modulus = 32) 1:/# => ?. 
+      do split; 1,2: smt(@W64).       
+         * move => ?. 
+           have E1 : acc{hr} = W8.zero by smt(or_zero). 
+           have E2 : x.[to_uint i{hr}] `^` y.[to_uint i{hr}] = W8.zero by smt(or_zero).
+           have E3 : x.[to_uint i{hr}] = y.[to_uint i{hr}] by smt(xor_eq).
+           have E4 : forall (k : int), 0 <= k && k < to_uint i{hr} => x.[k] = y.[k] by smt(). 
+           rewrite to_uintD_small /#.
+         * rewrite to_uintD_small 1:/# (: to_uint W64.one = 1) 1:/# => H.
+           rewrite or_zero; split; [rewrite H0 | rewrite H ] => /#.
+         * smt(@W64 pow2_64).
+    + auto => />; split => [/# | ?i0]. 
+      rewrite ultE -lezNgt of_uintK //=; split => [|????? ->]; first by smt(@W64 pow2_64).
+      have ->: to_uint i0 = 32 by smt(). 
+      smt(@Array32). 
 qed.
 
 (* INLEN = 32 /\ OUTLEN = 2144 *)
@@ -537,7 +599,16 @@ do split; 2,3: by smt().
     + move => k??. 
       rewrite get_setE; [rewrite to_uintD_small of_uintK #smt:(modz_small) |].
       rewrite get_setE; [rewrite to_uintD_small of_uintK #smt:(modz_small) |].
-      admit. 
+      case (k = i{hr}) => H8.
+        * rewrite ifT; first by rewrite to_uintD of_uintK /#.
+          case (oi = oo) => H9.
+             - rewrite ifT // to_uintD of_uintK /#.
+             - rewrite ifF . rewrite to_uintD of_uintK H8 #smt:(@W64 pow2_64). 
+               rewrite -H6. admit.
+               admit.       
+        * rewrite ifF; first by rewrite to_uintD of_uintK /#.
+          admit.
+
 qed.
 
 lemma _x_memcpy_u8u8_64_32_p (o : W8.t Array64.t) (x : W8.t Array32.t) :
@@ -592,3 +663,57 @@ lemma _x_memcpy_u8u8_64_32_post (o : W8.t Array64.t) (x : W8.t Array32.t) :
     sub res 32 32 = sub o 32 32
   ] = 1%r
       by conseq _x_memcpy_u8u8_64_32_ll (_x_memcpy_u8u8_64_32_p o x).
+
+(** ----------------- nbytes copy ------------------ **)
+
+lemma nbytes_copy_64_32 (o : W8.t Array64.t, _in : W8.t Array32.t, oi oo : W64.t)  : 
+    hoare[
+      M(Syscall).__nbytes_copy_offset_64_32 :
+      arg = (o, oo, _in, oi) /\
+      0 <= to_uint oi < 32 /\
+      0 <= to_uint oo < 32 
+      ==> 
+      sub res (to_uint oo) 32 = sub _in (to_uint oi) 32
+    ].
+proof.
+proc => /=.
+while (
+  #{/~out = o}pre /\
+  0 <= i <= 32 /\
+  forall (k : int), 0 <= k < i => out.[to_uint offset_out + k] = in_0.[to_uint offset_in + k]
+); last first.
+    + auto => /> *.
+      split => [/# | i????].
+      have ->: i = 32 by smt(). 
+      move => H.
+      apply (eq_from_nth witness); first by rewrite !size_sub //.  
+      rewrite size_sub // => j?.
+      rewrite !nth_sub //.
+      by apply H.
+auto => /> &hr ?????? H ?.
+split => [/# | k??].
+rewrite get_setE 1:#smt:(@W64 pow2_64).
+
+case (i{hr} = k) => H1; last first.
+    + rewrite H // #smt:(@W64 pow2_64).
+rewrite ifT; [rewrite to_uintD of_uintK /# |].
+rewrite H1.
+congr.
+rewrite to_uintD of_uintK /#.
+qed.
+
+      
+lemma nbytes_copy_64_32_ll : islossless M(Syscall).__nbytes_copy_offset_64_32
+    by proc; while (true) (32 - i); auto => /> /#.
+
+lemma nbytes_copy_64_32_p (o : W8.t Array64.t, _in : W8.t Array32.t, oi oo : W64.t)  : 
+    phoare[
+      M(Syscall).__nbytes_copy_offset_64_32 :
+      arg = (o, oo, _in, oi) /\
+      0 <= to_uint oi < 32 /\
+      0 <= to_uint oo < 32 
+      ==> 
+      sub res (to_uint oo) 32 = sub _in (to_uint oi) 32
+    ] = 1%r 
+        by conseq nbytes_copy_64_32_ll (nbytes_copy_64_32 o _in oi oo).
+ 

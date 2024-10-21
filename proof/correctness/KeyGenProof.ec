@@ -12,6 +12,7 @@ require import Array4 Array8 Array32 Array64 Array68 Array96 Array132 Array136 A
 require import WArray32 WArray96 WArray136.
 
 require import Correctness_Address Correctness_Mem Correctness_Hash.
+require import TreehashProof.
 
 require import BitEncoding.
 (*---*) import BitChunking.
@@ -36,11 +37,13 @@ lemma random_bytes_equiv :
 proof.
 rewrite /XMSS_N => n_val.
 proc.
-admit.
-(*
 transitivity {2} { pub_seed <$ dlist W8.dword 96; }
 (true ==> to_list a{1} = pub_seed{2})
-(true ==> pub_seed{1} = (sk_seed{2} ++ sk_prf{2} ++ pub_seed{2}) ) => //.
+(true ==> pub_seed{1} = (sk_seed{2} ++ sk_prf{2} ++ pub_seed{2}) /\ 
+          size sk_seed{2} = n /\ size sk_prf{2} = n /\ size pub_seed{2} = n) => //.
+  + auto => /> &1 &2  -> ???.
+    congr; [congr |]; by rewrite insubdK // /P.
+
   + rnd Array96.to_list (Array96.of_list W8.zero): *0 *0.
     auto => />; split => [l | ?].
 
@@ -60,34 +63,45 @@ transitivity {2} { pub_seed <$ dlist W8.dword 96; }
     move => a; rewrite darray_dlist dmap_comp supp_dmap.
     move => [l]; rewrite supp_dlist // => [[[Esz] H]].
     rewrite /(\o) /= => ->.
-    by rewrite of_listK //= dmap_id supp_dlist //.
+    by rewrite of_listK // dmap_id // supp_dlist //.
 (* At this point, we are no longer dealing with WArrays, we are only reasoning about lists *)
 (* We have the same distribution on both sides, the only difference is that on the left side we
    generate 3*n = 96 bytes at once, and on the right side we generate n = 32 bytes three times.
    At this point, we can use the results from DListUtils.ec to prove that these are equivalent *) 
+
 outline {1} [1] { pub_seed <@ T.Program.Sample.sample(96); }.
 transitivity {1}
  { pub_seed <@ T.SampleX.samplecat(64,32); }
  (true ==> ={pub_seed})
- (true ==> pub_seed{1} = sk_seed{2} ++ sk_prf{2} ++ pub_seed{2}) => //; first by call sample_samplecat => //.
-inline*; swap {1} 2 1.
-seq 2 2: (x1{1} = sk_seed{2} ++ sk_prf{2}).
-   + outline {1} [1-2] { x1 <@ T.Program.Sample.sample(64); }.
-     transitivity {1}
-     { x1 <@ T.SampleX.samplecat(32,32); }
-     (true ==> ={x1})
-     (true ==> x1{1} = sk_seed{2} ++ sk_prf{2}) => //.
-        * by call sample_samplecat => //.
-     by inline*; auto; rewrite n_val. 
-by auto; rewrite n_val.
-*)
+ (true ==> pub_seed{1} = sk_seed{2} ++ sk_prf{2} ++ pub_seed{2} /\  
+           size sk_seed{2} = n /\ size sk_prf{2} = n /\ size pub_seed{2} = n) => //.
+   + by call sample_samplecat.
+
+inline.
+swap {1} 2 1.
+seq 2 2: (
+   x1{1} = sk_seed{2} ++ sk_prf{2} /\ 
+   size sk_seed{2} = n /\ size sk_prf{2} = n
+); last by auto => /> *; smt(@DList).
+
+
+outline {1} [1-2] { x1 <@ T.Program.Sample.sample(64); }.
+
+transitivity {1}
+{ x1 <@ T.SampleX.samplecat(32,32); }
+(true ==> ={x1})
+(true ==> x1{1} = sk_seed{2} ++ sk_prf{2} /\ size sk_seed{2} = n /\ size sk_prf{2} = n) => //.
+  + call sample_samplecat => //.
+  + inline.
+    auto => /> *. smt(@DList).
 qed.
 
 
 (*** Keygen without OID ***)
 lemma xmss_kg_no_oid : 
     n = XMSS_N /\ 
-    d = XMSS_D =>
+    d = XMSS_D /\
+    h = XMSS_TREE_HEIGHT =>
     equiv [
       M(Syscall).__xmssmt_core_keypair ~ XMSS_MT_PRF.kg :
       true 
@@ -96,7 +110,7 @@ lemma xmss_kg_no_oid :
       res{1}.`2 = DecodeSkNoOID res{2}.`1
     ].
 proof.
-rewrite /XMSS_N /XMSS_D => [#] n_val d_val. 
+rewrite /XMSS_N /XMSS_D => [#] n_val d_val h_val. 
 proc => /=. 
 sp 3 4.
 seq 1 1 : (
@@ -105,7 +119,7 @@ seq 1 1 : (
 ); first by call random_bytes_equiv. 
 
 inline {1} M(Syscall).__xmssmt_core_seed_keypair. 
-sp 12 0.
+sp 10 0.
   
 conseq (:
   pk0{1} = pk{1} /\
@@ -237,13 +251,55 @@ seq 0 1 : (
         by rewrite -H8 // nth_sub.
 
 seq 1 1 : (#pre /\ val root{2} = to_list root{1}).
-    + admit. (* call to treehash lemma *)
+    + inline M(Syscall).__treehash_ M(Syscall)._treehash.
+      exists * sk_seed0{1}, pub_seed0{1}, s0{1}, t0{1}, subtree_addr0{1}.
+      elim * => P0 P1 P2 P3 P4.
+      wp; sp.
+      call {1} (treehash_correct P0 P1 P2 P3 P4) => [/# |].
+      simplify.
 
+      auto => /> &1 &2 *; do split.
+        - admit. (* No info about P0 *)
+        - admit. (* No info about P1 *)
+        - admit. (* No info about P2 *)
+        - admit. (* No info about P3 *)
+        - admit. (* No info about P4 *)
+        - admit. (* No info about P1 *)
+        - admit. (* No info about P0 *)
+        - admit. (* No info about P2 *)
+        - admit. (* No info about P3 *)
+        - admit. (* No info about P4 *)
+        - admit. (* No info about P3 *)
+        - admit. (* No info about P3 *)
+        - by move => ?????? ->.
+ 
 seq 1 0  : ( 
   #pre /\
   (forall (k : int), 0 <= k < 32 => pk0{1}.[k] = nth witness (val root{2}) k)
 ).
-    + admit.
+    + exists * pk0{1}, root{1}.
+      elim * => P0 P1.
+      call {1} (nbytes_copy_64_32_p P0 P1 W64.zero W64.zero).
+      skip => /> &1 &2 *.
+      
+
+
+    + inline; wp; sp.
+      while {1} (
+         #{/~out{1} = pk0{1}}pre /\
+         0 <= i{1} <= 32 /\
+         forall (k : int), 0 <= k < i{1} => out{1}.[to_uint offset_out{1} + k] = in_0{1}.[to_uint offset_in{1} + k]   
+      ) (32 - i{1}); last by skip => /> &1 &2 *; smt(@Array64).
+      auto => />. admit.
+
+
+
+
+
+
+
+
+
 
 seq 1 0 : (
   #pre /\

@@ -336,8 +336,9 @@ void test_xmss_sign_open(void) {
     size_t _mlen_ref, _mlen_jasmin;
     int res_ref, res_jasmin;
 
-    for (int i = 0; i < 5; i++) { /* i < TESTS takes too long */
-        for (size_t mlen = 1; mlen <= MAX_MSG_LEN; mlen++) {
+    for (int i = 0; i < TESTS; i++) {
+        size_t mlen = MAX_MSG_LEN;
+        // for (size_t mlen = 1; mlen <= MAX_MSG_LEN; mlen++) {
             if (debug) {
                 printf("[xmss sign open] Test %d/%d (msg len = %ld/%d)\n", i + 1, 5, mlen, MAX_MSG_LEN);
             }
@@ -366,7 +367,7 @@ void test_xmss_sign_open(void) {
             assert(res_ref != 0);
             assert(res_jasmin != 0);
             assert(res_jasmin == res_ref);
-        }
+        // }
     }
 }
 

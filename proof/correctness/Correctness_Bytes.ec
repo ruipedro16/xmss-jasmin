@@ -5,7 +5,7 @@ from Jasmin require import JModel.
 
 require import XMSS_IMPL.
 
-require import Array2 Array32.
+require import Array3 Array32.
 
 require import Hash.
 require import Termination.
@@ -56,22 +56,19 @@ proof.
 by conseq bytes_to_ull_ptr_ll (_bytes_to_ull_ptr_correct mem ptr). 
 qed.
 
-(*
-lemma ull_to_bytes_2_correct (y : W64.t) :
-    hoare [M(Syscall).__ull_to_bytes_2 : 
-      arg.`2 = y ==> 
-        to_list res = toByte (W32.of_int (to_uint y)) 2].
+(** -------------------------------------------------------------------------------------------- **)
+
+lemma ull_to_bytes_correct_ (bytes : W8.t Array3.t) : (* the array has the size XMSS_IDX_BYTES *)
+   hoare[ M(Syscall).__bytes_to_ull : arg = bytes ==> 
+      res = W64ofBytes (to_list bytes)].
 proof.
-proc.
+proc => /=.
 admit.
 qed.
 
-lemma ull_to_bytes_2_ll : islossless M(Syscall).__ull_to_bytes_2
-    by proc; while (true) (i - aux); auto => /> /#.
-
-lemma ull_to_bytes_2_equiv (y : W64.t) :
-    phoare [M(Syscall).__ull_to_bytes_2 : 
-      arg.`2 = y ==> 
-        to_list res = toByte (W32.of_int (to_uint y)) 2] = 1%r
-          by conseq ull_to_bytes_2_ll (ull_to_bytes_2_correct y) => //.
-*)
+lemma ull_to_bytes_correct (bytes : W8.t Array3.t) : (* the array has the size XMSS_IDX_BYTES *)
+   phoare[ M(Syscall).__bytes_to_ull : arg = bytes ==> 
+      res = W64ofBytes (to_list bytes)] = 1%r.
+proof.
+admit.
+qed.

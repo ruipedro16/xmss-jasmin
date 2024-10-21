@@ -1,0 +1,4023 @@
+param int XMSS_OID_LEN = 4;
+param int XMSS_SHA2 = 0;
+param int XMSS_SHAKE128 = 1;
+param int XMSS_SHAKE256 = 2;
+param int XMSS_ADDR_TYPE_OTS = 0;
+param int XMSS_ADDR_TYPE_LTREE = 1;
+param int XMSS_ADDR_TYPE_HASHTREE = 2;
+param int XMSS_HASH_PADDING_F = 0;
+param int XMSS_HASH_PADDING_H = 1;
+param int XMSS_HASH_PADDING_HASH = 2;
+param int XMSS_HASH_PADDING_PRF = 3;
+param int XMSS_HASH_PADDING_PRF_KEYGEN = 4;
+param int XMSS_OID = 1;
+param int XMSS_FUNC = 0;
+param int XMSS_N = 32;
+param int XMSS_PADDING_LEN = 32;
+param int XMSS_WOTS_W = 16;
+param int XMSS_WOTS_LOG_W = 4;
+param int XMSS_WOTS_LEN1 = 64;
+param int XMSS_WOTS_LEN2 = 3;
+param int XMSS_WOTS_LEN = 67;
+param int XMSS_WOTS_SIG_BYTES = 2144;
+param int XMSS_FULL_HEIGHT = 20;
+param int XMSS_TREE_HEIGHT = 10;
+param int XMSS_D = 2;
+param int XMSS_INDEX_BYTES = 3;
+param int XMSS_SIG_BYTES = 4963;
+param int XMSS_PK_BYTES = 64;
+param int XMSS_SK_BYTES = 131;
+u32[64] SHA256_K = {
+  0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,
+  0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+  0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,
+  0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+  0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,
+  0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+  0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,
+  0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+  0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,
+  0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+  0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,
+  0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+  0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,
+  0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+  0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,
+  0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
+};
+
+inline fn __initH_ref() -> stack u32[8]
+{
+  stack u32[8] H;
+
+  H[0]  = 0x6a09e667;
+  H[1]  = 0xbb67ae85;
+  H[2]  = 0x3c6ef372;
+  H[3]  = 0xa54ff53a;
+  H[4]  = 0x510e527f;
+  H[5]  = 0x9b05688c;
+  H[6]  = 0x1f83d9ab;
+  H[7]  = 0x5be0cd19;
+
+  return H;
+}
+
+inline fn __load_H_ref(reg ptr u32[8] H) -> reg u32, reg u32, reg u32, reg u32,
+                                            reg u32, reg u32, reg u32, reg u32,
+                                            reg ptr u32[8]
+{
+  reg u32 a b c d e f g h;
+
+  a = H[0];
+  b = H[1];
+  c = H[2];
+  d = H[3];
+  e = H[4];
+  f = H[5];
+  g = H[6];
+  h = H[7];
+
+  return a, b, c, d, e, f, g, h, H;
+}
+
+inline fn __store_H_ref(reg ptr u32[8] H, reg u32 a b c d e f g h) -> reg ptr u32[8]
+{
+  H[0] = a;
+  H[1] = b;
+  H[2] = c;
+  H[3] = d;
+  H[4] = e;
+  H[5] = f;
+  H[6] = g;
+  H[7] = h;
+
+  return H;
+}
+
+inline fn __SHR_ref(reg u32 x, inline int c) -> reg u32
+{
+  reg u32 r;
+  r   = x;
+  r >>= c;
+  return r;
+}
+
+inline fn __ROTR_ref(reg u32 x, inline int c) -> reg u32
+{
+  reg u32 r;
+  r = x;
+  _, _, r = #ROR_32(r, c);
+  return r;
+}
+
+//(x & y) ^ (!x & z)
+inline fn __CH_ref(reg u32 x y z) -> reg u32
+{
+  reg u32 r s;
+
+  r  =  x;
+  r &=  y;
+  s  =  x;
+  s  = !s;
+  s &=  z;
+  r ^=  s;
+
+  return r;
+}
+
+//(x & y) ^ (x & z) ^ (y & z)
+inline fn __MAJ_ref(reg u32 x y z) -> reg u32
+{
+  reg u32 r s;
+
+  r  = x;
+  r &= y;
+  s  = x;
+  s &= z;
+  r ^= s;
+  s  = y;
+  s &= z;
+  r ^= s;
+
+  return r;
+}
+
+// (x >>> 2) ^ (x >>> 13) ^ (x >>> 22)
+inline fn __BSIG0_ref(reg u32 x) -> reg u32
+{
+  reg u32 r s;
+
+  r  = __ROTR_ref(x, 2);
+  s  = __ROTR_ref(x,13);
+  r ^= s;
+  s  = __ROTR_ref(x,22);
+  r ^= s;
+
+  return r;
+}
+
+// (x >>> 6) ^ (x >>> 11) ^ (x >>> 25)
+inline fn __BSIG1_ref(reg u32 x) -> reg u32
+{
+  reg u32 r s;
+
+  r  = __ROTR_ref(x, 6);
+  s  = __ROTR_ref(x,11);
+  r ^= s;
+  s  = __ROTR_ref(x,25);
+  r ^= s;
+
+  return r;
+}
+
+// (x >>> 7) ^ (x >>> 18) ^ (x >> 3)
+inline fn __SSIG0_ref(reg u32 x) -> reg u32
+{
+  reg u32 r s;
+
+  r  = __ROTR_ref(x, 7);
+  s  = __ROTR_ref(x,18);
+  r ^= s;
+  s  = __SHR_ref(x,3);
+  r ^= s;
+
+  return r;
+}
+
+// (x >>> 17) ^ (x >>> 19) ^ (x >> 10)
+inline fn __SSIG1_ref(reg u32 x) -> reg u32
+{
+  reg u32 r s;
+
+  r  = __ROTR_ref(x,17);
+  s  = __ROTR_ref(x,19);
+  r ^= s;
+  s  = __SHR_ref(x,10);
+  r ^= s;
+
+  return r;
+}
+
+// Wt = SSIG1(W(t-2)) + W(t-7) + SSIG0(t-15) + W(t-16)
+inline fn __Wt_ref(stack u32[64] W, inline int t) -> stack u32[64]
+{
+  reg u32 wt wt2 wt15;
+
+  wt2  = W[t-2];
+  wt   = __SSIG1_ref(wt2);
+  wt  += W[t-7];
+  wt15 = W[t-15];
+  wt15 = __SSIG0_ref(wt15);
+  wt  += wt15;
+  wt  += W[t-16];
+
+  W[t] = wt;
+
+  return W;
+}
+
+fn _blocks_1_ref(reg ptr u32[8] _H, reg ptr u32[32] sblocks, reg u64 nblocks) -> reg ptr u32[8], reg ptr u32[32]
+{
+  inline int t;
+  reg u32 T1 T2 a b c d e f g h r v;
+  stack u32[64] W;
+  reg ptr u32[64] Kp;
+  stack ptr u32[8] Hp;
+  reg ptr u32[8] H;
+  stack ptr u32[32] s_sblocks;
+  reg u64 i oblocks tr;
+
+  Kp = SHA256_K;
+  Hp = _H;
+  i = 0;
+
+  H = Hp;
+
+  while(i < nblocks)
+  {
+    () = #spill(i);
+    oblocks = i << 4;
+    for t=0 to 16
+    { v = sblocks[oblocks + t];
+      v = #BSWAP_32(v);
+      W[t] = v;
+    }
+    s_sblocks = sblocks;
+
+    for t=16 to 64
+    { W = __Wt_ref(W, t); }
+
+    a, b, c, d, e, f, g, h, H = __load_H_ref(H);
+    Hp = H;
+
+    tr = 0;
+    while(tr < 64)
+    {
+      //T1 = h + BSIG1(e) + CH(e,f,g) + Kt + Wt
+      T1  = h;
+      r   = __BSIG1_ref(e);
+      T1 += r;
+      r   = __CH_ref(e,f,g);
+      T1 += r;
+      T1 += Kp[tr];
+      T1 += W[tr];
+
+      //T2 = BSIG0(a) + MAJ(a,b,c)
+      T2  = __BSIG0_ref(a);
+      r   = __MAJ_ref(a,b,c);
+      T2 += r;
+
+      h  = g;
+      g  = f;
+      f  = e;
+      e  = d;
+      e += T1;
+      d  = c;
+      c  = b;
+      b  = a;
+      a  = T1;
+      a += T2;
+
+      tr+= 1;
+    }
+
+    H = Hp;
+    a += H[0];
+    b += H[1];
+    c += H[2];
+    d += H[3];
+    e += H[4];
+    f += H[5];
+    g += H[6];
+    h += H[7];
+
+    H = __store_H_ref(H,a,b,c,d,e,f,g,h);
+
+    sblocks = s_sblocks;
+    () = #unspill(i);
+    i += 1;
+  }
+
+  _H = H;
+  return _H, sblocks;
+}
+
+inline fn __store_ref_array(reg ptr u8[32] out, stack u32[8] H) -> reg ptr u8[32]
+{
+  inline int i;
+  reg u32 v;
+
+  for i=0 to 8
+  { v = H[i];
+    v = #BSWAP_32(v); 
+    out[u32 i] = v; // (u32)[out + i*4] = v;
+  }
+  return out;
+}
+
+fn _blocks_0_ref_96(
+  reg ptr u32[8] _H, 
+  reg ptr u8[96] in
+) -> reg ptr u32[8], reg u64
+{
+  inline int t;
+  reg u32 T1 T2 a b c d e f g h r v;
+  reg u64 offset;
+  stack u32[64] W;
+  reg ptr u32[64] Kp;
+  stack ptr u32[8] Hp;
+  reg ptr u32[8] H;
+  reg u64 tr;
+  reg u64 inlen;
+
+  offset = 0;
+  inlen = 96;
+
+  Kp = SHA256_K;
+  Hp = _H;
+
+  H = Hp;
+
+  // NOTE:
+  // The function _blocks_0_ref requires that the length of in is at least 64 bytes (it processes 64 byte blocks).
+  // If we want to compute the hash of a bytestring < 64 bytes, this function does nothing (i.e. the while loop is not run)
+  // => Only __lastblocks_ref and _blocks_1_ref do useful computation
+  // 
+  // Because the value of 96 is known at compile time, this if [ if (96 >= 64) ] allows the compiler to remove 
+  // the while loop if 96 < 64 (because this if statement is statically resolved)
+  //
+  // In other words, this if statement allows us to write a sha2 impl that works for all values of 96 instead of having
+  // to implement two different versions 
+  //      1) A impl where 96 >= 64 where we call _blocks_0_ref
+  //      2) A impl where 96 <  64 where we only call __lastblocks_ref and _blocks_1_ref
+  // but while loop will only be in the impl where it is in fact needed (when 96 >= 64). In the other case, 
+  // (when 96 < 64), the while loop will be removed by the compiler
+  if (96 >= 64) {
+    while(inlen >= 64) {
+      () = #spill(inlen);
+      for t=0 to 16
+      { 
+        v = in.[u32 offset + 4*t]; // v = (u32)[in + t*4];
+        v = #BSWAP_32(v);
+        W[t] = v;
+      }
+
+      () = #spill(offset);
+
+      for t=16 to 64 { W = __Wt_ref(W, t); }
+
+      a, b, c, d, e, f, g, h, H = __load_H_ref(H);
+      Hp = H;
+
+      tr = 0;
+      while(tr < 64)
+      {
+        //T1 = h + BSIG1(e) + CH(e,f,g) + Kt + Wt
+        T1  = h;
+        r   = __BSIG1_ref(e);
+        T1 += r;
+        r   = __CH_ref(e,f,g);
+        T1 += r;
+        T1 += Kp[tr];
+        T1 += W[tr];
+
+        //T2 = BSIG0(a) + MAJ(a,b,c)
+        T2  = __BSIG0_ref(a);
+        r   = __MAJ_ref(a,b,c);
+        T2 += r;
+
+        h  = g;
+        g  = f;
+        f  = e;
+        e  = d;
+        e += T1;
+        d  = c;
+        c  = b;
+        b  = a;
+        a  = T1;
+        a += T2;
+
+        tr+= 1;
+      }
+
+      H = Hp;
+      a += H[0];
+      b += H[1];
+      c += H[2];
+      d += H[3];
+      e += H[4];
+      f += H[5];
+      g += H[6];
+      h += H[7];
+
+      H = __store_H_ref(H,a,b,c,d,e,f,g,h);
+
+      () = #unspill(offset, inlen);
+      offset += 64;
+      inlen -= 64;
+    }
+  }
+
+  _H = H;
+  
+  return _H, offset;
+}
+
+fn _blocks_0_ref_128(
+  reg ptr u32[8] _H, 
+  reg ptr u8[128] in
+) -> reg ptr u32[8], reg u64
+{
+  inline int t;
+  reg u32 T1 T2 a b c d e f g h r v;
+  reg u64 offset;
+  stack u32[64] W;
+  reg ptr u32[64] Kp;
+  stack ptr u32[8] Hp;
+  reg ptr u32[8] H;
+  reg u64 tr;
+  reg u64 inlen;
+
+  offset = 0;
+  inlen = 128;
+
+  Kp = SHA256_K;
+  Hp = _H;
+
+  H = Hp;
+
+  // NOTE:
+  // The function _blocks_0_ref requires that the length of in is at least 64 bytes (it processes 64 byte blocks).
+  // If we want to compute the hash of a bytestring < 64 bytes, this function does nothing (i.e. the while loop is not run)
+  // => Only __lastblocks_ref and _blocks_1_ref do useful computation
+  // 
+  // Because the value of 128 is known at compile time, this if [ if (128 >= 64) ] allows the compiler to remove 
+  // the while loop if 128 < 64 (because this if statement is statically resolved)
+  //
+  // In other words, this if statement allows us to write a sha2 impl that works for all values of 128 instead of having
+  // to implement two different versions 
+  //      1) A impl where 128 >= 64 where we call _blocks_0_ref
+  //      2) A impl where 128 <  64 where we only call __lastblocks_ref and _blocks_1_ref
+  // but while loop will only be in the impl where it is in fact needed (when 128 >= 64). In the other case, 
+  // (when 128 < 64), the while loop will be removed by the compiler
+  if (128 >= 64) {
+    while(inlen >= 64) {
+      () = #spill(inlen);
+      for t=0 to 16
+      { 
+        v = in.[u32 offset + 4*t]; // v = (u32)[in + t*4];
+        v = #BSWAP_32(v);
+        W[t] = v;
+      }
+
+      () = #spill(offset);
+
+      for t=16 to 64 { W = __Wt_ref(W, t); }
+
+      a, b, c, d, e, f, g, h, H = __load_H_ref(H);
+      Hp = H;
+
+      tr = 0;
+      while(tr < 64)
+      {
+        //T1 = h + BSIG1(e) + CH(e,f,g) + Kt + Wt
+        T1  = h;
+        r   = __BSIG1_ref(e);
+        T1 += r;
+        r   = __CH_ref(e,f,g);
+        T1 += r;
+        T1 += Kp[tr];
+        T1 += W[tr];
+
+        //T2 = BSIG0(a) + MAJ(a,b,c)
+        T2  = __BSIG0_ref(a);
+        r   = __MAJ_ref(a,b,c);
+        T2 += r;
+
+        h  = g;
+        g  = f;
+        f  = e;
+        e  = d;
+        e += T1;
+        d  = c;
+        c  = b;
+        b  = a;
+        a  = T1;
+        a += T2;
+
+        tr+= 1;
+      }
+
+      H = Hp;
+      a += H[0];
+      b += H[1];
+      c += H[2];
+      d += H[3];
+      e += H[4];
+      f += H[5];
+      g += H[6];
+      h += H[7];
+
+      H = __store_H_ref(H,a,b,c,d,e,f,g,h);
+
+      () = #unspill(offset, inlen);
+      offset += 64;
+      inlen -= 64;
+    }
+  }
+
+  _H = H;
+  
+  return _H, offset;
+}
+
+inline fn __lastblocks_ref_96(reg ptr u8[96] in, reg u64 inlen offset bits) -> stack u32[32], reg u64
+{
+  stack u32[32] sblocks;
+  inline int k;
+  reg u64 i j nblocks;
+  reg u8 v;
+
+  reg u64 index;
+
+  i = 0;
+
+  // Zero-fill the sblocks array
+  for k = 0 to 32 { sblocks[k] = i; }
+
+  // copy in to sblocks
+  while(i < inlen)
+  { 
+    index = offset; index += i;
+    v = in[index]; // v = (u8)[in + i];
+    sblocks[u8 i] = v;
+    i += 1;
+  }
+
+  // set first byte after input to 0x80 
+  sblocks[u8 i] = 0x80;
+
+  // check if one or two blocks are needed
+  if(inlen < 56) // 448 / 8 = 56
+  { j = (64-8); nblocks = 1; i = 63; }
+  else
+  { j = (128-8); nblocks = 2; i = 127; }
+
+  while(i >= j)
+  { sblocks[u8 i] = (8u) bits;
+    bits >>= 8;
+    i -= 1;
+  }
+  
+  return sblocks, nblocks;
+}
+
+inline fn __lastblocks_ref_128(reg ptr u8[128] in, reg u64 inlen offset bits) -> stack u32[32], reg u64
+{
+  stack u32[32] sblocks;
+  inline int k;
+  reg u64 i j nblocks;
+  reg u8 v;
+
+  reg u64 index;
+
+  i = 0;
+
+  // Zero-fill the sblocks array
+  for k = 0 to 32 { sblocks[k] = i; }
+
+  // copy in to sblocks
+  while(i < inlen)
+  { 
+    index = offset; index += i;
+    v = in[index]; // v = (u8)[in + i];
+    sblocks[u8 i] = v;
+    i += 1;
+  }
+
+  // set first byte after input to 0x80 
+  sblocks[u8 i] = 0x80;
+
+  // check if one or two blocks are needed
+  if(inlen < 56) // 448 / 8 = 56
+  { j = (64-8); nblocks = 1; i = 63; }
+  else
+  { j = (128-8); nblocks = 2; i = 127; }
+
+  while(i >= j)
+  { sblocks[u8 i] = (8u) bits;
+    bits >>= 8;
+    i -= 1;
+  }
+  
+  return sblocks, nblocks;
+}
+
+inline fn __sha256_96(reg ptr u8[32] out, reg ptr u8[96] in) -> reg ptr u8[32]
+{
+  reg u64 bits nblocks inlen offset;
+  stack u32[8] H;
+  reg ptr u32[8] Hp;
+  stack u32[32] sblocks;
+  reg ptr u32[32] sblocksp;
+
+  () = #spill(out);
+
+  bits = 96;
+  bits <<= 3;
+  () = #spill(bits);
+
+  H = __initH_ref();
+  
+  () = #spill(in);
+  Hp = H;
+  Hp, offset = _blocks_0_ref_96(Hp, in);
+
+  () = #unspill(in, bits);
+  inlen = 96 % 64;
+  sblocks, nblocks = __lastblocks_ref_96(in, inlen, offset, bits);
+  sblocksp = sblocks;
+  Hp, _ = _blocks_1_ref(Hp, sblocksp, nblocks);
+
+  () = #unspill(out);
+  H = Hp;
+  out = __store_ref_array(out, H);
+  return out;
+}
+
+inline fn __sha256_128(reg ptr u8[32] out, reg ptr u8[128] in) -> reg ptr u8[32]
+{
+  reg u64 bits nblocks inlen offset;
+  stack u32[8] H;
+  reg ptr u32[8] Hp;
+  stack u32[32] sblocks;
+  reg ptr u32[32] sblocksp;
+
+  () = #spill(out);
+
+  bits = 128;
+  bits <<= 3;
+  () = #spill(bits);
+
+  H = __initH_ref();
+  
+  () = #spill(in);
+  Hp = H;
+  Hp, offset = _blocks_0_ref_128(Hp, in);
+
+  () = #unspill(in, bits);
+  inlen = 128 % 64;
+  sblocks, nblocks = __lastblocks_ref_128(in, inlen, offset, bits);
+  sblocksp = sblocks;
+  Hp, _ = _blocks_1_ref(Hp, sblocksp, nblocks);
+
+  () = #unspill(out);
+  H = Hp;
+  out = __store_ref_array(out, H);
+  return out;
+}
+
+inline fn __store_ref(reg u64 out, stack u32[8] H)
+{
+  inline int i;
+  reg u32 v;
+
+  for i=0 to 8
+  { v = H[i];
+    v = #BSWAP_32(v);
+    (u32)[out + i*4] = v;
+  }
+}
+
+fn _blocks_0_ref(reg ptr u32[8] _H, reg u64 in inlen) -> reg ptr u32[8], reg u64, reg u64
+{
+  inline int t;
+  reg u32 T1 T2 a b c d e f g h r v;
+  stack u32[64] W;
+  reg ptr u32[64] Kp;
+  stack ptr u32[8] Hp;
+  reg ptr u32[8] H;
+  reg u64 tr;
+
+  Kp = SHA256_K;
+  Hp = _H;
+
+  H = Hp;
+
+  while(inlen >= 64)
+  {
+    for t=0 to 16
+    { v = (u32)[in + t*4];
+      v = #BSWAP_32(v);
+      W[t] = v;
+    }
+    () = #spill(in);
+
+    for t=16 to 64
+    { W = __Wt_ref(W, t); }
+
+    a, b, c, d, e, f, g, h, H = __load_H_ref(H);
+    Hp = H;
+
+    tr = 0;
+    while(tr < 64)
+    {
+      //T1 = h + BSIG1(e) + CH(e,f,g) + Kt + Wt
+      T1  = h;
+      r   = __BSIG1_ref(e);
+      T1 += r;
+      r   = __CH_ref(e,f,g);
+      T1 += r;
+      T1 += Kp[tr];
+      T1 += W[tr];
+
+      //T2 = BSIG0(a) + MAJ(a,b,c)
+      T2  = __BSIG0_ref(a);
+      r   = __MAJ_ref(a,b,c);
+      T2 += r;
+
+      h  = g;
+      g  = f;
+      f  = e;
+      e  = d;
+      e += T1;
+      d  = c;
+      c  = b;
+      b  = a;
+      a  = T1;
+      a += T2;
+
+      tr+= 1;
+    }
+
+    H = Hp;
+    a += H[0];
+    b += H[1];
+    c += H[2];
+    d += H[3];
+    e += H[4];
+    f += H[5];
+    g += H[6];
+    h += H[7];
+
+    H = __store_H_ref(H,a,b,c,d,e,f,g,h);
+
+    () = #unspill(in);
+    in += 64;
+    inlen -= 64;
+  }
+
+  _H = H;
+  return _H, in, inlen;
+}
+
+inline fn __lastblocks_ref(reg u64 in inlen bits) -> stack u32[32], reg u64
+{
+  stack u32[32] sblocks;
+  inline int k;
+  reg u64 i j nblocks;
+  reg u8 v;
+
+  i = 0;
+
+  // Zero-fill the sblocks array
+  for k = 0 to 32 { sblocks[k] = i; }
+
+  // copy in to sblocks
+  while(i < inlen)
+  { v = (u8)[in + i];
+    sblocks[u8 i] = v;
+    i += 1;
+  }
+
+  // set first byte after input to 0x80 
+  sblocks[u8 i] = 0x80;
+
+  // check if one or two blocks are needed
+  if(inlen < 56) // 448 / 8 = 56
+  { j = (64-8); nblocks = 1; i = 63; }
+  else
+  { j = (128-8); nblocks = 2; i = 127; }
+
+  while(i >= j)
+  { sblocks[u8 i] = (8u) bits;
+    bits >>= 8;
+    i -= 1;
+  }
+
+  return sblocks, nblocks;
+}
+
+inline fn __sha256_in_ptr(reg ptr u8[32] out, reg u64 in inlen) -> reg ptr u8[32]
+{
+  reg u64 bits nblocks;
+  stack u32[8] H;
+  reg ptr u32[8] Hp;
+  stack u32[32] sblocks;
+  reg ptr u32[32] sblocksp;
+
+  () = #spill(out);
+
+  bits = inlen;
+  bits <<= 3;
+  () = #spill(bits);
+
+  H = __initH_ref();
+  Hp = H;
+  Hp, in, inlen = _blocks_0_ref(Hp, in, inlen);
+
+  () = #unspill(bits);
+  sblocks, nblocks = __lastblocks_ref(in, inlen, bits);
+  sblocksp = sblocks;
+  Hp, _ = _blocks_1_ref(Hp, sblocksp, nblocks);
+
+  () = #unspill(out);
+
+  H = Hp;
+  out = __store_ref_array(out, H);
+  return out;
+}
+
+inline fn __core_hash_96(
+    reg ptr u8[XMSS_N] out, 
+    reg ptr u8[96] in
+) -> reg ptr u8[XMSS_N] {
+    out = __sha256_96(out, in);
+    return out;
+}
+
+inline fn __core_hash_128(
+    reg ptr u8[XMSS_N] out, 
+    reg ptr u8[128] in
+) -> reg ptr u8[XMSS_N] {
+    out = __sha256_128(out, in);
+    return out;
+}
+
+fn _core_hash_96(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[96] in
+) -> reg ptr u8[XMSS_N]
+{
+    out = __core_hash_96(out, in);
+    return out;
+}
+
+fn _core_hash_128(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[128] in
+) -> reg ptr u8[XMSS_N]
+{
+    out = __core_hash_128(out, in);
+    return out;
+}
+
+inline fn __core_hash__96(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[96] in
+) -> reg ptr u8[XMSS_N]
+{  
+    in = in; out = out;
+    out = _core_hash_96(out, in);
+    out = out;
+    return out;
+}
+
+inline fn __core_hash__128(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[128] in
+) -> reg ptr u8[XMSS_N]
+{  
+    in = in; out = out;
+    out = _core_hash_128(out, in);
+    out = out;
+    return out;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline
+fn __core_hash_in_ptr(
+    reg ptr u8[XMSS_N] out, 
+    reg u64 in_ptr inlen
+) -> reg ptr u8[XMSS_N] {
+    out = __sha256_in_ptr(out, in_ptr, inlen);
+    return out;
+}//<>
+
+fn _core_hash_in_ptr(
+    reg ptr u8[XMSS_N] out,
+    reg u64 in_ptr inlen
+) -> reg ptr u8[XMSS_N]
+{
+    out = __core_hash_in_ptr(out, in_ptr, inlen);
+    return out;
+}//<>
+
+inline
+fn __core_hash_in_ptr_(
+    reg ptr u8[XMSS_N] out,
+    reg u64 in_ptr inlen
+) -> reg ptr u8[XMSS_N]
+{  
+    out = out;
+    in_ptr = in_ptr;
+    inlen = inlen;
+    out = _core_hash_in_ptr(out, in_ptr, inlen);
+    return out;
+}//<>
+inline fn __u32_to_bytes(reg ptr u8[4] out, reg u32 in) -> reg ptr u8[4] {
+  in = #BSWAP_32(in);
+  out.[u32 0] = in; // unaligned access
+  return out;
+}
+
+inline fn __ull_to_bytes_2(
+  reg ptr u8[2] out,
+  reg u64 in
+) -> reg ptr u8[2]
+{
+  // if 2 == 4 { 
+  //   out[u64 0] = in; 
+  // } else if 2 == 32 { 
+  //   out[u64 0] = in; 
+  //   out[u64 1] = 0; 
+  //   out[u64 2] = 0; 
+  //   out[u64 3] = 0; 
+  // }
+
+  /* https://stackoverflow.com/questions/3784263/converting-an-int-into-a-4-byte-char-array-c
+  buffer[0] = (value >> 24) & 0xFF;
+  buffer[1] = (value >> 16) & 0xFF;
+  buffer[2] = (value >> 8) & 0xFF;
+  buffer[3] = value & 0xFF;
+  */
+
+  inline int i;
+
+  in = in;
+
+  for i=2-1 downto -1 {
+    out[i] = (8u) in;
+    in >>= 8;
+  }
+
+  return out;
+}
+
+inline fn __ull_to_bytes_3(
+  reg ptr u8[3] out,
+  reg u64 in
+) -> reg ptr u8[3]
+{
+  // if 3 == 4 { 
+  //   out[u64 0] = in; 
+  // } else if 3 == 32 { 
+  //   out[u64 0] = in; 
+  //   out[u64 1] = 0; 
+  //   out[u64 2] = 0; 
+  //   out[u64 3] = 0; 
+  // }
+
+  /* https://stackoverflow.com/questions/3784263/converting-an-int-into-a-4-byte-char-array-c
+  buffer[0] = (value >> 24) & 0xFF;
+  buffer[1] = (value >> 16) & 0xFF;
+  buffer[2] = (value >> 8) & 0xFF;
+  buffer[3] = value & 0xFF;
+  */
+
+  inline int i;
+
+  in = in;
+
+  for i=3-1 downto -1 {
+    out[i] = (8u) in;
+    in >>= 8;
+  }
+
+  return out;
+}
+
+inline fn __ull_to_bytes_32(
+  reg ptr u8[32] out,
+  reg u64 in
+) -> reg ptr u8[32]
+{
+  // if 32 == 4 { 
+  //   out[u64 0] = in; 
+  // } else if 32 == 32 { 
+  //   out[u64 0] = in; 
+  //   out[u64 1] = 0; 
+  //   out[u64 2] = 0; 
+  //   out[u64 3] = 0; 
+  // }
+
+  /* https://stackoverflow.com/questions/3784263/converting-an-int-into-a-4-byte-char-array-c
+  buffer[0] = (value >> 24) & 0xFF;
+  buffer[1] = (value >> 16) & 0xFF;
+  buffer[2] = (value >> 8) & 0xFF;
+  buffer[3] = value & 0xFF;
+  */
+
+  inline int i;
+
+  in = in;
+
+  for i=32-1 downto -1 {
+    out[i] = (8u) in;
+    in >>= 8;
+  }
+
+  return out;
+}
+
+inline fn __bytes_to_ull(reg ptr u8[XMSS_INDEX_BYTES] in) -> reg u64 {
+  reg u64 result i t u;
+
+  result = 0;
+  i = 0;
+  while (i < XMSS_INDEX_BYTES) {
+    // retval |= ((unsigned long long)in[i]) << (8*(inlen - 1 - i));
+    // 
+    // t : ((unsigned long long)in[i])
+    // u : (8*(inlen - 1 - i))
+
+    t = (64u) in[i];
+
+    u = XMSS_INDEX_BYTES - 1;
+    u -= i;
+    ?{}, u = #SHL(u, 3); // same as u *= 8
+
+    ?{}, t = #SHL(t, u);
+
+    result |= t;
+
+    i += 1;
+  }
+
+  return result;
+}
+
+// INLEN is always XMSS_INDEX_BYTES
+inline fn __bytes_to_ull_ptr(reg u64 in_ptr) -> reg u64 {
+  reg u64 result i t u;
+
+  result = 0;
+  i = 0;
+  while (i < XMSS_INDEX_BYTES) {
+    // retval |= ((unsigned long long)in[i]) << (8*(inlen - 1 - i));
+    // 
+    // t : ((unsigned long long)in[i])
+    // u : (8*(inlen - 1 - i))
+
+    t = (64u) (u8) [in_ptr + i];
+
+    u = XMSS_INDEX_BYTES - 1;
+    u -= i;
+    ?{}, u = #SHL(u, 3); // same as u *= 8
+
+    ?{}, t = #SHL(t, u);
+
+    result |= t;
+
+    i += 1;
+  }
+
+  return result;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline fn __memset_zero_u8(reg ptr u8[XMSS_INDEX_BYTES] a) -> reg ptr u8[XMSS_INDEX_BYTES] {
+    reg u64 i;
+
+    i = 0;
+    while (i < XMSS_INDEX_BYTES) {
+        a[i] = 0;
+        i += 1;
+    }
+
+    return a;
+}
+
+inline fn __memset_u8_3(reg ptr u8[3] a, reg u8 value) -> reg ptr u8[3] {
+    reg u64 i;
+
+    i = 0;
+    while (i < 3) {
+        a[i] = value;
+        i += 1;
+    }
+
+    return a;
+}
+
+inline fn __memset_u8_128(reg ptr u8[128] a, reg u8 value) -> reg ptr u8[128] {
+    reg u64 i;
+
+    i = 0;
+    while (i < 128) {
+        a[i] = value;
+        i += 1;
+    }
+
+    return a;
+}
+
+inline fn __memset_u8_ptr(reg u64 _ptr inlen, reg u8 value) {
+    reg u64 i;
+
+    i = 0;
+    
+    while (i < inlen) {
+        (u8) [_ptr + i] = value;
+        i += 1;
+    }
+}
+// Same as out[offset_out : XMSS_N] = #copy(in[offset_in : XMSS_N]) 
+// (we cant use #copy because offset_* are not known at compile time)
+//
+// pre conditions: no accesses are out of bounds : i.e.
+//  0 <= offset_out + XMSS_N < size out /\ 0 <= offset_in + XMSS_N < size in 
+//
+// post condition: sub out offset_out XMSS_N = sub in offset_in XMSS_N 
+
+inline fn __nbytes_copy_offset_131_32(
+    reg ptr u8[131] out,
+    reg u64 offset_out,
+    reg ptr u8[32] in,
+    reg u64 offset_in
+) -> reg ptr u8[131]
+{
+    // TODO: XMSS_N is either 24, 32 or 64 (all divisible by 4), meaning that we can 
+    //       copy 4 bytes (i.e a u64) at a time
+
+    inline int i;
+
+    for i=0 to XMSS_N {
+        out[offset_out + i] = in[offset_in + i];
+    }
+
+    // for i=0 to XMSS_N / 4 { out.[u64 (offset_out + i)] = in.[u64 (offset_in + i)]; }
+
+    return out;
+}
+
+inline fn __nbytes_copy_offset_64_32(
+    reg ptr u8[64] out,
+    reg u64 offset_out,
+    reg ptr u8[32] in,
+    reg u64 offset_in
+) -> reg ptr u8[64]
+{
+    // TODO: XMSS_N is either 24, 32 or 64 (all divisible by 4), meaning that we can 
+    //       copy 4 bytes (i.e a u64) at a time
+
+    inline int i;
+
+    for i=0 to XMSS_N {
+        out[offset_out + i] = in[offset_in + i];
+    }
+
+    // for i=0 to XMSS_N / 4 { out.[u64 (offset_out + i)] = in.[u64 (offset_in + i)]; }
+
+    return out;
+}
+
+inline fn __nbytes_copy_inplace_2144(
+    reg ptr u8[2144] out,
+    reg u64 offset_out,
+    reg u64 offset_in
+) -> reg ptr u8[2144]
+{
+    // TODO: XMSS_N is either 24, 32 or 64 (all divisible by 4), meaning that we can 
+    //       copy 4 bytes (i.e a u64) at a time
+
+    inline int i;
+
+    for i=0 to XMSS_N {
+        out[offset_out + i] = out[offset_in + i];
+    }
+
+    // for i=0 to XMSS_N / 4 { out.[u64 (offset_out + i)] = in.[u64 (offset_in + i)]; }
+
+    return out;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __memcpy_u8u8_offset(
+    reg ptr u8[XMSS_WOTS_SIG_BYTES] out,
+    reg u64 offset,
+    reg ptr u8[XMSS_N] in
+) -> reg ptr u8[XMSS_WOTS_SIG_BYTES]
+{
+    reg u64 i;
+    
+    i = 0;
+    while (i < XMSS_N) {
+        out[offset] = in[i];
+        i += 1;
+        offset += 1;
+    }
+
+    return out;
+}//<>
+
+inline fn __memcpy_u8u8_64_64(
+    reg ptr u8[64] out,
+    reg ptr u8[64] in
+) -> reg ptr u8[64]
+{
+    reg u64 i;
+    
+    i = 0;
+    while (i < 64) {
+        out[i] = in[i];
+        i += 1;
+    }
+
+    return out;
+}
+
+inline fn __memcpy_u8u8_64_32(
+    reg ptr u8[64] out,
+    reg ptr u8[32] in
+) -> reg ptr u8[64]
+{
+    reg u64 i;
+    
+    i = 0;
+    while (i < 32) {
+        out[i] = in[i];
+        i += 1;
+    }
+
+    return out;
+}
+
+inline fn __memcpy_u8u8_32_32(
+    reg ptr u8[32] out,
+    reg ptr u8[32] in
+) -> reg ptr u8[32]
+{
+    reg u64 i;
+    
+    i = 0;
+    while (i < 32) {
+        out[i] = in[i];
+        i += 1;
+    }
+
+    return out;
+}
+
+#[returnaddress="stack"]
+fn _memcpy_u8u8_64_64(
+    reg ptr u8[64] out,
+    reg ptr u8[64] in
+) -> reg ptr u8[64]
+{
+    out = __memcpy_u8u8_64_64(out, in);
+    return out;
+}
+
+#[returnaddress="stack"]
+fn _memcpy_u8u8_64_32(
+    reg ptr u8[64] out,
+    reg ptr u8[32] in
+) -> reg ptr u8[64]
+{
+    out = __memcpy_u8u8_64_32(out, in);
+    return out;
+}
+
+#[returnaddress="stack"]
+fn _memcpy_u8u8_32_32(
+    reg ptr u8[32] out,
+    reg ptr u8[32] in
+) -> reg ptr u8[32]
+{
+    out = __memcpy_u8u8_32_32(out, in);
+    return out;
+}
+
+inline fn _x_memcpy_u8u8_64_64(
+    reg ptr u8[64] out,
+    reg ptr u8[64] in
+) -> reg ptr u8[64]
+{
+    out = out;
+    in = in;
+
+    out = _memcpy_u8u8_64_64(out, in);
+
+    out = out;
+
+    return out;
+}
+
+inline fn _x_memcpy_u8u8_64_32(
+    reg ptr u8[64] out,
+    reg ptr u8[32] in
+) -> reg ptr u8[64]
+{
+    out = out;
+    in = in;
+
+    out = _memcpy_u8u8_64_32(out, in);
+
+    out = out;
+
+    return out;
+}
+
+inline fn _x_memcpy_u8u8_32_32(
+    reg ptr u8[32] out,
+    reg ptr u8[32] in
+) -> reg ptr u8[32]
+{
+    out = out;
+    in = in;
+
+    out = _memcpy_u8u8_32_32(out, in);
+
+    out = out;
+
+    return out;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __memcpy_u8u8p(
+    reg ptr u8[XMSS_N] out,
+    reg u64 in_ptr
+) -> reg ptr u8[XMSS_N]
+{
+    inline int i;
+
+    for i = 0 to XMSS_N {
+        out[i] = (u8) [in_ptr + i];
+    }
+
+    return out;
+}
+
+#[returnaddress="stack"]
+fn _memcpy_u8u8p(
+    reg ptr u8[XMSS_N] out,
+    reg u64 in_ptr
+) -> reg ptr u8[XMSS_N]
+{
+    out = __memcpy_u8u8p(out, in_ptr);
+    return out;
+}
+
+inline fn _x_memcpy_u8u8p(
+    reg ptr u8[XMSS_N] out,
+    reg u64 in_ptr
+) -> reg ptr u8[XMSS_N]
+{
+    out = out;
+    in_ptr = in_ptr;
+
+    out = _memcpy_u8u8p(out, in_ptr);
+
+    out = out;
+  
+    return out;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Same as _x_memcpy_u8u8 but with offset in and out
+
+inline fn __memcpy_u8u8_2_64_2144(
+    reg ptr u8[64] out,
+    reg ptr u8[2144] in,
+    reg u64 in_offset,
+    reg u64 bytes
+) -> reg ptr u8[64], reg u64
+{
+    reg u64 i;
+
+    i = 0;
+    while (i < bytes) {
+        // out[out_offset] = in[in_offset];
+        out[i] = in[in_offset];
+        i += 1;
+        in_offset += 1;
+    }
+
+    return out, in_offset;
+}
+
+inline fn __memcpy_u8u8_2_32_2144(
+    reg ptr u8[32] out,
+    reg ptr u8[2144] in,
+    reg u64 in_offset,
+    reg u64 bytes
+) -> reg ptr u8[32], reg u64
+{
+    reg u64 i;
+
+    i = 0;
+    while (i < bytes) {
+        // out[out_offset] = in[in_offset];
+        out[i] = in[in_offset];
+        i += 1;
+        in_offset += 1;
+    }
+
+    return out, in_offset;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Same as before but u8pu8p
+
+inline fn __memcpy_u8pu8p(
+    reg u64 out_ptr,
+    reg u64 out_offset,
+    reg u64 in_ptr,
+    reg u64 in_offset,
+    reg u64 bytes
+)
+{
+    reg u64 i;
+
+    i = 0;
+    
+    while(i < bytes) {
+        (u8) [out_ptr + out_offset] = (u8) [in_ptr + in_offset];
+        i += 1;
+        in_offset += 1;
+        out_offset += 1;
+    }
+}
+
+fn _memcpy_u8pu8p(
+    reg u64 out_ptr,
+    reg u64 out_offset,
+    reg u64 in_ptr,
+    reg u64 in_offset,
+    reg u64 bytes
+)
+{
+    __memcpy_u8pu8p(out_ptr, out_offset, in_ptr, in_offset, bytes);
+}
+
+inline fn _x__memcpy_u8pu8p(
+    reg u64 out_ptr,
+    reg u64 out_offset,
+    reg u64 in_ptr,
+    reg u64 in_offset,
+    reg u64 bytes
+)
+{
+    out_ptr = out_ptr;
+    out_offset = out_offset;
+    in_ptr = in_ptr;
+    in_offset = in_offset;
+    bytes = bytes;
+
+    _memcpy_u8pu8p(out_ptr, out_offset, in_ptr, in_offset, bytes);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __memcpy_u8pu8_3(reg u64 out offset, reg ptr u8[3] in) -> reg u64, reg u64 {
+    reg u64 i;
+
+    i = 0;
+    while (i < 3) {
+        (u8) [out + offset] = in[i];
+        offset += 1;
+        i += 1;
+    }
+
+    return out, offset;
+}
+
+inline fn __memcpy_u8pu8_32(reg u64 out offset, reg ptr u8[32] in) -> reg u64, reg u64 {
+    reg u64 i;
+
+    i = 0;
+    while (i < 32) {
+        (u8) [out + offset] = in[i];
+        offset += 1;
+        i += 1;
+    }
+
+    return out, offset;
+}
+
+#[returnaddress="stack"]
+fn _memcpy_u8pu8_3(reg u64 out offset, reg ptr u8[3] in) -> reg u64, reg u64 {
+    out, offset = __memcpy_u8pu8_3(out, offset, in);
+    return out, offset;
+}
+
+#[returnaddress="stack"]
+fn _memcpy_u8pu8_32(reg u64 out offset, reg ptr u8[32] in) -> reg u64, reg u64 {
+    out, offset = __memcpy_u8pu8_32(out, offset, in);
+    return out, offset;
+}
+
+inline fn _x_memcpy_u8pu8_3(reg u64 out offset, reg ptr u8[3] in) -> reg u64, reg u64 {
+    out = out;
+    offset = offset;
+    in = in;
+
+    out, offset = _memcpy_u8pu8_3(out, offset, in);
+
+    out = out;
+    offset = offset;
+    return out, offset;
+}
+
+inline fn _x_memcpy_u8pu8_32(reg u64 out offset, reg ptr u8[32] in) -> reg u64, reg u64 {
+    out = out;
+    offset = offset;
+    in = in;
+
+    out, offset = _memcpy_u8pu8_32(out, offset, in);
+
+    out = out;
+    offset = offset;
+    return out, offset;
+}
+
+fn _zero_address(reg ptr u32[8] addr) -> reg ptr u32[8] {
+    inline int i;
+    for i=0 to 8 { addr[i] = 0; }
+    return addr;
+}
+
+inline fn __zero_address_(reg ptr u32[8] addr) -> reg ptr u32[8] {
+    addr = addr;
+    addr = _zero_address(addr);
+    addr = addr;
+    return addr;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __set_layer_addr(reg ptr u32[8] addr, reg u32 layer) -> reg ptr u32[8] {
+    addr[0] = layer;
+    return addr;
+}
+
+inline fn __set_tree_addr(reg ptr u32[8] addr, reg u64 tree) -> reg ptr u32[8] {
+    reg u64 t;
+
+    t = tree;
+    t >>= (32 & 63);
+
+    addr[1] = (32u) t;
+    addr[2] = (32u) tree;
+    return addr;
+}
+
+inline fn __set_type(reg ptr u32[8] addr, reg u32 _type) -> reg ptr u32[8] {
+    addr[3] = _type;
+    return addr;
+}
+
+inline fn __set_key_and_mask(reg ptr u32[8] addr, reg u32 key_and_mask) -> reg ptr u32[8] {
+    addr[7] = key_and_mask;
+    return addr;
+}
+
+inline fn __copy_subtree_addr(reg ptr u32[8] out, reg ptr u32[8] in) -> reg ptr u32[8] {
+    out[0] = in[0];
+    out[1] = in[1];
+    out[2] = in[2];
+    return out;
+}
+
+inline fn __set_ots_addr(reg ptr u32[8] addr, reg u32 ots) -> reg ptr u32[8] {
+    addr[4] = ots;
+    return addr;
+}
+
+inline fn __set_chain_addr(reg ptr u32[8] addr, reg u32 chain) -> reg ptr u32[8] {
+    addr[5] = chain;
+    return addr;
+}
+
+inline fn __set_hash_addr(reg ptr u32[8] addr, reg u32 hash) -> reg ptr u32[8] {
+    addr[6] = hash;
+    return addr;
+}
+
+inline fn __set_ltree_addr(reg ptr u32[8] addr, reg u32 ltree) -> reg ptr u32[8] {
+    addr[4] = ltree;
+    return addr;
+}
+
+inline fn __set_tree_height(reg ptr u32[8] addr, reg u32 tree_height) -> reg ptr u32[8] {
+    addr[5] = tree_height;
+    return addr;
+}
+
+inline fn __set_tree_index(reg ptr u32[8] addr, reg u32 tree_index) -> reg ptr u32[8] {
+    addr[6] = tree_index;
+    return addr;
+}
+
+inline fn __addr_to_bytes(
+    reg ptr u8[32] addr_as_bytes,
+    reg ptr u32[8] addr
+) -> reg ptr u8[32]
+{
+    inline int i;
+    reg ptr u8[4] buf; 
+
+    for i=0 to 8 {
+        buf = addr_as_bytes[4*i : 4];
+        buf = __u32_to_bytes(buf, addr[i]);
+        addr_as_bytes[4*i : 4] = buf;
+    }
+
+    return addr_as_bytes;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __prf(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[32] in,
+    reg ptr u8[XMSS_N] key
+) -> reg ptr u8[XMSS_N]
+{
+    stack u8[XMSS_PADDING_LEN + XMSS_N + 32] buf; // buf = padding || key || in
+    reg ptr u8[XMSS_PADDING_LEN] padding_buf;
+    
+    // ull_to_bytes(buf, params->padding_len, XMSS_HASH_PADDING_PRF);
+    padding_buf = buf[0:XMSS_PADDING_LEN];
+    padding_buf = __ull_to_bytes_32(padding_buf, XMSS_HASH_PADDING_PRF);
+    buf[0:XMSS_PADDING_LEN] = padding_buf;
+
+    // memcpy(buf + params->padding_len, key, params->n);
+    buf[XMSS_PADDING_LEN : XMSS_N] = _x_memcpy_u8u8_32_32(buf[XMSS_PADDING_LEN : XMSS_N], key);
+
+    // memcpy(buf + params->padding_len + params->n, in, 32);
+    buf[XMSS_PADDING_LEN + XMSS_N : 32] = _x_memcpy_u8u8_32_32(buf[XMSS_PADDING_LEN + XMSS_N : 32], in);
+
+    // out = __core_hash_ <OUTLEN, XMSS_PADDING_LEN + XMSS_N + 32>(out, buf_p);
+    out = __core_hash__96(out, buf);
+
+    return out;
+}//<>
+
+fn _prf(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[32] in,
+    reg ptr u8[XMSS_N] key
+) -> reg ptr u8[XMSS_N]
+{
+    out = __prf(out, in, key);
+    return out;
+}//<>
+
+inline fn __prf_(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[32] in,
+    reg ptr u8[XMSS_N] key
+) -> reg ptr u8[XMSS_N]
+{
+    out = out; in = in; key = key;
+    out = _prf(out, in, key);
+    out = out;
+    return out;
+}//<>
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __prf_keygen(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[XMSS_N + 32] in,
+    reg ptr u8[XMSS_N] key
+) -> reg ptr u8[XMSS_N]
+{
+    stack u8[XMSS_PADDING_LEN + 2*XMSS_N + 32] buf; // buf = padding || key || in
+    reg ptr u8[XMSS_PADDING_LEN] padding_buf;
+
+    // ull_to_bytes(buf, params->padding_len, XMSS_HASH_PADDING_PRF_KEYGEN); 
+    padding_buf = buf[0:XMSS_PADDING_LEN];
+    padding_buf = __ull_to_bytes_32(padding_buf, XMSS_HASH_PADDING_PRF_KEYGEN);
+    buf[0:XMSS_PADDING_LEN] = padding_buf;
+
+    // memcpy(buf + params->padding_len, key, params->n);
+    buf[XMSS_PADDING_LEN : 32] = _x_memcpy_u8u8_32_32(buf[XMSS_PADDING_LEN : 32], key);
+
+    // memcpy(buf + params->padding_len + params->n, in, params->n + 32);
+    buf[XMSS_PADDING_LEN + XMSS_N : XMSS_N + 32] =
+        _x_memcpy_u8u8_64_64(buf[XMSS_PADDING_LEN + XMSS_N : XMSS_N + 32], in);
+
+    // core_hash(params, out, buf, params->padding_len + 2*params->n + 32);
+    out = __core_hash__128(out, buf); 
+
+    return out; 
+}
+
+fn _prf_keygen(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[XMSS_N + 32] in,
+    reg ptr u8[XMSS_N] key
+) -> reg ptr u8[XMSS_N]
+{
+    out = __prf_keygen(out, in, key);
+    return out;
+}
+
+inline fn __prf_keygen_(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[XMSS_N + 32] in,
+    reg ptr u8[XMSS_N] key
+) -> reg ptr u8[XMSS_N]
+{
+    out = out; in = in; key = key;
+
+    out = _prf_keygen(out, in, key);
+
+    return out;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __hash_message(
+    reg ptr u8[XMSS_N] mhash,
+    reg ptr u8[XMSS_N] R,
+    reg ptr u8[XMSS_N] root,
+    reg u64 idx,
+    reg u64 m_with_prefix_ptr mlen
+) -> reg ptr u8[XMSS_N]
+{
+    reg u64 offset len;
+    stack u8[XMSS_PADDING_LEN] buf;
+    stack u8[XMSS_N] buf_n;
+
+    // ull_to_bytes(m_with_prefix, params->padding_len, XMSS_HASH_PADDING_HASH);
+    buf = __ull_to_bytes_32(buf, XMSS_HASH_PADDING_HASH);
+
+    offset = 0;
+    m_with_prefix_ptr, offset = _x_memcpy_u8pu8_32(m_with_prefix_ptr, offset, buf);
+
+    // memcpy(m_with_prefix + params->padding_len, R, params->n);
+    offset = XMSS_PADDING_LEN;
+    m_with_prefix_ptr, offset = _x_memcpy_u8pu8_32(m_with_prefix_ptr, offset, R);
+    
+    // memcpy(m_with_prefix + params->padding_len + params->n, root, params->n);
+    offset = XMSS_PADDING_LEN + XMSS_N;
+    m_with_prefix_ptr, offset = _x_memcpy_u8pu8_32(m_with_prefix_ptr, offset, root);
+
+    // ull_to_bytes(m_with_prefix + params->padding_len + 2*params->n, params->n, idx);
+    buf_n = __ull_to_bytes_32(buf_n, idx);
+    offset = XMSS_PADDING_LEN + 2*XMSS_N;
+    m_with_prefix_ptr, offset = _x_memcpy_u8pu8_32(m_with_prefix_ptr, offset, buf_n);
+
+    // core_hash(params, out, m_with_prefix, mlen + params->padding_len + 3*params->n);
+    len = mlen;
+    len += XMSS_PADDING_LEN + 3*XMSS_N;
+    mhash = __core_hash_in_ptr_(mhash, m_with_prefix_ptr, len);
+    return mhash;
+}
+
+fn _hash_message(
+    reg ptr u8[XMSS_N] mhash,
+    reg ptr u8[XMSS_N] R,
+    reg ptr u8[XMSS_N] root,
+    reg u64 idx,
+    reg u64 m_with_prefix_ptr mlen
+) -> reg ptr u8[XMSS_N]
+{
+    mhash = __hash_message(mhash, R, root, idx, m_with_prefix_ptr, mlen);
+    return mhash;
+}
+
+inline fn __hash_message_(
+    reg ptr u8[XMSS_N] mhash,
+    reg ptr u8[XMSS_N] R,
+    reg ptr u8[XMSS_N] root,
+    reg u64 idx,
+    reg u64 m_with_prefix_ptr mlen
+) -> reg ptr u8[XMSS_N]
+{   
+    mhash = mhash;
+    R = R;
+    root = root;
+    idx = idx;
+    m_with_prefix_ptr = m_with_prefix_ptr;
+    mlen = mlen;
+
+    mhash = _hash_message(mhash, R, root, idx, m_with_prefix_ptr, mlen);
+
+    mhash = mhash;
+
+    return mhash;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// NOTE: `in` and `out` are not necessarily disjoint in the reference implementation (e.g. in compute root)
+//        in that case, we copy the value of in to a buffer and write to out
+inline fn __thash_h(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[2 * XMSS_N] in,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8] 
+{
+    stack u8[XMSS_PADDING_LEN + 3*XMSS_N] buf;
+    stack u8[2*XMSS_N] bitmask;
+    stack u8[32] addr_as_bytes;
+
+    reg u8 t ;
+    reg u64 i;
+
+    // ull_to_bytes(buf, params->padding_len, XMSS_HASH_PADDING_H);
+    buf[0:XMSS_PADDING_LEN] = __ull_to_bytes_32(buf[0:XMSS_PADDING_LEN], XMSS_HASH_PADDING_H);
+
+    // set_key_and_mask(addr, 0);
+    addr = __set_key_and_mask(addr, 0);
+
+    // addr_to_bytes(addr_as_bytes, addr);
+    addr_as_bytes = __addr_to_bytes(addr_as_bytes, addr);
+
+    () = #spill(in, out, addr, pub_seed);
+    
+    // prf(params, buf + params->padding_len, addr_as_bytes, pub_seed);
+    buf[XMSS_PADDING_LEN : XMSS_N] = __prf_(buf[XMSS_PADDING_LEN : XMSS_N], addr_as_bytes, pub_seed);
+
+    () = #unspill(addr);
+
+    // set_key_and_mask(addr, 1);
+    addr = __set_key_and_mask(addr, 1);
+
+    // addr_to_bytes(addr_as_bytes, addr);
+    addr_as_bytes = __addr_to_bytes(addr_as_bytes, addr);
+
+    () = #spill(addr);
+
+    // prf(params, bitmask, addr_as_bytes, pub_seed);
+    () = #unspill(pub_seed);
+    bitmask[0 : XMSS_N] = __prf_(bitmask[0 : XMSS_N], addr_as_bytes, pub_seed);
+
+    // set_key_and_mask(addr, 2);
+    () = #unspill(addr);
+    addr = __set_key_and_mask(addr, 2);
+    () = #spill(addr);
+
+    // addr_to_bytes(addr_as_bytes, addr);
+    addr_as_bytes = __addr_to_bytes(addr_as_bytes, addr);
+
+    // prf(params, bitmask + params->n, addr_as_bytes, pub_seed);
+    () = #unspill(pub_seed);
+    bitmask[XMSS_N : XMSS_N] = __prf_(bitmask[XMSS_N : XMSS_N], addr_as_bytes, pub_seed);
+
+    () = #unspill(in);
+    i = 0;
+    while (i < 2 * XMSS_N) {
+        // buf[params->padding_len + params->n + i] = in[i] ^ bitmask[i];
+        t = in[i];
+        t ^= bitmask[i];
+        buf[XMSS_PADDING_LEN + XMSS_N + i] = t;
+        i += 1;
+    }
+
+    // core_hash(params, out, buf, params->padding_len + 3 * params->n);
+    () = #unspill(out);
+    out = _core_hash_128(out, buf);
+
+    () = #unspill(addr);
+
+    return out, addr;
+}
+
+fn _thash_h(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[2 * XMSS_N] in,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8] 
+{
+    out, addr = __thash_h(out, in, pub_seed, addr);
+    return out, addr;
+}
+
+inline fn __thash_h_(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[2 * XMSS_N] in,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8] 
+{
+    out = out;
+    in = in;
+    pub_seed = pub_seed;
+    addr = addr;
+
+    out, addr = _thash_h(out, in, pub_seed, addr);
+
+    out = out;
+    addr = addr;
+
+    return out, addr;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// NOTE: The `in` argument is not used in this function
+inline fn __thash_f(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8] 
+{
+    stack u8[XMSS_PADDING_LEN + 2*XMSS_N] buf;
+    stack u8[XMSS_N] bitmask;
+    stack u8[32] addr_as_bytes;
+
+    reg ptr u8[XMSS_PADDING_LEN] padding;
+
+    reg u8 t;
+    reg u64 i;
+
+    // buf = XMSS_HASH_PADDING_F || PRF (addr_as_bytes)
+
+    // Note: Having this before __ull_to_bytes simplifies the proof.
+    // addr_to_bytes(addr_as_bytes, addr);
+    addr_as_bytes = __addr_to_bytes(addr_as_bytes, addr);
+
+    // ull_to_bytes(buf, params->padding_len, XMSS_HASH_PADDING_F);
+    padding = buf[0:XMSS_PADDING_LEN];
+    padding = __ull_to_bytes_32(padding, XMSS_HASH_PADDING_F);
+    buf[0:XMSS_PADDING_LEN] = padding;
+
+    // set_key_and_mask(addr, 0);
+    // addr = __set_key_and_mask(addr, 0);
+    // NOTE: This line is now done before calling the __thash_f function => Simplifies the proof
+
+    () = #spill(out, addr, pub_seed);
+
+    // prf(params, buf + params->padding_len, addr_as_bytes, pub_seed);
+    buf[XMSS_PADDING_LEN : XMSS_N] = __prf_(buf[XMSS_PADDING_LEN : XMSS_N], addr_as_bytes, pub_seed);
+
+    // set_key_and_mask(addr, 1);
+    () = #unspill(addr);
+    addr = __set_key_and_mask(addr, 1);
+
+    // addr_to_bytes(addr_as_bytes, addr);
+    addr_as_bytes = __addr_to_bytes(addr_as_bytes, addr);
+    () = #spill(addr);
+   
+    // prf(params, bitmask, addr_as_bytes, pub_seed);
+    () = #unspill(pub_seed);
+    bitmask = __prf_(bitmask, addr_as_bytes, pub_seed);
+
+    () = #unspill(out);
+    i = 0;
+    while (i < XMSS_N) {
+        // buf[params->padding_len + params->n + i] = in[i] ^ bitmask[i];
+        t = out[i];
+        t ^= bitmask[i];
+        buf[XMSS_PADDING_LEN + XMSS_N + i] = t;
+        i += 1;
+    }
+
+    //core_hash(params, out, buf, params->padding_len + 2 * params->n);
+    out = __core_hash__96(out, buf);
+
+    () = #unspill(addr);
+
+    return out, addr;
+}
+
+fn _thash_f(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8] 
+{
+    out, addr = __thash_f(out, pub_seed, addr);
+    return out, addr;
+}
+
+inline fn __thash_f_(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8] 
+{
+    out = out;
+    pub_seed = pub_seed;
+    addr = addr;
+
+    out, addr = _thash_f(out, pub_seed, addr);
+
+    out = out;
+    addr = addr;
+
+    return out, addr;
+}
+
+inline
+fn __expand_seed(
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] outseeds,
+    reg ptr u8[XMSS_N] inseed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]
+{  
+    reg ptr u8[XMSS_N] ith_seed;
+    reg ptr u8[32] addr_bytes;
+
+    // NOTE: BUF = pub_seed || addr_as_bytes
+    stack u8[XMSS_N + 32] buf;
+    inline int i;
+
+    () = #spill(outseeds, inseed);
+
+    // set_hash_addr(addr, 0);
+    // set_key_and_mask(addr, 0);
+    addr = __set_hash_addr(addr, 0);
+    addr = __set_key_and_mask(addr, 0);
+
+    // memcpy(buf, pub_seed, params->n);
+    buf[0 : XMSS_N] = _x_memcpy_u8u8_32_32(buf[0 : XMSS_N], pub_seed);
+
+    for i=0 to XMSS_WOTS_LEN {
+        // NOTE: addr is live at the beggining of the loop => we must unspill it at the end
+        // set_chain_addr(addr, i);
+        addr = __set_chain_addr(addr, i);
+        () = #spill(addr);
+
+        // addr_to_bytes(buf + params->n, addr);
+        addr_bytes = buf[XMSS_N : 32];
+        addr_bytes = __addr_to_bytes(addr_bytes, addr);
+        buf[XMSS_N : 32] = addr_bytes;
+
+        () = #unspill(outseeds, inseed);
+        ith_seed = outseeds[i * XMSS_N : XMSS_N];
+        ith_seed = __prf_keygen_(ith_seed, buf, inseed);
+        outseeds[i * XMSS_N : XMSS_N] = ith_seed;
+        () = #spill(outseeds);
+        () = #unspill(addr);
+    }
+
+    () = #unspill(outseeds);
+
+    return outseeds, addr;
+}
+
+fn _expand_seed(
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] outseeds,
+    reg ptr u8[XMSS_N] inseed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]
+{
+    outseeds, addr = __expand_seed(outseeds, inseed, pub_seed, addr);
+    return outseeds, addr;
+}
+
+inline 
+fn __expand_seed_(
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] outseeds,
+    reg ptr u8[XMSS_N] inseed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]
+{
+    outseeds = outseeds;
+    inseed = inseed;
+    pub_seed = pub_seed;
+    addr = addr;
+
+    outseeds, addr = _expand_seed(outseeds, inseed, pub_seed, addr);
+    
+    outseeds = outseeds;
+    addr = addr;
+
+    return outseeds, addr;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline
+fn __gen_chain_inplace(
+    reg ptr u8[XMSS_N] out, // Also in
+    reg u32 start steps, 
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8]
+{
+    reg u32 i t;
+
+    () = #spill(out, pub_seed, addr);
+
+    // for (i = start; i < (start+steps) && i < params->wots_w; i++)
+    i = start;
+    t = start; t += steps; 
+    while (i < t) {
+        () = #spill(i, t);
+
+        // set_hash_addr(addr, i);
+        () = #unspill(addr);
+        addr = __set_hash_addr(addr, i);
+
+        // NOTE: This line was inside __thash_f_ but having it here simplifies the proof
+        addr = __set_key_and_mask(addr, 0);
+        
+        () = #unspill(pub_seed, out);
+        out, addr  = __thash_f_(out, pub_seed, addr);
+
+        () = #spill(out, addr);
+
+        () = #unspill(i, t);
+        i += 1;
+    }
+
+    () = #unspill(addr);
+
+    return out, addr;
+}
+
+fn _gen_chain_inplace(
+    reg ptr u8[XMSS_N] out,
+    reg u32 start steps, 
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8]
+{
+    out, addr = __gen_chain_inplace(out, start, steps, pub_seed, addr);
+    return out, addr;
+}
+
+inline
+fn __gen_chain_inplace_(
+    reg ptr u8[XMSS_N] out,
+    reg u32 start steps,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8]
+{
+    out = out;
+    start = start;
+    steps = steps;
+    pub_seed = pub_seed;
+    addr = addr;
+
+    out, addr = _gen_chain_inplace(out, start, steps, pub_seed, addr);
+    
+    out = out;
+    addr = addr;
+
+    return out, addr;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __base_w_3_2(
+  reg ptr u32[3] output,
+  reg ptr u8[2] input
+) -> reg ptr u32[3]
+{
+    reg u64 in out;
+    reg u8 total;
+    reg u32 total_32;
+    reg u64 bits;
+
+    inline int consumed;
+
+    in = 0;
+    out  = 0;
+    bits = 0;
+    total = 0;
+
+    // for (consumed = 0; consumed < out_len; consumed++) 
+    for consumed=0 to 3 {
+        // if (bits == 0) { total = input[in]; in++; bits += 8; }
+        if (bits == 0) 
+        {
+          total = input[in];
+          in += 1;
+          bits += 8;
+        }   
+
+        // bits -= params->wots_log_w;
+        bits -= XMSS_WOTS_LOG_W;
+    
+        // output[out] = (total >> bits) & (params->wots_w - 1);
+        total_32 = (32u) total;
+        total_32 >>= (bits & 31);
+        total_32 &= (XMSS_WOTS_W - 1);
+        output[out] = total_32;
+
+      // out++;
+      out += 1;
+    }
+
+    return output;
+}
+
+inline fn __base_w_64_32(
+  reg ptr u32[64] output,
+  reg ptr u8[32] input
+) -> reg ptr u32[64]
+{
+    reg u64 in out;
+    reg u8 total;
+    reg u32 total_32;
+    reg u64 bits;
+
+    inline int consumed;
+
+    in = 0;
+    out  = 0;
+    bits = 0;
+    total = 0;
+
+    // for (consumed = 0; consumed < out_len; consumed++) 
+    for consumed=0 to 64 {
+        // if (bits == 0) { total = input[in]; in++; bits += 8; }
+        if (bits == 0) 
+        {
+          total = input[in];
+          in += 1;
+          bits += 8;
+        }   
+
+        // bits -= params->wots_log_w;
+        bits -= XMSS_WOTS_LOG_W;
+    
+        // output[out] = (total >> bits) & (params->wots_w - 1);
+        total_32 = (32u) total;
+        total_32 >>= (bits & 31);
+        total_32 &= (XMSS_WOTS_W - 1);
+        output[out] = total_32;
+
+      // out++;
+      out += 1;
+    }
+
+    return output;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Just computes the checksum
+inline
+fn __csum(reg ptr u32[XMSS_WOTS_LEN1] msg_base_w) -> reg u64
+{
+    reg u64 csum i t u;
+
+    csum = 0;
+
+    // for (i = 0; i < params->wots_len1; i++) { csum += params->wots_w - 1 - msg_base_w[i]; }
+    i = 0;
+    while (i < XMSS_WOTS_LEN1) {
+      t = XMSS_WOTS_W - 1;
+      u = (64u) msg_base_w[i];
+      t -= u; 
+      csum += t;
+      i += 1;
+    }
+
+    return csum;
+}
+
+inline
+fn __wots_checksum(
+    reg ptr u32[XMSS_WOTS_LEN2] csum_base_w,
+    reg ptr u32[XMSS_WOTS_LEN] msg_base_w
+) -> reg ptr u32[XMSS_WOTS_LEN2]
+{
+    stack u8[(XMSS_WOTS_LEN2 * XMSS_WOTS_LOG_W + 7) / 8] csum_bytes;
+    reg ptr u8[(XMSS_WOTS_LEN2 * XMSS_WOTS_LOG_W + 7) / 8] csum_bytes_p;
+
+    reg u64 csum u;
+
+    inline int k;
+
+    reg ptr u32[XMSS_WOTS_LEN1] buf;
+
+    buf = msg_base_w[0 : XMSS_WOTS_LEN1];
+    csum = __csum(buf); // Compute the checksum using only the first len1 bytes
+
+    // csum = csum << (8 - ((params->wots_len2 * params->wots_log_w) % 8));
+    k = (XMSS_WOTS_LEN2 * XMSS_WOTS_LOG_W) % 8;
+
+    u = 8;
+    u -= k; // u holds the value of (8 - ((params->wots_len2 * params->wots_log_w) % 8))
+    csum <<= (u & 63); // ?{}, csum = #SHL(csum, u);
+
+    // ull_to_bytes(csum_bytes, sizeof(csum_bytes), csum);
+    csum_bytes_p = csum_bytes;
+    csum_bytes_p = __ull_to_bytes_2(csum_bytes_p, csum);
+
+    // base_w(params, csum_base_w, params->wots_len2, csum_bytes);
+    csum_base_w = __base_w_3_2(csum_base_w, csum_bytes_p);
+
+    return csum_base_w;
+}
+
+fn _wots_checksum(
+    reg ptr u32[XMSS_WOTS_LEN2] csum_base_w,
+    reg ptr u32[XMSS_WOTS_LEN] msg_base_w
+) -> reg ptr u32[XMSS_WOTS_LEN2]
+{
+    csum_base_w = __wots_checksum(csum_base_w, msg_base_w);
+    return csum_base_w;
+}
+
+inline
+fn __wots_checksum_(
+    reg ptr u32[XMSS_WOTS_LEN2] csum_base_w,
+    reg ptr u32[XMSS_WOTS_LEN] msg_base_w
+) -> reg ptr u32[XMSS_WOTS_LEN2]
+{
+    csum_base_w = csum_base_w;
+    msg_base_w = msg_base_w;
+
+    csum_base_w = _wots_checksum(csum_base_w, msg_base_w);
+    
+    csum_base_w = csum_base_w;
+    
+    return csum_base_w;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline
+fn __chain_lengths(
+    reg ptr u32[XMSS_WOTS_LEN] lengths,
+    reg ptr u8[XMSS_N] msg
+) -> reg ptr u32[XMSS_WOTS_LEN]
+{
+    reg ptr u32[XMSS_WOTS_LEN1] t0;
+    reg ptr u32[XMSS_WOTS_LEN2] t1;
+  
+    // base_w(params, lengths, params->wots_len1, msg);
+    t0 = lengths[0 : XMSS_WOTS_LEN1];
+    t0 = __base_w_64_32(t0, msg);
+    lengths[0 : XMSS_WOTS_LEN1] = t0;
+
+    // wots_checksum(params, lengths + params->wots_len1, lengths);
+    t1 = lengths[XMSS_WOTS_LEN1 : XMSS_WOTS_LEN2];
+    t1 = __wots_checksum(t1, lengths);
+    lengths[XMSS_WOTS_LEN1 : XMSS_WOTS_LEN2] = t1;
+
+    return lengths;
+}
+
+fn _chain_lengths(
+    reg ptr u32[XMSS_WOTS_LEN] lengths,
+    reg ptr u8[XMSS_N] msg
+) -> reg ptr u32[XMSS_WOTS_LEN]
+{
+    lengths = __chain_lengths(lengths, msg);
+    return lengths;
+}//<>
+
+inline
+fn __chain_lengths_(
+    reg ptr u32[XMSS_WOTS_LEN] lengths,
+    reg ptr u8[XMSS_N] msg
+) -> reg ptr u32[XMSS_WOTS_LEN]
+{
+    lengths = lengths; 
+    msg = msg;
+    
+    lengths = _chain_lengths(lengths, msg);
+    lengths = lengths;
+    
+    return lengths;
+}//<>
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline
+fn __wots_pkgen(
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk,
+    reg ptr u8[XMSS_N] seed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]
+{
+    reg u32 chain;
+    inline int i;
+    reg ptr u8[XMSS_N] t; // ith seed
+
+    () = #spill(pub_seed);
+
+    // expand_seed(params, pk, seed, pub_seed, addr);
+    pk, addr = __expand_seed_(pk, seed, pub_seed, addr);
+    
+    () = #spill(pk);
+
+    for i = 0 to XMSS_WOTS_LEN {
+        // set_chain_addr(addr, i);
+        chain = i;
+        addr = __set_chain_addr(addr, chain);
+
+        () = #unspill(pk, pub_seed);
+        t = pk[i*XMSS_N : XMSS_N];
+        t, addr = __gen_chain_inplace_(t, 0, XMSS_WOTS_W - 1, pub_seed, addr);
+        pk[i*XMSS_N : XMSS_N]= t;
+        
+        () = #spill(pk);
+    }
+
+    () = #unspill(pk);
+
+    return pk, addr;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline
+fn __wots_sign(
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] sig,
+    reg ptr u8[XMSS_N] msg,
+    reg ptr u8[XMSS_N] seed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]
+{
+    stack u32[XMSS_WOTS_LEN] lengths;
+
+    reg u32 chain;
+    inline int i;
+
+    () = #spill(pub_seed);
+
+    // chain_lengths(params, lengths, msg);
+    lengths = __chain_lengths_(lengths, msg);
+
+    // expand_seed(params, sig, seed, pub_seed, addr);
+    sig, addr = __expand_seed_(sig, seed, pub_seed, addr);
+
+    for i = 0 to XMSS_WOTS_LEN {
+        // set_chain_addr(addr, i);
+        chain = i;
+        addr = __set_chain_addr(addr, chain);
+
+        // gen_chain(params, sig + i * params->n, sig + i * params->n, 0, lengths[i], pub_seed, addr);
+        () = #unspill(pub_seed);
+        sig[i*XMSS_N : XMSS_N], addr = __gen_chain_inplace_(sig[i*XMSS_N : XMSS_N], 0, lengths[i], pub_seed, addr);
+    }
+
+    return sig, addr;
+}
+
+fn _wots_sign(
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] sig,
+    reg ptr u8[XMSS_N] msg,
+    reg ptr u8[XMSS_N] seed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]
+{
+    sig, addr = __wots_sign(sig, msg, seed, pub_seed, addr);
+    return sig, addr;
+}
+
+inline
+fn __wots_sign_(
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] sig,
+    reg ptr u8[XMSS_N] msg,
+    reg ptr u8[XMSS_N] seed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]
+{
+    sig = sig;
+    msg = msg;
+    seed = seed;
+    pub_seed = pub_seed;
+    addr = addr;
+
+    sig, addr = _wots_sign(sig, msg, seed, pub_seed, addr);
+
+    sig = sig;
+    addr = addr;
+
+    return sig, addr;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline
+fn __wots_pk_from_sig(
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk,
+    reg u64 sig_ptr,
+    reg ptr u8[XMSS_N] msg,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]
+{
+    stack u32[XMSS_WOTS_LEN] lengths;
+
+    reg u32 chain start steps;
+    reg u64 t;
+    inline int i;
+
+    () = #spill(pub_seed, sig_ptr);
+
+    // chain_lengths(params, lengths, msg);
+    lengths = __chain_lengths_(lengths, msg);
+
+    for i=0 to XMSS_WOTS_LEN {
+        // set_chain_addr(addr, i);
+        chain = i;
+        addr = __set_chain_addr(addr, chain);
+
+        // gen_chain(params, pk + i * params->n, sig + i * params->n, lengths[i], params->wots_w - 1 - lengths[i], pub_seed, addr);
+        () = #unspill(pub_seed, sig_ptr);
+        start = lengths[i];
+        steps = XMSS_WOTS_W - 1; steps -= lengths[i];
+        
+        t = sig_ptr; t += i*XMSS_N;
+        pk[i*XMSS_N : XMSS_N] = _x_memcpy_u8u8p(pk[i*XMSS_N : XMSS_N], t);
+
+        pk[i*XMSS_N : XMSS_N], addr = __gen_chain_inplace_(pk[i*XMSS_N : XMSS_N], start, steps, pub_seed, addr);
+    }
+
+    return pk, addr;
+}
+
+fn _wots_pk_from_sig(
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk,
+    reg u64 sig_ptr,
+    reg ptr u8[XMSS_N] msg,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]
+{
+    pk, addr = __wots_pk_from_sig(pk, sig_ptr, msg, pub_seed, addr);
+    return pk, addr;
+}
+
+inline
+fn __wots_pk_from_sig_(
+    reg ptr u8[XMSS_WOTS_LEN * XMSS_N] pk, 
+    reg u64 sig_ptr,
+    reg ptr u8[XMSS_N] msg,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_WOTS_LEN * XMSS_N], reg ptr u32[8]
+{
+    pk = pk;
+    sig_ptr = sig_ptr;
+    msg = msg;
+    pub_seed = pub_seed;
+    addr = addr;
+
+    pk, addr = __wots_pk_from_sig(pk, sig_ptr, msg, pub_seed, addr);
+
+    pk = pk;
+    addr = addr;
+
+    return pk, addr;
+}
+
+// Returns 0 if a and b are equal
+// Returns -1 otherwise
+inline fn __memcmp(reg ptr u8[XMSS_N] a b) -> reg u8 {
+    reg u64 i;
+    reg u8 t acc;
+
+    acc = 0;
+  
+    i = 0;
+    while (i < XMSS_N) {
+        t = a[i];
+        t ^= b[i];
+        acc |= t;
+        i += 1;
+    }
+
+    return acc;
+}
+
+inline fn __l_tree(
+    reg ptr u8[XMSS_N] leaf,
+    reg ptr u8[XMSS_WOTS_SIG_BYTES] wots_pk,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u8[XMSS_WOTS_SIG_BYTES], reg ptr u32[8]
+{
+    stack u8[XMSS_N] buf0;
+    stack u8[2 * XMSS_N] buf1;
+
+    reg u32 tree_index height;
+    reg u64 i t l parent_nodes offset_in offset_out bytes;
+
+    reg ptr u8[XMSS_N] tmp;
+
+    inline int j;
+
+    // unsigned int l = params->wots_len;
+    l = XMSS_WOTS_LEN;
+
+    // uint32_t height = 0;
+    height = 0;
+
+    () = #spill(leaf, wots_pk, pub_seed, height);
+
+    // set_tree_height(addr, height);
+    addr = __set_tree_height(addr, height);
+
+    while (l > 1) {
+        // parent_nodes = l >> 1;
+        parent_nodes = l;
+        // ?{}, parent_nodes = #SHR(parent_nodes, 1);
+        parent_nodes >>= (1 & 63);
+
+        () = #spill(l);
+
+        i = 0;
+        while (i < parent_nodes) {
+            () = #spill(i, parent_nodes);
+
+            // set_tree_index(addr, i);
+            tree_index = (32u) i;
+            addr = __set_tree_index(addr, tree_index);
+
+            // thash_h(params, wots_pk + i*params->n, wots_pk + (i*2)*params->n, pub_seed, addr);
+
+            // First we need to copy wots_pk + i*params->n and wots_pk + (i*2)*params->n to the respective buffers
+            () = #unspill(wots_pk);
+            offset_in = i * XMSS_N;
+            bytes = XMSS_N;
+            buf0, _ = __memcpy_u8u8_2_32_2144(buf0, wots_pk, offset_in, bytes);
+
+            offset_in = (i * 2); offset_in *= XMSS_N;
+            bytes = 2 * XMSS_N;
+            buf1, _ = __memcpy_u8u8_2_64_2144(buf1, wots_pk, offset_in, bytes);
+
+            () = #unspill(pub_seed);
+            buf0, addr = __thash_h(buf0, buf1, pub_seed, addr);
+
+            // Copy the result back to wots_pk: same as memcpy(wots_pk + i*XMSS_N, buf0, XMSS_N)
+            () = #unspill(i, wots_pk);
+            offset_out = i * XMSS_N;
+            wots_pk = __memcpy_u8u8_offset(wots_pk, offset_out, buf0);
+            () = #spill(wots_pk);
+
+            () = #unspill(parent_nodes);
+            i += 1;
+        }
+
+        // if (l & 1)
+        () = #unspill(l);
+        t = l;
+        t &= 1;
+        if (t != 0) {
+            // memcpy(wots_pk + (l >> 1)*params->n, wots_pk + (l - 1)*params->n, params->n);
+            // offset out = (l >> 1) * XMSS_N
+            // offset_in = (l - 1) * XMSS_N
+            () = #unspill(wots_pk);
+            offset_out = l; offset_out >>= (1 & 63); offset_out *= XMSS_N;
+            offset_in = l; offset_in -= 1; offset_in *= XMSS_N;
+            wots_pk = __nbytes_copy_inplace_2144(wots_pk, offset_out, offset_in);
+            () = #spill(wots_pk);
+
+            // l = (l >> 1) + 1;
+            l >>= (1 & 63);
+            l += 1;
+        } else {
+            // l = l >> 1;
+            l >>= (1 & 63);
+        }
+
+        // height++;
+        // set_tree_height(addr, height);
+        () = #unspill(height);
+        
+        height += 1;
+        addr = __set_tree_height(addr, height);
+
+        () = #spill(height);
+    }
+
+    // memcpy(leaf, wots_pk, params->n);
+    () = #unspill(leaf, wots_pk);
+
+    tmp = wots_pk[0: XMSS_N];
+    leaf =  _x_memcpy_u8u8_32_32(leaf, tmp);
+
+    return leaf, wots_pk, addr;
+}
+
+fn _l_tree(
+    reg ptr u8[XMSS_N] leaf,
+    reg ptr u8[XMSS_WOTS_SIG_BYTES] wots_pk,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u8[XMSS_WOTS_SIG_BYTES], reg ptr u32[8]
+{
+    leaf, wots_pk, addr = __l_tree(leaf, wots_pk, pub_seed, addr);
+    return leaf, wots_pk, addr;
+}
+
+inline fn __l_tree_(
+    reg ptr u8[XMSS_N] leaf,
+    reg ptr u8[XMSS_WOTS_SIG_BYTES] wots_pk,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u8[XMSS_WOTS_SIG_BYTES], reg ptr u32[8]
+{
+    leaf = leaf;
+    addr = addr;
+    wots_pk = wots_pk;
+    pub_seed = pub_seed;
+
+    leaf, wots_pk, addr = _l_tree(leaf, wots_pk, pub_seed, addr);
+
+    leaf = leaf;
+    wots_pk = wots_pk;
+    addr = addr;
+
+    return leaf, wots_pk, addr;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __compute_root(
+    reg ptr u8[XMSS_N] root,
+    reg ptr u8[XMSS_N] leaf,
+    reg u32 leaf_idx,
+    reg u64 _auth_path_ptr,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8]
+{
+    stack u8[2 * XMSS_N] buffer;
+    stack u8[2 * XMSS_N] thash_in;
+
+    reg u32 t32 tree_height;
+
+    reg u64 i;
+
+    stack u64 auth_path_ptr;
+
+    auth_path_ptr = _auth_path_ptr;
+
+    () = #spill(root, leaf_idx, addr);
+
+    // if (leafidx & 1)
+    t32 = leaf_idx; t32 &= 1;
+    if (t32 != 0) {
+        // memcpy(buffer + params->n, leaf, params->n);
+        // memcpy(buffer, auth_path, params->n);
+        // i.e. buffer = auth path || leaf
+        buffer[XMSS_N : XMSS_N] = _x_memcpy_u8u8_32_32(buffer[XMSS_N : XMSS_N], leaf);
+
+        buffer[0 : XMSS_N] = _x_memcpy_u8u8p(buffer[0 : XMSS_N], auth_path_ptr);
+    } else {
+        // memcpy(buffer, leaf, params->n);
+        // memcpy(buffer + params->n, auth_path, params->n);
+        // i.e. buffer = leaf || auth path
+
+        buffer = _x_memcpy_u8u8_64_32(buffer, leaf);
+
+        buffer[XMSS_N : XMSS_N] = 
+            _x_memcpy_u8u8p(buffer[XMSS_N : XMSS_N], auth_path_ptr);
+    }
+        
+    // auth_path += params->n;
+    auth_path_ptr += XMSS_N;
+
+    () = #spill(pub_seed);
+
+    // for (i = 0; i < params->tree_height - 1; i++)
+    i = 0;
+    while (i < XMSS_TREE_HEIGHT - 1) {
+        () = #spill(i);
+
+        // set_tree_height(addr, i);
+        () = #unspill(addr);
+        tree_height = (32u) i;
+        addr = __set_tree_height(addr, tree_height);
+
+        // leafidx >>= 1;
+        // set_tree_index(addr, leafidx);
+        () = #unspill(leaf_idx);
+
+        leaf_idx >>= (1 & 31); // ?{}, leaf_idx = #SHR_32(leaf_idx, 1);
+        addr = __set_tree_index(addr, leaf_idx);
+
+        () = #spill(addr, leaf_idx);
+
+        // if (leafidx & 1)
+        () = #unspill(pub_seed, addr);
+        t32 = leaf_idx; t32 &= 1;
+        if (t32 != 0) {
+            // thash_h(params, buffer + params->n, buffer, pub_seed, addr);
+            thash_in = #copy(buffer);
+            buffer[XMSS_N : XMSS_N], addr = __thash_h(buffer[XMSS_N : XMSS_N], thash_in, pub_seed, addr);
+            
+            // memcpy(buffer, auth_path, params->n);
+            buffer[0 : XMSS_N] = _x_memcpy_u8u8p(buffer[0 : XMSS_N], auth_path_ptr);
+        } else {
+            // thash_h(params, buffer, buffer, pub_seed, addr);
+            thash_in = #copy(buffer);
+            buffer[0 : XMSS_N], addr = __thash_h(buffer[0 : XMSS_N], thash_in, pub_seed, addr);
+
+            // memcpy(buffer + params->n, auth_path, params->n);
+            buffer[XMSS_N : XMSS_N] = 
+                _x_memcpy_u8u8p(buffer[XMSS_N : XMSS_N], auth_path_ptr);
+        }
+
+        () = #spill(addr);
+
+        // auth_path += params->n;
+        auth_path_ptr += XMSS_N;
+
+        () = #unspill(i);
+        i += 1;
+    }
+
+    // set_tree_height(addr, params->tree_height - 1);
+    () = #unspill(addr, leaf_idx, root);
+    addr = __set_tree_height(addr, XMSS_TREE_HEIGHT - 1);
+
+    // leafidx >>= 1;
+    leaf_idx >>= (1 & 31); // ?{}, leaf_idx = #SHR_32(leaf_idx, 1);
+
+    // set_tree_index(addr, leafidx);
+    addr = __set_tree_index(addr, leaf_idx);
+
+    // thash_h(params, root, buffer, pub_seed, addr);
+    () = #unspill(pub_seed);
+
+    root, addr = __thash_h(root, buffer, pub_seed, addr);
+
+    return root, addr;
+}
+
+fn _compute_root(
+    reg ptr u8[XMSS_N] root,
+    reg ptr u8[XMSS_N] leaf,
+    reg u32 leaf_idx,
+    reg u64 auth_path_ptr,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8]
+{
+    root, addr = __compute_root(root, leaf, leaf_idx, auth_path_ptr, pub_seed, addr);
+    return root, addr;
+}
+
+inline fn __compute_root_(
+    reg ptr u8[XMSS_N] root,
+    reg ptr u8[XMSS_N] leaf,
+    reg u32 leaf_idx,
+    reg u64 auth_path_ptr,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8]
+{
+    root = root;
+    leaf = leaf;
+    leaf_idx = leaf_idx;
+    auth_path_ptr = auth_path_ptr;
+    pub_seed = pub_seed;
+    addr = addr;
+
+    root, addr = _compute_root(root, leaf, leaf_idx, auth_path_ptr, pub_seed, addr);
+    
+    root = root;
+    addr = addr;
+
+    return root, addr;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __gen_leaf_wots(
+    reg ptr u8[XMSS_N] leaf,
+    reg ptr u8[XMSS_N] sk_seed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] ltree_addr,
+    reg ptr u32[8] ots_addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8], reg ptr u32[8]
+{
+    stack u8[XMSS_WOTS_SIG_BYTES] pk;
+
+    () = #spill(leaf, sk_seed, pub_seed, ltree_addr);
+
+    // wots_pkgen(params, pk, sk_seed, pub_seed, ots_addr);
+    pk, ots_addr = __wots_pkgen(pk, sk_seed, pub_seed, ots_addr);
+    () = #spill(ots_addr);
+
+    // l_tree(params, leaf, pk, pub_seed, ltree_addr);
+    () = #unspill(leaf, sk_seed, pub_seed, ltree_addr);
+    leaf, _, ltree_addr = __l_tree_(leaf, pk, pub_seed, ltree_addr);
+    
+    () = #unspill(ots_addr);
+
+    return leaf, ltree_addr, ots_addr;
+}
+
+fn _gen_leaf_wots(
+    reg ptr u8[XMSS_N] leaf,
+    reg ptr u8[XMSS_N] sk_seed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] ltree_addr,
+    reg ptr u32[8] ots_addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8], reg ptr u32[8]
+{
+    leaf, ltree_addr, ots_addr = __gen_leaf_wots(leaf, sk_seed, pub_seed, ltree_addr, ots_addr);
+    return leaf, ltree_addr, ots_addr;
+}
+
+inline fn __gen_leaf_wots_(
+    reg ptr u8[XMSS_N] leaf,
+    reg ptr u8[XMSS_N] sk_seed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] ltree_addr,
+    reg ptr u32[8] ots_addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8], reg ptr u32[8]
+{
+    leaf = leaf;
+    sk_seed = sk_seed;
+    pub_seed = pub_seed;
+    ltree_addr = ltree_addr;
+    ots_addr = ots_addr;
+
+    leaf, ltree_addr, ots_addr = _gen_leaf_wots(leaf, sk_seed, pub_seed, ltree_addr, ots_addr);
+
+    leaf = leaf;
+    ltree_addr = ltree_addr;
+    ots_addr = ots_addr;
+
+    return leaf, ltree_addr, ots_addr;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Simplifies proof
+inline fn __set_result (
+    reg u8 are_equal,
+    reg u64 m_ptr mlen_ptr sm_ptr,
+    stack u64 sm_offset
+) -> reg u64
+{
+    reg u64 res bytes offset_in;
+    if (are_equal != 0) {
+        res = -1;
+
+        // memset(m, 0, *mlen);
+        #declassify bytes =  (u64) [mlen_ptr];
+        __memset_u8_ptr(m_ptr, bytes, 0);
+
+        // *mlen = 0;
+        (u64) [mlen_ptr] = 0;
+    } else {
+        res = 0;
+
+        // memcpy(m, sm, *mlen);
+        #declassify bytes =  (u64) [mlen_ptr];
+        offset_in = sm_offset;
+        _x__memcpy_u8pu8p(m_ptr, 0, sm_ptr, offset_in, bytes);
+    }
+
+    return res;
+}
+
+inline fn __xmssmt_core_sign_open(
+    reg u64 m_ptr mlen_ptr,
+    reg u64 sm_ptr smlen,
+    reg ptr u8[XMSS_PK_BYTES] pk
+) -> reg u64
+{
+    stack u8[XMSS_WOTS_SIG_BYTES] wots_pk;
+    stack u8[XMSS_N] leaf root buf;
+    stack u32[8] ots_addr ltree_addr node_addr;
+
+    reg ptr u8[XMSS_N] pub_root pub_seed;
+
+    reg u32 idx_leaf;
+    reg u64 idx;
+    reg u64 t64 offset_in offset_out bytes;
+    reg u8 are_equal;
+    reg u64 res;
+
+    reg u32 i;
+    stack u64 sm_offset;
+
+    sm_offset = 0;
+
+    // const unsigned char *pub_root = pk;
+    pub_root = pk[0 : XMSS_N];
+
+    // const unsigned char *pub_seed = pk + params->n;
+    pub_seed = pk[XMSS_N : XMSS_N];
+
+    // unsigned long long idx = 0;
+    // idx = 0; // This assignemnt is dead
+
+    () = #spill(mlen_ptr, m_ptr, sm_ptr, pub_seed, pub_root);
+
+    // uint32_t ots_addr[8] = {0};
+    // uint32_t ltree_addr[8] = {0};
+    // uint32_t node_addr[8] = {0};
+    ots_addr = __zero_address_(ots_addr);
+    ltree_addr = __zero_address_(ltree_addr);
+    node_addr = __zero_address_(node_addr);
+
+    // set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
+    // set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
+    // set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
+    ots_addr = __set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
+    ltree_addr = __set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
+    node_addr = __set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
+
+    // *mlen = smlen - params->sig_bytes;
+    t64 = smlen; t64 -= XMSS_SIG_BYTES;
+    (u64) [mlen_ptr] = t64;
+
+    // idx = bytes_to_ull(sm, params->index_bytes);
+    idx = __bytes_to_ull_ptr(sm_ptr);
+    () = #spill(idx);
+
+    // memcpy(m + params->sig_bytes, sm + params->sig_bytes, *mlen);
+    offset_out = XMSS_SIG_BYTES; 
+    offset_in = XMSS_SIG_BYTES;
+    #declassify bytes = (u64) [mlen_ptr];
+    _x__memcpy_u8pu8p(m_ptr, offset_out, sm_ptr, offset_in, bytes);
+
+    // hash_message(params, mhash, sm + params->index_bytes, pk, idx,
+    //              m + params->sig_bytes - params->padding_len - 3*params->n,
+    //              *mlen);
+    // 
+    // 1) First we need to copy the randomness from sm + params->index_bytes to buf
+    t64 = sm_ptr; t64 += XMSS_INDEX_BYTES;
+    buf = _x_memcpy_u8u8p(buf, t64);
+
+    t64 = m_ptr;
+    t64 += XMSS_SIG_BYTES - XMSS_PADDING_LEN - (3 * XMSS_N);
+
+    #declassify bytes = (u64) [mlen_ptr];
+    
+    // NOTE: We use root instead of mhash because mhash is just a pointer to root
+    #declassify root = __hash_message(root, buf, pk[0 : XMSS_N], idx, t64, bytes);
+
+    // sm += params->index_bytes + params->n;
+    t64 = XMSS_INDEX_BYTES + XMSS_N;
+    sm_offset += t64;
+
+    i = 0;
+    while(i < XMSS_D) {
+        () = #spill(i);
+        () = #unspill(idx);
+
+        // idx_leaf = (idx & ((1 << params->tree_height)-1));
+        idx_leaf = ((1 << XMSS_TREE_HEIGHT) - 1);
+        idx_leaf &= idx;   
+
+        // idx = idx >> params->tree_height;
+        idx >>= (XMSS_TREE_HEIGHT & 63);
+        () = #spill(idx, idx_leaf);
+
+        // set_layer_addr(ots_addr, i);
+        // set_layer_addr(ltree_addr, i);
+        // set_layer_addr(node_addr, i);
+        ots_addr = __set_layer_addr(ots_addr, i);
+        ltree_addr = __set_layer_addr(ltree_addr, i);
+        node_addr = __set_layer_addr(node_addr, i);
+
+        // set_tree_addr(ltree_addr, idx);
+        // set_tree_addr(ots_addr, idx);
+        // set_tree_addr(node_addr, idx);
+        ltree_addr = __set_tree_addr(ltree_addr, idx);
+        ots_addr = __set_tree_addr(ots_addr, idx);
+        node_addr = __set_tree_addr(node_addr, idx);
+
+        // set_ots_addr(ots_addr, idx_leaf);
+        ots_addr = __set_ots_addr(ots_addr, idx_leaf);
+
+        // wots_pk_from_sig(params, wots_pk, sm, root, pub_seed, ots_addr);
+        () = #unspill(sm_ptr, pub_seed);
+        t64 = sm_ptr; t64 += sm_offset;
+        #declassify root = root;
+        wots_pk, ots_addr = __wots_pk_from_sig_(wots_pk, t64, root, pub_seed, ots_addr);
+
+        // sm += params->wots_sig_bytes;
+        t64 = sm_offset;
+        t64 += XMSS_WOTS_SIG_BYTES;
+        sm_offset = t64;
+
+        // set_ltree_addr(ltree_addr, idx_leaf);
+        () = #unspill(idx_leaf);
+        ltree_addr = __set_ltree_addr(ltree_addr, idx_leaf);
+
+        // l_tree(params, leaf, wots_pk, pub_seed, ltree_addr);
+        () = #unspill(pub_seed);
+        leaf, wots_pk, ltree_addr = __l_tree_(leaf, wots_pk, pub_seed, ltree_addr);
+
+        // // compute_root(params, root, leaf, idx_leaf, sm, pub_seed, node_addr);
+        () = #unspill(idx_leaf, sm_ptr, pub_seed);
+        t64 = sm_ptr; t64 += sm_offset;
+        #declassify idx_leaf = idx_leaf;
+        #declassify root = root;
+        root, node_addr = __compute_root_(root, leaf, idx_leaf, t64, pub_seed, node_addr);   
+
+        // sm += params->tree_height * params->n;
+        t64 = sm_offset;
+        t64 += (XMSS_TREE_HEIGHT * XMSS_N);
+        sm_offset = t64;
+        
+        () = #unspill(i);
+        i += 1;
+    }
+    
+    // if (memcmp(root, pub_root, params->n)) { memset(m, 0, *mlen); *mlen = 0; return -1; }
+    () = #unspill(pub_root);
+    #declassify are_equal = __memcmp(root, pub_root);
+
+    () = #unspill(mlen_ptr, m_ptr, sm_ptr);
+
+    res = __set_result(are_equal, m_ptr, mlen_ptr, sm_ptr, sm_offset);
+
+    return res;
+}
+
+fn _xmssmt_core_sign_open(
+    reg u64 m_ptr mlen_ptr,
+    reg u64 sm_ptr smlen,
+    reg ptr u8[XMSS_PK_BYTES] pk
+) -> reg u64
+{
+    reg u64 res;
+    res = __xmssmt_core_sign_open(m_ptr, mlen_ptr, sm_ptr, smlen, pk);
+    return res;
+}
+
+inline fn __xmssmt_core_sign_open_(
+    reg u64 m_ptr mlen_ptr,
+    reg u64 sm_ptr smlen,
+    reg ptr u8[XMSS_PK_BYTES] pk
+) -> reg u64
+{
+    reg u64 res;
+    
+    m_ptr = m_ptr;
+    mlen_ptr = mlen_ptr;
+    sm_ptr = sm_ptr;
+    smlen = smlen;
+    pk = pk;
+
+    res = _xmssmt_core_sign_open(m_ptr, mlen_ptr, sm_ptr, smlen, pk);
+
+    res = res;
+
+    return res;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline fn __xmss_core_sign_open_(
+    reg u64 m_ptr mlen_ptr,
+    reg u64 sm_ptr smlen,
+    reg ptr u8[XMSS_PK_BYTES] pk
+) -> reg u64
+{
+    reg u64 res;
+    
+    m_ptr = m_ptr;
+    mlen_ptr = mlen_ptr;
+    sm_ptr = sm_ptr;
+    smlen = smlen;
+    pk = pk;
+
+    res = _xmssmt_core_sign_open(m_ptr, mlen_ptr, sm_ptr, smlen, pk);
+
+    res = res;
+
+    return res;
+}
+
+param int TRUE = 1;
+param int FALSE = 0;
+
+// Obs:
+// Esta funcao calcula a condicao 
+//    offset >= 2 && heights[offset - 1] == heights[offset - 2]
+// 
+// Em C, se a primeira parte do `&&` for falsa, a segunda nao e avaliada
+// Neste caso, temos que garantir que a segunda parte do `&&` so e avaliada
+// se a primeira for verdade. Caso contrario, (i.e quando offset < 2), 
+// os accessos a memoria do lado direito sao unsafe.
+// Portanto, a funcao `__cond_u64_geq_u64_u32_eq_u32` nao pode ser usada visto
+// que avalia ambos os lados da `&&`.
+//
+// Neste caso, testo se offset >=2 e so nesse caso, e que se avalia o segundo lado 
+// da expressao. Caso contrartio, retorna se o valor de #SETcc(offset >= 2) = Zero
+//
+// Estou a assumir que o valor de offset e publico (confirmar isto mas acho que sim)
+inline
+fn __treehash_cond(reg ptr u32[XMSS_TREE_HEIGHT + 1] heights, 
+                   #public reg u64 offset) -> reg u8 {
+    reg bool c1 c2;
+    reg u8 bc1 res;
+    reg u32 a b;
+
+    ?{ ">=u" = c1 } = #CMP_64(offset, 2);
+    bc1 = #SETcc(c1);
+
+    if (bc1 == 0) { 
+        res = bc1;
+    } else {
+        // At this point, we know that offset >=2, so these memory accesses are safe
+        a = heights[offset - 1];
+        b = heights[offset - 2];
+
+        ?{ "==" = c2} = #CMP_32(a, b);
+
+        res = #SETcc(c2);
+    }
+
+    return res;
+}
+
+inline 
+fn __treehash(
+    reg ptr u8[XMSS_N] root,
+    reg ptr u8[XMSS_N] sk_seed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg u32 start_index target_height, // start index and target node height
+    reg ptr u32[8] subtree_addr
+) -> reg ptr u8[XMSS_N]
+{
+    stack u8[(XMSS_TREE_HEIGHT + 1) * XMSS_N] _stack;   
+    stack u32[(XMSS_TREE_HEIGHT + 1)] heights;
+    stack u32[8] ots_addr ltree_addr node_addr;
+    stack u8[XMSS_N] buf;
+    stack u8[2 * XMSS_N] buf2;
+
+    reg u32 i upper_bound t32 u tree_idx;
+    reg u64 t64;
+    reg u64 offset = 0;
+
+    reg u8 cond;
+
+    inline int j;
+
+    () = #spill(root, offset, start_index, sk_seed, pub_seed);
+
+    stack u32[8] ots_addr = #copy(subtree_addr);
+    stack u32[8] ltree_addr = #copy(subtree_addr);
+    stack u32[8] node_addr = #copy(subtree_addr);
+
+    // set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
+    // set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
+    // set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
+    ots_addr = __set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
+    ltree_addr = __set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
+    node_addr = __set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
+
+    target_height = target_height; // move to rdx register
+
+    i = 0;
+    upper_bound = 1;
+    upper_bound <<= (target_height & 31);
+
+    while (i < upper_bound) {
+        () = #spill(i, upper_bound);
+
+        // set_ltree_addr(ltree_addr, start_index + i);
+        () = #unspill(start_index);
+        t32 = start_index; t32 += i;
+        ltree_addr = __set_ltree_addr(ltree_addr, t32);
+
+        // set_ots_addr(ots_addr, start_index + i);
+        ots_addr = __set_ots_addr(ots_addr, t32);
+
+        // gen_leaf_wots(params, stack + offset * params->n, sk_seed, pub_seed, ltree_addr, ots_addr);
+        () = #unspill(sk_seed, pub_seed);
+        buf, ltree_addr, ots_addr = __gen_leaf_wots_(buf, sk_seed, pub_seed, ltree_addr, ots_addr);
+
+        // We now copy the result to stack + offset * params->n
+        () = #unspill(offset);
+        t64 = offset; t64 *= XMSS_N; // Obs: if XMSS_N = 32 we can do a shift instead
+        for j=0 to XMSS_N { _stack[t64 + j] = buf[j]; }
+
+        // offset++;
+        // heights[offset - 1] = 0;
+        () = #unspill(offset);
+        offset += 1;
+        heights[offset - 1] = 0;
+        () = #spill(offset);
+
+        while { cond = __treehash_cond(heights, offset); } (cond == 1) {
+            // tree_idx = ((start_index + i) >> (heights[offset - 1] + 1));
+            () = #unspill(start_index, i); /* At this point, offset should be live so we dont need to unspill it */
+            tree_idx = start_index;
+            tree_idx += i; // At this point, tree_idx = start_index + i
+            u = heights[offset - 1];
+            u += 1; // u = heighs[offset - 1] + 1
+            tree_idx >>= (u & 31); // tree_idx = ((start_index + i) >> (heights[offset - 1] + 1));
+
+            // set_tree_height(node_addr, heights[offset - 1]);
+            node_addr = __set_tree_height(node_addr, heights[offset - 1]);
+
+            // set_tree_index(node_addr, tree_idx);
+            node_addr = __set_tree_index(node_addr, tree_idx);
+
+            // thash_h(params, stack + (offset - 2) * params->n, stack + (offset - 2) * params->n, pub_seed, node_addr);
+            // We first need to load stack + (offset-2)*params->n into buf2
+            () = #unspill(offset);
+            t64 = offset; t64 -= 2; t64 *= XMSS_N;
+            for j=0 to 2*XMSS_N { buf2[j] = _stack[t64 + j]; }
+
+             () = #unspill(pub_seed);
+            buf, node_addr = __thash_h_(buf, buf2, pub_seed, node_addr);
+
+            // We now need to copy the result to stack + (offset-2)*params->n
+            () = #unspill(offset);
+            t64 = offset; t64 -= 2; t64 *= XMSS_N;
+            for j=0 to XMSS_N { _stack[t64 + j] = buf[j]; }
+
+            // offset--;
+            // heights[offset - 1]++;
+            () = #unspill(offset);
+            offset -= 1;
+            heights[offset - 1] += 1;
+            () = #spill(offset);
+        }
+
+        () = #unspill(i, upper_bound);
+        i += 1;
+    }
+
+    () = #unspill(root);
+    for j=0 to XMSS_N { root[j] = _stack[j]; }
+
+    return root;
+}
+
+fn _treehash(
+    reg ptr u8[XMSS_N] node,
+    reg ptr u8[XMSS_N] sk_seed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg u32 s t,
+    reg ptr u32[8] subtree_addr
+) -> reg ptr u8[XMSS_N]
+{
+    node = __treehash(node, sk_seed, pub_seed, s, t, subtree_addr);
+    return node;
+}
+
+inline 
+fn __treehash_(
+    reg ptr u8[XMSS_N] node,
+    reg ptr u8[XMSS_N] sk_seed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg u32 s t,
+    reg ptr u32[8] subtree_addr
+) -> reg ptr u8[XMSS_N]
+{
+    node = node;
+    sk_seed = sk_seed;
+    pub_seed = pub_seed;
+    s = s;
+    t = t;
+    subtree_addr = subtree_addr;
+
+    node = _treehash(node, sk_seed, pub_seed, s, t, subtree_addr);
+
+    node = node;
+
+    return node;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// for (j = 0; j < h; j++ ) {
+//     k = floor(i / (2^j)) XOR 1;
+//     auth[j] = treeHash(SK, k * 2^j, j, ADRS);
+// }
+inline 
+fn __build_auth_path(
+    reg ptr u8[XMSS_TREE_HEIGHT * XMSS_N] auth_path,
+    reg ptr u8[XMSS_N] sk_seed,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg u32 i,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_TREE_HEIGHT * XMSS_N]
+{
+    inline int j;
+    reg u32 k;
+    reg ptr u8[XMSS_N] node;
+
+    () = #spill(i, auth_path, sk_seed, pub_seed, addr);
+
+    for j=0 to XMSS_TREE_HEIGHT {
+        () = #unspill(i);
+
+        // k = ((i >> j) ^ 1) << j;
+        k = i >> j; 
+        k ^= 1; 
+        k <<= j;
+
+        () = #unspill(auth_path);
+        node = auth_path[j*XMSS_N:XMSS_N];
+
+        () = #unspill(sk_seed, pub_seed, addr);
+        node = __treehash_(node, sk_seed, pub_seed, k, j, addr);
+
+        // treehash kills auth path so now we need to unspill it 
+        () = #unspill(auth_path);
+        auth_path[j*XMSS_N:XMSS_N] = node;
+        () = #spill(auth_path);
+    }
+
+    return auth_path;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// auth = buildAuth(SK, idx_sig, ADRS);
+// ADRS.setType(0);   // Type = OTS hash address
+// ADRS.setOTSAddress(idx_sig);
+// sig_ots = WOTS_sign(getWOTS_SK(SK, idx_sig), M', getSEED(SK), ADRS);
+// Sig = sig_ots || auth;
+// return Sig;
+//
+inline 
+fn __tree_sig(
+    reg ptr u8[XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N)] sig, // wots signature + auth_path
+    reg ptr u8[XMSS_N] M,
+    reg ptr u8[XMSS_SK_BYTES] sk,
+    reg u32 idx_sig,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N)],
+     reg ptr u32[8] 
+{
+    stack u8[XMSS_WOTS_SIG_BYTES] sig_ots;
+    stack u8[XMSS_TREE_HEIGHT * XMSS_N] auth_path;
+
+    reg ptr u8[XMSS_N] pub_seed = sk[XMSS_INDEX_BYTES + 3 * XMSS_N : XMSS_N];
+    reg ptr u8[XMSS_N] sk_seed  = sk[XMSS_INDEX_BYTES : XMSS_N];
+
+    inline int i;
+
+    () = #spill(sig, addr, idx_sig, M, pub_seed, sk_seed);
+
+    // auth = buildAuth(SK, idx_sig, ADRS);
+    auth_path = __build_auth_path(auth_path, sk_seed, pub_seed, idx_sig, addr);
+
+    () = #unspill(addr, idx_sig);
+
+    // ADRS.setType(0);   // Type = OTS hash address
+    addr = __set_type(addr, XMSS_ADDR_TYPE_OTS);
+
+    // ADRS.setOTSAddress(idx_sig);
+    addr = __set_ots_addr(addr, idx_sig);
+
+    // sig_ots = WOTS_sign(getWOTS_SK(SK, idx_sig), M', getSEED(SK), ADRS);
+    () = #unspill(M, sk_seed, pub_seed);
+    sig_ots, addr = __wots_sign_(sig_ots, M, sk_seed, pub_seed, addr);
+
+    // Sig = sig_ots || auth;
+    () = #unspill(sig);
+
+    for i=0 to XMSS_WOTS_SIG_BYTES { sig[i] = sig_ots[i]; }
+    for i=0 to XMSS_TREE_HEIGHT * XMSS_N { sig[(XMSS_WOTS_LEN * XMSS_N) + i] = auth_path[i]; }
+    
+    return sig, addr;
+}
+
+fn 
+_tree_sig(
+    reg ptr u8[XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N)] sig, // wots signature + auth_path
+    reg ptr u8[XMSS_N] M,
+    reg ptr u8[XMSS_SK_BYTES] sk,
+    reg u32 idx_sig,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N)],
+     reg ptr u32[8]
+{
+    sig, addr = __tree_sig(sig, M, sk, idx_sig, addr);
+    return sig, addr;
+}
+
+inline 
+fn __tree_sig_(
+    reg ptr u8[XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N)] sig, // wots signature + auth_path
+    reg ptr u8[XMSS_N] M,
+    reg ptr u8[XMSS_SK_BYTES] sk,
+    reg u32 idx_sig,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N)], 
+     reg ptr u32[8]
+{
+    sig = sig;
+    M = M;
+    sk = sk;
+    idx_sig = idx_sig;
+    addr = addr;
+
+    sig, addr = __tree_sig(sig, M, sk, idx_sig, addr);
+    
+    sig = sig;
+    addr = addr;
+
+    return sig, addr;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline
+fn __xmssmt_core_seed_keypair(
+    reg ptr u8[XMSS_PK_BYTES] pk, 
+    reg ptr u8[XMSS_SK_BYTES] sk,
+    reg ptr u8[3 * XMSS_N] seed
+) -> reg ptr u8[XMSS_PK_BYTES], reg ptr u8[XMSS_SK_BYTES]
+{
+    stack u8[XMSS_TREE_HEIGHT * XMSS_N] auth_path;
+    stack u32[8] top_tree_addr;
+    stack u8[XMSS_N] root;
+
+    reg ptr u8[XMSS_INDEX_BYTES] idx;
+    reg ptr u8[2 * XMSS_N] buf0 buf1;
+    reg ptr u8[XMSS_N] bufn0 bufn1;
+
+    top_tree_addr = __zero_address_(top_tree_addr);
+
+    top_tree_addr =  __set_layer_addr(top_tree_addr, XMSS_D - 1);
+    
+    // memset(sk, 0, params->index_bytes);
+    idx = sk[0 : XMSS_INDEX_BYTES];
+    idx = __memset_zero_u8(idx);
+    sk[0 : XMSS_INDEX_BYTES] = idx;
+    
+    // memcpy(sk, seed, 2 * params->n);
+    buf0 = sk[XMSS_INDEX_BYTES : 2 * XMSS_N]; 
+    buf1 = seed[0 : 2 * XMSS_N];
+    buf0 = _x_memcpy_u8u8_64_64(buf0, buf1);
+    sk[XMSS_INDEX_BYTES : 2 * XMSS_N] = buf0;
+
+    // memcpy(sk + 3 * params->n, seed + 2 * params->n, params->n);
+    bufn0 = sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N]; 
+    bufn1 = seed[2*XMSS_N : XMSS_N];
+    bufn0 = _x_memcpy_u8u8_32_32(bufn0, bufn1);
+    sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N] = bufn0;
+
+    // memcpy(pk + params->n, sk + 3*params->n, params->n);
+    bufn0 = pk[XMSS_N : XMSS_N]; 
+    bufn1 = sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N];
+    bufn0 = _x_memcpy_u8u8_32_32(bufn0, bufn1);
+    pk[XMSS_N : XMSS_N] = bufn0;
+
+    // treehash(params, pk, auth_path, sk, pk + params->n, 0, top_tree_addr);
+    bufn0 = sk[XMSS_INDEX_BYTES : XMSS_N];
+    bufn1 = pk[XMSS_N : XMSS_N];
+    () = #spill(pk, sk);
+    root = __treehash_(root, bufn0, bufn1, 0, XMSS_TREE_HEIGHT, top_tree_addr);
+    
+    // memcpy(sk + 2*params->n, pk, params->n);
+    () = #unspill(pk, sk);
+
+    // set the field root
+    pk = __nbytes_copy_offset_64_32(pk, 0, root, 0);
+    sk = __nbytes_copy_offset_131_32(sk, XMSS_INDEX_BYTES + 2 * XMSS_N, root, 0);
+
+    return pk, sk;
+}
+
+/////////////////////////////////// KEY PAIR ///////////////////////////////////
+
+inline
+fn __xmssmt_core_keypair(
+    reg ptr u8[XMSS_PK_BYTES] pk, 
+    reg ptr u8[XMSS_SK_BYTES] sk
+) -> reg ptr u8[XMSS_PK_BYTES], reg ptr u8[XMSS_SK_BYTES]
+{
+    stack u8 [3 * XMSS_N] seed;
+    reg ptr u8[3 * XMSS_N] seed_p;
+
+    seed_p = seed;
+    seed_p = #randombytes(seed_p);
+
+    pk, sk = __xmssmt_core_seed_keypair(pk, sk, seed_p);
+
+    return pk, sk;
+}
+
+fn _xmssmt_core_keypair(
+    reg ptr u8[XMSS_PK_BYTES] pk, 
+    reg ptr u8[XMSS_SK_BYTES] sk
+) -> reg ptr u8[XMSS_PK_BYTES], reg ptr u8[XMSS_SK_BYTES]
+{
+    pk, sk = __xmssmt_core_keypair(pk, sk);
+
+    return pk, sk;
+}
+
+inline
+fn __xmssmt_core_keypair_(
+    reg ptr u8[XMSS_PK_BYTES] pk, 
+    reg ptr u8[XMSS_SK_BYTES] sk
+) -> reg ptr u8[XMSS_PK_BYTES], reg ptr u8[XMSS_SK_BYTES]
+{
+    pk = pk;
+    sk = sk;
+
+    pk, sk = _xmssmt_core_keypair(pk, sk);
+
+    pk = pk;
+    sk = sk;
+    
+    return pk, sk;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline 
+fn __xmssmt_core_sign(
+    reg ptr u8[XMSS_SK_BYTES] sk,
+    reg u64 sm_ptr smlen_ptr m_ptr mlen
+) -> reg ptr u8[XMSS_SK_BYTES], reg u64
+{
+    reg u32 i idx_leaf; 
+    reg u64 r t64 idx idx_tree;
+
+    reg ptr u8[XMSS_N] sk_seed sk_prf pub_root pub_seed node;
+    reg ptr u8[XMSS_INDEX_BYTES] idx_bytes;
+
+    stack u8[XMSS_N] buf mhash root;
+    stack u8[32] index_bytes;
+    stack u32[8] ots_addr;
+    stack u8[XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N)] reduced_sig; // WOTS signature || Authentication path 
+
+    stack u8 exit = FALSE;
+
+    inline int j;
+
+    // uint32_t ots_addr[8] = {0};
+    // set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
+    ots_addr = __zero_address_(ots_addr);
+    ots_addr = __set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
+
+    // memcpy(sm + params->sig_bytes, m, mlen);
+    _x__memcpy_u8pu8p(sm_ptr, XMSS_SIG_BYTES, m_ptr, 0, mlen);
+
+    // *smlen = params->sig_bytes + mlen;
+    t64 = mlen; t64 += XMSS_SIG_BYTES;
+    (u64) [smlen_ptr] = t64;
+
+    () = #spill(mlen, idx, sk, sm_ptr);
+
+    // idx = (unsigned long)bytes_to_ull(sk, params->index_bytes);
+    idx_bytes = sk[0 : XMSS_INDEX_BYTES];
+    idx = __bytes_to_ull(idx_bytes);
+
+    // Check if we can still sign with this sk.
+    // If not, return -2
+    if (idx >= ((1 << XMSS_FULL_HEIGHT) - 1)) {
+        // memset(sk, 0xFF, params->index_bytes);
+        idx_bytes =  __memset_u8_3(idx_bytes, 0xFF);
+        sk[0 : XMSS_INDEX_BYTES] = idx_bytes;
+
+        // memset(sk + params->index_bytes, 0, (params->sk_bytes - params->index_bytes));
+        sk[XMSS_INDEX_BYTES : XMSS_SK_BYTES - XMSS_INDEX_BYTES] = 
+            __memset_u8_128(sk[XMSS_INDEX_BYTES : XMSS_SK_BYTES - XMSS_INDEX_BYTES], 0);
+
+        if (idx > ((1 << XMSS_FULL_HEIGHT) - 1)) { 
+            exit = TRUE; 
+            r = -2;
+        } else if ((idx == ((1 << XMSS_FULL_HEIGHT) - 1)) && XMSS_FULL_HEIGHT == 64) { 
+            exit = TRUE; 
+            r = -2;
+        }
+
+        () = #spill(sk);
+    }
+
+    if (exit != TRUE) { 
+        // memcpy(sm, sk, params->index_bytes);
+        sm_ptr, _ = _x_memcpy_u8pu8_3(sm_ptr, 0, idx_bytes);
+        () = #spill(sm_ptr, idx);
+
+        // Increment the index
+        // ull_to_bytes(sk, params->index_bytes, idx + 1);
+        t64 = idx; t64 += 1;
+        sk[0 : XMSS_INDEX_BYTES] = __ull_to_bytes_3(sk[0 : XMSS_INDEX_BYTES], t64);
+        () = #spill(sk);
+
+        // ull_to_bytes(idx_bytes_32, 32, idx);
+        index_bytes = __ull_to_bytes_32(index_bytes, idx);
+
+            // Message compression
+            // byte[n] r = PRF(SK_PRF, toByte(idx_sig, 32));
+            // byte[n] M' = H_msg(r || getRoot(SK_MT) || (toByte(idx_sig, n)), M);  
+        
+        // prf(params, sm + params->index_bytes, idx_bytes_32, sk_prf);
+        // This computes R and writes it to the signature
+        sk_prf = sk[XMSS_INDEX_BYTES + XMSS_N : XMSS_N];   
+        buf = __prf_(buf, index_bytes, sk_prf); // prf kills sm_ptr and sk
+
+        () = #unspill(sm_ptr, sk); 
+        sm_ptr, _ = _x_memcpy_u8pu8_32(sm_ptr, XMSS_INDEX_BYTES, buf); // Write R to the signature 
+        () = #spill(sm_ptr); /* TODO: FIXME: Nao ha necessidade de o ptr ser retornado
+                                Este spill podia ser evitado se o memcpy nao retornasse o sm_ptr */
+
+        // hash_message(params, mhash, sm + params->index_bytes, pub_root, idx, sm + params->sig_bytes - 
+        // Compute the message hash 
+        pub_root = sk[XMSS_INDEX_BYTES + 2*XMSS_N : XMSS_N];
+        for j=0 to XMSS_N { buf[j] = (u8) [sm_ptr + XMSS_INDEX_BYTES + j]; } // copy the 2nd argument of hash message to buf
+        t64 = sm_ptr; t64 += XMSS_SIG_BYTES - XMSS_PADDING_LEN - 3*XMSS_N;
+        () = #unspill(mlen, idx);
+        mhash = __hash_message(mhash, buf, pub_root, idx, t64, mlen); // this function is not used anywhere else so we can use the inline
+
+        ots_addr = __set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
+        ots_addr = __set_layer_addr(ots_addr, 0);
+
+        // idx_tree = idx >> params->tree_height;               /* (h - h / d) most significant bits of idx_sig */
+        // idx_leaf = (idx & ((1 << params->tree_height) - 1)); /* (h - h / d) least significant bits of idx_sig */
+        () = #unspill(idx);
+        idx_tree = idx; idx_tree >>= XMSS_TREE_HEIGHT;
+        idx_leaf = ((1 << XMSS_TREE_HEIGHT) - 1); idx_leaf &= idx;   
+        () = #spill(idx_tree);
+
+        // set_tree_addr(ots_addr, idx_tree);
+        ots_addr = __set_tree_addr(ots_addr, idx_tree);
+
+        // Sig_tmp = treeSig(M', SK, idx_leaf, ADRS);
+        () = #unspill(sk);
+        reduced_sig, ots_addr = __tree_sig_(reduced_sig, mhash, sk, idx_leaf, ots_addr);
+
+        // Copy the result to the signature
+        () = #unspill(sm_ptr);
+        for j=0 to XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N) { 
+            (u8) [sm_ptr + XMSS_INDEX_BYTES /* index */ + XMSS_N /* R */ + j] = reduced_sig[j]; 
+        }
+
+        sm_ptr += XMSS_INDEX_BYTES + XMSS_N + XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N);
+        () = #spill(sm_ptr);
+
+        i = 1;
+        while (i < XMSS_D) {
+            () = #spill(i);
+
+            // treehash_new(params, root, sk_seed, pub_seed, 0, params->tree_height, ots_addr);
+            () = #unspill(sk);
+            sk_seed = sk[XMSS_INDEX_BYTES : XMSS_N];
+            pub_seed = sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N];
+            root = __treehash_(root, sk_seed, pub_seed, 0, XMSS_TREE_HEIGHT, ots_addr);
+
+            // idx_tree = idx_tree >> params->tree_height;          /* (h - h / d) most significant bits of idx_sig */
+            // idx_leaf = (idx_tree & ((1 << params->tree_height) - 1)); /* (h - h / d) least significant bits of idx_sig */
+            () = #unspill(idx_tree);
+            idx_tree >>= XMSS_TREE_HEIGHT;
+            idx_leaf = ((1 << XMSS_TREE_HEIGHT) - 1); idx_leaf &= idx_tree;  
+            () = #spill(idx_tree);
+
+            // set_layer_addr(ots_addr, i);
+            // set_tree_addr(ots_addr, idx_tree);
+            () = #unspill(i);
+            ots_addr = __set_layer_addr(ots_addr, i);
+            ots_addr = __set_tree_addr(ots_addr, idx_tree);
+            
+            // treesig(params, sm, root, sk, idx_leaf, ots_addr);
+            () = #unspill(sk);
+            reduced_sig, ots_addr = __tree_sig_(reduced_sig, root, sk, idx_leaf, ots_addr);
+
+            () = #unspill(sm_ptr);
+            for j=0 to XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N) { (u8) [sm_ptr + j] = reduced_sig[j]; }
+            sm_ptr += XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N);
+            () = #spill(sm_ptr);
+
+            () = #unspill(i);
+            i += 1;
+        }
+
+        ?{}, r = #set0();
+    }
+
+    () = #unspill(sk);
+
+    return sk, r;
+}
+
+fn _xmssmt_core_sign(
+    reg ptr u8[XMSS_SK_BYTES] sk,
+    reg u64 sm_ptr smlen_ptr m_ptr mlen
+) -> reg ptr u8[XMSS_SK_BYTES], reg u64
+{
+    reg u64 r;
+    sk, r = __xmssmt_core_sign(sk, sm_ptr, smlen_ptr, m_ptr, mlen);
+    return sk, r;
+}
+
+inline
+fn __xmssmt_core_sign_(
+    reg ptr u8[XMSS_SK_BYTES] sk,
+    reg u64 sm_ptr smlen_ptr m_ptr mlen
+) -> reg ptr u8[XMSS_SK_BYTES], reg u64
+{
+    reg u64 r;
+
+    sk = sk;
+    sm_ptr = sm_ptr;
+    smlen_ptr = smlen_ptr;
+    m_ptr = m_ptr;
+    mlen = mlen;
+
+    sk, r = _xmssmt_core_sign(sk, sm_ptr, smlen_ptr, m_ptr, mlen);
+
+    sk = sk;
+    r = r;
+
+    return sk, r;
+}
+
+// This file provides wrapper functions that take keys that include OIDs to
+// identify the parameter set to be used. After setting the parameters accordingly
+// it falls back to the regular XMSS core functions.
+
+inline
+fn  __xmss_keypair(
+    reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk, 
+    reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES] sk
+) -> reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES],
+     reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES]
+{
+    reg u32 oid;
+
+    oid = XMSS_OID;
+    oid = #BSWAP_32(oid);
+    
+    pk[u32 0] = oid;
+    sk[u32 0] = oid;
+
+    pk[XMSS_OID_LEN : XMSS_PK_BYTES], sk[XMSS_OID_LEN : XMSS_SK_BYTES] = 
+        __xmssmt_core_keypair_(pk[XMSS_OID_LEN : XMSS_PK_BYTES], sk[XMSS_OID_LEN : XMSS_SK_BYTES]);
+
+    return pk, sk;
+}
+
+inline
+fn  __xmssmt_keypair(
+    reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk, 
+    reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES] sk
+) -> reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES],
+     reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES]
+{
+    reg u32 oid;
+
+    oid = XMSS_OID;
+    oid = #BSWAP_32(oid);
+    
+    pk[u32 0] = oid;
+    sk[u32 0] = oid;
+
+    pk[XMSS_OID_LEN : XMSS_PK_BYTES], sk[XMSS_OID_LEN : XMSS_SK_BYTES] = 
+        __xmssmt_core_keypair_(pk[XMSS_OID_LEN : XMSS_PK_BYTES], sk[XMSS_OID_LEN : XMSS_SK_BYTES]);
+
+    return pk, sk;
+}
+
+inline
+fn __xmss_sign(
+    reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES] sk,
+    reg u64 sm_ptr smlen_ptr,
+    reg u64 m_ptr mlen
+) -> reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES], reg u64
+{
+    reg u64 res;
+
+    sk[XMSS_OID_LEN : XMSS_SK_BYTES], res = 
+        __xmssmt_core_sign(sk[XMSS_OID_LEN : XMSS_SK_BYTES], sm_ptr, smlen_ptr, m_ptr, mlen);
+
+    return sk, res;
+}
+
+inline
+fn __xmssmt_sign(
+    reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES] sk,
+    reg u64 sm_ptr smlen_ptr,
+    reg u64 m_ptr mlen
+) -> reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES], reg u64
+{
+    reg u64 res;
+
+    sk[XMSS_OID_LEN : XMSS_SK_BYTES], res = 
+        __xmssmt_core_sign(sk[XMSS_OID_LEN : XMSS_SK_BYTES], sm_ptr, smlen_ptr, m_ptr, mlen);
+
+    return sk, res;
+}
+
+inline
+fn __xmss_sign_open(
+    reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk,
+    reg u64 m_ptr mlen_ptr sm_ptr smlen
+) -> reg u64
+{
+    reg u64 res;
+
+    res = __xmssmt_core_sign_open_(m_ptr, mlen_ptr, sm_ptr, smlen, pk[XMSS_OID_LEN : XMSS_PK_BYTES]);
+    return res;
+}
+
+inline
+fn __xmssmt_sign_open(
+    reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk,
+    reg u64 m_ptr mlen_ptr sm_ptr smlen
+) -> reg u64
+{
+    reg u64 res;
+
+    res = __xmssmt_core_sign_open_(m_ptr, mlen_ptr, sm_ptr, smlen, pk[XMSS_OID_LEN : XMSS_PK_BYTES]);
+    return res;
+}
+
+export fn xmss_keypair_jazz(
+    reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk, 
+    reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES] sk
+) -> reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES],
+     reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES],
+     reg u64
+{
+    reg u64 res;
+
+    pk, sk = __xmss_keypair(pk, sk);
+
+    ?{}, res = #set0();
+
+    return pk, sk, res;
+}
+
+export fn xmssmt_keypair_jazz(
+    reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk, 
+    reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES] sk
+) -> reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES],
+     reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES],
+     reg u64
+
+{
+    reg u64 res;
+
+    pk, sk = __xmssmt_keypair(pk, sk);
+
+    ?{}, res = #set0();
+
+    return pk, sk, res;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export fn xmss_sign_jazz(
+    reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES] sk,
+    reg u64 sm_ptr smlen_ptr,
+    reg u64 m_ptr mlen
+) -> reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES], reg u64
+{
+    reg u64 res;
+    
+    sk, res = __xmss_sign(sk, sm_ptr, smlen_ptr, m_ptr, mlen);
+    
+    return sk, res;
+}
+
+export fn xmssmt_sign_jazz(
+    reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES] sk,
+    reg u64 sm_ptr smlen_ptr,
+    reg u64 m_ptr mlen
+) -> reg ptr u8[XMSS_OID_LEN + XMSS_SK_BYTES], reg u64
+{
+    reg u64 res;
+    
+    sk, res = __xmssmt_sign(sk, sm_ptr, smlen_ptr, m_ptr, mlen);
+    
+    return sk, res;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export fn xmss_sign_open_jazz(
+    reg u64 m_ptr mlen_ptr sm_ptr smlen,
+    reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk
+) -> reg u64
+{
+    reg u64 res;
+    res = __xmss_sign_open(pk, m_ptr, mlen_ptr, sm_ptr, smlen);
+    return res;
+}
+
+export fn xmssmt_sign_open_jazz(
+    reg u64 m_ptr mlen_ptr sm_ptr smlen,
+    reg ptr u8[XMSS_OID_LEN + XMSS_PK_BYTES] pk
+) -> reg u64
+{
+    reg u64 res;
+    res = __xmssmt_sign_open(pk, m_ptr, mlen_ptr, sm_ptr, smlen);
+    return res;
+}
