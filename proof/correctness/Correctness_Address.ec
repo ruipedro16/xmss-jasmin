@@ -6,15 +6,14 @@ from Jasmin require import JModel.
 
 require import BitEncoding.
 (*---*) import BitChunking.
+(*---*) import StdBigop.Bigint.
+(*---*) import W4u8.Pack.
 
 require import Array4 Array8 Array32.
 require import WArray4.
 
-require import Params Address.
+require import Params Address Repr2 Utils2.
 require import XMSS_IMPL.
-
-op zero_addr : adrs = Array8.init (fun _ => W32.zero). 
-op W32toBytes (x : W32.t) : W8.t list = map W8.bits2w (chunk W8.size (W32.w2bits x)). (* FIXME: Move to Utils *)
 
 lemma zero_addr_op_impl (address : adrs) :
     hoare[M(Syscall)._zero_address : true ==> res = zero_addr].
@@ -42,8 +41,6 @@ lemma zero_addr_res (address : adrs) :
     phoare[M(Syscall)._zero_address : true ==> res = zero_addr] = 1%r
       by conseq zero_addr_ll (zero_addr_op_impl address) => //=. 
 
-import W4u8.Pack.
-
 lemma u32_to_bytes_correct (x : W32.t) :
     hoare [M(Syscall).__u32_to_bytes : arg.`2 = x ==> to_list res = W32toBytes x].
 proof.
@@ -58,14 +55,17 @@ rewrite get_to_list initiE // (nth_map witness).
 rewrite /BSWAP_32 => />.
 rewrite ifT // /chunk nth_mkseq /(\bits8) => />.
 rewrite wordP => j?.
-rewrite initiE // /(\o) => />. 
-rewrite /bits2w => />.
-rewrite initiE // nth_take // 1:/# nth_drop 1,2:/# /w2bits nth_mkseq 1:/# => />.
-rewrite /unpack8 => />.
+rewrite initiE // /(\o) /= /bits2w => />.
+rewrite initiE // nth_take // 1:/# nth_drop 1,2:/# /w2bits nth_mkseq 1:/# /= /unpack8 /=.
+rewrite pack4E initiE 1:/# //= /(\bits8).
+rewrite get_of_list 1:/# /= nth_rev.
+  + rewrite size_to_list /#.
+rewrite size_to_list => />.
+rewrite initiE 1:/# /= initiE 1:/# /=.
+congr.
+(* Isto e verdade ?? *)
 admit.
 qed.
-
-(*****) import StdBigop.Bigint.
 
 lemma _addr_to_bytes_correctness (x : W32.t Array8.t) : 
     n = 32 =>

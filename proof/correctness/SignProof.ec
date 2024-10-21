@@ -3,7 +3,7 @@ pragma Goals : printall.
 require import AllCore List RealExp IntDiv Distr DList IntDiv.
 from Jasmin require import JModel JArray.
 
-require import Params Types Hash XMSS_MT_PRF.
+require import Params Types Hash XMSS_MT_PRF XMSS_MT_Types.
 require import XMSS_IMPL Parameters.
 
 require import Repr2. 
@@ -79,6 +79,17 @@ op load_message (mem : global_mem_t) (ptr : W64.t) (mlen : W64.t) =
   mkseq (fun (i : int) => mem.[to_uint ptr + i]) (to_uint mlen).
 
 
+(*
+proc __xmssmt_core_sign (sk:W8.t Array131.t, sm_ptr:W64.t, smlen_ptr:W64.t,
+                           m_ptr:W64.t, mlen:W64.t) : W8.t Array131.t * W64.t 
+
+proc sign(sk : xmss_sk, m : msg_t) : sig_t * xmss_sk
+*)
+
+op DecodeSkNoOID_S (x : xmss_sk) : W8.t Array131.t = 
+  Array131.of_list witness (take XMSS_INDEX_BYTES (W32toBytes x.`idx) ++ val x.`sk_seed ++ val x.`sk_prf ++ 
+                            val x.`sk_root ++ val  x.`pub_seed_sk).
+
 lemma sign_correct (mem : global_mem_t) (_sk : xmss_sk, _sm_ptr _smlen_ptr _m_ptr _mlen : W64.t) :
     n = XMSS_N /\ 
     prf_padding_val = XMSS_HASH_PADDING_PRF /\ 
@@ -100,7 +111,8 @@ lemma sign_correct (mem : global_mem_t) (_sk : xmss_sk, _sm_ptr _smlen_ptr _m_pt
       valid_ptr_i arg{1}.`5 2500 /\
       0 <= to_uint sk{2}.`idx < 2^XMSS_FULL_HEIGHT - 1 (* ensures that the maximum number of signatures was not yet reached *)
       ==>
-      res{2}.`2 = DecodeSkNoOID res{2}.`1
+      res{2}.`2 = DecodeSkNoOID_S res{2}.`1 /\
+      res{1}.`2 = W64.zero
     ].
 proof.
 rewrite /XMSS_N => [#] n_val ??.

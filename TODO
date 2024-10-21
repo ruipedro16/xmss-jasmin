@@ -1,3 +1,4 @@
 ## TODO
 
-- [ ] Ha 3 declaracoes do operador `W32toBytes` em ficheiros diferentes. Deixar isto apenas no Utils ou no Repr2.
+- [X] Ha 3 declaracoes do operador `W32toBytes` em ficheiros diferentes. Deixar isto apenas no Utils
+- [ ] XMSS e XMSS MT usam a mm versao do treehash
