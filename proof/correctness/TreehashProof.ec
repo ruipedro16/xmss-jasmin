@@ -266,7 +266,7 @@ case (j{2} * 32 <= k && k < j{2} * 32 + 32) => ?.
 qed.
 
 
-lemma treesig_correct (_m : W8.t Array32.t, _sk : W8.t Array131.t, _idx_sig : W32.t, _addr : W32.t Array8.t) :
+lemma treesig_correct (_m : W8.t Array32.t, _sk : xmss_sk, _idx_sig : W32.t, _addr : W32.t Array8.t) :
     n = XMSS_N /\
     len = XMSS_WOTS_LEN /\ 
     d = XMSS_D /\
@@ -274,12 +274,14 @@ lemma treesig_correct (_m : W8.t Array32.t, _sk : W8.t Array131.t, _idx_sig : W3
     equiv [
       M(Syscall).__tree_sig ~ TreeSig.treesig:
       arg{1}.`2 = _m /\
-      arg{1}.`3 = _sk /\
+      arg{1}.`3 = DecodeSkNoOID _sk /\
       arg{1}.`4 = _idx_sig /\
       arg{1}.`5 = _addr /\
-
+      
       arg{2}.`1 = NBytes.insubd (to_list _m) /\
-      arg{2}.`2 = NBytes.insubd (to_list _sk)
+      arg{2}.`2 = _sk /\
+      arg{2}.`3 = _idx_sig /\
+      arg{2}.`4 = _addr
 
       ==>
       res{2} = EncodeReducedSignature (to_list res{1}.`1)
@@ -288,8 +290,9 @@ proof.
 rewrite /XMSS_N /XMSS_WOTS_LEN /XMSS_D /XMSS_FULL_HEIGHT => [#] n_val len_val d_val h_val.
 proc => /=.
 seq 6 0 : (
-  to_list pub_seed{1} = sub sk{1} (4 + 3*32) 32 /\
-  to_list sk_seed{1} = sub sk{1} 4 32
+  #pre /\
+  to_list pub_seed{1} = sub sk{1} (XMSS_INDEX_BYTES + 3*32) 32 /\
+  to_list sk_seed{1} = sub sk{1} XMSS_INDEX_BYTES 32
 ).
     + auto => /> *; split.
          * apply (eq_from_nth witness); first by rewrite size_to_list size_sub.
@@ -299,23 +302,50 @@ seq 6 0 : (
            rewrite size_to_list => i?.
            by rewrite get_to_list initiE // nth_sub.
 
+seq 0 2 : (
+  #pre /\
+  val sk_seed{2} = to_list sk_seed{1} /\
+  val pub_seed{2} = to_list pub_seed{1}
+).
+    + auto => /> &1 -> ->; split; rewrite /DecodeSkNoOID; last by admit.
+       * apply (eq_from_nth witness); first by rewrite valP size_sub.
+         rewrite valP n_val => i?.
+         rewrite nth_sub // get_of_list 1:/#.
+         rewrite nth_cat ifT.
+             - rewrite !size_cat valP n_val size_take //.
+               rewrite ifT; [by rewrite size_W32toBytes |].
+               rewrite !valP /#.
+         rewrite nth_cat ifT.
+             - rewrite !size_cat valP n_val size_take //.
+               rewrite ifT; [by rewrite size_W32toBytes |].
+               rewrite !valP /#.
+         rewrite nth_cat ifT.
+             - rewrite !size_cat valP n_val size_take //.
+               rewrite ifT; [by rewrite size_W32toBytes | smt()].
+         rewrite nth_cat ifF; [by rewrite size_take // size_W32toBytes /# |].
+         rewrite size_take // size_W32toBytes /#.
+
+(* Rewrite #pre *)
+conseq (:
+  M{2} = (insubd (to_list m{1}))%NBytes /\
+  idx_sig{1} = idx{2} /\
+  address{2} = addr{1} /\
+  val sk_seed{2} = to_list sk_seed{1} /\
+  val pub_seed{2} = to_list pub_seed{1}
+  ==>
+  _
+); first by auto.
+
 seq 1 1 : (#pre /\ auth{2} = EncodeAuthPath (to_list auth_path{1})).
     + exists * pub_seed{1}, sk_seed{1}, idx_sig{1}, addr{1}.
       elim * => P0 P1 P2 P3.
-      call {1} (build_auth_path_correct P0 P1 P2 P3) => [/# |].
-      skip => /> *; do split.
+      call (build_auth_path_correct P0 P1 P2 P3) => [/# |].
+      skip => /> *.
+            - admit. (* At this point, I have no information about P0 P1 or P2 *)
 
+seq 2 2 : (#pre); first by inline {1}; auto.
 
-       
-
-
-
-
-
-conseq (: _ ==>
-  sub sig{1} 0 (67*32)       = DecodeWotsSignature_List sig_ots{2} /\
-  sub sig{1} (67*32) (10*32) = DecodeAuthPath_List auth{2}
-).
+(*
 
 (** -------------------------------------------------------------------------------------------- **)
 (** -------------------------------------------------------------------------------------------- **)
@@ -412,5 +442,10 @@ seq 3 0 : (#pre /\ sub sig{1} 0 (67*32) = DecodeWotsSignature_List sig_ots{2}); 
           * auto => /> &hr *; split => [k??| /#].
             rewrite get_setE. admit.
             admit.
+
+*) 
+
+admit.
+
 qed.
 
