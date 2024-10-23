@@ -1132,7 +1132,10 @@ lemma wots_sign_seed_corect (_m _sk_seed _pub_seed : W8.t Array32.t, a : W32.t A
     w = XMSS_WOTS_W /\ 
     len1 = XMSS_WOTS_LEN1 /\
     len2 = XMSS_WOTS_LEN2 /\
-    len = XMSS_WOTS_LEN =>
+    len = XMSS_WOTS_LEN /\ 
+    prf_padding_val = XMSS_HASH_PADDING_PRF /\
+    padding_len = XMSS_PADDING_LEN /\ 
+    F_padding_val = XMSS_HASH_PADDING_F =>
     equiv [
       M(Syscall).__wots_sign ~ WOTS.sign_seed :
       arg{1}.`2 = _m /\
@@ -1166,19 +1169,19 @@ swap {1} 2 -1.
 
 seq 1 1 : (
     #{/~address{2} = addr{1}}pre /\ 
-  sig{1} = DecodeWotsSk wots_skey{2} /\ 
+    sig{1} = DecodeWotsSk wots_skey{2} /\ 
     address{2}.[0] = addr{1}.[0] /\
     address{2}.[1] = addr{1}.[1] /\
     address{2}.[2] = addr{1}.[2] /\
     address{2}.[3] = addr{1}.[3] /\
     address{2}.[4] = addr{1}.[4] /\
+    addr{1}.[5]    = W32.of_int (len - 1) /\
     address{2}.[6] = W32.zero /\
     addr{1}.[6]    = W32.zero /\
     address{2}.[6] = W32.zero /\
     addr{1}.[7]    = W32.zero /\
     address{2}.[7] = W32.zero 
 ). 
- (* Sem info sobre o 5o indice ==> tambem nao preciso *)
     + inline {1} M(Syscall).__expand_seed_ M(Syscall)._expand_seed.
       wp; sp.
       exists * inseed0{1}, pub_seed1{1}, addr1{1}.
@@ -1212,7 +1215,7 @@ seq 4 0 : (
   (forall (k : int), 0 <= k < 64 => 0 <= to_uint buf{1}.[k] < w) /\
   msg{2} = map (W32.to_uint) (to_list buf{1})
 ).
-    + auto => /> &1 &2 ????????????T H.
+    + auto => /> &1 &2 ?????????????T H. (* Estas sao as ultimas 2 hipoteses *)
 (* ====================================================================================================== *)
       have E: forall (k : int), 0 <= k < 64 => to_uint lengths2{1}.[k] = to_uint t0{1}.[k].
         * move => k0?.
@@ -1265,7 +1268,10 @@ seq 6 1 : (
      {/~map W32.to_uint (sub lengths2{1} 0 64) = msg{2}}pre /\ 
      map W32.to_uint (to_list lengths{1}) = msg{2}
 ).
-    + auto => /> &1 &2 ?????????????H*; do split.
+    + auto => /> &1 &2 ??????????????H*; do split.
+(* Neste auto, H refere se a hipotese 
+H: map W32.to_uint (sub lengths2{1} 0 64) = map W32.to_uint (to_list t0{1})
+*)
          - rewrite tP => j?.
            rewrite initiE //=.
            case (64 <= j < 67) => ? //.
@@ -1280,27 +1286,26 @@ seq 6 1 : (
 
 (* Invariante: Em cada iteracao escrevemos nbytes *)
 
-print EncodeWotsSignature.
-  
 while (
     0 <= i{1} <= 67 /\
     ={i} /\
     size sig{2} = len /\
-   
+    val sk_seed{2} = to_list seed{1} /\
+    val pub_seed{2} = to_list pub_seed{1} /\
+    M{2} = to_list msg{1} /\ 
 
     address{2}.[0] = addr{1}.[0] /\
-      address{2}.[1] = addr{1}.[1] /\
-      address{2}.[2] = addr{1}.[2] /\
-      address{2}.[3] = addr{1}.[3] /\
-      address{2}.[4] = addr{1}.[4] /\
-      address{2}.[6] = W32.zero /\
-      addr{1}.[6] = W32.zero /\
-      address{2}.[6] = W32.zero /\
-      addr{1}.[6] = W32.zero /\
-      address{2}.[7] = W32.zero /\
-      addr{1}.[7] = W32.zero /\
-
-sub sig{1} 0 (32 * i{1}) = sub_list (nbytes_flatten sig{2}) 0 (32 * i{1})
+    address{2}.[1] = addr{1}.[1] /\
+    address{2}.[2] = addr{1}.[2] /\
+    address{2}.[3] = addr{1}.[3] /\
+    address{2}.[4] = addr{1}.[4] /\
+    address{2}.[6] = W32.zero /\
+    addr{1}.[6] = W32.zero /\
+    address{2}.[6] = W32.zero /\
+    addr{1}.[7] = W32.zero /\
+    address{2}.[7] = W32.zero /\
+   
+    sub sig{1} 0 (32 * i{1}) = sub_list (nbytes_flatten sig{2}) 0 (32 * i{1})
   
 ); last by admit.
 (*
@@ -1338,6 +1343,17 @@ seq 2 1 : (#pre /\ address{2} = addr{1}).
       case (i = 5) => [-> /# | ?]. 
       rewrite get_setE // ifF // /#.
 
-admit.
+inline {1} M(Syscall).__gen_chain_inplace_.
+inline {1} M(Syscall)._gen_chain_inplace.
+
+wp; sp.
+exists * out0{1}, start0{1}, steps0{1}, addr1{1}, pub_seed1{1}.  
+      
+elim * => _P1 _P2 _P3 _P4 _P5. 
+call (gen_chain_inplace_correct _P1 _P2 _P3 _P4 _P5) => [/# |].
+skip => /> &1 &2 *; do split.
+    + apply nbytes_eq.
+      rewrite insubdK; first by rewrite /P size_to_list n_val.
+      admit. (* No info about wots skey *)       
 
 qed.

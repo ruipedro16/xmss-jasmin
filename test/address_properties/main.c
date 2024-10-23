@@ -33,7 +33,7 @@ static void print_diff_addr(const char *impl, const uint32_t *before, const uint
 
     for (size_t i = 0; i < 8; i++) {
         if (before[i] != after[i]) {
-            printf("index %ld was changed\n", i);
+            printf("index %ld was changed: value = %d\n", i, after[i]);
         }
     }
 
@@ -66,11 +66,20 @@ int main(void) {
     uint8_t buf0[p.n], buf1[p.n];
     uint8_t pk[p.wots_sig_bytes];
 
+    // Expand Seed 
+    // Post: addr[5] = len - 1 /\ addr[6] = 0 /\ addr[7] = 0
     memset(addr_before, -1, 8 * sizeof(uint32_t));
     memcpy(addr_after, addr_before, 8 * sizeof(uint32_t));
     assert(!memcmp(addr_before, addr_after, 8 * sizeof(uint32_t)));
     expand_seed(&p, pk, buf0, buf1, addr_after);
     print_diff_addr("expand seed", addr_before, addr_after);
 
+    // Gen Chain inplace
+    // Post: addr[6] = MIN (start + steps - 1, w - 1) /\ addr[7] = 1
+    memset(addr_before, -1, 8 * sizeof(uint32_t));
+    memcpy(addr_after, addr_before, 8 * sizeof(uint32_t));
+    assert(!memcmp(addr_before, addr_after, 8 * sizeof(uint32_t)));
+    gen_chain(&p, buf0, buf0, 0, 10, buf1, addr_after);
+    print_diff_addr("gen chain inplace", addr_before, addr_after);
     return 0;
 }

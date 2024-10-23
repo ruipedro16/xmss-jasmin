@@ -64,7 +64,7 @@ void expand_seed(const xmss_params *params, unsigned char *outseeds, const unsig
  * Interprets in as start-th value of the chain.
  * addr has to contain the address of the chain.
  */
-static void gen_chain(const xmss_params *params, unsigned char *out, const unsigned char *in, unsigned int start,
+void gen_chain(const xmss_params *params, unsigned char *out, const unsigned char *in, unsigned int start,
                       unsigned int steps, const unsigned char *pub_seed, uint32_t addr[8]) {
     uint32_t i;
 

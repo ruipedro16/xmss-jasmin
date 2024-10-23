@@ -59,7 +59,6 @@ swap {2} 3 -2.
 seq 8 1: (#pre /\ offset{1} = W64.zero /\ offset{2} = 0); first by auto.
 
 seq 11 4 : (sub _stack{1} 0 n = val (nth witness stack{2} 0)); last first.
-
   + while {1}
     (#pre /\
      0 <= j{1} <= 32 /\ 
@@ -339,7 +338,12 @@ lemma treesig_correct (_m : W8.t Array32.t, _sk : xmss_sk, _idx_sig : W32.t, _ad
     n = XMSS_N /\
     len = XMSS_WOTS_LEN /\ 
     d = XMSS_D /\
-    h = XMSS_TREE_HEIGHT =>
+    h = XMSS_TREE_HEIGHT /\ 
+    floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
+    w = XMSS_WOTS_W /\ 
+    len1 = XMSS_WOTS_LEN1 /\ 
+    len2 = XMSS_WOTS_LEN2
+ =>
     equiv [
       M(Syscall).__tree_sig ~ TreeSig.treesig:
       arg{1}.`2 = _m /\
@@ -360,7 +364,9 @@ lemma treesig_correct (_m : W8.t Array32.t, _sk : xmss_sk, _idx_sig : W32.t, _ad
       res{2} = EncodeReducedSignature (to_list res{1}.`1)
     ].
 proof.
-rewrite /XMSS_N /XMSS_WOTS_LEN /XMSS_D /XMSS_FULL_HEIGHT => [#] n_val len_val d_val h_val.
+rewrite /XMSS_N /XMSS_WOTS_LEN /XMSS_D /XMSS_TREE_HEIGHT /XMSS_WOTS_LOG_W.
+rewrite /XMSS_WOTS_W /XMSS_WOTS_LEN1 /XMSS_WOTS_LEN2.
+move => [#] n_val len_val d_val h_val logw_val w_val len1_val len2_val.
 proc => /=.
 seq 6 0 : (
   #pre /\
@@ -428,7 +434,7 @@ seq 1 1 : (sig_ots{2} = EncodeWotsSignature sig_ots{1} /\ auth{2} = EncodeAuthPa
       sp; wp.
       exists * msg0{1}, seed0{1}, pub_seed{1}, addr1{1}.
       elim * => P0 P1 P2 P3.
-      call {1} (wots_sign_seed_corect P0 P1 P2 P3).
+      call {1} (wots_sign_seed_corect P0 P1 P2 P3) => [/# |]. 
       skip => /> &1 &2 <- <- *; do split.
            - by rewrite insubdK /P // size_to_list n_val.
            - smt(@NBytes).
