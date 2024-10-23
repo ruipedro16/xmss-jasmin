@@ -141,7 +141,7 @@ module XMSS_MT_PRF = {
       address <- set_layer_addr address 0;
       address <- set_tree_addr address (W32.to_uint idx_tree);
 
-      (sig_tmp, auth) <@ TreeSig.treesig(_M', sk.`pub_seed_sk, sk.`sk_seed , idx_leaf, address);
+      (sig_tmp, auth) <@ TreeSig.treesig(_M', sk, idx_leaf, address);
      
       sig <- {| sig_idx = idx_leaf; r = _R; r_sigs = [ (sig_tmp, auth) ] |};
 
@@ -154,7 +154,7 @@ module XMSS_MT_PRF = {
       address <- set_layer_addr address j;
       address <- set_tree_addr address (W32.to_uint idx_tree);
 
-      (sig_tmp, auth) <@ TreeSig.treesig(root, sk.`pub_seed_sk, sk.`sk_seed, idx_leaf, address);
+      (sig_tmp, auth) <@ TreeSig.treesig(root, sk, idx_leaf, address);
       
       sig <- append_sig sig (sig_tmp, auth); 
       

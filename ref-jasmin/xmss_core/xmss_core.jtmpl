@@ -118,7 +118,7 @@ fn __xmssmt_core_sign(
     reg u64 sm_ptr smlen_ptr m_ptr mlen
 ) -> reg ptr u8[XMSS_SK_BYTES], reg u64
 {
-    reg u32 i idx_leaf; 
+    reg u32 idx_leaf; 
     reg u64 r t64 idx idx_tree;
 
     reg ptr u8[XMSS_N] sk_seed sk_prf pub_root pub_seed node;
@@ -127,11 +127,13 @@ fn __xmssmt_core_sign(
     stack u8[XMSS_N] buf mhash root;
     stack u8[32] index_bytes;
     stack u32[8] ots_addr;
-    stack u8[XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N)] reduced_sig; // WOTS signature || Authentication path 
+    stack u8[XMSS_REDUCED_SIG_BYTES] reduced_sig; // WOTS signature || Authentication path 
+
+    stack u8[XMSS_SIG_BYTES] signature;
 
     stack u8 exit = FALSE;
 
-    inline int j;
+    inline int j i;
 
     // uint32_t ots_addr[8] = {0};
     // set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
@@ -175,7 +177,7 @@ fn __xmssmt_core_sign(
 
     if (exit != TRUE) { 
         // memcpy(sm, sk, params->index_bytes);
-        sm_ptr, _ = _x_memcpy_u8pu8<XMSS_INDEX_BYTES>(sm_ptr, 0, idx_bytes);
+        signature[0 : XMSS_INDEX_BYTES] = _x_memcpy_u8u8<XMSS_INDEX_BYTES, XMSS_INDEX_BYTES>(signature[0 : XMSS_INDEX_BYTES], idx_bytes);
         () = #spill(sm_ptr, idx);
 
         // Increment the index
@@ -195,19 +197,18 @@ fn __xmssmt_core_sign(
         // This computes R and writes it to the signature
         sk_prf = sk[XMSS_INDEX_BYTES + XMSS_N : XMSS_N];   
         buf = __prf_(buf, index_bytes, sk_prf); // prf kills sm_ptr and sk
+        // Aqui nao posso escrever diretamente para a assinatura pq tenho este erro
+        // variable allocation: bad range alignment for out.44078[0]/u32 in signature.44025[3; 35[ 
 
-        () = #unspill(sm_ptr, sk); 
-        sm_ptr, _ = _x_memcpy_u8pu8<XMSS_N>(sm_ptr, XMSS_INDEX_BYTES, buf); // Write R to the signature 
-        () = #spill(sm_ptr); /* TODO: FIXME: Nao ha necessidade de o ptr ser retornado
-                                Este spill podia ser evitado se o memcpy nao retornasse o sm_ptr */
+        // sm_ptr, _ = _x_memcpy_u8pu8<XMSS_N>(sm_ptr, XMSS_INDEX_BYTES, buf); // Write R to the signature 
+        signature[XMSS_INDEX_BYTES : XMSS_N] = _x_memcpy_u8u8<XMSS_N, XMSS_N>(signature[XMSS_INDEX_BYTES : XMSS_N], buf);
 
         // hash_message(params, mhash, sm + params->index_bytes, pub_root, idx, sm + params->sig_bytes - 
         // Compute the message hash 
+        () = #unspill(sm_ptr, mlen, idx);
         pub_root = sk[XMSS_INDEX_BYTES + 2*XMSS_N : XMSS_N];
-        for j=0 to XMSS_N { buf[j] = (u8) [sm_ptr + XMSS_INDEX_BYTES + j]; } // copy the 2nd argument of hash message to buf
         t64 = sm_ptr; t64 += XMSS_SIG_BYTES - XMSS_PADDING_LEN - 3*XMSS_N;
-        () = #unspill(mlen, idx);
-        mhash = __hash_message(mhash, buf, pub_root, idx, t64, mlen); // this function is not used anywhere else so we can use the inline
+        mhash = __hash_message(mhash, signature[XMSS_INDEX_BYTES : XMSS_N], pub_root, idx, t64, mlen); // this function is not used anywhere else so we can use the inline
 
         ots_addr = __set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
         ots_addr = __set_layer_addr(ots_addr, 0);
@@ -224,28 +225,18 @@ fn __xmssmt_core_sign(
 
         // Sig_tmp = treeSig(M', SK, idx_leaf, ADRS);
         () = #unspill(sk);
-        reduced_sig, ots_addr = __tree_sig_(reduced_sig, mhash, sk, idx_leaf, ots_addr);
+        signature[XMSS_INDEX_BYTES + XMSS_N : XMSS_REDUCED_SIG_BYTES], ots_addr = 
+            __tree_sig_(signature[XMSS_INDEX_BYTES + XMSS_N : XMSS_REDUCED_SIG_BYTES], mhash, sk, idx_leaf, ots_addr);
 
-        // Copy the result to the signature
-        () = #unspill(sm_ptr);
-        for j=0 to XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N) { 
-            (u8) [sm_ptr + XMSS_INDEX_BYTES /* index */ + XMSS_N /* R */ + j] = reduced_sig[j]; 
-        }
 
-        sm_ptr += XMSS_INDEX_BYTES + XMSS_N + XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N);
-        () = #spill(sm_ptr);
-
-        i = 1;
-        while (i < XMSS_D) {
-            () = #spill(i);
-
+        for i=1 to XMSS_D {
             // treehash_new(params, root, sk_seed, pub_seed, 0, params->tree_height, ots_addr);
             () = #unspill(sk);
             sk_seed = sk[XMSS_INDEX_BYTES : XMSS_N];
             pub_seed = sk[XMSS_INDEX_BYTES + 3*XMSS_N : XMSS_N];
             root = __treehash_(root, sk_seed, pub_seed, 0, XMSS_TREE_HEIGHT, ots_addr);
 
-            // idx_tree = idx_tree >> params->tree_height;          /* (h - h / d) most significant bits of idx_sig */
+                        // idx_tree = idx_tree >> params->tree_height;          /* (h - h / d) most significant bits of idx_sig */
             // idx_leaf = (idx_tree & ((1 << params->tree_height) - 1)); /* (h - h / d) least significant bits of idx_sig */
             () = #unspill(idx_tree);
             idx_tree >>= XMSS_TREE_HEIGHT;
@@ -254,23 +245,19 @@ fn __xmssmt_core_sign(
 
             // set_layer_addr(ots_addr, i);
             // set_tree_addr(ots_addr, idx_tree);
-            () = #unspill(i);
             ots_addr = __set_layer_addr(ots_addr, i);
             ots_addr = __set_tree_addr(ots_addr, idx_tree);
-            
+
             // treesig(params, sm, root, sk, idx_leaf, ots_addr);
             () = #unspill(sk);
-            reduced_sig, ots_addr = __tree_sig_(reduced_sig, root, sk, idx_leaf, ots_addr);
-
-            () = #unspill(sm_ptr);
-            for j=0 to XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N) { (u8) [sm_ptr + j] = reduced_sig[j]; }
-            sm_ptr += XMSS_WOTS_SIG_BYTES + (XMSS_TREE_HEIGHT * XMSS_N);
-            () = #spill(sm_ptr);
-
-            () = #unspill(i);
-            i += 1;
+            signature[XMSS_INDEX_BYTES + XMSS_N + (i * XMSS_REDUCED_SIG_BYTES) : XMSS_REDUCED_SIG_BYTES], ots_addr = 
+                __tree_sig_(signature[XMSS_INDEX_BYTES + XMSS_N + (i * XMSS_REDUCED_SIG_BYTES) : XMSS_REDUCED_SIG_BYTES], root, sk, idx_leaf, ots_addr);
         }
 
+        // Copy the signature back to memory
+        () = #unspill(sm_ptr);
+        for i=0 to XMSS_SIG_BYTES { (u8) [sm_ptr + i] = signature[i]; }
+       
         ?{}, r = #set0();
     }
 
@@ -278,6 +265,7 @@ fn __xmssmt_core_sign(
 
     return sk, r;
 }
+
 
 fn _xmssmt_core_sign(
     reg ptr u8[XMSS_SK_BYTES] sk,
@@ -310,3 +298,5 @@ fn __xmssmt_core_sign_(
 
     return sk, r;
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

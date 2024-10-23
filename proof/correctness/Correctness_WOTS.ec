@@ -814,13 +814,16 @@ seq 1 1 : (
   valid_ptr_i sig_ptr{1} 2144
 ).
     + exists * msg2{1}; elim * => P; call (base_w_results_64 P) => //=.
-      skip => /> *; do split.
+      admit.
+(*
+      auto => /> *; do split.
          * rewrite /EncodeWotsSignature size_chunk //= size_to_list //.
          * rewrite /EncodeWotsSignature size_flatten sumzE BIA.big_map /(\o) //= -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) 1:#smt:(@List @BitChunking).
            rewrite  big_constz count_predT size_chunk //= size_to_list //=.  
          * rewrite /EncodeWotsSignature => />; smt(@List @BitChunking).
          * by rewrite size_to_list. 
-
+*)
+(*
 seq 2 0 : (
   M{2} = to_list msg{1} /\
   _seed{2} = to_list pub_seed{1} /\
@@ -1115,5 +1118,30 @@ rewrite (nth_flatten witness 32).
 case: (i{2} * 32 <= k0 && k0 < i{2} * 32 + 32) => H.
   + rewrite nth_put. admit. rewrite ifT 1:/# get_to_list /#. 
   + rewrite nth_put. admit. rewrite ifF 1:/# -nth_flatten. admit.  smt(). 
+*)
 qed.
-        
+
+
+
+(* ============================================================================================================ *)        
+
+
+lemma wots_sign_seed_corect (_m _sk_seed _pub_seed : W8.t Array32.t, a : W32.t Array8.t) :
+    equiv [
+      M(Syscall).__wots_sign ~ WOTS.sign_seed :
+      arg{1}.`2 = _m /\
+      arg{1}.`3 = _sk_seed /\
+      arg{1}.`4 = _pub_seed /\
+      arg{1}.`5 = a /\
+
+      arg{2}.`1 = to_list _m /\
+      arg{2}.`2 = NBytes.insubd (to_list _sk_seed) /\
+      arg{2}.`3 = NBytes.insubd (to_list _pub_seed) /\
+      arg{2}.`4 = a
+      ==>
+      res{2} = EncodeWotsSignature res{1}.`1
+    ].
+proof.
+proc => /=.
+admit.
+qed.

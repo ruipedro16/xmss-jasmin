@@ -35,8 +35,6 @@ qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 
-op W32toBytes (x : W32.t) : W8.t list = map W8.bits2w (chunk W8.size (W32.w2bits x)).
-
 lemma size_W32toBytes (x : W32.t) :
     size (W32toBytes x) = 4
         by rewrite /W32toBytes size_map size_chunk // size_w2bits. 
@@ -125,6 +123,13 @@ op EncodeWotsSignature (s : W8.t Array2144.t) : wots_signature =
 op EncodeWotsSignatureList (s : W8.t list) : wots_signature = 
   LenNBytes.insubd (map NBytes.insubd (chunk 32 s)). 
 
+lemma encodewotssig_list_array (s : W8.t Array2144.t) :
+    EncodeWotsSignature s = EncodeWotsSignatureList (to_list s).
+proof.
+rewrite /EncodeWotsSignature /EncodeWotsSignatureList.
+by congr.
+qed.
+
 op DecodeWotsSignature_List (s : wots_signature) : W8.t list = nbytes_flatten (val s).
 
 (** -------------------------------------------------------------------------------------------- **)
@@ -161,12 +166,9 @@ op EncodePkNoOID (x : W8.t Array64.t) : xmss_pk = {| pk_oid      = witness;
                                                      pk_pub_seed = NBytes.insubd (sub x 32 32);
                                                    |}. 
 
-op DecodeSk (x : xmss_sk) : W8.t Array131.t = 
-  Array131.of_list witness (W32toBytes impl_oid ++ W32toBytes x.`idx ++ val x.`sk_seed ++ 
-                            val x.`sk_prf ++ val x.`sk_root ++ val x.`pub_seed_sk).
 
 op DecodeSkNoOID (x : xmss_sk) : W8.t Array131.t = 
-  Array131.of_list witness (W32toBytes x.`idx ++ val x.`sk_seed ++ val x.`sk_prf ++ 
+  Array131.of_list witness (take XMSS_INDEX_BYTES (W32toBytes x.`idx) ++ val x.`sk_seed ++ val x.`sk_prf ++ 
                             val x.`sk_root ++ val  x.`pub_seed_sk).
 
 (** -------------------------------------------------------------------------------------------- **)
@@ -176,8 +178,9 @@ op EncodeAuthPath (x : W8.t list) : auth_path =
 
 op DecodeAuthPath_List (ap : auth_path) : W8.t list = nbytes_flatten (val ap).
 
+
 op EncodeReducedSignature (x : W8.t list) :  wots_signature * auth_path =
-  (EncodeWotsSignatureList (sub_list x 0 2144), EncodeAuthPath (sub_list x 2144 32)).
+  (EncodeWotsSignatureList (sub_list x 0 2144), EncodeAuthPath (sub_list x 2144 320)).
 
 
 
@@ -190,7 +193,7 @@ op load_signature_mem (mem : global_mem_t) (sm_ptr mlen : W64.t) : W8.t list =
   mkseq (fun (i : int) => loadW8 mem (to_uint (sm_ptr + mlen) + i)) XMSS_SIG_BYTES.
 
 op EncodeSignature (sig_bytes : W8.t list) : sig_t =
-  {| sig_idx  = W32ofBytes (sub_list sig_bytes 0 3);
+  {| sig_idx  = W32ofBytes (sub_list sig_bytes 0 XMSS_INDEX_BYTES);
      r        = NBytes.insubd (sub_list sig_bytes 3 32);
      r_sigs   = map EncodeReducedSignature (chunk 2176 (sub_list sig_bytes 36 (36 - 2500)));
   |}.

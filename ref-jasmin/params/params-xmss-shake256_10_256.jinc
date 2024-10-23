@@ -27,3 +27,4 @@ param int XMSS_INDEX_BYTES = 4;
 param int XMSS_SIG_BYTES = 2500;
 param int XMSS_PK_BYTES = 64;
 param int XMSS_SK_BYTES = 132;
+param int XMSS_REDUCED_SIG_BYTES = 2464;

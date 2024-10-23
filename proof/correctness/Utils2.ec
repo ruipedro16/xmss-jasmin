@@ -8,8 +8,6 @@ from Jasmin require import JModel.
 
 require import Params Address Hash LTree.
 
-require import Correctness_Address. (* FIXME: This should not be imported here ==> move W32toBytes to Utils *)
-
 require import Array8.
 
 (*****) import StdBigop.Bigint.
@@ -44,6 +42,8 @@ op concatMap  (f: 'a -> 'b list) (a: 'a list): 'b list = flatten (map f a).
 
 op W32ofBytes (bytes : W8.t list) : W32.t = W32.bits2w (concatMap W8.w2bits bytes).
 op W64ofBytes (bytes : W8.t list) : W64.t = W64.bits2w (concatMap W8.w2bits bytes). (* isto ja faz zero ext *)
+op W32toBytes (x : W32.t) : W8.t list = map W8.bits2w (chunk W8.size (W32.w2bits x)).
+
 
 lemma foo (t : W8.t list) :
     0 < size t <= 4 => 
@@ -103,6 +103,8 @@ by rewrite -W64_W32_of_bytes // to_uint_zeroextu64.
 qed.
 
 (** -------------------------------------------------------------------------------------------- **)
+
+op zero_addr : adrs = Array8.init (fun _ => W32.zero). 
 
 lemma zero_addr_i :
     forall (k : int), 0 <= k < 8 => zero_addr.[k] = W32.zero.
@@ -193,7 +195,8 @@ lemma nseq_nth (x : W8.t list) (i : int) (v : W8.t) :
     x = nseq i v => forall (k : int), 0 <= k < i => nth witness x k = v
         by smt(@List).
 
-lemma size_singleton ['a] (x : 'a) : size [x] = 1 by smt(@List).
+lemma size_singleton ['a] (x : 'a) : size [x] = 1 by [].
+
 
 lemma size_nbytes_flatten (x : nbytes list) :
     size (flatten (map NBytes.val x)) = n * size x.
@@ -220,3 +223,31 @@ rewrite /(`>>`) /(`>>>`).
 rewrite wordP => ??.
 by rewrite initiE.
 qed.
+
+(** -------------------------------------------------------------------------------------------- **)
+
+require import Array32 Array64.
+require import Array131.
+
+lemma sub_nth (a : W8.t Array64.t) (b : W8.t Array32.t) :
+    sub a 0 32 = to_list b => 
+       forall (k : int), 0 <= k < 32 => a.[k] = b.[k].
+proof.
+move => H k?.
+by rewrite (: b.[k] = nth witness (to_list b) k) 1:/# -H nth_sub.
+qed.
+
+
+lemma sub_sub_minus (a b : W8.t Array131.t) (m n : int) :
+    0 <= n < 131 /\ 0 <= m < n =>
+       sub a 0 n = sub b 0 n => sub a 0 m = sub b 0 m.
+proof.
+move => [#] ????H.
+apply (eq_from_nth witness); first by rewrite !size_sub.
+rewrite size_sub // => i?.
+rewrite !nth_sub //=.
+have ->: a.[i] = nth witness (sub a 0 n) i by rewrite nth_sub // /#.
+have ->: b.[i] = nth witness (sub b 0 n) i by rewrite nth_sub // /#.
+by congr.
+qed.
+

@@ -108,11 +108,12 @@ module TreeSig = {
      Output: Concatenation of WOTS+ signature sig_ots and
              authentication path auth
   *)
-  proc treesig(M : nbytes, pub_seed sk_seed : seed, idx : W32.t, address : adrs) : wots_signature * auth_path  = {
+  proc treesig(M : nbytes, sk : xmss_sk, idx : W32.t, address : adrs) : wots_signature * auth_path  = {
     var auth : auth_path;
     var sig_ots : wots_signature;
     var ots_sk : wots_sk;
-    var seed : nbytes;
+    var sk_seed : nbytes <- sk.`sk_seed;
+    var pub_seed : nbytes <- sk.`pub_seed_sk;
     
     auth <@ buildAuthPath (pub_seed,sk_seed, idx, address);
     address <- set_type address 0;
