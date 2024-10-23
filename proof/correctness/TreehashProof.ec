@@ -305,6 +305,10 @@ seq 1 1 : (#pre /\ to_list node{1} = val t{2}).
          * rewrite of_uintK /#.
          * rewrite of_uintK /#.
          * smt(@W32 pow2_32).
+         * admit.
+         * rewrite of_uintK => *.
+           admit.            
+
 
 auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11; do split; 1,2,5,6: by smt().
     - by rewrite size_put.

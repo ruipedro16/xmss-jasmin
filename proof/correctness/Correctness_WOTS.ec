@@ -1165,7 +1165,7 @@ seq 1 1 : (#pre /\ size sig{2} = len); first by auto => /> *; rewrite size_nseq 
 swap {1} 2 -1.
 
 seq 1 1 : (
-    #{address{2} = addr{1}}pre /\ 
+    #{/~address{2} = addr{1}}pre /\ 
   sig{1} = DecodeWotsSk wots_skey{2} /\ 
     address{2}.[0] = addr{1}.[0] /\
     address{2}.[1] = addr{1}.[1] /\
@@ -1175,8 +1175,10 @@ seq 1 1 : (
     address{2}.[6] = W32.zero /\
     addr{1}.[6]    = W32.zero /\
     address{2}.[6] = W32.zero /\
-    addr{1}.[6]    = W32.zero
-). (* Sem info sobre o 5o indice ==> tambem nao preciso *)
+    addr{1}.[7]    = W32.zero /\
+    address{2}.[7] = W32.zero 
+). 
+ (* Sem info sobre o 5o indice ==> tambem nao preciso *)
     + inline {1} M(Syscall).__expand_seed_ M(Syscall)._expand_seed.
       wp; sp.
       exists * inseed0{1}, pub_seed1{1}, addr1{1}.
@@ -1210,12 +1212,11 @@ seq 4 0 : (
   (forall (k : int), 0 <= k < 64 => 0 <= to_uint buf{1}.[k] < w) /\
   msg{2} = map (W32.to_uint) (to_list buf{1})
 ).
-    + auto => /> &1 &2 ???T H.
+    + auto => /> &1 &2 ????????????T H.
 (* ====================================================================================================== *)
       have E: forall (k : int), 0 <= k < 64 => to_uint lengths2{1}.[k] = to_uint t0{1}.[k].
         * move => k0?.
-          rewrite (: to_uint t0{1}.[k0] = nth witness (map W32.to_uint (to_list t0{1})) k0).          
-                - rewrite (nth_map witness); first by rewrite size_to_list.
+          rewrite (: to_uint t0{1}.[k0] = nth witness (map W32.to_uint (to_list t0{1})) k0).                          - rewrite (nth_map witness); first by rewrite size_to_list.
                   by rewrite get_to_list.
           rewrite -H (nth_map witness); first by rewrite size_sub.
           by rewrite nth_sub.
@@ -1264,7 +1265,7 @@ seq 6 1 : (
      {/~map W32.to_uint (sub lengths2{1} 0 64) = msg{2}}pre /\ 
      map W32.to_uint (to_list lengths{1}) = msg{2}
 ).
-    + auto => /> &1 &2 ???? H*; do split.
+    + auto => /> &1 &2 ?????????????H*; do split.
          - rewrite tP => j?.
            rewrite initiE //=.
            case (64 <= j < 67) => ? //.
@@ -1279,5 +1280,64 @@ seq 6 1 : (
 
 (* Invariante: Em cada iteracao escrevemos nbytes *)
 
+print EncodeWotsSignature.
+  
+while (
+    0 <= i{1} <= 67 /\
+    ={i} /\
+    size sig{2} = len /\
+   
+
+    address{2}.[0] = addr{1}.[0] /\
+      address{2}.[1] = addr{1}.[1] /\
+      address{2}.[2] = addr{1}.[2] /\
+      address{2}.[3] = addr{1}.[3] /\
+      address{2}.[4] = addr{1}.[4] /\
+      address{2}.[6] = W32.zero /\
+      addr{1}.[6] = W32.zero /\
+      address{2}.[6] = W32.zero /\
+      addr{1}.[6] = W32.zero /\
+      address{2}.[7] = W32.zero /\
+      addr{1}.[7] = W32.zero /\
+
+sub sig{1} 0 (32 * i{1}) = sub_list (nbytes_flatten sig{2}) 0 (32 * i{1})
+  
+); last by admit.
+(*
+    + auto => /> &1 &2 *; do split; 2: by smt().
+        * apply (eq_from_nth witness); [by rewrite size_sub_list // size_sub |].
+          rewrite size_sub // /#.
+        * move => addrL sigL addrR i sigR????.
+          have ->: i = 67 by smt().
+          move => H0 ??????? H1.
+          rewrite /EncodeWotsSignature.
+          congr.
+          apply (eq_from_nth witness); first by rewrite size_map size_chunk // size_to_list H0 len_val.
+          rewrite H0 len_val => j?.  
+          rewrite (nth_map witness); first by rewrite size_chunk // size_to_list /#.
+          rewrite /chunk nth_mkseq; [by rewrite size_to_list /# /=|].
+          apply nbytes_eq.
+          rewrite insubdK.
+             - rewrite /P size_take // size_drop 1:/# size_to_list /#.
+          auto => />.
+          apply (eq_from_nth witness); first by rewrite size_take // valP n_val size_drop 1:/# size_to_list /#.
+          rewrite valP n_val => l?.
+          rewrite nth_take // 1:/# nth_drop 1,2:/#.
+          have ->: nth witness (to_list sigL) (32 * j + l) = nth witness (sub sigL 0 (32 * 67)) (32*j + l) by rewrite get_to_list nth_sub 1:/#.
+          rewrite H1 /sub_list nth_mkseq 1:/# /= /nbytes_flatten.
+          rewrite (nth_flatten witness 32).
+             - admit. (* this should be easy to prove *)
+          rewrite (nth_map witness) 1:/#.
+          congr => /#.
+*)
+
+seq 2 1 : (#pre /\ address{2} = addr{1}).
+    + inline {1}; auto => /> &1 &2 *.
+      rewrite /set_chain_addr tP => i?.
+      rewrite get_setE //.
+      case (i = 5) => [-> /# | ?]. 
+      rewrite get_setE // ifF // /#.
+
 admit.
+
 qed.
