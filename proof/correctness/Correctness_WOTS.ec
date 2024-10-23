@@ -1127,6 +1127,12 @@ qed.
 
 
 lemma wots_sign_seed_corect (_m _sk_seed _pub_seed : W8.t Array32.t, a : W32.t Array8.t) :
+    n = XMSS_N /\
+    floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
+    w = XMSS_WOTS_W /\ 
+    len1 = XMSS_WOTS_LEN1 /\
+    len2 = XMSS_WOTS_LEN2 /\
+    len = XMSS_WOTS_LEN =>
     equiv [
       M(Syscall).__wots_sign ~ WOTS.sign_seed :
       arg{1}.`2 = _m /\
@@ -1142,6 +1148,136 @@ lemma wots_sign_seed_corect (_m _sk_seed _pub_seed : W8.t Array32.t, a : W32.t A
       res{2} = EncodeWotsSignature res{1}.`1
     ].
 proof.
+rewrite /XMSS_N /XMSS_WOTS_LOG_W /XMSS_WOTS_W /XMSS_WOTS_LEN /XMSS_WOTS_LEN1 /XMSS_WOTS_LEN2 => 
+    [#] n_val logw_val w_val len1_val len2_val len_val *.
 proc => /=.
+
+conseq ( : 
+  M{2} = to_list msg{1} /\
+  val sk_seed{2} = to_list seed{1} /\  val pub_seed{2} = to_list pub_seed{1} /\
+  address{2} = addr{1}
+  ==>
+  _
+); first by auto => />; rewrite !insubdK // /P size_to_list n_val.
+
+seq 1 1 : (#pre /\ size sig{2} = len); first by auto => /> *; rewrite size_nseq len_val.
+
+swap {1} 2 -1.
+
+seq 1 1 : (
+    #{address{2} = addr{1}}pre /\ 
+  sig{1} = DecodeWotsSk wots_skey{2} /\ 
+    address{2}.[0] = addr{1}.[0] /\
+    address{2}.[1] = addr{1}.[1] /\
+    address{2}.[2] = addr{1}.[2] /\
+    address{2}.[3] = addr{1}.[3] /\
+    address{2}.[4] = addr{1}.[4] /\
+    address{2}.[6] = W32.zero /\
+    addr{1}.[6]    = W32.zero /\
+    address{2}.[6] = W32.zero /\
+    addr{1}.[6]    = W32.zero
+). (* Sem info sobre o 5o indice ==> tambem nao preciso *)
+    + inline {1} M(Syscall).__expand_seed_ M(Syscall)._expand_seed.
+      wp; sp.
+      exists * inseed0{1}, pub_seed1{1}, addr1{1}.
+      elim * => P0 P1 P2.
+      admit. 
+
+inline {1} M(Syscall).__chain_lengths_ M(Syscall)._chain_lengths.
+inline {1} M(Syscall).__chain_lengths.
+sp 10 0.
+
+seq 2 1 : (
+    #{/~t0{1} = witness}pre /\ 
+    msg{2} = map W32.to_uint (to_list t0{1}) /\
+    forall (k : int), 0 <= k < 64 => 0 <= to_uint t0{1}.[k] < w
+).
+    + exists * msg2{1}; elim * => P; call (base_w_results_64 P) => //=; auto => />.
+
+seq 1 0 : (#{/~lengths2{1} = lengths1{1}}pre /\ map W32.to_uint (sub lengths2{1} 0 64) = msg{2}).
+    + auto => /> &1 &2 *.
+      apply (eq_from_nth witness); first by rewrite !size_map.
+      rewrite size_map size_sub // => i?.
+      rewrite (nth_map witness); first by rewrite size_sub.
+      rewrite nth_sub //= initiE 1:/# /= ifT // (nth_map witness); first by rewrite size_to_list.
+      by rewrite get_to_list.
+
+inline {1} M(Syscall).__wots_checksum.
+
+seq 3 0 : (#{/~t1{1} = witness}pre /\ csum_base_w{1} = t1{1} /\ msg_base_w{1} = lengths2{1}); first by auto.
+seq 4 0 : (
+  #pre /\
+  (forall (k : int), 0 <= k < 64 => 0 <= to_uint buf{1}.[k] < w) /\
+  msg{2} = map (W32.to_uint) (to_list buf{1})
+).
+    + auto => /> &1 &2 ???T H.
+(* ====================================================================================================== *)
+      have E: forall (k : int), 0 <= k < 64 => to_uint lengths2{1}.[k] = to_uint t0{1}.[k].
+        * move => k0?.
+          rewrite (: to_uint t0{1}.[k0] = nth witness (map W32.to_uint (to_list t0{1})) k0).          
+                - rewrite (nth_map witness); first by rewrite size_to_list.
+                  by rewrite get_to_list.
+          rewrite -H (nth_map witness); first by rewrite size_sub.
+          by rewrite nth_sub.
+(* ====================================================================================================== *)
+      split => [k* |].
+        * rewrite initiE // E // /#. 
+        * apply (eq_from_nth witness); first by rewrite !size_map.
+          rewrite size_map size_to_list => i?.
+          rewrite -H. 
+          do 2! congr. 
+          apply (eq_from_nth witness); first by rewrite size_to_list size_sub.
+          rewrite size_sub // => j?.
+          by rewrite nth_sub //= initiE.
+
+seq 1 1 : (#pre /\ to_uint csum{1} = csum{2} /\ 0 <= csum{2} <= len1 * (w - 1)).
+    + exists * buf{1}; elim * => P; call {1} (wots_checksum_results P) => //.
+      skip => /> /#.
+
+seq 3 0 : (#pre /\ u{1} = W64.of_int 4); first by auto.
+
+seq 2 2 : (#{/~to_uint csum{1} = csum{2}}pre /\ to_uint csum{1} = to_uint csum_32{2}).
+    + auto => /> &1 &2 *.
+      rewrite (: 63 = 2^6 - 1) 1:/# and_mod //=. 
+      have ->: truncateu8 ((of_int 4))%W64 = W8.of_int 4 by smt(@W64 pow2_64).
+      rewrite !shl_shlw //= len2_val w_val log2_16 /= from_int_ceil //=. 
+      rewrite !to_uint_shl //= of_uintK //= #smt:(modz_small).
+
+seq 0 1 : (#pre /\ len_2_bytes{2} = 2).
+    + auto => /> *. 
+      rewrite w_val len2_val log2_16 -fromintM //= from_int_ceil //=.
+      apply ceil_3_2.
+
+seq 1 1 : (#pre /\ to_list csum_bytes_p{1} = csum_bytes{2}); first by admit.
+(*
+    + ecall {1} (ull_to_bytes_2_equiv csum{1}). 
+      auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 rL H15 *.
+      rewrite H15 //=; congr; smt(@W32) .
+*)
+
+seq 1 1 : (#{/~csum_base_w{1} = t1{1}}pre /\ csum_base_w{2} = map W32.to_uint (to_list csum_base_w{1})).
+    + exists * csum_bytes_p{1}; elim * => P; call (base_w_results_3 P) => //=.
+
+seq 6 1 : (
+    #{/~msg{2} = map W32.to_uint (to_list t0{1})}
+     {/~msg{2} = map W32.to_uint (to_list buf{1})}
+     {/~map W32.to_uint (sub lengths2{1} 0 64) = msg{2}}pre /\ 
+     map W32.to_uint (to_list lengths{1}) = msg{2}
+).
+    + auto => /> &1 &2 ???? H*; do split.
+         - rewrite tP => j?.
+           rewrite initiE //=.
+           case (64 <= j < 67) => ? //.
+           admit. (* Sem info para provar isto *)
+         - apply (eq_from_nth witness); first by rewrite size_cat !size_map !size_iota /#.
+           rewrite size_map size_to_list // => j?.
+           rewrite (nth_map witness); first by rewrite size_to_list.
+           rewrite get_to_list initiE //=.
+           case (64 <= j < 67) => ?; rewrite nth_cat.
+                  * rewrite size_map size_to_list ifF 1:/# (nth_map witness); [by rewrite size_to_list /# | by rewrite get_to_list].                
+                  * rewrite size_map size_to_list ifT 1:/# -H (nth_map witness); [by rewrite size_sub /# | by rewrite nth_sub 1:/#].
+
+(* Invariante: Em cada iteracao escrevemos nbytes *)
+
 admit.
 qed.

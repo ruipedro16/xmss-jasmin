@@ -273,3 +273,59 @@ if.
       ecall (addr_prop_thash_h addr). 
       auto => /> /#.
 qed.
+
+
+lemma addr_prop_expand_sedd (a : W32.t Array8.t) :
+    hoare [
+      M(Syscall).__expand_seed :
+      arg.`4 = a
+      ==> 
+      res.`2.[0] = a.[0] /\
+      res.`2.[1] = a.[1] /\
+      res.`2.[2] = a.[2] /\
+      res.`2.[3] = a.[3] /\ 
+      res.`2.[4] = a.[4] /\ 
+      res.`2.[5] = W32.of_int 67 /\
+      res.`2.[6] = W32.zero /\ 
+      res.`2.[7] = W32.zero
+    ].
+proof.
+proc => /=.
+seq 3 : #pre; first by auto.
+
+conseq (:
+  addr.[0] = a.[0] /\
+  addr.[1] = a.[1] /\
+  addr.[2] = a.[2] /\
+  addr.[3] = a.[3] /\
+  addr.[4] = a.[4] /\
+  addr.[5] = a.[5] /\
+  addr.[6] = a.[6] /\
+  addr.[7] = a.[7] 
+  ==> 
+  _
+); first by auto.
+
+
+ 
+seq 2 : (
+    #{/~addr.[6] = a.[6]}{/~addr.[7] = a.[7]}pre /\ 
+    addr.[6] = W32.zero /\
+    addr.[7] = W32.zero
+); first by inline; auto.
+
+seq 2 : #pre; first by do 3! (auto; call (: true)). 
+
+while (
+  0 <= i <= 67 /\
+  #{/~addr.[5] = a.[5]}pre /\
+  (i <> 0 => addr.[5] = W32.of_int i)
+); last first.
+
+admit.
+
+seq 1 : (#pre /\ addr.[5] = W32.of_int i); first by inline;auto.
+do ! (auto; call (: true)).
+auto => /> *. 
+split => [/# | ?].
+admit.

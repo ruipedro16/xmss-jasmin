@@ -251,3 +251,11 @@ have ->: b.[i] = nth witness (sub b 0 n) i by rewrite nth_sub // /#.
 by congr.
 qed.
 
+
+
+lemma ceil_3_2 : ceil (3%r / 2%r) = 2.
+proof.
+have ? : 1 < ceil (3%r / 2%r) by smt(@Real).
+have ? : ceil (3%r / 2%r) <= 2 by smt(@Real).
+smt().
+qed.
