@@ -46,7 +46,8 @@ lemma treehash_correct ( _sk_seed _pub_seed : W8.t Array32.t, _s _t:W32.t, _addr
       arg{2}.`4 = to_uint _t /\
       arg{2}.`5 = _addr /\
 
-      0 <= to_uint _t <= XMSS_TREE_HEIGHT
+      0 <= to_uint _t <= XMSS_TREE_HEIGHT /\
+      0 <= to_uint _s <= to_uint _t
       ==>
       to_list res{1} = val res{2}
     ].
@@ -80,7 +81,7 @@ seq 11 4 : (sub _stack{1} 0 n = val (nth witness stack{2} 0)); last first.
 
 
 seq 1 0 : (#pre /\ ots_addr{1} = subtree_addr{1}).
-      + auto => /> ??.
+      + auto => /> *.
         rewrite tP => j?.
         rewrite initiE //= get32E pack4E wordP => i?.
         rewrite initiE //= initiE 1:/# /= /init64 initiE 1:/# /= /copy_64 initiE 1:/# /=.
@@ -88,14 +89,14 @@ seq 1 0 : (#pre /\ ots_addr{1} = subtree_addr{1}).
 
 seq 1 0 : (#pre /\ ltree_addr{1} = subtree_addr{1}).
       + auto => /> ??.
-        rewrite tP => j?.
+        rewrite tP => j*.
         rewrite initiE //= get32E pack4E wordP => i?.
         rewrite initiE //= initiE 1:/# /= /init64 initiE 1:/# /= /copy_64 initiE 1:/# /=.
         rewrite  get64E pack8E bits8iE 1:/# initiE 1:/# /= initiE 1:/# //= /init32 initiE 1:/# /= bits8iE /#.
 
 seq 1 0 : (#pre /\ node_addr{1} = subtree_addr{1}).
       + auto => /> ??.
-        rewrite tP => j?.
+        rewrite tP => j*.
         rewrite initiE //= get32E pack4E wordP => i?.
         rewrite initiE //= initiE 1:/# /= /init64 initiE 1:/# /= /copy_64 initiE 1:/# /=.
         rewrite  get64E pack8E bits8iE 1:/# initiE 1:/# /= initiE 1:/# //= /init32 initiE 1:/# /= bits8iE /#.
@@ -121,19 +122,67 @@ seq 2 0 : (#pre /\ to_uint upper_bound{1} = 2^t{2}).
       have ->: to_uint _t %% 32 %% 4294967296 = to_uint _t by smt(modz_small).
       have E: 0 <= 2 ^ 10 < 4294967296 by smt().
       smt(@IntDiv @RealExp).
+  
 
-(* =========================== fiquei aqui ============================ *)
-(*
+(* FIXME: upper bound no offset e informacao necessaria para provar os admits que faltam*)
 while (
-  0 <= i{2} <= 2^t{2} /\
+  t{2} = to_uint _t /\ 0 <= to_uint _t <= 10 /\ target_height{1} = _t /\ (* target height *)
+  start_index{1} = _s /\ s{2} = to_uint _s /\ s{2} = to_uint _s /\  0 <= to_uint _s <= 10 /\ (* start index  *) 
+
+  offset{2} = to_uint offset{1} /\ 0 <= offset{2} /\ (* number of nodes in the stack *)
+
+  0 <= i{2} <= 2^10 /\
   to_uint i{1} = i{2} /\
   to_uint upper_bound{1} = 2^t{2} /\
-  #post (* This is false *)
-).
 
+  sk_seed{2} = (insubd (to_list sk_seed{1}))%NBytes /\
+  pub_seed{2} = (insubd (to_list pub_seed{1}))%NBytes /\ 
+  
+  sub _stack{1} 0 (n * offset{2}) = sub_list (nbytes_flatten stack{2}) 0 (n * offset{2})
+); last first.
+
+    + auto => /> &1 &2 *; do split.
+        * smt(@W32 pow2_32).
+        * apply (eq_from_nth witness); first by rewrite size_sub // size_sub_list.  
+          rewrite size_sub // /#.
+        * rewrite ultE /#.
+        * smt(@W32 pow2_32). 
+        * move => stackImpl i offset stackSpec.
+          rewrite ultE n_val /= => ??????H.
+(* ============================================================================================================================== *)
+          have E : forall (k : int), 0 <= k < n * to_uint offset => stackImpl.[k] = nth witness (nbytes_flatten stackSpec) k.
+              - rewrite n_val => k?.
+                have ->: nth witness (nbytes_flatten stackSpec) k = nth witness (sub_list (nbytes_flatten stackSpec) 0 (32 * to_uint offset)) k by rewrite /sub_list nth_mkseq //.
+                by rewrite -H nth_sub.
+(* ============================================================================================================================== *)
+          apply (eq_from_nth witness); first by rewrite size_sub // valP n_val.
+          rewrite size_sub // => j?.          
+          rewrite nth_sub //= E.
+              - rewrite n_val; admit.
+          rewrite /nbytes_flatten (nth_flatten witness 32).
+              - admit. (* should be easy to prove *)
+          rewrite (nth_map witness).
+              - admit. (* Sem informacao para provar isto *)
+          congr => /#.
+
+(*================ O ultimo goal do while termina aqui ====================== *)
+
+
+seq 2 0 : (#pre /\ to_uint t32{1} = s{2} + i{2}).
+    + auto => /> &1 *.
+      rewrite to_uintD_small // /#.
+
+inline {1} M(Syscall).__gen_leaf_wots_ M(Syscall)._gen_leaf_wots M(Syscall).__gen_leaf_wots.
+      
+
+seq 25 3 : (#pre /\ pk{1} = DecodeWotsPk pk{2}). (* Mais cenas dos addresses *)
     + admit.
-    + admit.
-*)
+
+seq 7 3 : (#pre /\ val node{2} = to_list buf{1}).
+    + wp; sp.
+      admit.
+
+
 admit.
 
 qed.
