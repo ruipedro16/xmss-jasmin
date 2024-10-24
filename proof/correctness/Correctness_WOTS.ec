@@ -1310,7 +1310,7 @@ seq 4 1 : (
      {/~map W32.to_uint (sub lengths2{1} 0 64) = msg{2}}pre /\ 
      map W32.to_uint (to_list lengths{1}) = msg{2} /\ 
      sub lengths2{1} 64 3 =  to_list t1{1}
-); last by admit.
+).
 
     + auto => /> &1 &2 ??????????????H0????? H2 H1.  
       apply (eq_from_nth witness); first by rewrite size_cat !size_map !size_iota /#.
@@ -1327,6 +1327,7 @@ seq 4 1 : (
              rewrite nth_sub // /#.
 
 (* Invariante: Em cada iteracao escrevemos nbytes *)
+(* A chave e inicialmente escrita no array sig e vai sendo sobreescrita ate no fim so estar la assinatura *)
 
 while (
     0 <= i{1} <= 67 /\
@@ -1346,9 +1347,13 @@ while (
     address{2}.[6] = W32.zero /\
     addr{1}.[7] = W32.zero /\
     address{2}.[7] = W32.zero /\
+
+    map W32.to_uint (to_list lengths{1}) = msg{2} /\
+    (forall (k : int), 0 <= k < 67 => 0 <= to_uint lengths{1}.[k] < w) /\
    
-    sub sig{1} 0 (32 * i{1}) = sub_list (nbytes_flatten sig{2}) 0 (32 * i{1})
-  
+   
+    sub sig{1} 0 (32 * i{1}) = sub_list (nbytes_flatten sig{2}) 0 (32 * i{1}) /\
+    sub sig{1} (32 * i{1}) (67*32 - 32*i{1}) = sub (DecodeWotsSk wots_skey{2}) (32 * i{1}) (67*32 - 32*i{1})
 ); last by admit.
 (*
     + auto => /> &1 &2 *; do split; 2: by smt().
@@ -1378,24 +1383,55 @@ while (
           congr => /#.
 *)
 
+
 seq 2 1 : (#pre /\ address{2} = addr{1}).
     + inline {1}; auto => /> &1 &2 *.
       rewrite /set_chain_addr tP => i?.
       rewrite get_setE //.
       case (i = 5) => [-> /# | ?]. 
       rewrite get_setE // ifF // /#.
-
+ 
 inline {1} M(Syscall).__gen_chain_inplace_.
 inline {1} M(Syscall)._gen_chain_inplace.
-
-wp; sp.
-exists * out0{1}, start0{1}, steps0{1}, addr1{1}, pub_seed1{1}.  
-      
+sp; wp.
+exists * out0{1}, start0{1}, steps0{1}, addr1{1}, pub_seed1{1}.        
 elim * => _P1 _P2 _P3 _P4 _P5. 
 call (gen_chain_inplace_correct _P1 _P2 _P3 _P4 _P5) => [/# |].
-skip => /> &1 &2 *; do split.
+skip => /> &1 &2 ???? H2?????H0 H1* ; do split.
     + apply nbytes_eq.
-      rewrite insubdK; first by rewrite /P size_to_list n_val.
-      admit. (* No info about wots skey *)       
-
+      rewrite insubdK /=; first by rewrite /P size_to_list n_val. 
+      apply (eq_from_nth witness); first by rewrite valP n_val size_to_list.
+      rewrite valP n_val => j?.
+      rewrite get_to_list initiE //=.
+      have ->: sig{1}.[i{2} * 32 + j] = nth witness (sub sig{1} (32 * i{2}) (2144 - 32 * i{2})) j by rewrite nth_sub /#.
+      rewrite H1 nth_sub 1:/# /DecodeWotsSk.
+      rewrite Array2144.get_of_list 1:/# /nbytes_flatten (nth_flatten witness 32).     
+         * admit. (* Should be easy to prove *)
+      rewrite (nth_map witness); first by rewrite valP len_val /#.
+      do congr => /#.
+    + rewrite (nth_map witness); first by rewrite size_to_list.
+      by rewrite get_to_list.
+    + rewrite -H2 #smt:(@NBytes).
+    + smt().
+    + smt().
+    + smt().
+    + smt().
+    + auto => /> ?????? r H3; do split.
+        * smt().
+        * smt().
+        * rewrite size_put len_val /#.
+        * admit. (* isto e falso *)
+        * admit. (* isto e falso *)
+        * admit. (* isto e falso *)
+        * admit. (* isto e falso *)
+        * admit. (* isto e falso *)
+        * admit. (* isto e falso *)
+        * admit. (* isto e falso *)
+        * apply (eq_from_nth witness); first by rewrite size_sub 1:/# size_sub_list /#.
+          rewrite size_sub 1:/# => j?.
+          rewrite nth_sub 1:/# /sub_list nth_mkseq 1:/# /= initiE 1:/# /=.
+          admit.
+admit.
+        * smt().
+        * smt().
 qed.
