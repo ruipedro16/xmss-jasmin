@@ -5,14 +5,24 @@ from Jasmin require import JModel.
 
 require import XMSS_IMPL.
 
-require import Array3 Array32.
+require import Array2 Array3 Array32.
 
-require import Hash.
+require import Hash BaseW.
 require import Termination.
 
 require import Utils2.
 
 (** -------------------------------------------------------------------------------------------- **)
+
+lemma ull_to_bytes2_post (x : W64.t, y : W32.t) :
+  phoare[
+    M(Syscall).__ull_to_bytes_2 : 
+    arg.`2 = x /\ to_uint x = to_uint y
+    ==>
+    to_list res = toByte y 2 ] = 1%r.
+proof.
+admit.
+qed.
 
 lemma _ull_to_bytes_32_correct (x : W64.t) : 
     hoare [M(Syscall).__ull_to_bytes_32 :
