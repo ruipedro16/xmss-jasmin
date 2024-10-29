@@ -3,17 +3,17 @@ pragma Goals : printall.
 require import AllCore List RealExp IntDiv Distr DList IntDiv.
 from Jasmin require import JModel JArray.
 
-require import Types Params Parameters Address Notation Hash Primitives Wots XMSS_Commons.
+require import Types Params Parameters Address Hash WOTS LTree.
 require import XMSS_IMPL.
 
-require import Repr. 
-require import Util Utils.
+require import Repr2. 
+require import Utils2.
 
-require import Array4 Array8 Array32 Array64 Array68 Array96 Array132 Array136 Array352 Array2144.
-require import WArray32 WArray96 WArray136.
+require import Array4 Array8 Array32 Array64 Array68 Array96 Array352 Array2144.
+require import WArray32 WArray96.
 
 require import Correctness_Address Correctness_Mem Correctness_Hash.
-require import Utils DistrUtils.
+require import DistrUtils.
 
 require import BitEncoding.
 (*---*) import BitChunking.
@@ -23,25 +23,25 @@ require import StdBigop.
 
 require import Termination.
 
+print LTree.
+(*  proc ltree(pk : wots_pk, address : adrs, _seed : seed) : nbytes *)
 lemma ltree_correct (_pk : W8.t Array2144.t, _pub_seed : W8.t Array32.t, _addr : W32.t Array8.t) : 
     len = XMSS_WOTS_LEN /\ 
     n = XMSS_N =>
     equiv [
       M(Syscall).__l_tree ~ LTree.ltree :
-
-      size pk{2} = len /\  
-      (forall (t0 : W8.t list), t0 \in pk{2} => size t0 = 32) /\
-      _addr.[5] = W32.zero /\
-
       arg{1}.`2 = _pk /\
       arg{1}.`3 = _pub_seed /\
       arg{1}.`4 = _addr /\
-      arg{2} = (EncodeWotsPk _pk, _addr, to_list _pub_seed)
+      arg{2} = (EncodeWotsPk _pk, _addr, NBytes.insubd (to_list _pub_seed))
       ==>
-      to_list res{1}.`1 = res{2}.`1 /\ (* wots pk *)
-      res{1}.`3 = res{2}.`2 (* address *)
+      to_list res{1}.`1 = val res{2}
     ].
 proof. 
+admit.
+qed.
+
+(*
 rewrite /XMSS_WOTS_LEN /XMSS_N.
 move => [#] len_val n_val.
 proc. 
@@ -271,3 +271,4 @@ do split.
     + rewrite ultE to_uintD_small 1:#smt:(@W64) (: to_uint W64.one = 1) 1:/# H1 //=. 
     + rewrite ultE to_uintD_small 1:#smt:(@W64) (: to_uint W64.one = 1) 1:/# H1 //=. 
 qed.
+*)

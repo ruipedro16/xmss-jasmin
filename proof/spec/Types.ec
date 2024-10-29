@@ -16,6 +16,5 @@ type xmss_pk = { pk_oid : W32.t ;
 
 type msg_t = W8.t list.
 
-type reduced_signature = wots_signature * auth_path.
 
 type xmss_keypair = xmss_sk * xmss_pk.

@@ -6,7 +6,7 @@ require import BitEncoding.
 
 from Jasmin require import JModel.
 
-require import Params Address Hash LTree.
+require import Params Address Hash LTree XMSS_MT_Types.
 
 require import Array8.
 
@@ -37,6 +37,37 @@ lemma touches_touches2 (m m' : global_mem_t) (p1 p2 : address) (len1 len2 : int)
 pred mem_dif (m m' : global_mem_t) (p : int) = m.[p] <> m'.[p].
 
 (** -------------------------------------------------------------------------------------------- **)
+
+(*
+In Coq
+Lemma pow2_neq_0 (t : nat) : 0 <> 2^t.
+Proof.
+  symmetry.
+  apply Nat.pow_nonzero.
+  auto.
+Qed.
+*)
+lemma pow2_neq_0  (t : int) : 
+    0 <= t => 0 <> 2^t.
+proof.
+admit.
+qed.
+
+
+(* In Coq
+Lemma pow2_nonnegative (t : nat) : 0 <= 2 ^ t.
+Proof.
+  apply Nat.le_0_l.
+Qed.
+*)
+lemma pow2_nonnegative ( t : int) :
+    0 <= t => 0 <= 2^t.
+proof.
+admit.
+qed.
+
+(** -------------------------------------------------------------------------------------------- **)
+
 
 op concatMap  (f: 'a -> 'b list) (a: 'a list): 'b list = flatten (map f a).
 
@@ -251,3 +282,11 @@ have ->: b.[i] = nth witness (sub b 0 n) i by rewrite nth_sub // /#.
 by congr.
 qed.
 
+
+
+lemma ceil_3_2 : ceil (3%r / 2%r) = 2.
+proof.
+have ?: 1 < ceil (3%r / 2%r) by smt(@Real).
+have ?: ceil (3%r / 2%r) <= 2 by smt(@Real).
+smt().
+qed.

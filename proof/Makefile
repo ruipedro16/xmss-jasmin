@@ -2,7 +2,9 @@
 
 EASYCRYPT  ?= easycrypt
 EC_INCLUDE ?= -I common -I extraction -I spec -I correctness
-EC_FLAGS   ?= -pragmas Proofs:weak
+EC_FLAGS   ?= 
+
+WEAK_CHECKMODE_FLAG := -pragmas Proofs:weak
  
 JASMIN    ?= jasminc
 JASMIN2EC ?= jasmin2ec
@@ -65,9 +67,10 @@ check_correctness_proof: extraction/XMSS_IMPL.ec
 	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Repr2.ec
 	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Utils2.ec
 	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Correctness_Conditions.ec
+	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/KeyGenProof.ec
 	
 check_xmss_smssmt_proof: 
-	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) # ficheiro da prova
+	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) spec//XMSS_vs_XMSS_MT.ec
 
 check_security_proof:
 	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) # ficheiro da prova

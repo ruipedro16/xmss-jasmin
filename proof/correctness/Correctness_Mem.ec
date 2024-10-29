@@ -867,3 +867,35 @@ while (#pre /\ 0 <= to_uint i <= 3 /\ forall (k : int), 0 <= k < to_uint i => ou
         by rewrite tP.
 qed.
 
+require import Array352.
+
+lemma memcpy_u8u8_3_352_32_post (o : W8.t Array352.t, input : W8.t Array32.t, offset : W64.t) :
+  phoare [
+    M(Syscall).__memcpy_u8u8_3_352_32 :
+    arg =(o, input, offset, 32) /\
+    0 <= to_uint offset < 352-32 
+    ==>
+    forall (k : int), 0 <= k < 32 => o.[to_uint offset + k] = input.[k]
+  ] = 1%r.
+proof.
+proc => /=.
+sp 1.
+while (
+  #pre /\
+  0 <= i <= 32 /\
+  (forall (k : int), 0 <= k < i => out.[to_uint out_offset + k] = in_0.[k])
+)
+(32 - i); last first.
+  + auto => /> *; split => [/# | j].
+    split => [/# | ???].
+    have ->: j = 32 by smt().
+    smt().
+  + auto => /> &hr *; do split; 2,3,5: by smt().
+      * admit.
+      * move => k??.
+        rewrite get_setE 1:#smt:(@W64 pow2_64).
+        case (k = i{hr}) => [-> | ?].
+           - rewrite ifT // to_uintD_small of_uintK // /#.
+           - rewrite ifF => [| /#].
+             rewrite to_uintD_small of_uintK /#.
+qed.

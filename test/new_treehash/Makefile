@@ -12,6 +12,7 @@ OUT   = bin/test_treehash.out
 default: $(TESTS)
 run: $(OUT)
 
+.PRECIOUS: $(TESTS)
 
 REF_SOURCES := $(wildcard ../*.c) new_xmss.c test_new_version.c
 SOURCES := ../common/notrandombytes.c ../common/print.c

@@ -9,6 +9,14 @@ require import Types Array8 LTree.
 
 (******************************************************************************)
 
+clone export Subtype as AuthPath with
+  type T = nbytes list,
+  op P = fun l => size l = h %/ d (* Section 4.1.8. of the RFC *)
+                             (* The size is h / d for the multi tree variant *)
+  rename "sT" as "auth_path"
+  proof inhabited by  admit (* (exists (nseq h witness);smt(size_nseq ge0_h ge0_d)) *)
+  proof *.
+
 type sig_t = { sig_idx : W32.t;
                r : nbytes ;
                r_sigs : (wots_signature * auth_path) list }.

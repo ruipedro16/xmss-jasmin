@@ -54,7 +54,7 @@ lemma prf_correctness (a b : W8.t Array32.t) :
     ].
 proof.
 rewrite /XMSS_N /XMSS_HASH_PADDING_PRF /XMSS_PADDING_LEN => [#] n_val pval plen.
-proc.
+proc => /=.
 seq 9 2 : (buf{2} = to_list buf{1}); last first.
   + inline M(Syscall).__core_hash__96 M(Syscall)._core_hash_96; wp; sp.
     ecall {1} (hash_96 buf{1}); auto => /> /#.
@@ -223,7 +223,7 @@ op merge_nbytes_to_array (a b : nbytes) : W8.t Array64.t =
                          then nth witness (val a) i 
                          else nth witness (val b) (i - 32)).
 
-lemma rand_hash_correct (i0 i1: nbytes, _pub_seed : W8.t Array32.t, _in : W8.t Array64.t, a : W32.t Array8.t) :
+lemma rand_hash_correct (i0 i1: nbytes, _pub_seed : W8.t Array32.t, _in : W8.t Array64.t) :
     padding_len = XMSS_PADDING_LEN /\ 
     prf_padding_val = XMSS_HASH_PADDING_PRF /\
     padding_len = XMSS_PADDING_LEN /\ 
@@ -232,30 +232,40 @@ lemma rand_hash_correct (i0 i1: nbytes, _pub_seed : W8.t Array32.t, _in : W8.t A
       M(Syscall).__thash_h ~ Hash.rand_hash :
       arg{1}.`2 = (merge_nbytes_to_array i0 i1) /\
       arg{1}.`3 = _pub_seed /\
-      arg{1}.`4 = a /\
-      arg{2} = (i0, i1, NBytes.insubd(to_list _pub_seed), a)
+
+      arg{2}.`1 = i0 /\
+      arg{2}.`2 = i1 /\
+      arg{2}.`3 = NBytes.insubd(to_list _pub_seed) /\
+      
+      forall (k : int), 0 <= k < 7 => arg{1}.`4.[k] = arg{2}.`4.[k] (* Os addresses so precisam de coincidir nos primeiros 6 indices *)
       ==>
       to_list res{1}.`1 = val res{2}
     ].
 proof.
 rewrite /XMSS_PADDING_LEN /XMSS_HASH_PADDING_PRF /XMSS_PADDING_LEN /XMSS_N => [#] plen pval pprfval nval.
-proc.
+proc => /=.
 seq 3 0 : (#pre); 1:auto. 
 seq 1 1 : (#pre /\ padding{2} = to_list aux{1} /\ size padding{2} = 32).
     + call {1} (ull_to_bytes_32_correct W64.one). 
-      auto => /> ? ->; split => [/# |]. 
-      rewrite size_lenbytes_be64 /#.   
+      (* A seta refere se a hipotese to_list result = lenbytes_be64 W64.one 32 *)
+      auto => /> &1 &2 H result ->.  
+      split; [ congr | rewrite size_lenbytes_be64 ] => /#.
+
 swap {1} [2..3] -1.
-conseq (: 
+
+seq 1 1 :( 
   addr{1} = address{2} /\
   to_list in_0{1} = (val _left{2}) ++ (val _right{2}) /\
   val _seed{2} = to_list pub_seed{1} /\ 
   padding{2} = to_list aux{1} /\   
   size padding{2} = 32
-  ==> 
-  _
 ).
-    + auto => /> &1 ?; split. 
+    + inline {1}.
+      auto => /> &1 &2 H0 H1; do split.
+          * rewrite /set_key_and_mask tP => j?.
+            case (j = 7) => [-> | ?].
+               - rewrite get_setE //.
+               - rewrite !get_setE // !ifF /#.
          * apply (eq_from_nth witness). 
              - by rewrite size_to_list size_cat !valP nval.
            rewrite size_to_list => j?. 
@@ -264,23 +274,18 @@ conseq (:
              - by rewrite nth_cat valP nval ifT 1:/#.
            by rewrite nth_cat valP nval ifF 1:/#. 
          * by rewrite NBytes.insubdK //= /P size_to_list nval.
-seq 2 2 : (
-  addr{1} = address{2} /\
-  to_list in_0{1} = val _left{2} ++ val _right{2} /\
-  val _seed{2} = to_list pub_seed{1} /\
-  padding{2} = to_list aux{1} /\ 
-  size padding{2} = 32 /\
 
-  val addr_bytes{2} = to_list addr_as_bytes{1} 
-).
+seq 1 1 : (#pre /\ val addr_bytes{2} = to_list addr_as_bytes{1}).
     + inline {1} M(Syscall).__set_key_and_mask.
       ecall {1} (addr_to_bytes_correctness addr{1}).
       auto => /> &1 &2 ??? r ->.
       by rewrite /set_key_and_mask.  
+
 seq 1 0 : (
   #pre /\
   forall (k : int), 0 <= k < 32 => buf{1}.[k] = nth witness padding{2} k
 ); first by auto => /> *; rewrite initE ifT 1:/#; auto => /> /#.
+
 seq 1 1 : (
   to_list in_0{1} = (val _left{2}) ++ (val _right{2}) /\
   val _seed{2} = to_list pub_seed{1} /\ 
@@ -295,6 +300,7 @@ seq 1 1 : (
       call {1} (prf_correctness _P1 _P2) => [/# |].  
       skip => /> &1 &2 ? H0 *.
       rewrite -H0 #smt:(@NBytes).
+
 seq 11 6 : (
   addr{1} = address{2} /\
   to_list buf{1} = padding{2} ++ (val key{2}) ++ bytexor ((val _left{2}) ++ (val _right{2})) ((val bitmask_0{2}) ++ (val bitmask_1{2}))
@@ -303,6 +309,7 @@ seq 11 6 : (
       wp. 
       ecall {1} (hash_128 in_00{1}). 
       auto => /> &1 &2 ?_ -> /#.
+
 seq 1 0 : (
     #pre /\
     forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = nth witness (val key{2}) k
@@ -310,6 +317,7 @@ seq 1 0 : (
     + auto => /> &1 &2 ???? H *; split => k??; rewrite initiE 1:/# => />.
          * rewrite ifF /#.                       
          * by rewrite ifT 1:/# H get_to_list.
+
 seq 2 2 : (
   to_list in_0{1} = val _left{2} ++ val _right{2} /\
   val _seed{2} = to_list pub_seed{1} /\
@@ -322,6 +330,7 @@ seq 2 2 : (
 ).
     + inline {1} M(Syscall).__set_key_and_mask.
       ecall {1} (addr_to_bytes_correctness addr{1}); auto => /> /#.
+
 seq 2 1 : (
   to_list in_0{1} = val _left{2} ++ val _right{2} /\
   val _seed{2} = to_list pub_seed{1} /\ 
@@ -339,6 +348,7 @@ seq 2 1 : (
       move => ???? H0 ???. 
       rewrite initE ifT 1:/# => />.
       by rewrite ifT //= H0 get_to_list.
+
 seq 2 2 : (
   to_list in_0{1} = val _left{2} ++ val _right{2} /\
   val _seed{2} = to_list pub_seed{1} /\
@@ -351,6 +361,7 @@ seq 2 2 : (
 ).
     + inline {1} M(Syscall).__set_key_and_mask.
       ecall {1} (addr_to_bytes_correctness addr{1}); auto => /> /#.
+
 seq 2 1 : (
   #pre /\ 
   (forall (k : int), 0 <= k < 32 => bitmask{1}.[32 + k] = nth witness (val bitmask_1{2}) k)
@@ -365,6 +376,7 @@ seq 2 1 : (
               - rewrite ifF 1:/#. 
                 by apply H2.
               - by rewrite ifT 1:/# H7 get_to_list. 
+
 conseq (: _ ==>
   size padding{2} = 32 /\
   addr{1} = address{2} /\ 
@@ -388,7 +400,9 @@ conseq (: _ ==>
       rewrite nth_cat.
       have ->: size (padding{2} ++ val key{2}) = 64 by smt(size_cat NBytes.valP).
       rewrite ifF /#.
-while {1} ( 
+
+while {1}
+( 
   0 <= to_uint i{1} <= 64 /\
   size padding{2} = 32 /\ 
   addr{1} = address{2} /\
@@ -399,7 +413,8 @@ while {1} (
   (forall (k : int), 0 <= k < to_uint i{1} => 
     buf{1}.[64 + k] = 
       nth witness (val _left{2} ++ val _right{2}) (k) `^` nth witness (val bitmask_0{2} ++ val bitmask_1{2}) (k))
-) (64 - to_uint i{1}).
+) 
+(64 - to_uint i{1}).
     + auto => /> &hr ?? H0 H1 H2 H3 H4 H5 H6.
       have T: 0 <= to_uint i{hr} < 64 by smt(@W64). 
       do split;1,2,6:smt(@W64 pow2_64).      

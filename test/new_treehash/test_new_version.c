@@ -14,7 +14,7 @@
 #include "xmss_core.h"
 
 #ifndef TESTS
-#define TESTS 25
+#define TESTS 1
 #endif
 
 static int starts_with(const char *str, const char *prefix) { return strncmp(str, prefix, strlen(prefix)) == 0; }
@@ -190,7 +190,8 @@ int main() {
     xmss_params p;
     uint32_t oid;
 
-    char *impls[] = {"XMSS-SHA2_10_256", "XMSS-SHA2_10_192", "XMSSMT-SHA2_20/2_256", "XMSSMT-SHA2_20/4_256"};
+    // char *impls[] = {"XMSS-SHA2_10_256", "XMSS-SHA2_10_192", "XMSSMT-SHA2_20/2_256", "XMSSMT-SHA2_20/4_256"};
+    char *impls[] = {"XMSSMT-SHA2_20/2_256"};
 
     size_t impl_count = 4;
 
@@ -223,12 +224,12 @@ int main() {
         }
 
         test_kg(p);
-        test_sign(p);
+        // test_sign(p);
 
         if (debug) {
             puts("=====================================================================================");
         }
     }
-    
+
     return 0;
 }

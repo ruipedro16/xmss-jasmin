@@ -19,13 +19,6 @@ clone export Subtype as WOTSKeys with
    op P = fun l => size l = 2^h
    rename "sT" as "wots_keys".
 
-clone export Subtype as AuthPath with
-  type T = nbytes list,
-  op P = fun l => size l = h (* Section 4.1.8. of the RFC *)
-  rename "sT" as "auth_path"
-  proof inhabited by (exists (nseq h witness);smt(size_nseq ge0_h))
-  proof *.
-
 
 (* 4.1.5 L-Trees *)
 (* takes as input a WOTS+ public key pk and compresses it to a single 

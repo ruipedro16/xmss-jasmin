@@ -53,6 +53,9 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
     set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
 
     for (i = 0; i < (uint32_t)(1 << target_height); i++) {
+        if (debug) {
+            printf("Inicio da %d iteracao do for: offset = %d\n", i, offset);
+        }
         /* Add the next leaf node to the stack. */
         set_ltree_addr(ltree_addr, start_index + i);
         set_ots_addr(ots_addr, start_index + i);
@@ -63,8 +66,11 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
 
         /* While the top-most nodes are of equal height.. */
         while (offset >= 2 &&
-               heights[offset - 1] == heights[offset - 2]) { /* Obs: In jasmin, the second part of && is unsafe because
-                                                                it doesnt short circuitS */
+               heights[offset - 1] == heights[offset - 2]) { 
+
+            if (debug) {
+                printf("Entrou no while na iteracao %d\n", i);
+            }
             /* Compute index of the new node, in the next layer. */
             tree_idx = ((start_index + i) >> (heights[offset - 1] + 1));
 
@@ -78,6 +84,10 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
             offset--;
             /* Note that the top-most node is now one layer higher. */
             heights[offset - 1]++;
+        }
+
+        if (debug) {
+            printf("Fim da %d iteracao do for: offset = %d\n", i, offset);
         }
     }
 

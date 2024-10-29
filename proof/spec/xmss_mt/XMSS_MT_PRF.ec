@@ -57,7 +57,7 @@ module XMSS_MT_PRF = {
                sk_root=witness;
              |};
 
-      root <@ TreeHash.treehash(pub_seed, sk_seed, 0, h, address);
+      root <@ TreeHash.treehash(pub_seed, sk_seed, 0, h %/ d, address);
 
       sk <- {| idx=W32.zero;
                sk_seed=sk_seed;

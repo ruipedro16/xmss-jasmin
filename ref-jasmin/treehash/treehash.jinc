@@ -105,7 +105,7 @@ fn __treehash(
         // We now copy the result to stack + offset * params->n
         () = #unspill(offset);
         t64 = offset; t64 *= XMSS_N; // Obs: if XMSS_N = 32 we can do a shift instead
-        for j=0 to XMSS_N { _stack[t64 + j] = buf[j]; }
+        _stack = __memcpy_u8u8_3<(XMSS_TREE_HEIGHT + 1) * XMSS_N, XMSS_N>(_stack, buf, t64, XMSS_N);
 
         // offset++;
         // heights[offset - 1] = 0;
@@ -133,15 +133,15 @@ fn __treehash(
             // We first need to load stack + (offset-2)*params->n into buf2
             () = #unspill(offset);
             t64 = offset; t64 -= 2; t64 *= XMSS_N;
-            for j=0 to 2*XMSS_N { buf2[j] = _stack[t64 + j]; }
+            buf2, _ = __memcpy_u8u8_2<2 * XMSS_N, (XMSS_TREE_HEIGHT + 1) * XMSS_N>(buf2, _stack, t64, 2 * XMSS_N);
 
-             () = #unspill(pub_seed);
+            () = #unspill(pub_seed);
             buf, node_addr = __thash_h_(buf, buf2, pub_seed, node_addr);
 
             // We now need to copy the result to stack + (offset-2)*params->n
             () = #unspill(offset);
             t64 = offset; t64 -= 2; t64 *= XMSS_N;
-            for j=0 to XMSS_N { _stack[t64 + j] = buf[j]; }
+            _stack = __memcpy_u8u8_3<(XMSS_TREE_HEIGHT + 1) * XMSS_N, XMSS_N>(_stack, buf, t64, XMSS_N);
 
             // offset--;
             // heights[offset - 1]++;

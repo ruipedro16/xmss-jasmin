@@ -40,7 +40,7 @@ module TreeHash = {
       pk <@ WOTS.pkGen(sk_seed, pub_seed, address);
 
       address <- set_type address 1;
-      address <- set_tree_addr address (s + i);
+      address <- set_ltree_addr address (s + i);
 
       (* compress the WOTS public key into a single N-byte value *)
       node <@ LTree.ltree(pk, address, pub_seed); 

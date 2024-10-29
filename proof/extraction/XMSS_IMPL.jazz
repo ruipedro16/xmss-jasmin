@@ -316,114 +316,6 @@ inline fn __store_ref_array(reg ptr u8[32] out, stack u32[8] H) -> reg ptr u8[32
   return out;
 }
 
-fn _blocks_0_ref_128(
-  reg ptr u32[8] _H, 
-  reg ptr u8[128] in
-) -> reg ptr u32[8], reg u64
-{
-  inline int t;
-  reg u32 T1 T2 a b c d e f g h r v;
-  reg u64 offset;
-  stack u32[64] W;
-  reg ptr u32[64] Kp;
-  stack ptr u32[8] Hp;
-  reg ptr u32[8] H;
-  reg u64 tr;
-  reg u64 inlen;
-
-  offset = 0;
-  inlen = 128;
-
-  Kp = SHA256_K;
-  Hp = _H;
-
-  H = Hp;
-
-  // NOTE:
-  // The function _blocks_0_ref requires that the length of in is at least 64 bytes (it processes 64 byte blocks).
-  // If we want to compute the hash of a bytestring < 64 bytes, this function does nothing (i.e. the while loop is not run)
-  // => Only __lastblocks_ref and _blocks_1_ref do useful computation
-  // 
-  // Because the value of 128 is known at compile time, this if [ if (128 >= 64) ] allows the compiler to remove 
-  // the while loop if 128 < 64 (because this if statement is statically resolved)
-  //
-  // In other words, this if statement allows us to write a sha2 impl that works for all values of 128 instead of having
-  // to implement two different versions 
-  //      1) A impl where 128 >= 64 where we call _blocks_0_ref
-  //      2) A impl where 128 <  64 where we only call __lastblocks_ref and _blocks_1_ref
-  // but while loop will only be in the impl where it is in fact needed (when 128 >= 64). In the other case, 
-  // (when 128 < 64), the while loop will be removed by the compiler
-  if (128 >= 64) {
-    while(inlen >= 64) {
-      () = #spill(inlen);
-      for t=0 to 16
-      { 
-        v = in.[u32 offset + 4*t]; // v = (u32)[in + t*4];
-        v = #BSWAP_32(v);
-        W[t] = v;
-      }
-
-      () = #spill(offset);
-
-      for t=16 to 64 { W = __Wt_ref(W, t); }
-
-      a, b, c, d, e, f, g, h, H = __load_H_ref(H);
-      Hp = H;
-
-      tr = 0;
-      while(tr < 64)
-      {
-        //T1 = h + BSIG1(e) + CH(e,f,g) + Kt + Wt
-        T1  = h;
-        r   = __BSIG1_ref(e);
-        T1 += r;
-        r   = __CH_ref(e,f,g);
-        T1 += r;
-        T1 += Kp[tr];
-        T1 += W[tr];
-
-        //T2 = BSIG0(a) + MAJ(a,b,c)
-        T2  = __BSIG0_ref(a);
-        r   = __MAJ_ref(a,b,c);
-        T2 += r;
-
-        h  = g;
-        g  = f;
-        f  = e;
-        e  = d;
-        e += T1;
-        d  = c;
-        c  = b;
-        b  = a;
-        a  = T1;
-        a += T2;
-
-        tr+= 1;
-      }
-
-      H = Hp;
-      a += H[0];
-      b += H[1];
-      c += H[2];
-      d += H[3];
-      e += H[4];
-      f += H[5];
-      g += H[6];
-      h += H[7];
-
-      H = __store_H_ref(H,a,b,c,d,e,f,g,h);
-
-      () = #unspill(offset, inlen);
-      offset += 64;
-      inlen -= 64;
-    }
-  }
-
-  _H = H;
-  
-  return _H, offset;
-}
-
 fn _blocks_0_ref_96(
   reg ptr u32[8] _H, 
   reg ptr u8[96] in
@@ -532,45 +424,112 @@ fn _blocks_0_ref_96(
   return _H, offset;
 }
 
-inline fn __lastblocks_ref_128(reg ptr u8[128] in, reg u64 inlen offset bits) -> stack u32[32], reg u64
+fn _blocks_0_ref_128(
+  reg ptr u32[8] _H, 
+  reg ptr u8[128] in
+) -> reg ptr u32[8], reg u64
 {
-  stack u32[32] sblocks;
-  inline int k;
-  reg u64 i j nblocks;
-  reg u8 v;
+  inline int t;
+  reg u32 T1 T2 a b c d e f g h r v;
+  reg u64 offset;
+  stack u32[64] W;
+  reg ptr u32[64] Kp;
+  stack ptr u32[8] Hp;
+  reg ptr u32[8] H;
+  reg u64 tr;
+  reg u64 inlen;
 
-  reg u64 index;
+  offset = 0;
+  inlen = 128;
 
-  i = 0;
+  Kp = SHA256_K;
+  Hp = _H;
 
-  // Zero-fill the sblocks array
-  for k = 0 to 32 { sblocks[k] = i; }
+  H = Hp;
 
-  // copy in to sblocks
-  while(i < inlen)
-  { 
-    index = offset; index += i;
-    v = in[index]; // v = (u8)[in + i];
-    sblocks[u8 i] = v;
-    i += 1;
+  // NOTE:
+  // The function _blocks_0_ref requires that the length of in is at least 64 bytes (it processes 64 byte blocks).
+  // If we want to compute the hash of a bytestring < 64 bytes, this function does nothing (i.e. the while loop is not run)
+  // => Only __lastblocks_ref and _blocks_1_ref do useful computation
+  // 
+  // Because the value of 128 is known at compile time, this if [ if (128 >= 64) ] allows the compiler to remove 
+  // the while loop if 128 < 64 (because this if statement is statically resolved)
+  //
+  // In other words, this if statement allows us to write a sha2 impl that works for all values of 128 instead of having
+  // to implement two different versions 
+  //      1) A impl where 128 >= 64 where we call _blocks_0_ref
+  //      2) A impl where 128 <  64 where we only call __lastblocks_ref and _blocks_1_ref
+  // but while loop will only be in the impl where it is in fact needed (when 128 >= 64). In the other case, 
+  // (when 128 < 64), the while loop will be removed by the compiler
+  if (128 >= 64) {
+    while(inlen >= 64) {
+      () = #spill(inlen);
+      for t=0 to 16
+      { 
+        v = in.[u32 offset + 4*t]; // v = (u32)[in + t*4];
+        v = #BSWAP_32(v);
+        W[t] = v;
+      }
+
+      () = #spill(offset);
+
+      for t=16 to 64 { W = __Wt_ref(W, t); }
+
+      a, b, c, d, e, f, g, h, H = __load_H_ref(H);
+      Hp = H;
+
+      tr = 0;
+      while(tr < 64)
+      {
+        //T1 = h + BSIG1(e) + CH(e,f,g) + Kt + Wt
+        T1  = h;
+        r   = __BSIG1_ref(e);
+        T1 += r;
+        r   = __CH_ref(e,f,g);
+        T1 += r;
+        T1 += Kp[tr];
+        T1 += W[tr];
+
+        //T2 = BSIG0(a) + MAJ(a,b,c)
+        T2  = __BSIG0_ref(a);
+        r   = __MAJ_ref(a,b,c);
+        T2 += r;
+
+        h  = g;
+        g  = f;
+        f  = e;
+        e  = d;
+        e += T1;
+        d  = c;
+        c  = b;
+        b  = a;
+        a  = T1;
+        a += T2;
+
+        tr+= 1;
+      }
+
+      H = Hp;
+      a += H[0];
+      b += H[1];
+      c += H[2];
+      d += H[3];
+      e += H[4];
+      f += H[5];
+      g += H[6];
+      h += H[7];
+
+      H = __store_H_ref(H,a,b,c,d,e,f,g,h);
+
+      () = #unspill(offset, inlen);
+      offset += 64;
+      inlen -= 64;
+    }
   }
 
-  // set first byte after input to 0x80 
-  sblocks[u8 i] = 0x80;
-
-  // check if one or two blocks are needed
-  if(inlen < 56) // 448 / 8 = 56
-  { j = (64-8); nblocks = 1; i = 63; }
-  else
-  { j = (128-8); nblocks = 2; i = 127; }
-
-  while(i >= j)
-  { sblocks[u8 i] = (8u) bits;
-    bits >>= 8;
-    i -= 1;
-  }
+  _H = H;
   
-  return sblocks, nblocks;
+  return _H, offset;
 }
 
 inline fn __lastblocks_ref_96(reg ptr u8[96] in, reg u64 inlen offset bits) -> stack u32[32], reg u64
@@ -614,36 +573,45 @@ inline fn __lastblocks_ref_96(reg ptr u8[96] in, reg u64 inlen offset bits) -> s
   return sblocks, nblocks;
 }
 
-inline fn __sha256_128(reg ptr u8[32] out, reg ptr u8[128] in) -> reg ptr u8[32]
+inline fn __lastblocks_ref_128(reg ptr u8[128] in, reg u64 inlen offset bits) -> stack u32[32], reg u64
 {
-  reg u64 bits nblocks inlen offset;
-  stack u32[8] H;
-  reg ptr u32[8] Hp;
   stack u32[32] sblocks;
-  reg ptr u32[32] sblocksp;
+  inline int k;
+  reg u64 i j nblocks;
+  reg u8 v;
 
-  () = #spill(out);
+  reg u64 index;
 
-  bits = 128;
-  bits <<= 3;
-  () = #spill(bits);
+  i = 0;
 
-  H = __initH_ref();
+  // Zero-fill the sblocks array
+  for k = 0 to 32 { sblocks[k] = i; }
+
+  // copy in to sblocks
+  while(i < inlen)
+  { 
+    index = offset; index += i;
+    v = in[index]; // v = (u8)[in + i];
+    sblocks[u8 i] = v;
+    i += 1;
+  }
+
+  // set first byte after input to 0x80 
+  sblocks[u8 i] = 0x80;
+
+  // check if one or two blocks are needed
+  if(inlen < 56) // 448 / 8 = 56
+  { j = (64-8); nblocks = 1; i = 63; }
+  else
+  { j = (128-8); nblocks = 2; i = 127; }
+
+  while(i >= j)
+  { sblocks[u8 i] = (8u) bits;
+    bits >>= 8;
+    i -= 1;
+  }
   
-  () = #spill(in);
-  Hp = H;
-  Hp, offset = _blocks_0_ref_128(Hp, in);
-
-  () = #unspill(in, bits);
-  inlen = 128 % 64;
-  sblocks, nblocks = __lastblocks_ref_128(in, inlen, offset, bits);
-  sblocksp = sblocks;
-  Hp, _ = _blocks_1_ref(Hp, sblocksp, nblocks);
-
-  () = #unspill(out);
-  H = Hp;
-  out = __store_ref_array(out, H);
-  return out;
+  return sblocks, nblocks;
 }
 
 inline fn __sha256_96(reg ptr u8[32] out, reg ptr u8[96] in) -> reg ptr u8[32]
@@ -669,6 +637,38 @@ inline fn __sha256_96(reg ptr u8[32] out, reg ptr u8[96] in) -> reg ptr u8[32]
   () = #unspill(in, bits);
   inlen = 96 % 64;
   sblocks, nblocks = __lastblocks_ref_96(in, inlen, offset, bits);
+  sblocksp = sblocks;
+  Hp, _ = _blocks_1_ref(Hp, sblocksp, nblocks);
+
+  () = #unspill(out);
+  H = Hp;
+  out = __store_ref_array(out, H);
+  return out;
+}
+
+inline fn __sha256_128(reg ptr u8[32] out, reg ptr u8[128] in) -> reg ptr u8[32]
+{
+  reg u64 bits nblocks inlen offset;
+  stack u32[8] H;
+  reg ptr u32[8] Hp;
+  stack u32[32] sblocks;
+  reg ptr u32[32] sblocksp;
+
+  () = #spill(out);
+
+  bits = 128;
+  bits <<= 3;
+  () = #spill(bits);
+
+  H = __initH_ref();
+  
+  () = #spill(in);
+  Hp = H;
+  Hp, offset = _blocks_0_ref_128(Hp, in);
+
+  () = #unspill(in, bits);
+  inlen = 128 % 64;
+  sblocks, nblocks = __lastblocks_ref_128(in, inlen, offset, bits);
   sblocksp = sblocks;
   Hp, _ = _blocks_1_ref(Hp, sblocksp, nblocks);
 
@@ -839,19 +839,19 @@ inline fn __sha256_in_ptr(reg ptr u8[32] out, reg u64 in inlen) -> reg ptr u8[32
   return out;
 }
 
-inline fn __core_hash_128(
-    reg ptr u8[XMSS_N] out, 
-    reg ptr u8[128] in
-) -> reg ptr u8[XMSS_N] {
-    out = __sha256_128(out, in);
-    return out;
-}
-
 inline fn __core_hash_96(
     reg ptr u8[XMSS_N] out, 
     reg ptr u8[96] in
 ) -> reg ptr u8[XMSS_N] {
     out = __sha256_96(out, in);
+    return out;
+}
+
+inline fn __core_hash_128(
+    reg ptr u8[XMSS_N] out, 
+    reg ptr u8[128] in
+) -> reg ptr u8[XMSS_N] {
+    out = __sha256_128(out, in);
     return out;
 }
 
@@ -873,17 +873,6 @@ fn _core_hash_128(
     return out;
 }
 
-inline fn __core_hash__128(
-    reg ptr u8[XMSS_N] out,
-    reg ptr u8[128] in
-) -> reg ptr u8[XMSS_N]
-{  
-    in = in; out = out;
-    out = _core_hash_128(out, in);
-    out = out;
-    return out;
-}
-
 inline fn __core_hash__96(
     reg ptr u8[XMSS_N] out,
     reg ptr u8[96] in
@@ -891,6 +880,17 @@ inline fn __core_hash__96(
 {  
     in = in; out = out;
     out = _core_hash_96(out, in);
+    out = out;
+    return out;
+}
+
+inline fn __core_hash__128(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[128] in
+) -> reg ptr u8[XMSS_N]
+{  
+    in = in; out = out;
+    out = _core_hash_128(out, in);
     out = out;
     return out;
 }
@@ -1224,22 +1224,6 @@ inline fn __memcpy_u8u8_offset(
     return out;
 }//<>
 
-inline fn __memcpy_u8u8_32_32(
-    reg ptr u8[32] out,
-    reg ptr u8[32] in
-) -> reg ptr u8[32]
-{
-    reg u64 i;
-    
-    i = 0;
-    while (i < 32) {
-        out[i] = in[i];
-        i += 1;
-    }
-
-    return out;
-}
-
 inline fn __memcpy_u8u8_3_3(
     reg ptr u8[3] out,
     reg ptr u8[3] in
@@ -1249,6 +1233,22 @@ inline fn __memcpy_u8u8_3_3(
     
     i = 0;
     while (i < 3) {
+        out[i] = in[i];
+        i += 1;
+    }
+
+    return out;
+}
+
+inline fn __memcpy_u8u8_32_32(
+    reg ptr u8[32] out,
+    reg ptr u8[32] in
+) -> reg ptr u8[32]
+{
+    reg u64 i;
+    
+    i = 0;
+    while (i < 32) {
         out[i] = in[i];
         i += 1;
     }
@@ -1289,22 +1289,22 @@ inline fn __memcpy_u8u8_64_32(
 }
 
 #[returnaddress="stack"]
-fn _memcpy_u8u8_32_32(
-    reg ptr u8[32] out,
-    reg ptr u8[32] in
-) -> reg ptr u8[32]
-{
-    out = __memcpy_u8u8_32_32(out, in);
-    return out;
-}
-
-#[returnaddress="stack"]
 fn _memcpy_u8u8_3_3(
     reg ptr u8[3] out,
     reg ptr u8[3] in
 ) -> reg ptr u8[3]
 {
     out = __memcpy_u8u8_3_3(out, in);
+    return out;
+}
+
+#[returnaddress="stack"]
+fn _memcpy_u8u8_32_32(
+    reg ptr u8[32] out,
+    reg ptr u8[32] in
+) -> reg ptr u8[32]
+{
+    out = __memcpy_u8u8_32_32(out, in);
     return out;
 }
 
@@ -1328,21 +1328,6 @@ fn _memcpy_u8u8_64_32(
     return out;
 }
 
-inline fn _x_memcpy_u8u8_32_32(
-    reg ptr u8[32] out,
-    reg ptr u8[32] in
-) -> reg ptr u8[32]
-{
-    out = out;
-    in = in;
-
-    out = _memcpy_u8u8_32_32(out, in);
-
-    out = out;
-
-    return out;
-}
-
 inline fn _x_memcpy_u8u8_3_3(
     reg ptr u8[3] out,
     reg ptr u8[3] in
@@ -1352,6 +1337,21 @@ inline fn _x_memcpy_u8u8_3_3(
     in = in;
 
     out = _memcpy_u8u8_3_3(out, in);
+
+    out = out;
+
+    return out;
+}
+
+inline fn _x_memcpy_u8u8_32_32(
+    reg ptr u8[32] out,
+    reg ptr u8[32] in
+) -> reg ptr u8[32]
+{
+    out = out;
+    in = in;
+
+    out = _memcpy_u8u8_32_32(out, in);
 
     out = out;
 
@@ -1433,6 +1433,26 @@ inline fn _x_memcpy_u8u8p(
 
 // Same as _x_memcpy_u8u8 but with offset in and out
 
+inline fn __memcpy_u8u8_2_32_2144(
+    reg ptr u8[32] out,
+    reg ptr u8[2144] in,
+    reg u64 in_offset,
+    reg u64 bytes
+) -> reg ptr u8[32], reg u64
+{
+    reg u64 i;
+
+    i = 0;
+    while (i < bytes) {
+        // out[out_offset] = in[in_offset];
+        out[i] = in[in_offset];
+        i += 1;
+        in_offset += 1;
+    }
+
+    return out, in_offset;
+}
+
 inline fn __memcpy_u8u8_2_64_2144(
     reg ptr u8[64] out,
     reg ptr u8[2144] in,
@@ -1453,12 +1473,12 @@ inline fn __memcpy_u8u8_2_64_2144(
     return out, in_offset;
 }
 
-inline fn __memcpy_u8u8_2_32_2144(
-    reg ptr u8[32] out,
-    reg ptr u8[2144] in,
+inline fn __memcpy_u8u8_2_64_352(
+    reg ptr u8[64] out,
+    reg ptr u8[352] in,
     reg u64 in_offset,
     reg u64 bytes
-) -> reg ptr u8[32], reg u64
+) -> reg ptr u8[64], reg u64
 {
     reg u64 i;
 
@@ -1471,6 +1491,23 @@ inline fn __memcpy_u8u8_2_32_2144(
     }
 
     return out, in_offset;
+}
+
+inline fn __memcpy_u8u8_3_352_32(
+    reg ptr u8[352] out,
+    reg ptr u8[32] in,
+    reg u64 out_offset,
+    inline int bytes
+) -> reg ptr u8[352]
+{
+    inline int i;
+
+    for i=0 to bytes {
+        // out[out_offset] = in[in_offset];
+        out[out_offset + i] = in[i];
+    }
+
+    return out;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2190,10 +2227,10 @@ fn __gen_chain_inplace_(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline fn __base_w_3_2(
-  reg ptr u32[3] output,
-  reg ptr u8[2] input
-) -> reg ptr u32[3]
+inline fn __base_w_64_32(
+  reg ptr u32[64] output,
+  reg ptr u8[32] input
+) -> reg ptr u32[64]
 {
     reg u64 in out;
     reg u8 total;
@@ -2208,7 +2245,7 @@ inline fn __base_w_3_2(
     total = 0;
 
     // for (consumed = 0; consumed < out_len; consumed++) 
-    for consumed=0 to 3 {
+    for consumed=0 to 64 {
         // if (bits == 0) { total = input[in]; in++; bits += 8; }
         if (bits == 0) 
         {
@@ -2233,10 +2270,10 @@ inline fn __base_w_3_2(
     return output;
 }
 
-inline fn __base_w_64_32(
-  reg ptr u32[64] output,
-  reg ptr u8[32] input
-) -> reg ptr u32[64]
+inline fn __base_w_3_2(
+  reg ptr u32[3] output,
+  reg ptr u8[2] input
+) -> reg ptr u32[3]
 {
     reg u64 in out;
     reg u8 total;
@@ -2251,7 +2288,7 @@ inline fn __base_w_64_32(
     total = 0;
 
     // for (consumed = 0; consumed < out_len; consumed++) 
-    for consumed=0 to 64 {
+    for consumed=0 to 3 {
         // if (bits == 0) { total = input[in]; in++; bits += 8; }
         if (bits == 0) 
         {
@@ -3316,7 +3353,7 @@ fn __treehash(
         // We now copy the result to stack + offset * params->n
         () = #unspill(offset);
         t64 = offset; t64 *= XMSS_N; // Obs: if XMSS_N = 32 we can do a shift instead
-        for j=0 to XMSS_N { _stack[t64 + j] = buf[j]; }
+        _stack = __memcpy_u8u8_3_352_32(_stack, buf, t64, XMSS_N);
 
         // offset++;
         // heights[offset - 1] = 0;
@@ -3344,15 +3381,15 @@ fn __treehash(
             // We first need to load stack + (offset-2)*params->n into buf2
             () = #unspill(offset);
             t64 = offset; t64 -= 2; t64 *= XMSS_N;
-            for j=0 to 2*XMSS_N { buf2[j] = _stack[t64 + j]; }
+            buf2, _ = __memcpy_u8u8_2_64_352(buf2, _stack, t64, 2 * XMSS_N);
 
-             () = #unspill(pub_seed);
+            () = #unspill(pub_seed);
             buf, node_addr = __thash_h_(buf, buf2, pub_seed, node_addr);
 
             // We now need to copy the result to stack + (offset-2)*params->n
             () = #unspill(offset);
             t64 = offset; t64 -= 2; t64 *= XMSS_N;
-            for j=0 to XMSS_N { _stack[t64 + j] = buf[j]; }
+            _stack = __memcpy_u8u8_3_352_32(_stack, buf, t64, XMSS_N);
 
             // offset--;
             // heights[offset - 1]++;

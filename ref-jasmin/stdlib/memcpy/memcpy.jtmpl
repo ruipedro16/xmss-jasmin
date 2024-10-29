@@ -172,6 +172,23 @@ inline fn __memcpy_u8u8_2<OUTLEN,INLEN>(
     return out, in_offset;
 }//<>
 
+inline fn __memcpy_u8u8_3<OUTLEN,INLEN>(
+    reg ptr u8[OUTLEN] out,
+    reg ptr u8[INLEN] in,
+    reg u64 out_offset,
+    inline int bytes
+) -> reg ptr u8[OUTLEN]
+{
+    inline int i;
+
+    for i=0 to bytes {
+        // out[out_offset] = in[in_offset];
+        out[out_offset + i] = in[i];
+    }
+
+    return out;
+}//<>
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Same as before but u8pu8p

@@ -4,7 +4,7 @@ require import AllCore List RealExp IntDiv Distr DList.
 from Jasmin require import JModel JArray.
 
 (* require import Types Params Parameters Address Notation Hash Primitives Wots XMSS_MT_PRF. *)
-require import Params XMSS_MT_Params Types Address BaseW XMSS_MT_TreeHash XMSS_MT_PRF.
+require import Params XMSS_MT_Params Types Address BaseW Hash XMSS_MT_TreeHash XMSS_MT_PRF.
 require import XMSS_IMPL Parameters.
 require import Repr2 Utils2 DistrUtils.
 
@@ -100,9 +100,17 @@ qed.
 
 (*** Keygen without OID ***)
 lemma xmss_kg_no_oid : 
-    n = XMSS_N /\ 
+    n = XMSS_N /\
     d = XMSS_D /\
-    h = XMSS_TREE_HEIGHT =>
+    h = XMSS_FULL_HEIGHT /\
+    h %/ d = XMSS_TREE_HEIGHT /\
+    w = XMSS_WOTS_W /\
+    len = XMSS_WOTS_LEN /\
+    n = XMSS_N /\
+    prf_padding_val = XMSS_HASH_PADDING_PRF /\
+    prf_kg_padding_val = XMSS_HASH_PADDING_PRF_KEYGEN /\
+    padding_len = XMSS_PADDING_LEN /\
+    F_padding_val = XMSS_HASH_PADDING_F =>
     equiv [
       M(Syscall).__xmssmt_core_keypair ~ XMSS_MT_PRF.kg :
       true 
@@ -111,7 +119,7 @@ lemma xmss_kg_no_oid :
       res{1}.`2 = DecodeSkNoOID res{2}.`1
     ].
 proof.
-rewrite /XMSS_N /XMSS_D => [#] n_val d_val h_val. 
+rewrite /XMSS_N /XMSS_D /XMSS_FULL_HEIGHT /XMSS_TREE_HEIGHT => [#] n_val d_val h_val tree_height *. 
 proc => /=. 
 sp 3 4.
 seq 1 1 : (
@@ -255,13 +263,13 @@ seq 0 1 : (
         rewrite valP n_val => ??.
         rewrite n_val in H8.
         by rewrite nth_sub //= H8.
-        
+         
 seq 1 1 : (#pre /\ val root{2} = to_list root{1}).
     + inline M(Syscall).__treehash_ M(Syscall)._treehash.
-      sp.
+      sp. 
       exists * sk_seed0{1}, pub_seed0{1}, s0{1}, t0{1}, subtree_addr0{1}.
       elim * => P0 P1 P2 P3 P4.
-      wp; sp.
+      wp; sp. 
       call {1} (treehash_correct P0 P1 P2 P3 P4) => [/# |].
       simplify.
 
@@ -269,7 +277,10 @@ seq 1 1 : (#pre /\ val root{2} = to_list root{1}).
 (* Neste auto, as setas referem se as hipoteses to_list P0 = val sk_seed{2} =>
 to_list P1 = val pub_seed{2} =>
 *)
-      do split; [| | by move => ?????? ->]; by smt(@NBytes).
+
+      do split; 1,2: by smt(@NBytes).
+          - by rewrite h_val.
+          - by move => ?????? ->. 
 
 seq 1 0  : ( 
   #pre /\

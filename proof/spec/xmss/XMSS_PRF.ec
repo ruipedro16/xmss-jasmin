@@ -81,7 +81,7 @@ proc sign(sk : xmss_sk, m : msg_t) : sig_t * xmss_sk = {
     t <- TheeNBytes.insubd (val _R ++ val root ++ val idx_bytes);
     _M' <- H_msg t m;
 
-    (ots_sig, auth) <@ TreeSig.treesig(_M', sk.`pub_seed_sk, sk.`sk_seed, idx, address);
+    (ots_sig, auth) <@ TreeSig.treesig(_M', sk, idx, address);
 
     sig <- {| sig_idx = idx; r = _R ; r_sig = (ots_sig, auth) |}; 
   
