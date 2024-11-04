@@ -211,7 +211,7 @@ while (
 
   sub ots_addr{1} 0 3 = sub address{2} 0 3 /\ 
   sub ltree_addr{1} 0 3 = sub address{2} 0 3 
-); last first.
+); first by admit.
     + auto => /> &1 &2 *; do split.
         * smt(@W32 pow2_32).
         * smt(pow2_neq_0).
@@ -227,33 +227,32 @@ while (
           rewrite size_sub // => j?. 
           by rewrite !nth_sub //= /set_type get_setE // ifF 1:/#.
         * rewrite ultE /#.
-        * rewrite ultE /#.
-        * move => stackImpl heightsL i offset heightsR stackR.
-          rewrite ultE => ??????H1?????.
-          rewrite n_val => H2?. 
+        * rewrite ultE /#. 
+
+        * move => stackImpl heightsImpl i ltree_addr heightSpec offsetImpl ots_addr addrSpec heightsSpec stackSpec.
+          rewrite ultE => ????????????H2*. 
           have ?: 0 < to_uint i by smt(pow2_neq_0).
-          admit.
-(*
-          apply (eq_from_nth witness); first by rewrite valP n_val size_sub //.
-          move : H2.
-          rewrite /sub.
-          have ->: 32 * to_uint offset = 32 + 32 * (to_uint offset - 1) by smt().
+          move: H2.
+          rewrite /sub n_val.
+          have ->: 32 * to_uint offsetImpl = 32 + 32 * (to_uint offsetImpl - 1) by smt().
           rewrite /sub_list !(mkseq_add _ 32) 1..4:/# => H.
-          have ->: mkseq (fun (i0 : int) => stackImpl.[0 + i0]) 32 = mkseq (fun (i0 : int) => nth witness (nbytes_flatten stackR) (0 + i0)) 32.
-             + have := eqseq_cat (mkseq (fun (i0 : int) => stackImpl.[0 + i0]) 32)
-                (mkseq (fun (i0 : int) => nth witness (nbytes_flatten stackR) (0 + i0)) 32) (* 1st argument *)
-                (mkseq (fun (i0 : int) => (fun (i1 : int) => stackImpl.[0 + i1]) (32 + i0)) (32 * (to_uint offset - 1))) (* 2nd argument *)
-                (mkseq (fun (i0 : int) => (fun (i1 : int) => nth witness (nbytes_flatten stackR) (0 + i1)) (32 + i0)) (32 * (to_uint offset - 1))). (* 3rd argument *)
-                     by rewrite !size_mkseq /max //= H //=. 
-          rewrite size_mkseq /= => j?.
+          have ->: mkseq (fun (i0 : int) => stackImpl.[0 + i0]) 32 = mkseq (fun (i0 : int) => nth witness (nbytes_flatten stackSpec) (0 + i0)) 32.
+               + have := eqseq_cat (mkseq (fun (i0 : int) => stackImpl.[0 + i0]) 32)
+                (mkseq (fun (i0 : int) => nth witness (nbytes_flatten stackSpec) (0 + i0)) 32) (* 1st argument *)
+                (mkseq (fun (i0 : int) => (fun (i1 : int) => stackImpl.[0 + i1]) (32 + i0)) (32 * (to_uint offsetImpl - 1))) (* 2nd argument *)
+                (mkseq (fun (i0 : int) => (fun (i1 : int) => nth witness (nbytes_flatten stackSpec) (0 + i1)) (32 + i0)) (32 * (to_uint offsetImpl - 1))). (* 3rd argument *)
+                by rewrite !size_mkseq /max //= H //=. 
+          apply (eq_from_nth witness); first by rewrite size_mkseq valP /#.
+          rewrite size_mkseq => j?.
           rewrite nth_mkseq //= /nbytes_flatten (nth_flatten witness n).
             + pose P := (fun (s0 : W8.t list) => size s0 = n).
-              pose L := (map NBytes.val stackR).
-              rewrite -(all_nthP P L witness) /P /L size_map H1 d_val h_val /= => k?. 
+              pose L := (map NBytes.val stackSpec).
+              rewrite -(all_nthP P L witness) /P /L size_map.
+              rewrite (: size stackSpec = h %/ d + 1) 1:/#.
+              rewrite d_val h_val /= => k?. 
               by rewrite (nth_map witness) 1:/# valP. 
           by rewrite (nth_map witness) /#.
-*)
-
+ 
 (*================ O ultimo goal do while termina aqui ====================== *)
  
 seq 2 0 : (#pre /\ to_uint t32{1} = s{2} + i{2}).
