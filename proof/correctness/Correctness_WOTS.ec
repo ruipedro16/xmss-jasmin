@@ -773,6 +773,42 @@ move => k??.
 rewrite /DecodeWotsSk /of_list initiE 1:/# => />.
 qed.
 
+
+lemma pkgen_results (_seed_ _pub_seed_ : W8.t Array32.t) (a1 a2 : adrs) :
+    w = XMSS_WOTS_W /\
+    len = XMSS_WOTS_LEN /\
+    n = XMSS_N /\
+    prf_padding_val = XMSS_HASH_PADDING_PRF /\
+    prf_kg_padding_val = XMSS_HASH_PADDING_PRF_KEYGEN /\
+    padding_len = XMSS_PADDING_LEN /\
+    F_padding_val = XMSS_HASH_PADDING_F =>
+    equiv [
+      M(Syscall).__wots_pkgen ~ WOTS.pkGen :
+      arg{1}.`2 = _seed_ /\
+      arg{1}.`3 = _pub_seed_ /\
+      arg{1}.`4 = a1 /\
+
+      arg{2}.`1 = NBytes.insubd (to_list _seed_) /\
+      arg{2}.`2 = NBytes.insubd (to_list _pub_seed_) /\
+      arg{2}.`3 = a2 /\
+
+      forall (k : int), 0 <= k < 5 => a1.[k] = a2.[k]
+
+      ==>
+
+      res{1}.`1 = DecodeWotsPk res{2} /\
+      forall (k : int), 0 <= k < 5 => res{1}.`2.[k] = a1.[k]
+    ]. 
+proof.
+rewrite /XMSS_WOTS_W /XMSS_WOTS_LEN /XMSS_N /XMSS_HASH_PADDING_PRF.
+rewrite /XMSS_HASH_PADDING_PRF_KEYGEN /XMSS_PADDING_LEN /XMSS_HASH_PADDING_F.
+move => [#] w_val len_val n_val *.
+proc.
+admit.
+qed.
+
+
+
 (*** Pk From Sig : Doing ***)
 
 

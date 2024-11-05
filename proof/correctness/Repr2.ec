@@ -176,6 +176,43 @@ op DecodeSkNoOID (x : xmss_sk) : W8.t Array131.t =
 
 (** -------------------------------------------------------------------------------------------- **)
 
+lemma enc_dec_wots_pk (pk : wots_pk) :
+    n = XMSS_N /\ len = XMSS_WOTS_LEN =>
+    pk = EncodeWotsPk (DecodeWotsPk pk).
+proof.
+rewrite /XMSS_N /XMSS_WOTS_LEN => [#] n_val len_val.
+rewrite /EncodeWotsPk /DecodeWotsPk.
+apply len_n_bytes_eq.
+apply (eq_from_nth witness); first by rewrite !valP.
+rewrite valP => j?.
+rewrite insubdK.
+  + by rewrite /P size_map size_chunk 1:/# size_to_list n_val len_val.
+rewrite (nth_map witness).
+  + rewrite size_chunk 1:/# size_to_list n_val /#.
+rewrite /chunk nth_mkseq.
+  + rewrite size_to_list n_val /#.
+apply nbytes_eq.
+rewrite insubdK.
+  + rewrite /P size_take 1:/# size_drop 1:/# size_to_list /#.
+simplify.
+apply (eq_from_nth witness); first by rewrite size_take 1:/# size_drop 1:/# size_to_list valP /#.
+rewrite valP n_val => i?.
+rewrite nth_take // 1:/# nth_drop 1,2:/# get_to_list get_of_list 1:/#.
+rewrite /nbytes_flatten (nth_flatten witness n).
+  + pose P := (fun (s : W8.t list) => size s = n).
+    pose L := (map NBytes.val (val pk)).
+    rewrite -(all_nthP P L witness) /P /L size_map valP n_val => l Hl. 
+    rewrite (nth_map witness).
+       - by rewrite valP.
+    by rewrite valP.
+rewrite (nth_map witness).
+  + rewrite valP /#.
+smt().
+qed.
+
+(** -------------------------------------------------------------------------------------------- **)
+
+
 op EncodeAuthPath (x : W8.t list) : auth_path = 
   AuthPath.insubd (map NBytes.insubd (chunk n x)).
 

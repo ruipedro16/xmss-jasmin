@@ -875,9 +875,15 @@ lemma memcpy_u8u8_3_352_32_post (o : W8.t Array352.t, input : W8.t Array32.t, of
     arg =(o, input, offset, 32) /\
     0 <= to_uint offset < 352-32 
     ==>
-    forall (k : int), 0 <= k < 32 => o.[to_uint offset + k] = input.[k]
+    forall (k : int), 0 <= k < to_uint offset => res.[k] = o.[k] /\
+    forall (k : int), 0 <= k < 32 => res.[to_uint offset + k] = input.[k] /\
+    forall (k : int), to_uint offset + 32 <= k < 352 => res.[k] = o.[k]
   ] = 1%r.
 proof.
+admit.
+qed.
+
+(*
 proc => /=.
 sp 1.
 while (
@@ -899,3 +905,4 @@ while (
            - rewrite ifF => [| /#].
              rewrite to_uintD_small of_uintK /#.
 qed.
+*)
