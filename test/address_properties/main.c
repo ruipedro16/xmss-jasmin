@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "hash.h"
 #include "randombytes.h"
 #include "wots.h"
 #include "xmss_commons.h"
@@ -223,13 +224,51 @@ void test_pre_ltree(const xmss_params *p) {
     }
 }
 
+void test_pre_thash_h(const xmss_params *p) {
+    assert(p != NULL);
+    uint8_t out0[p->n], out1[p->n], pub_seed[p->n];
+    uint8_t in[2 * p->n];
+    uint32_t addr0[8], addr1[8];
+
+    for (size_t i = 0; i < 8; i++) {
+        randombytes(pub_seed, p->n * sizeof(uint8_t));
+        randombytes(in, 2 * p->n * sizeof(uint8_t));
+
+        memset(out1, -1, p->n);
+        memset(out0, -1, p->n);
+
+        randombytes((uint8_t *)addr0, 8 * sizeof(uint32_t));
+        memcpy(addr1, addr0, 8 * sizeof(uint32_t));
+        assert(!memcmp(addr0, addr1, 8 * sizeof(uint32_t)));
+
+        flip_addr(addr1, i);
+        assert(addr0[i] != addr1[i]);
+
+        for (size_t j = 0; j < 8; j++) {
+            if (j != i) {
+                assert(addr0[j] == addr1[j]);
+            }
+        }
+
+        thash_h(p, out0, in, pub_seed, addr0);
+        thash_h(p, out1, in, pub_seed, addr1);
+
+        if (!memcmp(out0, out1, p->n * sizeof(uint8_t))) {
+            printf("[thash_h]: Changing index %ld of the address does not change the result\n", i);
+        } else {
+            printf("[thash_h]: Changing index %ld of the address changes the result\n", i);
+        }
+    }
+}
+
 void test_pre(const xmss_params *p) {
     assert(p != NULL);
 
-    test_pre_wots_pk_gen(p);
+    // test_pre_wots_pk_gen(p);
     // test_pre_expand_seed(p);
     // test_pre_gen_chain_inplace(p);
     // test_pre_ltree(p);
+    test_pre_thash_h(p);
 }
 
 void test_post_wots_pk_gen(const xmss_params *p) {
@@ -299,13 +338,30 @@ void test_post_l_tree(const xmss_params *p) {
     print_diff_addr("l_tree", addr_before, addr_after);
 }
 
+void test_post_thash_h(const xmss_params *p) {
+    assert(p != NULL);
+
+    uint8_t out[p->n], pub_seed[p->n], in[2 * p->n];
+    uint32_t addr_before[8], addr_after[8];
+
+    randombytes(in, 2 * p->n * sizeof(uint8_t));
+    randombytes(pub_seed, p->n * sizeof(uint8_t));
+
+    memset(addr_before, -1, 8 * sizeof(uint32_t));
+    memcpy(addr_after, addr_before, 8 * sizeof(uint32_t));
+    assert(!memcmp(addr_before, addr_after, 8 * sizeof(uint32_t)));
+    thash_h(p, out, in, pub_seed, addr_after);
+    print_diff_addr("thash_h", addr_before, addr_after);
+}
+
 void test_post(const xmss_params *p) {
     assert(p != NULL);
 
-    test_post_wots_pk_gen(p);
+    // test_post_wots_pk_gen(p);
     // test_post_expand_seed(p);
     // test_post_gen_chain(p);
     // test_post_l_tree(p);
+    test_post_thash_h(p);
 }
 
 int main(void) {
