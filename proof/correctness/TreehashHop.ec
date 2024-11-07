@@ -20,22 +20,25 @@ module TreeHashHop = {
     var tree_index : W32.t;
     var node0, node1, new_node : nbytes;
     
-    var node_address : adrs <- set_type address 2;
+    var node_address  : adrs <- set_type address 2;
+    var ltree_address : adrs <- set_type address 1;
+    var ots_address   : adrs <- set_type address 0;
     
     offset <- 0;
     i <- 0;
     while (i < 2^t) {
-      address <- set_type address 0;
-      address <- set_ots_addr address (s + i);
+      ots_address <- set_ots_addr ots_address (s + i);
 
       (* Generate the public key from the secret seed *)
-      pk <@ WOTS.pkGen(sk_seed, pub_seed, address);
+      pk <@ WOTS.pkGen(sk_seed, pub_seed, ots_address);
 
-      address <- set_type address 1;
-      address <- set_ltree_addr address (s + i);
+      ltree_address <- set_ltree_addr ltree_address (s + i);
 
       (* compress the WOTS public key into a single N-byte value *)
-      node <@ LTree.ltree(pk, address, pub_seed); 
+      node <@ LTree.ltree(pk, ltree_address, pub_seed); 
+      ltree_address <- set_tree_height ltree_address 7; (* FIXME: *)
+      ltree_address <- set_tree_index ltree_address 0; 
+      ltree_address <- set_key_and_mask ltree_address 2;
 
       stack <- put stack offset node; (* Push the node onto the stack *)
       offset <- offset + 1;
@@ -48,8 +51,8 @@ module TreeHashHop = {
 
         tree_index <- W32.of_int(s + i) `>>>` ((nth witness heights (offset - 1)) + 1);
         
-        node_address <- set_tree_height address (nth witness heights (offset - 1));
-        node_address <- set_tree_index address (W32.to_uint tree_index);
+        node_address <- set_tree_height node_address (nth witness heights (offset - 1));
+        node_address <- set_tree_index  node_address (W32.to_uint tree_index);
 
         node0 <- nth witness stack (offset - 2);
         node1 <- nth witness stack (offset - 1);

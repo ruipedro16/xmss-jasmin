@@ -42,6 +42,58 @@ lemma treehash_cond_ll : islossless M(Syscall).__treehash_cond by proc; auto.
 
 pred treehash_cond (h : W32.t Array11.t) (o : W64.t) = 2 <= to_uint o /\ (h.[to_uint o - 2] = h.[to_uint o -1]).
 
+lemma treehash_cond_correct2 (h : W32.t Array11.t) (o : W64.t) : 
+    hoare [
+      M(Syscall).__treehash_cond :
+      0 <= to_uint o <= W32.max_uint /\
+      arg = (h, o) 
+      ==>
+      res = W8.one <=> treehash_cond h o
+    ].
+proof.
+proc.
+seq 3 : (#pre /\ bc1 = if (2 <= to_uint offset) then W8.one else W8.zero).
+  + auto => /> *.
+    case (2 <= to_uint o) => H; [rewrite setcc_true | rewrite setcc_false] => //; rewrite cmp_eq_W64 cmp_lt_W64 /_uGE /_uLT; [smt(@W64) |].
+    rewrite ultE of_uintK // #smt(@W64).
+
+if; last first.
+
+(* ======================================================================================================================================================================= *)
+
+auto => /> ???.
+split.  
+  + have ->: (SETcc   (_EQ (CMP_32 h.[to_uint (o - W64.one)] h.[to_uint (o - (of_int 2)%W64)]).`1
+     (CMP_32 h.[to_uint (o - W64.one)] h.[to_uint (o - (of_int 2)%W64)]).`2
+     (CMP_32 h.[to_uint (o - W64.one)] h.[to_uint (o - (of_int 2)%W64)]).`3
+     (CMP_32 h.[to_uint (o - W64.one)] h.[to_uint (o - (of_int 2)%W64)]).`5) = W8.one) = (_EQ (CMP_32 h.[to_uint (o - W64.one)] h.[to_uint (o - (of_int 2)%W64)]).`1
+     (CMP_32 h.[to_uint (o - W64.one)] h.[to_uint (o - (of_int 2)%W64)]).`2
+     (CMP_32 h.[to_uint (o - W64.one)] h.[to_uint (o - (of_int 2)%W64)]).`3
+     (CMP_32 h.[to_uint (o - W64.one)] h.[to_uint (o - (of_int 2)%W64)]).`5) by smt(setcc_true).
+    rewrite /_EQ cmp_eq_W32.
+    have ->: to_uint (o - W64.one) = to_uint o - 1 by smt(@W64 pow2_64).
+    move => H.    
+    split => [/# |].
+    rewrite H.
+    congr.
+    smt(@W64 pow2_64).
+
+  + move => ?H.
+    rewrite setcc_true // /_EQ cmp_eq_W32.
+    have ->: to_uint (o - W64.one) = to_uint o - 1 by smt(@W64 pow2_64).
+    rewrite -H.
+    congr.
+    smt(@W64 pow2_64).
+
+(* ======================================================================================================================================================================= *)
+
+admit.
+
+
+
+
+qed.
+
 lemma treehash_cond_correct (h : W32.t Array11.t) (o : W64.t) : 
     hoare [
       M(Syscall).__treehash_cond :

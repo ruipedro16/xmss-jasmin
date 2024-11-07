@@ -14,6 +14,42 @@ require import Array8.
 
 (** -------------------------------------------------------------------------------------------- **)
 
+(* TODO: Remove this *)
+lemma test (a1 a2 : W32.t Array8.t):
+    sub a1 0 5 = sub a2 0 5 => forall (k : int), 0 <= k < 5 => a1.[k] = a2.[k].
+proof.
+move => H k?.
+have ->: a1.[k] = nth witness (sub a1 0 5) k by rewrite nth_sub.
+by rewrite H nth_sub.
+qed.
+
+(** -------------------------------------------------------------------------------------------- **)
+
+lemma truncate_1_and_63 :
+    truncateu8 (W256.one `&` W256.of_int(63)) = W8.one
+        by rewrite (: 63 = 2 ^ 6 - 1) 1:/# and_mod //=.
+
+
+lemma shr_1 (x : W64.t) :
+    to_uint (x `>>` W8.one) = to_uint x %/ 2
+        by rewrite shr_div (: (to_uint W8.one %% 64) = 1) 1:#smt:(@W64) //=. 
+
+lemma mod2_vals (x : int) :
+    x %% 2 = 0 \/ x %% 2 = 1 by smt(). 
+
+lemma fooT (x : W64.t):
+    to_uint x %% 2 = 1 => W64.of_int (to_uint x %% 2) = W64.one by smt(@W64). 
+
+lemma and_1_mod_2 (x : W64.t):
+    x `&` W64.one <> W64.zero <=> to_uint x %% 2 = 1.
+proof.
+split; rewrite (: 1 = 2 ^ 1 - 1) 1:/# and_mod //=; [smt(fooT) |].
+move => H.
+rewrite fooT //= #smt:(@W64). 
+qed.
+
+(** -------------------------------------------------------------------------------------------- **)
+
 (* from MLKEM proof *)
 
 (* m and m' are memories that differ on the contents of addresses in the range [p; p+len[ *)

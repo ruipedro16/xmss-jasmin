@@ -724,8 +724,6 @@ lemma nbytes_copy_64_32_p (o : W8.t Array64.t, _in : W8.t Array32.t)  :
 
 require import Array131.
 
-print sub.
-
 lemma nbytes_copy_131_32 (o : W8.t Array131.t, _in : W8.t Array32.t)  : 
     hoare[
       M(Syscall).__nbytes_copy_offset_131_32 :
@@ -873,7 +871,7 @@ lemma memcpy_u8u8_3_352_32_post (o : W8.t Array352.t, input : W8.t Array32.t, of
   phoare [
     M(Syscall).__memcpy_u8u8_3_352_32 :
     arg =(o, input, offset, 32) /\
-    0 <= to_uint offset < 352-32 
+    0 <= to_uint offset <= 352-32 
     ==>
     forall (k : int), 0 <= k < to_uint offset => res.[k] = o.[k] /\
     forall (k : int), 0 <= k < 32 => res.[to_uint offset + k] = input.[k] /\
