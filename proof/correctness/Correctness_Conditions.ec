@@ -43,15 +43,16 @@ lemma treehash_cond_ll : islossless M(Syscall).__treehash_cond by proc; auto.
 pred treehash_cond (h : W32.t Array11.t) (o : W64.t) = 2 <= to_uint o /\ (h.[to_uint o - 2] = h.[to_uint o -1]).
 
 lemma treehash_cond_correct2 (h : W32.t Array11.t) (o : W64.t) : 
-    hoare [
+    phoare [
       M(Syscall).__treehash_cond :
       0 <= to_uint o <= W32.max_uint /\
       arg = (h, o) 
       ==>
       res = W8.one <=> treehash_cond h o
-    ].
+    ] = 1%r.
 proof.
 proc.
+(*
 seq 3 : (#pre /\ bc1 = if (2 <= to_uint offset) then W8.one else W8.zero).
   + auto => /> *.
     case (2 <= to_uint o) => H; [rewrite setcc_true | rewrite setcc_false] => //; rewrite cmp_eq_W64 cmp_lt_W64 /_uGE /_uLT; [smt(@W64) |].
@@ -86,12 +87,8 @@ split.
     smt(@W64 pow2_64).
 
 (* ======================================================================================================================================================================= *)
-
+*)
 admit.
-
-
-
-
 qed.
 
 lemma treehash_cond_correct (h : W32.t Array11.t) (o : W64.t) : 
