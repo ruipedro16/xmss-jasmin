@@ -23,6 +23,8 @@ require import StdBigop.
 
 require import Termination.
 
+print LTree.
+
 (*  proc ltree(pk : wots_pk, address : adrs, _seed : seed) : nbytes *)
 lemma ltree_correct (_pk : W8.t Array2144.t, _pub_seed : W8.t Array32.t, _addr : W32.t Array8.t) : 
     len = XMSS_WOTS_LEN /\ 
@@ -31,14 +33,14 @@ lemma ltree_correct (_pk : W8.t Array2144.t, _pub_seed : W8.t Array32.t, _addr :
       M(Syscall).__l_tree_ ~ LTree.ltree :
       arg{1}.`2 = _pk /\
       arg{1}.`3 = _pub_seed /\
-      arg{1}.`4 = _addr /\
-      arg{2} = (EncodeWotsPk _pk, _addr, NBytes.insubd (to_list _pub_seed))
+
+      arg{2}.`1 = EncodeWotsPk _pk /\
+      arg{2}.`3 = NBytes.insubd (to_list _pub_seed) /\
+
+      sub arg{1}.`4 0 5 = sub arg{2}.`2 0 5
       ==>
       to_list res{1}.`1 = val res{2} /\
-      res{1}.`3.[5] = W32.of_int 7 /\
-      res{1}.`3.[6] = W32.zero /\
-      res{1}.`3.[7] = W32.of_int 2 /\
-      forall (k : int), 0 <= k < 5 => res{1}.`3.[k] = _addr.[k]
+      sub res{1}.`3 0 5 = sub _addr 0 5
     ].
 proof. 
 rewrite /XMSS_WOTS_LEN /XMSS_N.

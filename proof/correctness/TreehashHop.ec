@@ -36,7 +36,7 @@ module TreeHashHop = {
 
       (* compress the WOTS public key into a single N-byte value *)
       node <@ LTree.ltree(pk, ltree_address, pub_seed); 
-      ltree_address <- set_tree_height ltree_address 7; (* FIXME: *)
+      ltree_address <- set_tree_height ltree_address 7; (* TODO: *)
       ltree_address <- set_tree_index ltree_address 0; 
       ltree_address <- set_key_and_mask ltree_address 2;
 
