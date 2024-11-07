@@ -264,11 +264,15 @@ void test_pre_thash_h(const xmss_params *p) {
 void test_pre(const xmss_params *p) {
     assert(p != NULL);
 
+    puts("================================================================");
+    puts("                       #PRE");
+    puts("================================================================");
+
     // test_pre_wots_pk_gen(p);
     // test_pre_expand_seed(p);
     // test_pre_gen_chain_inplace(p);
-    // test_pre_ltree(p);
-    test_pre_thash_h(p);
+    test_pre_ltree(p);
+    // test_pre_thash_h(p);
 }
 
 void test_post_wots_pk_gen(const xmss_params *p) {
@@ -357,11 +361,49 @@ void test_post_thash_h(const xmss_params *p) {
 void test_post(const xmss_params *p) {
     assert(p != NULL);
 
+    puts("================================================================");
+    puts("                       #POST");
+    puts("================================================================");
+
     // test_post_wots_pk_gen(p);
     // test_post_expand_seed(p);
     // test_post_gen_chain(p);
-    // test_post_l_tree(p);
-    test_post_thash_h(p);
+    test_post_l_tree(p);
+    // test_post_thash_h(p);
+}
+
+void test_ltree_prop(const xmss_params *p) {
+    assert(p != NULL);
+
+    uint8_t pub_seed[p->n];
+    uint8_t leaf[p->n];
+    uint8_t wots_pk[p->wots_sig_bytes];
+    uint32_t addr[8];
+
+    for (int t = 0; t < 100; t++) {
+        randombytes(pub_seed, p->n * sizeof(uint8_t));
+        randombytes((uint8_t *)addr, 8 * sizeof(uint32_t));
+        randombytes(wots_pk, p->wots_sig_bytes);
+        l_tree(p, leaf, wots_pk, pub_seed, addr);
+
+        assert(addr[5] == 7);
+        assert(addr[6] == 0);
+        assert(addr[7] == 2);
+    }
+
+    puts("[l_tree]: addr[5] == 7)");
+    puts("[l_tree]: addr[6] == 0)");
+    puts("[l_tree]: addr[7] == 2)");
+}
+
+void test_prop(const xmss_params *p) {
+    assert(p != NULL);
+
+    puts("================================================================");
+    puts("                       PROPERTIES");
+    puts("================================================================");
+
+    test_ltree_prop(p);
 }
 
 int main(void) {
@@ -385,6 +427,7 @@ int main(void) {
 
     test_pre(&p);
     test_post(&p);
+    test_prop(&p);
 
     return 0;
 }
