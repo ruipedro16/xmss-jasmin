@@ -14,6 +14,21 @@ require import Array8.
 
 (** -------------------------------------------------------------------------------------------- **)
 
+lemma addr_sub_5 (a0 a1 : W32.t Array8.t) :
+    a0.[0] = a1.[0] /\
+    a0.[1] = a1.[1] /\
+    a0.[2] = a1.[2] /\
+    a0.[3] = a1.[3] /\
+    a0.[4] = a1.[4] =>
+    sub a0 0 5 = sub a1 0 5.
+proof.
+move => [#] *.
+apply (eq_from_nth witness); first by rewrite !size_sub.
+rewrite size_sub // => i?.
+rewrite !nth_sub //=/#.
+qed.
+
+
 (* TODO: Remove this *)
 lemma test (a1 a2 : W32.t Array8.t):
     sub a1 0 5 = sub a2 0 5 => forall (k : int), 0 <= k < 5 => a1.[k] = a2.[k].

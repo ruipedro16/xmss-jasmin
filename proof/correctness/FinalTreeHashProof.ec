@@ -123,7 +123,7 @@ seq 2 2 : (sub _stack{1} 0 n = val (nth witness stack{2} 0)); last first.
           by rewrite nth_sub 1:/# get_to_list.
 
 while (
-   t{2} = to_uint target_height{1} /\ 
+  t{2} = to_uint target_height{1} /\ 
   0 <= t{2} <= h /\ (* Target height *)
 
   s{2} = to_uint start_index{1} /\ 
@@ -147,27 +147,25 @@ while (
   sk_seed{2} = (insubd (to_list sk_seed{1}))%NBytes /\
   pub_seed{2} = (insubd (to_list pub_seed{1}))%NBytes /\ 
   
-    map W32.to_uint (sub heights{1} 0 offset{2}) = sub_list heights{2} 0 offset{2} /\
-    sub _stack{1} 0 (n * offset{2}) = sub_list (nbytes_flatten stack{2}) 0 (n * offset{2}) /\
+  map W32.to_uint (sub heights{1} 0 offset{2}) = sub_list heights{2} 0 offset{2} /\
+  sub _stack{1} 0 (n * offset{2}) = sub_list (nbytes_flatten stack{2}) 0 (n * offset{2}) /\
   
-    ots_addr{1}.[3] = W32.zero /\ (* type *)
-    ltree_addr{1}.[3] = W32.one /\ (* type *)
-    node_addr{1}.[3] = W32.of_int 2 /\ (* type *)
+  ots_addr{1}.[3] = W32.zero /\ (* type *)
+  ltree_addr{1}.[3] = W32.one /\ (* type *)
+  node_addr{1}.[3] = W32.of_int 2 /\ (* type *)
   
-    ots_addr{1}.[0] = address{2}.[0] /\
-    ots_addr{1}.[1] = address{2}.[1] /\
-    ots_addr{1}.[2] = address{2}.[2] /\
-    ots_addr{1}.[5] = address{2}.[5] /\
+  ots_addr{1}.[0] = address{2}.[0] /\
+  ots_addr{1}.[1] = address{2}.[1] /\
+  ots_addr{1}.[2] = address{2}.[2] /\
+  ots_addr{1}.[5] = address{2}.[5] /\
 
-    ltree_addr{1}.[0] = address{2}.[0] /\
-    ltree_addr{1}.[1] = address{2}.[1] /\
-    ltree_addr{1}.[2] = address{2}.[2] /\
-    ltree_addr{1}.[5] = address{2}.[5] /\
+  ltree_addr{1}.[0] = address{2}.[0] /\
+  ltree_addr{1}.[1] = address{2}.[1] /\
+  ltree_addr{1}.[2] = address{2}.[2] /\\
   
-    node_addr{1}.[0] = address{2}.[0] /\
-    node_addr{1}.[1] = address{2}.[1] /\
-    node_addr{1}.[2] = address{2}.[2] /\
-    node_addr{1}.[5] = address{2}.[5] 
+  node_addr{1}.[0] = address{2}.[0] /\
+  node_addr{1}.[1] = address{2}.[1] /\
+  node_addr{1}.[2] = address{2}.[2] /\
 ); last by admit.
 
 
@@ -197,14 +195,86 @@ seq 1 4 : (
   #{/~sub ots_addr{1} 0 5 = sub address{2} 0 5}
    {/~ltree_addr{1}.[4] = (of_int (s{2} + i{2}))%W32}pre /\
   val node{2} = to_list buf{1}
-); first by admit.
-(*
+); last by admit.
+
     + inline {1} M(Syscall).__gen_leaf_wots_ M(Syscall)._gen_leaf_wots M(Syscall).__gen_leaf_wots.             
-      auto => />.
-      exists * pk{1}, ltree_addr2{1}, pub_seed2{1}.
-      elim * => P0 P1 P2.
-      call (ltree_correct P0 P2 P1) => [/# |].
-      wp.
+      seq 22 0 : (
+        #pre /\
+        sk_seed2{1} = sk_seed{1} /\
+        pub_seed2{1} = pub_seed{1} /\
+        ots_addr2{1} = ots_addr{1} /\
+        ltree_addr2{1} = ltree_addr{1}
+      ); first by auto.
+       
+      seq 1 1 : (
+        #{/~ots_addr2{1} = ots_addr{1}}pre /\ 
+        pk{1} = DecodeWotsPk pk{2} /\
+        ots_addr2{1}.[0] = address{2}.[0] /\
+        ots_addr2{1}.[1] = address{2}.[1] /\
+        ots_addr2{1}.[2] = address{2}.[2] /\
+        ots_addr2{1}.[3] = W32.zero 
+      ).
+         * exists * sk_seed2{1}, pub_seed2{1}, ots_addr2{1}, address{2}.
+           elim * => P3 P4 P5 P6.
+           call {1} (pkgen_results P3 P4 P5 P6) => [/# |].
+           auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25 H26 H27 H28 H29 H30 H31 H32 H33 H34.
+           do split.
+               - move => k*.
+                 have ->: P5.[k] = nth witness (sub P5 0 5) k by rewrite nth_sub.
+                 rewrite H33 nth_sub /#.
+               - move => H35 resL resR H36 H37. 
+                 do split.
+                    + rewrite -H18 /#.
+                    + rewrite -H19 /#.
+                    + rewrite -H20 /#.
+                    + rewrite -H15 /#.
+
+      seq 0 2 : (
+          #{/~sub ots_addr{1} 0 5 = sub address{2} 0 5}pre /\ 
+          sub ltree_addr2{1} 0 5 = sub address{2} 0 5
+      ).
+         * auto => /> &1 &2 ???????????????????????????????????*.
+           rewrite /set_ltree_addr /set_type.
+           apply (eq_from_nth witness); first by rewrite !size_sub.
+           rewrite size_sub // => i?.
+           rewrite nth_sub //= nth_sub //= get_setE //.
+           case (i = 4) => [-> /# |?].
+           rewrite get_setE //.
+           case (i = 3) => [-> /# | /#].
+       
+      seq 1 1 : (#{/~ltree_addr2{1} = ltree_addr{1}}pre /\ to_list leaf1{1} = val node{2}).
+         * exists * pk{1}, ltree_addr2{1}, pub_seed2{1}.
+           elim * => P0 P1 P2.
+           call (ltree_correct P0 P2 P1) => [/# |].
+           auto => /> &1 &2 ???????????????????????????????????*; split.
+              - apply enc_dec_wots_pk => /#.
+              - smt().
+
+      auto => /> &1 &2 ????????????????????????????????????*; do split; last by smt().
+
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+smt().
+smt().
+smt().
+smt().
+smt().
+smt().
+
+??????????.             
+
+                     
+
+
+wp.
       exists * sk_seed2{1}, pub_seed2{1}, ots_addr2{1}, address{2}.
       elim * => P3 P4 P5 P6.
       call (pkgen_results P3 P4 P5 P6) => [/# |].
