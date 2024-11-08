@@ -19,13 +19,27 @@ lemma addr_sub_5 (a0 a1 : W32.t Array8.t) :
     a0.[1] = a1.[1] /\
     a0.[2] = a1.[2] /\
     a0.[3] = a1.[3] /\
-    a0.[4] = a1.[4] =>
+    a0.[4] = a1.[4] 
+          <=>
     sub a0 0 5 = sub a1 0 5.
 proof.
-move => [#] *.
-apply (eq_from_nth witness); first by rewrite !size_sub.
-rewrite size_sub // => i?.
-rewrite !nth_sub //=/#.
+split.
+  + move => [#] *.
+    apply (eq_from_nth witness); first by rewrite !size_sub.
+    rewrite size_sub // => i?.
+    rewrite !nth_sub //=/#.
+  + move => H.
+    do split.
+       - have ->: a0.[0] = nth witness (sub a0 0 5) 0 by rewrite nth_sub.
+         by rewrite H nth_sub.
+       - have ->: a0.[1] = nth witness (sub a0 0 5) 1 by rewrite nth_sub.
+         by rewrite H nth_sub.
+       - have ->: a0.[2] = nth witness (sub a0 0 5) 2 by rewrite nth_sub.
+         by rewrite H nth_sub.
+       - have ->: a0.[3] = nth witness (sub a0 0 5) 3 by rewrite nth_sub.
+         by rewrite H nth_sub.
+       - have ->: a0.[4] = nth witness (sub a0 0 5) 4 by rewrite nth_sub.
+         by rewrite H nth_sub.
 qed.
 
 
