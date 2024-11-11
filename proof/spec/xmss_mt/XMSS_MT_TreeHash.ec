@@ -48,6 +48,8 @@ module TreeHash = {
       stack <- put stack offset node; (* Push the node onto the stack *)
       offset <- offset + 1;
       heights <- put heights (offset - 1) 0;
+
+      address <- set_type address 2;
       
       while (
           2 <= offset /\ (* The stack needs to have at least two nodes *)
