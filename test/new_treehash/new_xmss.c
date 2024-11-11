@@ -31,6 +31,13 @@ extern void treesig_jazz(uint8_t *sig, uint32_t *addr, const uint8_t *M, const u
 void treehash_new(const xmss_params *params, unsigned char *root, const unsigned char *sk_seed,
                   const unsigned char *pub_seed, uint32_t start_index, /* leaf_idx in the old impl */
                   uint32_t target_height, const uint32_t subtree_addr[8]) {
+
+    assert(subtree_addr[4] == 0);
+    
+    if (debug && false) {
+        puts("Passou no assert");
+    }
+
     unsigned char stack[(params->tree_height + 1) * params->n];
     unsigned int heights[params->tree_height + 1];
     unsigned int offset = 0;
@@ -53,7 +60,7 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
     set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
 
     for (i = 0; i < (uint32_t)(1 << target_height); i++) {
-        if (debug) {
+        if (debug && false) {
             printf("Inicio da %d iteracao do for: offset = %d\n", i, offset);
         }
         /* Add the next leaf node to the stack. */
@@ -64,11 +71,13 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
         offset++;
         heights[offset - 1] = 0;
 
+        assert(node_addr[4] == 0);
+
         /* While the top-most nodes are of equal height.. */
         while (offset >= 2 &&
                heights[offset - 1] == heights[offset - 2]) { 
 
-            if (debug) {
+            if (debug && false) {
                 printf("Entrou no while na iteracao %d\n", i);
             }
             /* Compute index of the new node, in the next layer. */
@@ -86,7 +95,7 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
             heights[offset - 1]++;
         }
 
-        if (debug) {
+        if (debug && false) {
             printf("Fim da %d iteracao do for: offset = %d\n", i, offset);
         }
     }

@@ -14,7 +14,7 @@
 #include "xmss_core.h"
 
 #ifndef TESTS
-#define TESTS 1
+#define TESTS 10
 #endif
 
 static int starts_with(const char *str, const char *prefix) { return strncmp(str, prefix, strlen(prefix)) == 0; }
@@ -224,7 +224,7 @@ int main() {
         }
 
         test_kg(p);
-        // test_sign(p);
+        test_sign(p);
 
         if (debug) {
             puts("=====================================================================================");
