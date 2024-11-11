@@ -119,3 +119,16 @@ lemma treehash_cond_correct_p (h : W32.t Array11.t) (o : W64.t) :
       ==>
       if treehash_cond h o then res = W8.one else res = W8.zero 
     ] =1%r by conseq treehash_cond_ll (treehash_cond_correct h o).
+
+lemma treehash_condition_correct (h : W32.t Array11.t) (o : W64.t) :
+    phoare [
+    M(Syscall).__treehash_cond :
+    0 <= to_uint o <= W32.max_uint /\
+    arg = (h, o) 
+    ==>
+    (res = W8.one) = treehash_cond h o
+    ] = 1%r.
+proof.
+proc.
+admit.
+qed.

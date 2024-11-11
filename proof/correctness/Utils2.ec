@@ -14,6 +14,15 @@ require import Array8.
 
 (** -------------------------------------------------------------------------------------------- **)
 
+lemma sub_k (k : int) (a0 a1 : W32.t Array8.t) :
+    0 <= k => sub a0 0 k = sub a1 0 k =>
+      forall (i : int), 0 <= i < k => a0.[i] = a1.[i].
+proof.
+move => H0 H1 i Hi. 
+have ->: a0.[i] = nth witness (sub a0 0 k) i by rewrite nth_sub.
+by rewrite H1 nth_sub.
+qed.
+
 lemma addr_sub_5 (a0 a1 : W32.t Array8.t) :
     a0.[0] = a1.[0] /\
     a0.[1] = a1.[1] /\
@@ -40,16 +49,6 @@ split.
          by rewrite H nth_sub.
        - have ->: a0.[4] = nth witness (sub a0 0 5) 4 by rewrite nth_sub.
          by rewrite H nth_sub.
-qed.
-
-
-(* TODO: Remove this *)
-lemma test (a1 a2 : W32.t Array8.t):
-    sub a1 0 5 = sub a2 0 5 => forall (k : int), 0 <= k < 5 => a1.[k] = a2.[k].
-proof.
-move => H k?.
-have ->: a1.[k] = nth witness (sub a1 0 5) k by rewrite nth_sub.
-by rewrite H nth_sub.
 qed.
 
 (** -------------------------------------------------------------------------------------------- **)
