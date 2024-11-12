@@ -68,7 +68,7 @@ module TreeHash = {
 
         stack <- put stack (offset - 2) new_node; (* push new node onto the stack *)
         offset <- offset - 1; (* One less node on the stack (removed node0 and node1 and added new_node) *)
-        heights <- put heights (offset - 1) (nth witness heights (offset - 1)); (* The new node is one level higher than the nodes used to compute it *)
+        heights <- put heights (offset - 1) (nth witness heights (offset - 1) + 1); (* The new node is one level higher than the nodes used to compute it *)
       }      
 
       i <- i + 1;

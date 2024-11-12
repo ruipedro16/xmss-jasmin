@@ -369,7 +369,7 @@ void test_post(const xmss_params *p) {
     // test_post_expand_seed(p);
     // test_post_gen_chain(p);
     test_post_l_tree(p);
-    // test_post_thash_h(p);
+    test_post_thash_h(p);
 }
 
 void test_ltree_prop(const xmss_params *p) {
