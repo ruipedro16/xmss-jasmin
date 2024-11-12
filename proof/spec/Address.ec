@@ -78,7 +78,7 @@ op set_tree_addr (address : adrs, tree_address : int) : adrs =
        address.[1 <- W32.of_int (tree_address %/ 2^32)].[2 <- W32.of_int (tree_address %% 2^32)].
 
 op set_type (address : adrs, _type : int) : adrs = 
-    address.[3 <- W32.of_int _type].
+    address.[3 <- W32.of_int _type].[4 <- W32.zero].[5 <- W32.zero].[6 <- W32.zero].[7 <- W32.zero].
 
 op set_ots_addr (address : adrs, ots_addr : int) : adrs = 
     address.[4 <- W32.of_int ots_addr].
