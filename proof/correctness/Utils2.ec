@@ -8,11 +8,23 @@ from Jasmin require import JModel.
 
 require import Params Address Hash LTree XMSS_MT_Types.
 
-require import Array8.
+require import Array8 Array11.
 
 (*****) import StdBigop.Bigint.
 
 (** -------------------------------------------------------------------------------------------- **)
+
+
+lemma get_setE_to_list (a : W32.t Array11.t) (e : W32.t) (i j : int) :
+    0 <= i < size (to_list a) =>
+    a.[i <- e].[j] = nth witness (put (to_list a) i e) j.
+proof.
+rewrite size_to_list => ?.
+rewrite nth_put.
+  + by rewrite size_to_list. 
+rewrite get_setE // get_to_list /#.
+qed.
+
 
 lemma sub_k (k : int) (a0 a1 : W32.t Array8.t) :
     0 <= k => sub a0 0 k = sub a1 0 k =>
