@@ -904,3 +904,16 @@ while (
              rewrite to_uintD_small of_uintK /#.
 qed.
 *)
+
+lemma memcpy_u8u8_2_64_352_post (o : W8.t Array64.t) (_in : W8.t Array352.t) (off : W64.t):
+    phoare [
+       M(Syscall).__memcpy_u8u8_2_64_352 :
+       arg = (o, _in, off, W64.of_int 64)       
+       ==>
+       to_list res.`1 = sub _in (to_uint off) 64
+       ] = 1%r.
+proof.
+proc.
+admit.
+qed.
+

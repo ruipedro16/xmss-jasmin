@@ -223,6 +223,33 @@ op merge_nbytes_to_array (a b : nbytes) : W8.t Array64.t =
                          then nth witness (val a) i 
                          else nth witness (val b) (i - 32)).
 
+lemma rand_hash_results (i0 i1: nbytes, _pub_seed : W8.t Array32.t) (a1 a2 : W32.t Array8.t) :
+    padding_len = XMSS_PADDING_LEN /\ 
+    prf_padding_val = XMSS_HASH_PADDING_PRF /\
+    padding_len = XMSS_PADDING_LEN /\ 
+    n = XMSS_N  =>
+    equiv [
+      M(Syscall).__thash_h ~ Hash.rand_hash :
+      arg{1}.`2 = (merge_nbytes_to_array i0 i1) /\
+      arg{1}.`3 = _pub_seed /\
+      arg{1}.`4 = a1 /\
+
+      arg{2}.`1 = i0 /\
+      arg{2}.`2 = i1 /\
+      arg{2}.`3 = NBytes.insubd(to_list _pub_seed) /\
+      arg{2}.`4 = a2 /\
+      
+      forall (k : int), 0 <= k < 7 => a1.[k] = a2.[k] (* Os addresses so precisam de coincidir nos primeiros 6 indices *)
+      ==>
+      to_list res{1}.`1 = val res{2} /\
+      forall (k : int), 0 <= k < 7 => res{1}.`2.[k] = a1.[k] (* Os addresses so precisam de coincidir nos primeiros 6 indices *)
+    ].
+proof.
+move => *.
+proc.
+admit.
+qed.
+
 lemma rand_hash_correct (i0 i1: nbytes, _pub_seed : W8.t Array32.t, _in : W8.t Array64.t) :
     padding_len = XMSS_PADDING_LEN /\ 
     prf_padding_val = XMSS_HASH_PADDING_PRF /\

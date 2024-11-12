@@ -17,11 +17,15 @@ require import Array4 Array8 Array11 Array32 Array64 Array131 Array320 Array352 
 
 require import Correctness_Address.
 require import Correctness_WOTS.
+require import Correctness_Hash.
 require import Correctness_Mem.
 require import Correctness_Conditions.
 require import LTReeProof.
 
 require import WArray32.
+
+lemma impl_and_L (a b : bool) : (true => a /\ b) => a by smt().
+lemma impl_and_R (a b : bool) : (true => a /\ b) => b by smt().
 
 lemma treehash_correct ( _sk_seed _pub_seed : W8.t Array32.t, _s _t:W32.t, _addr:W32.t Array8.t): 
     n = XMSS_N /\
@@ -358,7 +362,7 @@ conseq ( :
   to_uint upper_bound{1} = 2 ^ t{2} /\
   sk_seed{2} = (insubd (to_list sk_seed{1}))%NBytes /\
   pub_seed{2} = (insubd (to_list pub_seed{1}))%NBytes /\
-  val node{2} = to_list buf{1} /\
+  val node{2} = to_list buf{1} /\ 
 
   ots_addr{1}.[3] = W32.zero /\        (* addr type *)
   ltree_addr{1}.[3] = W32.one /\       (* addr type *)
@@ -426,7 +430,7 @@ seq 1 0 : (
 
 (* ======================================================== Ate aqui ta certo *)
 
-
+ 
 while (#pre); last by admit.
 
 seq 5 1 : (#pre /\ tree_idx{1} = tree_index{2}).
@@ -439,7 +443,7 @@ seq 5 1 : (#pre /\ tree_idx{1} = tree_index{2}).
       rewrite -H20 (nth_map witness).
          * rewrite size_sub /#.
       rewrite nth_sub 1:/# /=.
-      have ->: to_uint (offset{1} - W64.one) = to_uint offset{1} - 1 by smt(@W64 pow2_64).
+      have ->: to_uint (offset{1} - W64.one) = to_uint offset{1} - 1 by smt(@W64 pow2_64). (* This smt fails sometimes *)
       rewrite to_uintD /#.
 
 seq 0 0 : (#pre /\ address{2}.[4] = W32.zero). (* Isto e falso *)
@@ -466,7 +470,7 @@ seq 2 2 : (#pre /\ sub node_addr{1} 0 7 = sub address{2} 0 7).
            case (i = 6) => [-> // |?].
            rewrite ifF //.
            case (i = 5) => [-> //= |?].
-              - have ->: to_uint (offset{1} - W64.one) = to_uint offset{1} - 1 by smt(@W64 pow2_64).
+              - have ->: to_uint (offset{1} - W64.one) = to_uint offset{1} - 1 by smt(@W64 pow2_64). (* Obs: this smt fails sometimes *)
                 have ->: (nth witness heights{2} (to_uint offset{1} - 1)) = nth witness (sub_list heights{2} 0 (to_uint offset{1})) (to_uint offset{1} - 1) by rewrite /sub_list nth_mkseq 1:/#.
                 rewrite -H20 (nth_map witness); [rewrite size_sub /# |].
                 by rewrite nth_sub 1:/# to_uintK.    
@@ -481,85 +485,153 @@ seq 3 0 : (#pre /\ to_uint t64{1} = (offset{2} - 2) * 32).
 
 seq 1 2 : (#pre /\ to_list buf2{1} = val node0{2} ++ val node1{2}).
           + wp.
+            ecall {1} (memcpy_u8u8_2_64_352_post buf2{1} _stack{1} t64{1}).
+            skip => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25 H26 H27 H28 H29 H30 result ->.
+            (* Obs: A seta refere se a hipotese to_list result.`1 = sub _stack{1} (to_uint t64{1}) 64 *)
+            apply (eq_from_nth witness); first by rewrite size_cat size_sub // !valP n_val.
+            rewrite size_sub // => i?.
+            rewrite nth_sub //.
+            case (0 <= i < 32) => ?.
+               - rewrite nth_cat valP ifT 1:/#.
+                 have ->: _stack{1}.[to_uint t64{1} + i] = nth witness (sub _stack{1} 0 (n * to_uint offset{1})) (to_uint t64{1} + i) by rewrite nth_sub 1:/# /=.
+                 rewrite H21 /sub_list nth_mkseq 1:/# /= /nbytes_flatten (nth_flatten witness n).
+                    + pose P := (fun (s0 : W8.t list) => size s0 = n).
+                      pose L := (map NBytes.val stack{2}).
+                      rewrite -(all_nthP P L witness) /P /L size_map H5 => j?.
+                      by rewrite (nth_map witness) 1:/# valP.
+                 rewrite (nth_map witness) 1:/# H30 /#.                     
+            (* At this point, 32 <= i < 64 *)
+            rewrite nth_cat valP ifF 1:/#.
+                 have ->: _stack{1}.[to_uint t64{1} + i] = nth witness (sub _stack{1} 0 (n * to_uint offset{1})) (to_uint t64{1} + i) by rewrite nth_sub 1:/# /=.
+                 rewrite H21 /sub_list nth_mkseq 1:/# /= /nbytes_flatten (nth_flatten witness n).
+                    + pose P := (fun (s0 : W8.t list) => size s0 = n).
+                      pose L := (map NBytes.val stack{2}).
+                      rewrite -(all_nthP P L witness) /P /L size_map H5 => j?.
+                      by rewrite (nth_map witness) 1:/# valP.
+                 rewrite (nth_map witness) 1:/# H30 /#.                     
+            
+ 
+seq 1 1 : (#{/~val node{2} = to_list buf{1}}pre /\ val new_node{2} = to_list buf{1}).
+          + inline {1} M(Syscall).__thash_h_ M(Syscall)._thash_h; wp; sp.
+            exists * node0{2}, node1{2}, pub_seed1{1}, addr0{1}, address{2}.
+            elim * => P0 P1 P2 P3 P4. 
+            call (rand_hash_results P0 P1 P2 P3 P4) => [/# |].
+            skip => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25 H26 H27 H28 H29 H30 H31.
+            do split.
+               * rewrite /merge_nbytes_to_array tP => j?.
+                 rewrite initiE //=.
+                 by case (0 <= j < 32) => ?; rewrite -get_to_list H31 nth_cat valP n_val; [rewrite ifT 1:/# | rewrite ifF 1:/#].
+               * smt(sub_k).
+               * move => H32 H33 resultImpl resultSpec H34 H35.
+                 do split.
+                    - smt().
+                    - smt(). 
+                    - apply (eq_from_nth witness); first by rewrite !size_sub. 
+                      rewrite size_sub // => i?. 
+                      rewrite !nth_sub //#. 
+                    - apply (eq_from_nth witness); first by rewrite !size_sub. 
+                      rewrite size_sub // => i?. 
+                      rewrite !nth_sub //#. 
+                    - by rewrite H34.
 
-(* ======================================================== Ate aqui ta certo *)
+seq 5 2 : (#{/~val new_node{2} = to_list buf{1}}pre).
+          + wp. 
+            ecall {1} (memcpy_u8u8_3_352_32_post _stack{1} buf{1} t64{1}).
+            auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25 H26 H27 H28 H29 H30 H31. 
+            do split.
+              * rewrite to_uintM of_uintK /=.
+                smt(@W64 pow2_64).
+              * rewrite to_uintM of_uintK /=.
+                smt(@W64 pow2_64).
+              * move => H32 H33 stackRes.  
+                have ->: to_uint ((offset{1} - (of_int 2)%W64) * (of_int 32)%W64) = (to_uint offset{1} - 2) * 32 by rewrite to_uintM of_uintK /=; smt(@W64 pow2_64). 
+                move => H34 H35 H36. 
+                do split.
+                     - rewrite to_uintB 2:/# uleE /#.
+                     - smt().
+                     - rewrite size_put /#.
+                     - smt().
+                     - smt().
+                     - apply (eq_from_nth witness); first by rewrite size_map size_sub 1:/# size_sub_list /#.
+                       rewrite size_map size_sub 1:/# => i?.
+                       rewrite (nth_map witness). 
+                             + rewrite size_sub /#.
+                       rewrite nth_sub 1:/# /=.
+                       have ->: to_uint heights{1}.[i] = nth witness (map W32.to_uint (sub heights{1} 0 (to_uint offset{1}))) i.
+                             + rewrite (nth_map witness); [by rewrite size_sub /# |].
+                               rewrite nth_sub /#.
+                       rewrite H19 /sub_list !nth_mkseq /#.
+                     - apply (eq_from_nth witness); first by rewrite size_sub 1:/# size_sub_list /#.
+                       rewrite size_sub 1:/# => i?.
+                       rewrite nth_sub 1:/# /= /sub_list nth_mkseq 1:/# /nbytes_flatten /= (nth_flatten witness n).
+                             + pose P := (fun (s0 : W8.t list) => size s0 = n).
+                               pose L := (map NBytes.val (put stack{2} (to_uint offset{1} - 2) new_node{2})). 
+                               rewrite -(all_nthP P L witness) /P /L size_map size_put H5 => j?.
+                               rewrite (nth_map witness).
+                                    * rewrite size_put /#.
+                               by rewrite valP.
+                       rewrite (nth_map witness) 1:#smt:(size_put) nth_put 1:/#.
+                       case (to_uint offset{1} - 2 = i %/ n) => ?.
+                             + rewrite H31 get_to_list /#.
+                       rewrite H34 1:/#.
+                       have ->: _stack{1}.[i] = nth witness (sub _stack{1} 0 (n * to_uint offset{1})) i by rewrite nth_sub /#.
+                       rewrite H20 /sub_list nth_mkseq 1:/# /= /nbytes_flatten (nth_flatten witness n).
+                             + pose P := (fun (s0 : W8.t list) => size s0 = n).
+                               pose L := (map NBytes.val stack{2}). 
+                               rewrite -(all_nthP P L witness) /P /L size_map H5 => j?.
+                               by rewrite (nth_map witness) 1:/# valP n_val.
+                       rewrite (nth_map witness) /#.
+                     - smt().
+                     - smt().
+                     - admit.
+                     - admit.
+                     - admit.
+                     - admit.
 
-while (#pre); last by admit.
-
-    + swap {2} 2 -1.
-      swap {1} 6 -5.
-      seq 1 1 : (#pre /\ address{2}.[5] = node_addr{1}.[5]).
-         * inline {1}; auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25 H26 H27.
-           do split. 
-               - apply (eq_from_nth witness); first by rewrite !size_sub.
-                 rewrite size_sub // => i?.
-                 rewrite /set_tree_height !nth_sub //= get_setE // ifF 1:/# #smt:(sub_k).
-               - apply (eq_from_nth witness); first by rewrite !size_sub.
-                 rewrite size_sub // => i?.
-                 rewrite /set_tree_height !nth_sub //= get_setE // ifF 1:/# #smt:(sub_k).
-               - apply (eq_from_nth witness); first by rewrite !size_sub.
-                 rewrite size_sub // => i?.
-                 rewrite /set_tree_height !nth_sub //= get_setE // ifF 1:/# get_setE // ifF 1:/# #smt:(sub_k). 
-               - rewrite /set_tree_height get_setE //=.
-                 rewrite H27.
-                 have ->: nth witness heights{2} (to_uint offset{1} - 2) = 
-                          nth witness (sub_list heights{2} 0 (to_uint offset{1} - 1)) (to_uint offset{1} - 2).
-                          by rewrite /sub_list nth_mkseq /#.
-                 rewrite -H20 (nth_map witness).
-                      + rewrite size_sub /#.
-                 rewrite nth_sub 1:/# /=.  
-                 have E0 : heights{1}.[to_uint offset{1} - 2] = W32.of_int (nth witness heights{2} (to_uint offset{1} - 2)) by rewrite -H23 1:/# to_uintK.
-                 admit.
-      seq 5 1 : (#pre /\ tree_idx{1} = tree_index{2}).
-         * auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25 H26 H27*.
-           rewrite (: 31 = 2^5 - 1) 1:/# and_mod // /(`>>`) to_uint_truncateu8.
-           rewrite !of_uintK.
-           congr; first by rewrite - to_uintK to_uintD_small 1:/#.
-           admit.
-
-      swap {1} 1 3.
-      seq 3 0 : (#pre /\ to_uint t64{1} = (offset{2} - 2) * n).
-         * auto => /> &1 &2 *.
-           rewrite n_val to_uintM of_uintK /= to_uintB 2:/# uleE /#.
-      seq 1 1 : (#pre /\ node_addr{1}.[6] = address{2}.[6]).
-         * inline {1}; auto => /> &1 &2 *.
-           do split; (
-                apply (eq_from_nth witness); [by rewrite !size_sub | rewrite size_sub // => i?]; 
-                rewrite /set_tree_index !nth_sub //= !get_setE // ifF 1:/# #smt:(sub_k)
-           ).
-
-      seq 8 6 : (#pre /\ ((cond{1} = W8.one) = (2 <= offset{2} /\ nth witness heights{2} (offset{2} - 1) = nth witness heights{2} (offset{2} - 2)))); last first.
-         * ecall {1} (treehash_cond_correct_p heights{1} offset{1}).
-           auto => /> &1 &2 *; do split; admit.
-
-      seq 1 2 : (#pre /\ to_list buf2{1} = val node0{2} ++ val node1{2}); first by admit.
-
-      seq 1 1 : (#pre /\ to_list buf{1} = val new_node{2}); first by admit.
-
-      seq 3 0 : #pre.
-         * auto => /> &1 &2 *.
-           rewrite to_uintM to_uintB 2:/# uleE /#.
-
-      wp.
-      ecall {1} (memcpy_u8u8_3_352_32_post _stack{1} buf{1} t64{1}).
-      skip => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25 H26 H27 H28 H29 H30 H31.
-      do split; 1,2: by smt().
-      move => ?? resultImpl H32 H33 H34*.
-      do split.
-         * rewrite to_uintB 2:/# uleE /#.
-         * smt().
-         * rewrite size_put /#.
-         * rewrite size_put /#.
-         * smt().
-         * rewrite size_put /#.
-         * apply (eq_from_nth witness).
-              - rewrite size_map size_sub 1:/# size_sub_list // /#.
-           rewrite size_map size_sub 1:/# => i?.
-           rewrite (nth_map witness). 
-              - rewrite size_sub /#.
-           rewrite nth_sub //= /sub_list nth_mkseq //= nth_put 1:/# get_setE.
-              - smt(@W64 pow2_64).
-           admit.
-
-qed.
+ecall {1} (treehash_condition_correct heights{1} offset{1}).
+auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25 H26 H27 H28 H29 H30.
+have E0: heights{1}.[to_uint offset{1} - 2] = heights{1}.[to_uint offset{1} - 1] by have := H24; smt(impl_and_R).
+do split.
+     + smt().
+     + smt().
+     + move => H31 H32 result.
+       rewrite /treehash_cond => H33.
+       do split.
+          * rewrite size_put /#.
+          * admit. (* Tirar isto da pre do ciclo interior *)
+          * rewrite size_put /#.
+          * apply (eq_from_nth witness); first by rewrite size_map size_sub 1:/# size_sub_list /#.
+            rewrite size_map size_sub 1:/# => i?.
+            rewrite (nth_map witness).
+                - rewrite size_sub /#.
+            rewrite /sub_list nth_sub 1:/# nth_mkseq 1:/# /= nth_put 1:/# get_setE .
+                - rewrite to_uintB 2:/# uleE /#.
+            case (i = to_uint offset{1} - 1) => ?.
+                - rewrite ifT.
+                     + rewrite to_uintB 2:/# uleE /#.
+                  rewrite ifT 1:/#. 
+                  have ->: nth witness heights{2} (to_uint offset{1} - 1) = nth witness (sub_list heights{2} 0 (to_uint offset{1})) (to_uint offset{1} - 1).
+                     + rewrite /sub_list nth_mkseq /#.
+                  rewrite /sub_list nth_mkseq 1:/# /=. 
+                  admit.
+            rewrite ifF.
+                - rewrite to_uintB 2:/# uleE /#.  
+            rewrite ifF /#.
+          * move => k*.
+            rewrite nth_put /#.
+          * move => k*.
+            rewrite nth_put 1:/# get_setE.
+                - rewrite to_uintB 2:/# uleE /#.
+            case (k = to_uint offset{1} - 1) => [-> |?].
+                - rewrite ifT.   
+                     + rewrite to_uintB 2:/# uleE /#.
+                   rewrite ifT //.           
+                   have ->: to_uint (offset{1} - W64.one) = to_uint offset{1} - 1 by smt(@W64 pow2_64).
+                   admit.
+            admit.
+          * smt().
+          * rewrite !nth_put /#.
+          * rewrite !nth_put 1,2:/#. 
+            admit.
+qed.  
 
