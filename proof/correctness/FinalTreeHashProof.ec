@@ -24,8 +24,10 @@ require import LTReeProof.
 
 require import WArray32.
 
-lemma impl_and_L (a b : bool) : (true => a /\ b) => a by smt().
-lemma impl_and_R (a b : bool) : (true => a /\ b) => b by smt().
+lemma impl_and_L (a b : bool) : (true => (a /\ b)) => a by [].
+lemma impl_and_R (a b : bool) : (true => (a /\ b)) => b by [].
+lemma false_eq (b : bool) : false = b => !b by [].
+
 
 lemma treehash_correct ( _sk_seed _pub_seed : W8.t Array32.t, _s _t:W32.t, _addr:W32.t Array8.t): 
     n = XMSS_N /\
@@ -89,7 +91,6 @@ seq 4 2 : (
            rewrite initiE //= get32E pack4E wordP => i?.
            rewrite initiE //= initiE 1:/# /= /init64 initiE 1:/# /= /copy_64 initiE 1:/# /=.
            rewrite  get64E pack8E bits8iE 1:/# initiE 1:/# /= initiE 1:/# //= /init32 initiE 1:/# /= bits8iE /#.
-
 
 seq 3 0 : (
   #{/~ots_addr{1} = subtree_addr{1}}
@@ -216,7 +217,6 @@ seq 2 0 : (#pre /\ to_uint t32{1} = s{2} + i{2}).
 
 swap {1} 2 -1.
 
-
 seq 1 2 : (
     #{/~sub ots_addr{1} 0 3 = sub address{2} 0 3}pre /\ sub ots_addr{1} 0 5 = sub address{2} 0 5
 ).
@@ -249,6 +249,7 @@ seq 1 0 : (#pre /\ ltree_addr{1}.[4] = W32.of_int (s{2} + i{2})).
            by rewrite H20 nth_sub.
          * by rewrite -H24 to_uintK.
 
+(* ========================================================================================================================================================= *)
 seq 1 4 : (
   #{/~sub ots_addr{1} 0 5 = sub address{2} 0 5}
    {/~ltree_addr{1}.[4] = (of_int (s{2} + i{2}))%W32}pre /\
@@ -326,6 +327,7 @@ seq 1 4 : (
          * apply (eq_from_nth witness); first by rewrite !size_sub.
            rewrite size_sub // => i?. 
            rewrite !nth_sub /#.
+(* ========================================================================================================================================================= *)
 
 wp.
 
@@ -388,7 +390,7 @@ seq 3 3 : (
           * smt().
           * rewrite size_put /#.
  
-conseq ( : 
+conseq (: 
   t{2} = to_uint target_height{1} /\ 0 <= t{2} <= h /\ (* target height *)
   s{2} = to_uint start_index{1} /\ 0 <= s{2} <= h /\ (* start index *)
   offset{2} = to_uint offset{1} /\ (i{2} <> 0 => 0 < offset{2}) /\ (* offset *)
@@ -453,7 +455,47 @@ seq 1 0 : (
     + ecall {1} ( treehash_condition_correct heights{1} offset{1}).
       auto => /> &1 &2 /#.
 
-while (#{/~val node{2} = to_list buf{1}}pre); last first.
+while (
+    (* Obs: This invariant is the same as #{/~val node{2} = to_list buf{1}}pre *)
+    (* O i nao esta entre 0 e 2^t fechado. Esta entre 0 e 2^t aberto pq i+=1 so e feito depois deste ciclo terminar *)
+
+    0 <= t{2} <= h /\
+    t{2} = to_uint target_height{1} /\
+    to_uint upper_bound{1} = 2 ^ t{2} /\
+  
+    s{2} = to_uint start_index{1} /\
+    0 <= s{2} <= h /\
+  
+    offset{2} = to_uint offset{1} /\
+    (i{2} <> 0 => 0 < offset{2}) /\
+    1 <= offset{2} <= size heights{2} /\ (* This comes from the invariant of the outer loop *)
+
+    size stack{2} = h %/ d + 1 /\
+    size heights{2} = h %/ d /\
+
+    to_uint i{1} = i{2} /\
+    i{2} <= to_uint target_height{1} /\
+    0 <= i{2} <= 2 ^ t{2} /\
+    
+    sk_seed{2} = (insubd (to_list sk_seed{1}))%NBytes /\
+    pub_seed{2} = (insubd (to_list pub_seed{1}))%NBytes /\
+  
+    ots_addr{1}.[3] = W32.zero /\
+    ltree_addr{1}.[3] = W32.one /\
+    node_addr{1}.[3] = (of_int 2)%W32 /\
+    node_addr{1}.[4] = W32.zero /\
+    sub ots_addr{1} 0 3 = sub address{2} 0 3 /\
+    sub ltree_addr{1} 0 3 = sub address{2} 0 3 /\
+    sub node_addr{1} 0 4 = sub address{2} 0 4 /\
+
+    map W32.to_uint (sub heights{1} 0 offset{2}) = sub_list heights{2} 0 offset{2} /\
+    sub _stack{1} 0 (n * offset{2}) = sub_list (nbytes_flatten stack{2}) 0 (n * offset{2}) /\
+
+    (forall (k : int), 0 <= k < offset{2} => 0 <= nth witness heights{2} k && nth witness heights{2} k < XMSS_FULL_HEIGHT) /\
+    (forall (k : int), 0 <= k < offset{2} => to_uint heights{1}.[k] = nth witness heights{2} k) /\
+
+    (cond{1} = W8.one) = (2 <= offset{2} /\ heights{1}.[to_uint offset{1} - 2] = heights{1}.[to_uint offset{1} - 1])
+); last first.
           + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25.
             do split. 
                - smt().
@@ -470,13 +512,17 @@ while (#{/~val node{2} = to_list buf{1}}pre); last first.
                       by rewrite H20 /sub_list nth_mkseq 1:/#.
                  rewrite H28 /#.
                - move => stackImpl condImpl heightsImpl node_addr offsetImpl addrSpec heightsSpec stackSpec.
-                 move => H28 H29 H30 H31 H32 H33 H34 H35 H36 H37 H38 H39 H40 H41 H42 H43 H44. 
+                 move => H28 H29 H30 H31 H32 H33 H34 H35 H36 H37 H38 H39 H40 H41 H42 H43 H44 *. 
+
+
+
+
                  do split.
                     * smt().
                     * smt().
-                    * rewrite H32 d_val h_val /=. admit. (* FIXME: Isto provavelmente vem do phoare *)
-                    * smt().
-                    * smt(@W64 pow2_64 @IntDiv).
+                    * rewrite H34 d_val h_val /=. admit.
+                    * smt(). 
+                    * smt(@W64 pow2_64 @IntDiv). 
                     * admit.
                     * rewrite to_uintD /#.
                     * apply (eq_from_nth witness); first by rewrite !size_sub.

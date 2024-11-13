@@ -158,7 +158,39 @@ lemma memcpy_u8u8_2_64_2144_post (_in : W8.t Array2144.t, oi : W64.t):
       to_list res.`1 = sub _in (to_uint oi) 64
     ] = 1%r.
 proof.
-admit.
+proc => /=. 
+while (
+  #{/~in_offset = oi}pre /\ 
+  to_uint in_offset = to_uint oi + to_uint i /\  
+  0 <= to_uint i <= to_uint bytes /\
+  sub out 0 (to_uint i) = sub _in (to_uint oi) (to_uint i)
+)
+(to_uint bytes - to_uint i); last first.
+  + auto => /> &hr H0 H1 H2 H3. 
+    split.
+      - apply (eq_from_nth witness); first by rewrite !size_sub.    
+        rewrite size_sub /#.
+      - move => i0 out0. 
+        rewrite ultE of_uintK /=.
+        move => out0_0.
+        split => [/# |].
+        move => H4 H5 H6 H7.
+        have ->: to_uint i0 = 64 by smt().
+        move => <-.
+        apply (eq_from_nth witness); first by rewrite size_to_list size_sub.
+        rewrite size_to_list => ??.
+        by rewrite get_to_list nth_sub. 
+    + auto => /> &hr.
+      rewrite ultE of_uintK /= => H0 H1 H2 H3 H4 H5 H6 H7 H8. 
+      do split; 2,3,5: by rewrite to_uintD /#.
+          - rewrite !to_uintD_small 1,2:/# H4 /#.
+          - apply (eq_from_nth witness); first by rewrite !size_sub to_uintD /#.
+            rewrite size_sub to_uintD_small 1..3:/# /= => j?.
+            rewrite !nth_sub //= get_setE //.
+            case (j = to_uint i{hr}) => [-> /# |?]. 
+            have ->: out{hr}.[j] = nth witness (sub out{hr} 0 (to_uint i{hr})) j by rewrite nth_sub /#.
+            rewrite H7.
+            rewrite nth_sub // /#.
 qed.
 
 (** -------------------------------------------------------------------------------------------- **)
