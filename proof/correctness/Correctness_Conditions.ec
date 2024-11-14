@@ -126,9 +126,13 @@ lemma treehash_condition_correct (h : W32.t Array11.t) (o : W64.t) :
     0 <= to_uint o <= W32.max_uint /\
     arg = (h, o) 
     ==>
-    (res = W8.one) = treehash_cond h o
+    (res = W8.one) <=> treehash_cond h o
     ] = 1%r.
 proof.
-proc.
+conseq (: _ 
+  ==> 
+  (res = W8.one => treehash_cond h o) /\ (treehash_cond h o => res = W8.one)
+); first by smt().
+proc => /=.
 admit.
 qed.
