@@ -114,32 +114,16 @@ pred mem_dif (m m' : global_mem_t) (p : int) = m.[p] <> m'.[p].
 
 (** -------------------------------------------------------------------------------------------- **)
 
-(*
-In Coq
-Lemma pow2_neq_0 (t : nat) : 0 <> 2^t.
-Proof.
-  symmetry.
-  apply Nat.pow_nonzero.
-  auto.
-Qed.
-*)
+
 lemma pow2_neq_0  (t : int) : 
-    0 <= t => 0 <> 2^t.
-proof.
-admit.
-qed.
+    0 <= t => 0 <> 2^t by smt(@Real).
 
-
-(* In Coq
-Lemma pow2_nonnegative (t : nat) : 0 <= 2 ^ t.
-Proof.
-  apply Nat.le_0_l.
-Qed.
-*)
 lemma pow2_nonnegative ( t : int) :
     0 <= t => 0 <= 2^t.
 proof.
-admit.
+elim t => //.
+move => i??.
+smt(@Real).
 qed.
 
 (** -------------------------------------------------------------------------------------------- **)
