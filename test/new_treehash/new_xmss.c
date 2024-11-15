@@ -81,8 +81,13 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
         /* While the top-most nodes are of equal height.. */
         while (offset >= 2 &&
                heights[offset - 1] == heights[offset - 2]) { 
-        
-        assert(offset >= 0); assert(offset <= size_heights);
+            
+            // Aqui e >= 1 e nao >=2 pq no fim faz-se offset--
+            assert(offset >= 2);
+            assert(offset >= 1); assert(offset <= size_heights); 
+            // OBS: assert(offset < size_heights); falha 
+
+            // O invariante e 1 <= offset <= size heights
 
             if (debug && false) {
                 printf("Entrou no while na iteracao %d\n", i);
@@ -101,7 +106,8 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
             /* Note that the top-most node is now one layer higher. */
             heights[offset - 1]++;
 
-            assert(offset >= 0); assert(offset <= size_heights);
+            assert(offset >= 1); assert(offset <= size_heights);
+            assert(offset < size_heights);
         }
 
         if (debug && false) {
