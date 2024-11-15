@@ -8,131 +8,157 @@ require import XMSS_IMPL.
 
 require import Array11.
 
+lemma neg_impl (p : bool) : !p <=> (p => false) by smt().
+lemma not_b_implies_b_false (b : bool) : !b => b = false by smt().
+
 lemma setcc_false (p : bool) : !p => SETcc p = W8.zero by rewrite /SETcc /#.
 lemma setcc_true  (p : bool) :  p => SETcc p = W8.one  by rewrite /SETcc /#.
 
-lemma cmp_eq_W32 :
-    forall (a b : W32.t), (CMP_32 a b).`5 = (a = b).
-proof.
-move => a b.
-case (a = b) => ?; rewrite /CMP_32 /rflags_of_aluop //=. 
-  + have ->:  (a - b) = W32.zero by smt(@W32).
-    smt().
-smt(@W32).
-qed.
+pred treehash_cond (h : W32.t Array11.t) (o : W64.t) = 2 <= to_uint o /\ (h.[to_uint o - 2] = h.[to_uint o -1]).
 
+lemma treehash_cond_ll : islossless M(Syscall).__treehash_cond by proc; auto.
+
+lemma false_neq (a b : W8.t) : (a <> b) => ((a = b) = false) by move => ?; apply not_b_implies_b_false.
+
+(* ============================================================================================================================= *)
 lemma cmp_eq_W64 :
     forall (a b : W64.t), (CMP_64 a b).`5 = (a = b).
 proof.
 move => a b.
-case (a = b) => ?; rewrite /CMP_64 /rflags_of_aluop //=. 
-  + have ->:  (a - b) = W64.zero by smt(@W64).
-    smt().
-smt(@W64).
+case (a = b) => ?; rewrite /CMP_64 /rflags_of_aluop //=; last by smt(@W64).
+have ->:  (a - b) = W64.zero by smt(@W64).
+by auto.
 qed.
 
 lemma cmp_lt_W64 :
     forall (a b : W64.t), (CMP_64 a b).`2 = (a \ult b).
 proof.
 move => a b.
-rewrite /CMP_64 /rflags_of_aluop => />; smt(@W64).
+rewrite /CMP_64 /rflags_of_aluop /= #smt:(@W64).
 qed.
 
-lemma treehash_cond_ll : islossless M(Syscall).__treehash_cond by proc; auto.
-
-pred treehash_cond (h : W32.t Array11.t) (o : W64.t) = 2 <= to_uint o /\ (h.[to_uint o - 2] = h.[to_uint o -1]).
-
-lemma treehash_cond_correct2 (h : W32.t Array11.t) (o : W64.t) : 
-    phoare [
-      M(Syscall).__treehash_cond :
-      0 <= to_uint o <= W32.max_uint /\
-      arg = (h, o) 
-      ==>
-      res = W8.one <=> treehash_cond h o
-    ] = 1%r.
+lemma cmp_eq_W32 :
+    forall (a b : W32.t), (CMP_32 a b).`5 = (a = b).
 proof.
-proc.
-(*
-seq 3 : (#pre /\ bc1 = if (2 <= to_uint offset) then W8.one else W8.zero).
-  + auto => /> *.
-    case (2 <= to_uint o) => H; [rewrite setcc_true | rewrite setcc_false] => //; rewrite cmp_eq_W64 cmp_lt_W64 /_uGE /_uLT; [smt(@W64) |].
-    rewrite ultE of_uintK // #smt(@W64).
-
-if; last first.
-
-(* ======================================================================================================================================================================= *)
-
-auto => /> ???.
-split.  
-  + have ->: (SETcc   (_EQ (CMP_32 h.[to_uint (o - W64.one)] h.[to_uint (o - (of_int 2)%W64)]).`1
-     (CMP_32 h.[to_uint (o - W64.one)] h.[to_uint (o - (of_int 2)%W64)]).`2
-     (CMP_32 h.[to_uint (o - W64.one)] h.[to_uint (o - (of_int 2)%W64)]).`3
-     (CMP_32 h.[to_uint (o - W64.one)] h.[to_uint (o - (of_int 2)%W64)]).`5) = W8.one) = (_EQ (CMP_32 h.[to_uint (o - W64.one)] h.[to_uint (o - (of_int 2)%W64)]).`1
-     (CMP_32 h.[to_uint (o - W64.one)] h.[to_uint (o - (of_int 2)%W64)]).`2
-     (CMP_32 h.[to_uint (o - W64.one)] h.[to_uint (o - (of_int 2)%W64)]).`3
-     (CMP_32 h.[to_uint (o - W64.one)] h.[to_uint (o - (of_int 2)%W64)]).`5) by smt(setcc_true).
-    rewrite /_EQ cmp_eq_W32.
-    have ->: to_uint (o - W64.one) = to_uint o - 1 by smt(@W64 pow2_64).
-    move => H.    
-    split => [/# |].
-    rewrite H.
-    congr.
-    smt(@W64 pow2_64).
-
-  + move => ?H.
-    rewrite setcc_true // /_EQ cmp_eq_W32.
-    have ->: to_uint (o - W64.one) = to_uint o - 1 by smt(@W64 pow2_64).
-    rewrite -H.
-    congr.
-    smt(@W64 pow2_64).
-
-(* ======================================================================================================================================================================= *)
-*)
-admit.
+move => a b.
+case (a = b) => ?; rewrite /CMP_32 /rflags_of_aluop //=; last by smt(@W32).
+have ->:  (a - b) = W32.zero by smt(@W32).
+by auto.
 qed.
 
-lemma treehash_cond_correct (h : W32.t Array11.t) (o : W64.t) : 
+(* ============================================================================================================================= *)
+
+lemma treehash_condition_correct_l (h : W32.t Array11.t) (o : W64.t) :
     hoare [
-      M(Syscall).__treehash_cond :
-      0 <= to_uint o <= W32.max_uint /\
-      arg = (h, o) 
-      ==>
-      if treehash_cond h o then res = W8.one else res = W8.zero 
+    M(Syscall).__treehash_cond :
+    0 <= to_uint o <= W32.max_uint /\
+    arg = (h, o) 
+    ==>
+    (res = W8.one) => treehash_cond h o
     ].
 proof.
-proc.
+proc => /=.
 seq 3 : (#pre /\ bc1 = if (2 <= to_uint offset) then W8.one else W8.zero).
   + auto => /> *.
     case (2 <= to_uint o) => H; [rewrite setcc_true | rewrite setcc_false] => //; rewrite cmp_eq_W64 cmp_lt_W64 /_uGE /_uLT; [smt(@W64) |].
     rewrite ultE of_uintK // #smt(@W64).
-if; first by auto => />.
-auto => /> *.
-split => *; [rewrite setcc_true | rewrite setcc_false ] => //; rewrite cmp_eq_W32 /_EQ !to_uintB 3:/#; by rewrite uleE /#.        
+if; first by auto => /> *; smt(@W8).
+auto => /> H0 H1 H2.
+have E: 2 <= to_uint o by smt().
+
+rewrite setcc_true /_EQ.
+  + rewrite cmp_eq_W32 !to_uintB; 1,2: by rewrite uleE /#.
+    rewrite !of_uintK /=.
+    admit.
+  + move => _; split => //.
+    admit.
+
 qed.
 
-(* Same as previous lemma but this one is phoare *)
-lemma treehash_cond_correct_p (h : W32.t Array11.t) (o : W64.t) : 
-    phoare [
-      M(Syscall).__treehash_cond :
-      0 <= to_uint o <= W32.max_uint /\
-      arg = (h, o) 
-      ==>
-      if treehash_cond h o then res = W8.one else res = W8.zero 
-    ] =1%r by conseq treehash_cond_ll (treehash_cond_correct h o).
+lemma treehash_condition_correct_r (h : W32.t Array11.t) (o : W64.t) :
+    hoare [
+    M(Syscall).__treehash_cond :
+    0 <= to_uint o <= W32.max_uint /\
+    arg = (h, o) 
+    ==>
+    treehash_cond h o => (res = W8.one)
+    ].
+proof.
+proc => /=.
+seq 3 : (#pre /\ bc1 = if (2 <= to_uint offset) then W8.one else W8.zero).
+  + auto => /> *.
+    case (2 <= to_uint o) => H; [rewrite setcc_true | rewrite setcc_false] => //; rewrite cmp_eq_W64 cmp_lt_W64 /_uGE /_uLT; [smt(@W64) |].
+    rewrite ultE of_uintK // #smt(@W64).
+if; auto => />.
+move => ????H.
+rewrite setcc_true // /_EQ cmp_eq_W32 !to_uintB; 1,2: by rewrite uleE /#.
+by rewrite /= H.
+qed.
 
-lemma treehash_condition_correct (h : W32.t Array11.t) (o : W64.t) :
-    phoare [
+
+lemma treehash_condition_correct_eq (h : W32.t Array11.t) (o : W64.t) :
+    hoare [
+    M(Syscall).__treehash_cond :
+    0 <= to_uint o <= W32.max_uint /\
+    arg = (h, o) 
+    ==>
+    (res = W8.one) = treehash_cond h o
+    ].
+proof.
+proc => /=.
+seq 3 : (#pre /\ bc1 = if (2 <= to_uint offset) then W8.one else W8.zero). 
+  + auto => /> *.
+    case (2 <= to_uint o) => H; [rewrite setcc_true | rewrite setcc_false] => //; rewrite cmp_eq_W64 cmp_lt_W64 /_uGE /_uLT; [smt(@W64) |].
+    rewrite ultE of_uintK // #smt(@W64).
+if.
+- (* 1st branch: bc1 = W8.zero i.e 2 <= offset is false so the whole expression is false *)
+   auto => /> ???.
+   rewrite /treehash_cond.
+   have ->: 2 <= to_uint o = false by smt(@W8).
+   simplify.
+   have E: W8.zero <> W8.one by smt(@W8).
+   have ->: (W8.zero = W8.one) = false by apply false_neq; assumption.
+   trivial.
+- (* 2nd branch: bc1 = W8.zero i.e. 2 <= offset is true *)
+   auto => /> *.
+   have E: 2 <= to_uint o by smt().
+   rewrite /treehash_cond /=.
+   have ->: 2 <= to_uint o = true by smt().
+   simplify.
+   rewrite /_EQ cmp_eq_W32 !to_uintB; 1,2: by rewrite uleE /#.
+   rewrite of_uintK /= /#.
+qed.
+
+lemma treehash_condition_correct_equiv (h : W32.t Array11.t) (o : W64.t) :
+    hoare [
     M(Syscall).__treehash_cond :
     0 <= to_uint o <= W32.max_uint /\
     arg = (h, o) 
     ==>
     (res = W8.one) <=> treehash_cond h o
-    ] = 1%r.
+    ].
 proof.
-conseq (: _ 
-  ==> 
-  (res = W8.one => treehash_cond h o) /\ (treehash_cond h o => res = W8.one)
-); first by smt().
+conseq (: _ ==> (res = W8.one) = treehash_cond h o); first by auto => /> /#. (* Reuse the proof from before *)
 proc => /=.
-admit.
+seq 3 : (#pre /\ bc1 = if (2 <= to_uint offset) then W8.one else W8.zero). 
+  + auto => /> *.
+    case (2 <= to_uint o) => H; [rewrite setcc_true | rewrite setcc_false] => //; rewrite cmp_eq_W64 cmp_lt_W64 /_uGE /_uLT; [smt(@W64) |].
+    rewrite ultE of_uintK // #smt(@W64).
+if.
+- (* 1st branch: bc1 = W8.zero i.e 2 <= offset is false so the whole expression is false *)
+   auto => /> ???.
+   rewrite /treehash_cond.
+   have ->: 2 <= to_uint o = false by smt(@W8).
+   simplify.
+   have E: W8.zero <> W8.one by smt(@W8).
+   have ->: (W8.zero = W8.one) = false by apply false_neq; assumption.
+   trivial.
+- (* 2nd branch: bc1 = W8.zero i.e. 2 <= offset is true *)
+   auto => /> *.
+   have E: 2 <= to_uint o by smt().
+   rewrite /treehash_cond /=.
+   have ->: 2 <= to_uint o = true by smt().
+   simplify.
+   rewrite /_EQ cmp_eq_W32 !to_uintB; 1,2: by rewrite uleE /#.
+   rewrite of_uintK /= /#.
 qed.
