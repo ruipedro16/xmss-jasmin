@@ -42,6 +42,10 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
     unsigned int heights[params->tree_height + 1];
     unsigned int offset = 0;
 
+    size_t size_heights = params->tree_height + 1;
+
+    assert(offset >= 0); assert(offset <= size_heights);
+
     /* The subtree has at most 2^20 leafs, so uint32_t suffices. */
     uint32_t i;
     uint32_t tree_idx;
@@ -69,6 +73,7 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
         gen_leaf_wots(params, stack + offset * params->n, sk_seed, pub_seed, ltree_addr, ots_addr);
 
         offset++;
+        assert(offset >= 0); assert(offset <= size_heights);
         heights[offset - 1] = 0;
 
         assert(node_addr[4] == 0);
@@ -76,6 +81,8 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
         /* While the top-most nodes are of equal height.. */
         while (offset >= 2 &&
                heights[offset - 1] == heights[offset - 2]) { 
+        
+        assert(offset >= 0); assert(offset <= size_heights);
 
             if (debug && false) {
                 printf("Entrou no while na iteracao %d\n", i);
@@ -93,6 +100,8 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
             offset--;
             /* Note that the top-most node is now one layer higher. */
             heights[offset - 1]++;
+
+            assert(offset >= 0); assert(offset <= size_heights);
         }
 
         if (debug && false) {
