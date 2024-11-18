@@ -223,6 +223,18 @@ op merge_nbytes_to_array (a b : nbytes) : W8.t Array64.t =
                          then nth witness (val a) i 
                          else nth witness (val b) (i - 32)).
 
+lemma merge_nbytes_val (ar : W8.t Array64.t) (a b : nbytes) :
+    n = XMSS_N =>
+    to_list ar = val a ++ val b =>
+    ar = merge_nbytes_to_array a b.
+proof.
+rewrite /XMSS_N => n_val H.
+rewrite /merge_nbytes_to_array tP => i?.
+rewrite initiE //=.
+by case (0 <= i < 32) => ?; rewrite -get_to_list H nth_cat valP n_val; [rewrite ifT 1:/# | rewrite ifF 1:/#].
+qed.
+
+
 lemma rand_hash_results (i0 i1: nbytes, _pub_seed : W8.t Array32.t) (a1 a2 : W32.t Array8.t) :
     padding_len = XMSS_PADDING_LEN /\ 
     prf_padding_val = XMSS_HASH_PADDING_PRF /\
