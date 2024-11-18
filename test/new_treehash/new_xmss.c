@@ -46,7 +46,7 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
     printf("DEBUG: size heights - %ld\n", size_heights);  // 11
     #endif
 
-    assert(offset >= 0); assert(offset <= size_heights);
+    assert(offset >= 0); assert(offset < size_heights);
 
     /* The subtree has at most 2^20 leafs, so uint32_t suffices. */
     uint32_t i;
