@@ -10,17 +10,16 @@ require import Array11.
 
 lemma neg_impl (p : bool) : !p <=> (p => false) by smt().
 lemma not_b_implies_b_false (b : bool) : !b => b = false by smt().
+lemma false_neq (a b : W8.t) : (a <> b) => ((a = b) = false) by move => ?; apply not_b_implies_b_false.
 
 lemma setcc_false (p : bool) : !p => SETcc p = W8.zero by rewrite /SETcc /#.
 lemma setcc_true  (p : bool) :  p => SETcc p = W8.one  by rewrite /SETcc /#.
 
 pred treehash_cond (h : W32.t Array11.t) (o : W64.t) = 2 <= to_uint o /\ (h.[to_uint o - 2] = h.[to_uint o -1]).
-
 lemma treehash_cond_ll : islossless M(Syscall).__treehash_cond by proc; auto.
 
-lemma false_neq (a b : W8.t) : (a <> b) => ((a = b) = false) by move => ?; apply not_b_implies_b_false.
-
 (* ============================================================================================================================= *)
+
 lemma cmp_eq_W64 :
     forall (a b : W64.t), (CMP_64 a b).`5 = (a = b).
 proof.
@@ -47,54 +46,6 @@ by auto.
 qed.
 
 (* ============================================================================================================================= *)
-
-lemma treehash_condition_correct_l (h : W32.t Array11.t) (o : W64.t) :
-    hoare [
-    M(Syscall).__treehash_cond :
-    0 <= to_uint o <= W32.max_uint /\
-    arg = (h, o) 
-    ==>
-    (res = W8.one) => treehash_cond h o
-    ].
-proof.
-proc => /=.
-seq 3 : (#pre /\ bc1 = if (2 <= to_uint offset) then W8.one else W8.zero).
-  + auto => /> *.
-    case (2 <= to_uint o) => H; [rewrite setcc_true | rewrite setcc_false] => //; rewrite cmp_eq_W64 cmp_lt_W64 /_uGE /_uLT; [smt(@W64) |].
-    rewrite ultE of_uintK // #smt(@W64).
-if; first by auto => /> *; smt(@W8).
-auto => /> H0 H1 H2.
-have E: 2 <= to_uint o by smt().
-
-rewrite setcc_true /_EQ.
-  + rewrite cmp_eq_W32 !to_uintB; 1,2: by rewrite uleE /#.
-    rewrite !of_uintK /=.
-    admit.
-  + move => _; split => //.
-    admit.
-
-qed.
-
-lemma treehash_condition_correct_r (h : W32.t Array11.t) (o : W64.t) :
-    hoare [
-    M(Syscall).__treehash_cond :
-    0 <= to_uint o <= W32.max_uint /\
-    arg = (h, o) 
-    ==>
-    treehash_cond h o => (res = W8.one)
-    ].
-proof.
-proc => /=.
-seq 3 : (#pre /\ bc1 = if (2 <= to_uint offset) then W8.one else W8.zero).
-  + auto => /> *.
-    case (2 <= to_uint o) => H; [rewrite setcc_true | rewrite setcc_false] => //; rewrite cmp_eq_W64 cmp_lt_W64 /_uGE /_uLT; [smt(@W64) |].
-    rewrite ultE of_uintK // #smt(@W64).
-if; auto => />.
-move => ????H.
-rewrite setcc_true // /_EQ cmp_eq_W32 !to_uintB; 1,2: by rewrite uleE /#.
-by rewrite /= H.
-qed.
-
 
 lemma treehash_condition_correct_eq (h : W32.t Array11.t) (o : W64.t) :
     hoare [
@@ -162,3 +113,26 @@ if.
    rewrite /_EQ cmp_eq_W32 !to_uintB; 1,2: by rewrite uleE /#.
    rewrite of_uintK /= /#.
 qed.
+
+(* ============================================================================================================================= *)
+(* PHOARE VERSION OF THE LEMMAS *)
+(* ============================================================================================================================= *)
+
+lemma p_treehash_condition_correct_eq (h : W32.t Array11.t) (o : W64.t) :
+    phoare [
+    M(Syscall).__treehash_cond :
+    0 <= to_uint o <= W32.max_uint /\
+    arg = (h, o) 
+    ==>
+    (res = W8.one) = treehash_cond h o
+    ] = 1%r by conseq treehash_cond_ll (treehash_condition_correct_eq h o). 
+
+lemma p_treehash_condition_correct_equiv (h : W32.t Array11.t) (o : W64.t) :
+    phoare [
+    M(Syscall).__treehash_cond :
+    0 <= to_uint o <= W32.max_uint /\
+    arg = (h, o) 
+    ==>
+    (res = W8.one) <=> treehash_cond h o
+    ] = 1%r by conseq treehash_cond_ll (treehash_condition_correct_equiv h o).
+

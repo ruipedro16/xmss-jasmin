@@ -12,8 +12,15 @@ require import Array8 Array11.
 
 (*****) import StdBigop.Bigint.
 
+
 (** -------------------------------------------------------------------------------------------- **)
 
+lemma pow2_bound (a b: int) :
+    0 <= a => 0 <= b =>  a <= b => 
+    a <= 2^b
+by smt(@IntDiv).
+
+(** -------------------------------------------------------------------------------------------- **)
 
 lemma get_setE_to_list (a : W32.t Array11.t) (e : W32.t) (i j : int) :
     0 <= i < size (to_list a) =>

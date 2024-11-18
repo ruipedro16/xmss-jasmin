@@ -33,16 +33,18 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
                   uint32_t target_height, const uint32_t subtree_addr[8]) {
 
     assert(subtree_addr[4] == 0);
-    
-    if (debug && false) {
-        puts("Passou no assert");
-    }
 
     unsigned char stack[(params->tree_height + 1) * params->n];
     unsigned int heights[params->tree_height + 1];
     unsigned int offset = 0;
 
     size_t size_heights = params->tree_height + 1;
+    size_t size_stack = params->tree_height;
+
+    #if 0
+    printf("DEBUG: size stack - %ld\n", size_stack);      // 10
+    printf("DEBUG: size heights - %ld\n", size_heights);  // 11
+    #endif
 
     assert(offset >= 0); assert(offset <= size_heights);
 
@@ -64,17 +66,27 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
     set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
 
     for (i = 0; i < (uint32_t)(1 << target_height); i++) {
-        if (debug && false) {
-            printf("Inicio da %d iteracao do for: offset = %d\n", i, offset);
-        }
+        // I1 := 0 <= offset <= size stack
+        assert(offset >= 0);
+        assert(offset <= size_stack);
+        assert(offset >= 0 && offset <= size_stack); // Invariante
+
+        assert(offset < size_heights); // inutil
+
         /* Add the next leaf node to the stack. */
         set_ltree_addr(ltree_addr, start_index + i);
         set_ots_addr(ots_addr, start_index + i);
         gen_leaf_wots(params, stack + offset * params->n, sk_seed, pub_seed, ltree_addr, ots_addr);
 
-        offset++;
-        assert(offset >= 0); assert(offset <= size_heights);
+        offset++; // assert(offset < size_heights); falha aqui 
+        assert(offset >= 0); 
+        assert(offset <= size_heights); // NOTA: offset <= size_stack  e 
+                                        //       offset < size_stack  
+                                        //       nao se verificam aqui, mas 
+                                        //       offset <= size_stack volta a verificar se no fim
+                                        //       do ciclo
         heights[offset - 1] = 0;
+        
 
         assert(node_addr[4] == 0);
 
@@ -84,14 +96,16 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
             
             // Aqui e >= 1 e nao >=2 pq no fim faz-se offset--
             assert(offset >= 2);
-            assert(offset >= 1); assert(offset <= size_heights); 
+            // assert(offset <= size_stack);  // Isto nao se verifica
+            // assert(offset < size_stack);   // Isto nao se verifica
+            assert(offset <= size_heights);   // Estes dois asserts sao equivalentes
+            
+            assert(offset >= 1 && offset <= size_heights); // Invariante
+
             // OBS: assert(offset < size_heights); falha 
 
             // O invariante e 1 <= offset <= size heights
 
-            if (debug && false) {
-                printf("Entrou no while na iteracao %d\n", i);
-            }
             /* Compute index of the new node, in the next layer. */
             tree_idx = ((start_index + i) >> (heights[offset - 1] + 1));
 
@@ -106,13 +120,20 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
             /* Note that the top-most node is now one layer higher. */
             heights[offset - 1]++;
 
-            assert(offset >= 1); assert(offset <= size_heights);
+            assert(offset >= 0);
+            assert(offset <= size_stack);
+
+            assert(offset >= 1); 
+            assert(offset <= size_heights);
             assert(offset < size_heights);
+
+            assert(offset >= 1 && offset <= size_heights); // Invariante
         }
 
-        if (debug && false) {
-            printf("Fim da %d iteracao do for: offset = %d\n", i, offset);
-        }
+        assert(offset >= 0);
+        assert(offset <= size_stack);
+        assert(offset < size_heights);
+        assert(offset >= 0 && offset <= size_stack); // Invariante
     }
 
     memcpy(root, stack, params->n);
