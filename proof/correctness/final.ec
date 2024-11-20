@@ -24,6 +24,9 @@ require import LTReeProof.
 
 require import WArray32.
 
+lemma false_and (a b : bool) : (false = (a /\ b)) => (!a \/ !b) by smt().
+
+
 lemma treehash_correct ( _sk_seed _pub_seed : W8.t Array32.t, _s _t:W32.t, _addr:W32.t Array8.t): 
     n = XMSS_N /\
     d = XMSS_D /\
@@ -377,12 +380,13 @@ conseq (:
     + auto => /> &1 &2 ?????????????????????.
       rewrite ultE => *.
       assumption.
-
+ 
     
 seq 3 3 : ( 
   #{/~to_uint t64{1} = offset{2} * 32}
    {/~offset{2} < size heights{2}}pre /\
-   offset{2} <= size heights{2} 
+   offset{2} <= size heights{2} /\
+   0 < offset{2}
 ).
     + wp. 
       exists * _stack{1}, buf{1}, t64{1}; elim * => P3 P4 P5.
@@ -430,7 +434,7 @@ seq 3 3 : (
                         by rewrite (nth_map witness) 1:/#.
                     rewrite -H21 nth_sub 1:/# /= /#.
             + rewrite size_put /#.
-             
+            + smt().
   
 seq 1 0 : (
     #pre /\ 
@@ -440,7 +444,7 @@ seq 1 0 : (
       auto => /> &1 &2 /#.
 
 seq 0 1 : (#pre /\ sub node_addr{1} 0 5 = sub address{2} 0 5).
-    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25 H26.
+    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25 H26 H27.
       rewrite /set_type.
       do split; (apply (eq_from_nth witness); [by rewrite !size_sub| rewrite size_sub // => i?]; rewrite !nth_sub //= !get_setE //).
          - do (rewrite ifF 1:/#).
@@ -458,21 +462,20 @@ seq 0 1 : (#pre /\ sub node_addr{1} 0 5 = sub address{2} 0 5).
            have ->: node_addr{1}.[i] = nth witness (sub node_addr{1} 0 3) i by rewrite nth_sub /#.
            by rewrite H12 nth_sub /#.
 
-(* ========================================================================================== *)
- 
 
-while (#{/~val node{2} = to_list buf{1}}pre); last first.
-    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25 -> H26.
+while (#{/~val node{2} = to_list buf{1}}pre /\ i{2} < 2 ^ t{2}); first by admit.
+    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25 H26 -> H27.
+      (* A seta refere se a (cond{1} = W8.one) = (2 <= to_uint offset{1} /\  heights{1}.[to_uint offset{1} - 2] = heights{1}.[to_uint offset{1} - 1]) *)
       do split.
          - move => [? H].
            split; first by assumption.
-            have ->: nth witness heights{2} (to_uint offset{1} - 2) = nth witness (sub_list heights{2} 0 (to_uint offset{1})) (to_uint offset{1} - 2) by rewrite /sub_list nth_mkseq /#.
-            have ->: nth witness heights{2} (to_uint offset{1} - 1) = nth witness (sub_list heights{2} 0 (to_uint offset{1})) (to_uint offset{1} - 1) by rewrite /sub_list nth_mkseq /#. 
-            rewrite -H18.
-            rewrite (nth_map witness); first by rewrite size_sub /#.
-            rewrite nth_sub 1:/# /= -H.
-            rewrite (nth_map witness); first by rewrite size_sub /#.
-            by rewrite nth_sub 1:/#.
+           have ->: nth witness heights{2} (to_uint offset{1} - 2) = nth witness (sub_list heights{2} 0 (to_uint offset{1})) (to_uint offset{1} - 2) by rewrite /sub_list nth_mkseq /#.
+           have ->: nth witness heights{2} (to_uint offset{1} - 1) = nth witness (sub_list heights{2} 0 (to_uint offset{1})) (to_uint offset{1} - 1) by rewrite /sub_list nth_mkseq /#. 
+           rewrite -H18.
+           rewrite (nth_map witness); first by rewrite size_sub /#.
+           rewrite nth_sub 1:/# /= -H.
+           rewrite (nth_map witness); first by rewrite size_sub /#.
+           by rewrite nth_sub 1:/#.
          - move => ?.
            have ->: nth witness heights{2} (to_uint offset{1} - 2) = nth witness (sub_list heights{2} 0 (to_uint offset{1})) (to_uint offset{1} - 2) by rewrite /sub_list nth_mkseq /#.
            have ->: nth witness heights{2} (to_uint offset{1} - 1) = nth witness (sub_list heights{2} 0 (to_uint offset{1})) (to_uint offset{1} - 1) by rewrite /sub_list nth_mkseq /#.
@@ -483,7 +486,47 @@ while (#{/~val node{2} = to_list buf{1}}pre); last first.
            rewrite  nth_sub 1:/# /= => ?.
            split; first by assumption.
            smt(@W32).
-         - move => _stack_L buf_L cond_L heights_L node_addr_L offset_L address_R heights_R stack_R.
+         - move => _stack_L cond_L heights_L node_addr_L offset_L address_R heights_R stack_R.
+           move => H28 H29 H30 H31 H32 H33 H34 H35 H36 H37 H38 H39 H40 H41 H42 H43 H44 H45. 
+           have E: !(2 <= to_uint offset_L) \/ !(heights_L.[to_uint offset_L - 2] = heights_L.[to_uint offset_L - 1]) by smt().
+           have E1 : 2 ^ to_uint target_height{1} <= 2^h by smt(@RealExp).
+           have E2 : to_uint i{1} <= 2^h by smt(@RealExp).
+           rewrite E0 in E2.
+           move: E => [H | H].
+              - do split; 1..3: by smt().
+                  * rewrite to_uintD_small // /#.
+                  * rewrite ultE H8 to_uintD /#.
+                  * rewrite ultE H8 to_uintD /#.
+              - do split; 2,3: by smt().
+                  * admit.
+                  * rewrite to_uintD_small // /#.
+                  * rewrite ultE H8 to_uintD /#.
+                  * rewrite ultE H8 to_uintD /#.
+
+
+ H42 H43.
+           do split.
+admit. smt().
+
+
+
+(* ========================================================================================== *)
+ 
+
+while (#{/~val node{2} = to_list buf{1}}pre); last first.
+    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25 -> H26.
+      do split.
+         - move => ?.
+           have ->: nth witness heights{2} (to_uint offset{1} - 2) = nth witness (sub_list heights{2} 0 (to_uint offset{1})) (to_uint offset{1} - 2) by rewrite /sub_list nth_mkseq /#.
+           have ->: nth witness heights{2} (to_uint offset{1} - 1) = nth witness (sub_list heights{2} 0 (to_uint offset{1})) (to_uint offset{1} - 1) by rewrite /sub_list nth_mkseq /#.
+           rewrite -H18.
+           rewrite (nth_map witness); first by rewrite size_sub /#.
+           rewrite  nth_sub 1:/# /=.
+           rewrite (nth_map witness); first by rewrite size_sub /#.
+           rewrite  nth_sub 1:/# /= => ?.
+           split; first by assumption.
+           smt(@W32).
+         - move => _stack_L cond_L heights_L node_addr_L offset_L address_R heights_R stack_R.
            move => H27 H28 H29 H30 H31 H32 H33 H34 H35 H36 H37 H38 H39 H40 H41 H42.
            do split.
              + admit.
