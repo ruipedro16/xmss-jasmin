@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "hash.h"
 #include "hash_address.h"
@@ -19,6 +20,9 @@
 #include "xmss_commons.h"
 
 bool debug = true;
+
+#define I1 (0 <= offset && offset < size_heights)
+#define I2 (1 <= offset && offset <= size_heights)
 
 extern void treehash_jazz(uint8_t *root, const uint8_t *sk_seed, const uint8_t *pub_seed, uint32_t start_index,
                           uint32_t target_height, const uint32_t *subtree_addr);
@@ -32,21 +36,12 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
                   const unsigned char *pub_seed, uint32_t start_index, /* leaf_idx in the old impl */
                   uint32_t target_height, const uint32_t subtree_addr[8]) {
 
-    assert(subtree_addr[4] == 0);
-
     unsigned char stack[(params->tree_height + 1) * params->n];
     unsigned int heights[params->tree_height + 1];
     unsigned int offset = 0;
 
     size_t size_heights = params->tree_height + 1;
     size_t size_stack = params->tree_height;
-
-    #if 0
-    printf("DEBUG: size stack - %ld\n", size_stack);      // 10
-    printf("DEBUG: size heights - %ld\n", size_heights);  // 11
-    #endif
-
-    assert(offset >= 0); assert(offset < size_heights);
 
     /* The subtree has at most 2^20 leafs, so uint32_t suffices. */
     uint32_t i;
@@ -65,46 +60,20 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
     set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
     set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
 
+    assert(I1);
     for (i = 0; i < (uint32_t)(1 << target_height); i++) {
-        // I1 := 0 <= offset <= size stack
-        assert(offset >= 0);
-        assert(offset <= size_stack);
-        assert(offset >= 0 && offset <= size_stack); // Invariante
-
-        assert(offset < size_heights); // inutil
-
         /* Add the next leaf node to the stack. */
         set_ltree_addr(ltree_addr, start_index + i);
         set_ots_addr(ots_addr, start_index + i);
         gen_leaf_wots(params, stack + offset * params->n, sk_seed, pub_seed, ltree_addr, ots_addr);
 
-        offset++; // assert(offset < size_heights); falha aqui 
-        assert(offset >= 0); 
-        assert(offset <= size_heights); // NOTA: offset <= size_stack  e 
-                                        //       offset < size_stack  
-                                        //       nao se verificam aqui, mas 
-                                        //       offset <= size_stack volta a verificar se no fim
-                                        //       do ciclo
+        offset++; 
         heights[offset - 1] = 0;
         
-
-        assert(node_addr[4] == 0);
-
+        assert(I2);
         /* While the top-most nodes are of equal height.. */
         while (offset >= 2 &&
                heights[offset - 1] == heights[offset - 2]) { 
-            
-            // Aqui e >= 1 e nao >=2 pq no fim faz-se offset--
-            assert(offset >= 2);
-            // assert(offset <= size_stack);  // Isto nao se verifica
-            // assert(offset < size_stack);   // Isto nao se verifica
-            assert(offset <= size_heights);   // Estes dois asserts sao equivalentes
-            
-            assert(offset >= 1 && offset <= size_heights); // Invariante
-
-            // OBS: assert(offset < size_heights); falha 
-
-            // O invariante e 1 <= offset <= size heights
 
             /* Compute index of the new node, in the next layer. */
             tree_idx = ((start_index + i) >> (heights[offset - 1] + 1));
@@ -120,20 +89,10 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
             /* Note that the top-most node is now one layer higher. */
             heights[offset - 1]++;
 
-            assert(offset >= 0);
-            assert(offset <= size_stack);
-
-            assert(offset >= 1); 
-            assert(offset <= size_heights);
-            assert(offset < size_heights);
-
-            assert(offset >= 1 && offset <= size_heights); // Invariante
+            assert(I2);
         }
 
-        assert(offset >= 0);
-        assert(offset <= size_stack);
-        assert(offset < size_heights);
-        assert(offset >= 0 && offset <= size_stack); // Invariante
+        assert(I1);
     }
 
     memcpy(root, stack, params->n);
