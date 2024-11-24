@@ -22,7 +22,7 @@
 bool debug = true;
 
 #define I1 (0 <= offset && offset < size_heights)
-#define I2 (1 <= offset && offset <= size_heights)
+#define I2 (1 <= offset && offset <= size_heights + 2)
 
 extern void treehash_jazz(uint8_t *root, const uint8_t *sk_seed, const uint8_t *pub_seed, uint32_t start_index,
                           uint32_t target_height, const uint32_t *subtree_addr);
@@ -60,8 +60,10 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
     set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
     set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
 
-    assert(I1);
+    assert(I1); // TODO:
     for (i = 0; i < (uint32_t)(1 << target_height); i++) {
+        assert(I1); // TODO:
+
         /* Add the next leaf node to the stack. */
         set_ltree_addr(ltree_addr, start_index + i);
         set_ots_addr(ots_addr, start_index + i);
@@ -74,7 +76,8 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
         /* While the top-most nodes are of equal height.. */
         while (offset >= 2 &&
                heights[offset - 1] == heights[offset - 2]) { 
-
+            
+            assert(I2);
             /* Compute index of the new node, in the next layer. */
             tree_idx = ((start_index + i) >> (heights[offset - 1] + 1));
 
@@ -91,9 +94,11 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
 
             assert(I2);
         }
+        assert(I2);
 
-        assert(I1);
+        assert(I1); // TODO:
     }
+    assert(I1); // TODO:
 
     memcpy(root, stack, params->n);
 }

@@ -4,7 +4,6 @@ timeout = 1
 provers = Z3@4.12.4
 provers = CVC4@1.8
 provers = Alt-Ergo@2.5.2
-provers = Coq@8.18.0
 
 rdirs = proof/correctness
 rdirs = proof/common
