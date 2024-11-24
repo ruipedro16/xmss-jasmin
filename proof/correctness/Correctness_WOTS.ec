@@ -461,10 +461,36 @@ lemma wots_checksum_results (msg : W32.t Array64.t) :
       arg{1} = msg /\ arg{2} = map (W32.to_uint) (to_list msg) 
       ==>
       to_uint res{1} = res{2} /\
-        0 <= res{2} <= len1 * (w - 1) 
+      0 <= res{2} <= len1 * (w - 1) 
     ].
 proof.
-admit.
+rewrite /XMSS_WOTS_LEN1 /XMSS_WOTS_W => [#] len1_val w_val.
+proc => /=.
+while (
+  #pre /\
+  to_uint csum{1} = checksum{2} /\
+  0 <= to_uint csum{1} <= (i{2} * (w - 1) * 2^8) /\
+  i{2} = to_uint i{1} /\ 
+  0 <= i{2} <= len1 /\
+  m{2} = map (W32.to_uint) (to_list msg{1}) /\
+  0 <= checksum{2} <= i{2} * (w - 1)
+); last by auto => /> /#.
+    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6.
+      do split.
+        * rewrite (nth_map witness); first by rewrite size_to_list /#.
+          rewrite get_to_list w_val /= to_uintD to_uintB.
+            - rewrite uleE of_uintK /= /#.
+          rewrite of_uintK /= to_uint_zeroextu64 /#.
+        * rewrite !to_uintD to_uintN to_uint_zeroextu64 of_uintK /= /#.
+        * rewrite !to_uintD of_uintK /= to_uintN to_uint_zeroextu64 /#.
+        * rewrite to_uintD /#.
+        * smt().
+        * smt().
+        * rewrite (nth_map witness); first by rewrite size_to_list /#.
+          rewrite get_to_list /#.
+        * rewrite (nth_map witness); [by rewrite size_to_list /#|] => /#.
+        * rewrite ultE of_uintK /= to_uintD /#.
+        * rewrite ultE of_uintK to_uintD /#.
 qed.
 
 lemma gen_chain_inplace_correct (_buf_ : W8.t Array32.t, _start_ _steps_ : W32.t, _addr_ : W32.t Array8.t, _pub_seed_ : W8.t Array32.t) :
@@ -798,17 +824,20 @@ case (i{2} * 32 <= k && k < i{2} * 32 + 32) => *.
       apply H2 => /#.
 qed.
 
+(* Obs: Este lemma e igual ao anteiror *) 
 lemma expand_seed_results (_in_seed _pub_seed : W8.t Array32.t, _addr : W32.t Array8.t) :
     len = XMSS_WOTS_LEN /\ 
     n = XMSS_N /\ 
     prf_padding_val = XMSS_HASH_PADDING_PRF /\
     prf_kg_padding_val = XMSS_HASH_PADDING_PRF_KEYGEN /\
     padding_len = XMSS_PADDING_LEN =>
-    equiv [M(Syscall).__expand_seed ~ WOTS.pseudorandom_genSK :
+    equiv [
+      M(Syscall).__expand_seed ~ WOTS.pseudorandom_genSK :
       arg{1}.`2 = _in_seed /\ 
       arg{1}.`3 = _pub_seed /\
       arg{1}.`4 = _addr /\
-      arg{2} = (NBytes.insubd (to_list _in_seed), NBytes.insubd (to_list _pub_seed), _addr) ==>
+      arg{2} = (NBytes.insubd (to_list _in_seed), NBytes.insubd (to_list _pub_seed), _addr) 
+      ==>
       res{1}.`1 = DecodeWotsSk res{2}
     ].
 proof.
@@ -981,7 +1010,6 @@ qed.
 
 
 (*** Pk From Sig : Doing ***)
-
 
 lemma pk_from_sig_correct (mem : global_mem_t) (_sig_ptr_ : W64.t, _msg_ _pub_seed_ : W8.t Array32.t, _addr_ : W32.t Array8.t) :
     valid_ptr_i _sig_ptr_ 2144 =>
