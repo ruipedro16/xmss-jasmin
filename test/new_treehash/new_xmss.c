@@ -22,6 +22,9 @@ bool debug = true;
 
 #define I1 (0 <= offset && offset < size_heights)
 #define I2 (0 < offset && offset <= size_heights)
+
+// This also goes through for I2: (0 <= offset - 2 && offset <= size_heights)
+
 static void debug_to_file(const char *filepath, const char *text, uint64_t val, bool print_val) {
     if (!text) {
         return;
@@ -57,7 +60,7 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
     unsigned int offset = 0;
 
     size_t size_heights = params->tree_height + 1;
-    size_t size_stack = params->tree_height;
+    size_t size_stack = params->tree_height + 1;
 
     /* The subtree has at most 2^20 leafs, so uint32_t suffices. */
     uint32_t i;
@@ -80,6 +83,9 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
     debug_to_file("debug_treehash_offset_outer_loop.txt", "size stack", (uint64_t)size_stack, true);
     debug_to_file("debug_treehash_offset_outer_loop.txt", "size heights", (uint64_t)size_heights, true);
 
+    debug_to_file("debug_treehash_offset_inner_loop.txt", "size stack", (uint64_t)size_stack, true);
+    debug_to_file("debug_treehash_offset_inner_loop.txt", "size heights", (uint64_t)size_heights, true);
+
     i = 0;
     assert(I1);
     while (i < (uint32_t)(1 << target_height)) {
@@ -95,10 +101,11 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
         offset++;
         heights[offset - 1] = 0;
 
-        // assert(I2);
+        assert(I2);
         /* While the top-most nodes are of equal height.. */
         while (offset >= 2 && heights[offset - 1] == heights[offset - 2]) {
             assert(I2);
+            debug_to_file("debug_treehash_offset_inner_loop.txt", "no incio da iteracao, offset", (uint64_t)offset, true);
             /* Compute index of the new node, in the next layer. */
             tree_idx = ((start_index + i) >> (heights[offset - 1] + 1));
 
@@ -114,8 +121,12 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
             heights[offset - 1]++;
 
             assert(I2);
+            debug_to_file("debug_treehash_offset_inner_loop.txt", "no fim da iteracao, offset", (uint64_t)offset, true);
+            debug_to_file("debug_treehash_offset_inner_loop.txt", "", 0, false); // add a new line
         }
         assert(I2);
+        debug_to_file("debug_treehash_offset_inner_loop.txt", "no fim do ciclo, offset", (uint64_t)offset, true);
+        debug_to_file("debug_treehash_offset_inner_loop.txt", "\n\n", 0, false); // add a new line
 
         i += 1;
         // debug_to_file("debug_treehash_offset_loop.txt", "no fim da iteracao, i", (uint64_t)i, true);
