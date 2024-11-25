@@ -217,7 +217,7 @@ while (
 seq 2 0 : (#pre /\ to_uint t32{1} = s{2} + i{2}).
     + auto => /> &1 &2 *.
       rewrite to_uintD_small //=. 
-      smt(@IntDiv @RealExp).  (* Este smt falha as vezes *)
+      smt(@IntDiv @RealExp).
  
 swap {1} 2 -1.
 
@@ -337,7 +337,7 @@ auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H
            rewrite !nth_sub /#.
 
 (* ===================================================================================================================== *)
- 
+  
 seq 2 0 : (#pre /\ to_uint t64{1} = offset{2} * 32); first by auto => /> *; rewrite to_uintM of_uintK /=/#.
  
 seq 3 3 : ( 
@@ -404,7 +404,85 @@ seq 0 1 : (#pre /\ sub node_addr{1} 0 5 = sub address{2} 0 5).
            by rewrite H11 nth_sub /#.
 
 conseq />; first by smt(). (* Simplifies #post *)
-   
+    
+while (
+  t{2} = to_uint target_height{1} /\
+  0 <= t{2} <= h /\
+
+  s{2} = to_uint start_index{1} /\
+  0 <= s{2} <= h /\
+
+  offset{2} = to_uint offset{1} /\
+  (i{2} <> 0 => 0 < offset{2}) /\
+  0 <= i{2} <= 2 ^ t{2} /\
+  to_uint i{1} = i{2} /\
+  to_uint upper_bound{1} = 2 ^ t{2} /\
+
+  size stack{2} = h %/ d + 1 /\
+  size heights{2} = h %/ d /\
+
+  sk_seed{2} = (insubd (to_list sk_seed{1}))%NBytes /\
+  pub_seed{2} = (insubd (to_list pub_seed{1}))%NBytes /\
+
+  sub ltree_addr{1} 0 3 = sub address{2} 0 3 /\
+  sub node_addr{1} 0 5 = sub address{2} 0 5 /\
+  sub ots_addr{1} 0 3 = sub address{2} 0 3 /\
+  
+  ots_addr{1}.[3] = W32.zero /\
+  ltree_addr{1}.[3] = W32.one /\
+  node_addr{1}.[3] = (of_int 2)%W32 /\
+  node_addr{1}.[4] = W32.zero /\
+
+  map W32.to_uint (sub heights{1} 0 offset{2}) = sub_list heights{2} 0 offset{2} /\
+
+  (forall (k : int), 0 <= k < offset{2} => 0 <= nth witness heights{2} k < XMSS_FULL_HEIGHT) /\
+
+  sub _stack{1} 0 (n * offset{2}) = sub_list (nbytes_flatten stack{2}) 0 (n * offset{2}) /\
+
+  i{2} < 2 ^ t{2} /\
+
+  (cond{1} = W8.one) = (2 <= offset{2} /\ heights{1}.[to_uint offset{1} - 2] = heights{1}.[to_uint offset{1} - 1])
+  
+  0 <= offset{2} <= size heights{2} /\
+
+(cond{1} = W8.one) = (2 <= offset{2} /\ heights{1}.[to_uint offset{1} - 2] = heights{1}.[to_uint offset{1} - 1])
+); first by admit.
+
+
+
+
+
+
+    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25 H26 H27.
+      do split. 
+smt().
+admit.
+admit.
+      move => _stack_L cond_L heights_L node_addr_L offset_L address_R heights_R stack_R.
+      move => H28 H29 H30 H31 H32 H33 H34 H35 H36 H37 H38 H39 H40 H41 H42 H43.
+      do split.
+smt().
+smt(). (* 0 <= to_uint offset_L => to_uint offset_L < size heights_R *)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 while (
   #{/~val node{2} = to_list buf{1}}pre /\
   0 <= to_uint i{1} + 1 <= 2 ^ to_uint target_height{1} /\

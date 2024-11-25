@@ -22,7 +22,7 @@ module TreeHash = {
   proc treehash(pub_seed sk_seed : seed, s t : int, address : adrs) : nbytes = {
     var node : nbytes;
     var stack : nbytes list <- nseq ((h %/ d) + 1) (NBytes.insubd (nseq n W8.zero));
-    var heights : int list <- nseq (h %/ d) witness; (* Used to manage the height of nodes *)
+    var heights : int list <- nseq ((h %/ d) + 1) witness; (* Used to manage the height of nodes *)
     var pk : wots_pk;
     var offset : int;
     var i, j : int;

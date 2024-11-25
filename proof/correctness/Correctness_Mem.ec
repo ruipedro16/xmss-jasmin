@@ -855,22 +855,40 @@ lemma nbytes_copy_131_32_p (o : W8.t Array131.t, _in : W8.t Array32.t)  :
  
  (* ================================================================================= *)
 
+lemma neg_lt (a b : int) : ! (a < b) => b <= a by smt().
 
-lemma memcpy_ptr_touches mem (out offset len : W64.t) :
+lemma memcpy_ptr_touches (mem : global_mem_t) (out offset _bytes : W64.t) :
     hoare [
       M(Syscall)._x__memcpy_u8pu8p :
       arg.`1 = out /\
       arg.`2 = offset /\
-      arg.`5 = bytes
+      arg.`5 = _bytes /\
+
+      0 <= to_uint _bytes /\
+      to_uint out + to_uint offset < W64.modulus
       ==>
-      touches Glob.mem mem (to_uint (out + offset)) (to_uint len)
+      touches Glob.mem mem (to_uint (out + offset)) (to_uint _bytes)
     ].
 proof.
-proc.
-do (wp; sp; inline 1).
-wp; sp.
-simplify.
+proc => /=.
+inline.
+sp.
+
+while (
+  #{/~out_offset1 = out_offset0}{/in_offset1 = in_offset0}pre /\ 
+  0 <= to_uint i <= to_uint bytes1 /\
+  touches Glob.mem mem (to_uint (out + offset)) (to_uint i)
+); last first.
+     - auto => /> &hr *; do split.
+         * rewrite /touches; admit.
+         * move => ??; rewrite ultE /= /#.
+
+auto => /> &hr ??.
 admit.
+
+
+
+
 qed.
 
 lemma memcpy_ptr_touches_p mem (out offset len : W64.t) :

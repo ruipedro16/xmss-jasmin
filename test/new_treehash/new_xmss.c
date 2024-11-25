@@ -8,7 +8,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 
 #include "hash.h"
 #include "hash_address.h"
@@ -22,7 +21,25 @@
 bool debug = true;
 
 #define I1 (0 <= offset && offset < size_heights)
-#define I2 (1 <= offset && offset <= size_heights + 2)
+#define I2 (0 < offset && offset <= size_heights)
+static void debug_to_file(const char *filepath, const char *text, uint64_t val, bool print_val) {
+    if (!text) {
+        return;
+    }
+
+    FILE *file;
+    if (!(file = fopen(filepath, "a"))) {
+        perror("Error opening file");
+        return;
+    }
+
+    if (print_val) {
+        fprintf(file, "%s: %ld\n", text, val);
+    } else {
+        fprintf(file, "%s\n", text);
+    }
+    fclose(file);
+}
 
 extern void treehash_jazz(uint8_t *root, const uint8_t *sk_seed, const uint8_t *pub_seed, uint32_t start_index,
                           uint32_t target_height, const uint32_t *subtree_addr);
@@ -35,7 +52,6 @@ extern void treesig_jazz(uint8_t *sig, uint32_t *addr, const uint8_t *M, const u
 void treehash_new(const xmss_params *params, unsigned char *root, const unsigned char *sk_seed,
                   const unsigned char *pub_seed, uint32_t start_index, /* leaf_idx in the old impl */
                   uint32_t target_height, const uint32_t subtree_addr[8]) {
-
     unsigned char stack[(params->tree_height + 1) * params->n];
     unsigned int heights[params->tree_height + 1];
     unsigned int offset = 0;
@@ -60,23 +76,28 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
     set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
     set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
 
-    assert(I1); // TODO:
-    for (i = 0; i < (uint32_t)(1 << target_height); i++) {
-        assert(I1); // TODO:
+    // auxiliar information to debug
+    debug_to_file("debug_treehash_offset_outer_loop.txt", "size stack", (uint64_t)size_stack, true);
+    debug_to_file("debug_treehash_offset_outer_loop.txt", "size heights", (uint64_t)size_heights, true);
+
+    i = 0;
+    assert(I1);
+    while (i < (uint32_t)(1 << target_height)) {
+        assert(I1);
+        // debug_to_file("debug_treehash_offset_loop.txt", "no inicio da iteracao, i", (uint64_t)i, true);
+        debug_to_file("debug_treehash_offset_outer_loop.txt", "no incio da iteracao, offset", (uint64_t)offset, true);
 
         /* Add the next leaf node to the stack. */
         set_ltree_addr(ltree_addr, start_index + i);
         set_ots_addr(ots_addr, start_index + i);
         gen_leaf_wots(params, stack + offset * params->n, sk_seed, pub_seed, ltree_addr, ots_addr);
 
-        offset++; 
+        offset++;
         heights[offset - 1] = 0;
-        
-        assert(I2);
+
+        // assert(I2);
         /* While the top-most nodes are of equal height.. */
-        while (offset >= 2 &&
-               heights[offset - 1] == heights[offset - 2]) { 
-            
+        while (offset >= 2 && heights[offset - 1] == heights[offset - 2]) {
             assert(I2);
             /* Compute index of the new node, in the next layer. */
             tree_idx = ((start_index + i) >> (heights[offset - 1] + 1));
@@ -96,9 +117,17 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
         }
         assert(I2);
 
-        assert(I1); // TODO:
+        i += 1;
+        // debug_to_file("debug_treehash_offset_loop.txt", "no fim da iteracao, i", (uint64_t)i, true);
+        // debug_to_file("debug_treehash_offset_loop.txt", "", 0, false); // to print a new line
+        debug_to_file("debug_treehash_offset_outer_loop.txt", "no fim da iteracao, offset", (uint64_t)offset, true);
+        debug_to_file("debug_treehash_offset_outer_loop.txt", "", (uint64_t)offset, false); // to print a new line
+        assert(I1);
     }
-    assert(I1); // TODO:
+    assert(I1);
+    // debug_to_file("debug_treehash_offset_loop.txt", "no fim do ciclo, i", (uint64_t)i, true);
+    // debug_to_file("debug_treehash_offset_loop.txt", "", 0, false); // to print a new line
+    debug_to_file("debug_treehash_offset_outer_loop.txt", "no fim do ciclo, offset", (uint64_t)offset, true);
 
     memcpy(root, stack, params->n);
 }
@@ -265,7 +294,7 @@ int xmssmt_core_sign_new(const xmss_params *params, unsigned char *sk, unsigned 
 
     for (unsigned int i = 1; i < params->d; i++) {
         treehash_new(params, root, sk_seed, pub_seed, 0, params->tree_height, ots_addr);
-        idx_tree = idx_tree >> params->tree_height;          /* (h - h / d) most significant bits of idx_sig */
+        idx_tree = idx_tree >> params->tree_height;               /* (h - h / d) most significant bits of idx_sig */
         idx_leaf = (idx_tree & ((1 << params->tree_height) - 1)); /* (h - h / d) least significant bits of idx_sig */
 
         set_layer_addr(ots_addr, i);
