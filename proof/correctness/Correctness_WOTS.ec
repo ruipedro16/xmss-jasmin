@@ -847,137 +847,7 @@ case (i{2} * 32 <= k && k < i{2} * 32 + 32) => *.
       apply H3 => /#.
 qed.
 
-lemma pkgen_correct (_seed_ _pub_seed_ : W8.t Array32.t) :
-    w = XMSS_WOTS_W /\
-    len = XMSS_WOTS_LEN /\
-    n = XMSS_N /\
-    prf_padding_val = XMSS_HASH_PADDING_PRF /\
-    prf_kg_padding_val = XMSS_HASH_PADDING_PRF_KEYGEN /\
-    padding_len = XMSS_PADDING_LEN /\
-    F_padding_val = XMSS_HASH_PADDING_F =>
-    equiv [
-      M(Syscall).__wots_pkgen ~ WOTS.pkGen :
-      arg{1}.`2 = _seed_ /\
-      arg{1}.`3 = _pub_seed_ /\
-
-      arg{2}.`1 = NBytes.insubd (to_list _seed_) /\
-      arg{2}.`2 = NBytes.insubd (to_list _pub_seed_) /\
-
-      forall (k : int), 0 <= k < 5 => arg{1}.`4.[k] = arg{2}.`3.[k]
-      ==>
-      res{1}.`1 = DecodeWotsPk res{2}
-    ]. 
-proof.
-rewrite /XMSS_N /XMSS_WOTS_LEN /XMSS_WOTS_W  => [#] w_val len_val n_val *.
-proc => /=.
-seq 1 1 : (
-  #pre /\
-  size pk{2} = len
-); first by auto => />; rewrite size_nseq /#.
-
-swap {2} 1 1.
-
-seq 1 1: (   
-  val sk_seed{2} = to_list seed{1} /\
-  val _seed{2} = to_list pub_seed{1} /\
-  address{2} = addr{1} /\
-  pk{1} = DecodeWotsSk wots_skey{2} /\
-  size pk{2} = len
-).
-    + inline {1} M(Syscall).__expand_seed_ M(Syscall)._expand_seed. 
-      wp; sp.
-      exists * inseed0{1}, pub_seed1{1}; elim * => _P1 _P2.
-      call (expand_seed_correct _P1 _P2) => [/# |]. 
-      skip => /> &1 &2 *; do split.
-          * by rewrite insubdK // /P size_to_list n_val.
-          * by rewrite insubdK // /P size_to_list n_val.
-          * admit. (* expand_Seed needs information about the address in the result *)
-conseq (: _ ==> 
-  address{2} = addr{1} /\ 
-  size pk{2} = len /\
-  forall (k : int), 0 <= k < 2144 => pk{1}.[k] = nth witness (nbytes_flatten pk{2}) k
-). 
-    + auto => /> &1 &2 H0 H1 H2 pkL pkR H3 H4.
-      rewrite /DecodeWotsPk tP => j Hj.
-      rewrite /of_list initE ifT //=.
-      by rewrite insubdK 2:H4.
-while (
-  val sk_seed{2} = to_list seed{1} /\ 
-  val _seed{2} = to_list pub_seed{1} /\
-  address{2} = addr{1} /\
-
-  size pk{2} = len /\
-  ={i} /\ 
-  0 <= i{1} <= 67 /\
-
-  (forall (k : int), 0 <= k < 32 * i{1} => pk{1}.[k] = nth witness (nbytes_flatten pk{2}) k) /\
-  (forall (k : int), 32 * i{1} <= k < 2144 => pk{1}.[k] = nth witness (nbytes_flatten (val wots_skey{2})) k)
-).
-(* First subgoal of while *)
-seq 2 1 : (#pre); first by inline {1}; auto.
-seq 2 2 : (#pre /\ to_list t{1} = val pk_i{2}).
-    + inline M(Syscall).__gen_chain_inplace_ M(Syscall)._gen_chain_inplace; wp; sp.  
-      exists * out0{1}, start0{1}, steps0{1}, addr1{1}, pub_seed1{1}.  
-      elim * => _P1 _P2 _P3 _P4 _P5.  
-      auto => />.  
-      call (gen_chain_inplace_correct _P1 _P2 _P3 _P4 _P5) => [/# |].
-      skip => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8.  
-      do split. 
-          * apply nbytes_eq.
-            rewrite insubdK; [by rewrite /P size_to_list n_val |].
-            apply (eq_from_nth witness); first by rewrite valP n_val size_to_list.
-            rewrite valP n_val => j?.
-            rewrite get_to_list initiE // => />.
-            rewrite /nbytes_flatten in H6.
-            rewrite H6 1:/#.
-            rewrite (nth_flatten witness 32).
-                - pose P := (fun (s : W8.t list) => size s = 32).
-                  pose L := (map NBytes.val (val wots_skey{2})).
-                  rewrite -(all_nthP P L witness) /P /L size_map LenNBytes.valP len_val => k Hk.
-                  rewrite (nth_map witness); [by rewrite LenNBytes.valP len_val |].  
-                  by rewrite NBytes.valP n_val.
-            rewrite (nth_map witness) 2:/#. 
-            split => [/# | ?]. 
-            rewrite LenNBytes.valP /#. 
-          * by rewrite w_val.
-          * rewrite -H1 #smt:(@NBytes).  
-          * move => *; split => [| /#].
-            admit.
-auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9; do split;2,3,6,7:smt().
-    + rewrite size_put /#.
-    + move => k Hk0 Hk1. 
-      rewrite initE ifT 1:/# => />. 
-      case (i{2} * 32 <= k && k < i{2} * 32 + 32) => *. 
-          * rewrite (nth_flatten witness 32). 
-              - pose P := (fun (s : W8.t list) => size s = 32).
-                pose L := (map NBytes.val (put pk{2} i{2} pk_i{2})).
-                rewrite -(all_nthP P L witness) /L size_map size_put H2 => j Hj.                   
-                rewrite /P (nth_map witness); [by rewrite size_put H2 |].       
-                rewrite nth_put 1:/# #smt:(NBytes.valP).
-            rewrite map_put nth_put; [rewrite size_map /# |].
-            rewrite ifT 1:/# -H9 get_to_list /#.
-          * rewrite /nbytes_flatten (nth_flatten witness 32).  
-              - pose P := (fun (s : W8.t list) => size s = 32).
-                pose L := (map NBytes.val (put pk{2} i{2} pk_i{2})).
-                rewrite -(all_nthP P L witness) /L size_map size_put H2 => j Hj.
-                rewrite (nth_map witness); [by rewrite size_put H2 |].       
-                rewrite /P nth_put 1:/# #smt:(NBytes.valP).
-            rewrite map_put  nth_put; [rewrite size_map /# |].
-            rewrite ifF 1:/#.  rewrite -nth_flatten 2:/#. 
-            pose P := (fun (s : W8.t list) => size s = 32).
-            pose L := (map NBytes.val pk{2}).
-            rewrite -(all_nthP P L witness) /L size_map H2 /P => j Hj.  
-            rewrite (nth_map witness) 1:/# #smt:(NBytes.valP).
-          * move => *.
-            rewrite initiE /#. 
-(* Last subgoal of while *)
-auto => /> &1 &2 H0 H1 H2*; do split;1,3,4:smt().
-move => k??.
-rewrite /DecodeWotsSk /of_list initiE 1:/# => />.
-qed.
-
-
-lemma pkgen_results (_seed_ _pub_seed_ : W8.t Array32.t) (a1 a2 : adrs) :
+lemma pkgen_correct (_seed_ _pub_seed_ : W8.t Array32.t) (a1 a2 : W32.t Array8.t):
     w = XMSS_WOTS_W /\
     len = XMSS_WOTS_LEN /\
     n = XMSS_N /\
@@ -995,22 +865,115 @@ lemma pkgen_results (_seed_ _pub_seed_ : W8.t Array32.t) (a1 a2 : adrs) :
       arg{2}.`2 = NBytes.insubd (to_list _pub_seed_) /\
       arg{2}.`3 = a2 /\
 
-      forall (k : int), 0 <= k < 5 => a1.[k] = a2.[k]
-
+      sub a1 0 5 = sub a2 0 5
       ==>
-
       res{1}.`1 = DecodeWotsPk res{2} /\
-      forall (k : int), 0 <= k < 5 => res{1}.`2.[k] = a1.[k]
+      sub res{1}.`2 0 5 = sub a1 0 5
     ]. 
 proof.
-rewrite /XMSS_WOTS_W /XMSS_WOTS_LEN /XMSS_N /XMSS_HASH_PADDING_PRF.
-rewrite /XMSS_HASH_PADDING_PRF_KEYGEN /XMSS_PADDING_LEN /XMSS_HASH_PADDING_F.
-move => [#] w_val len_val n_val *.
-proc.
-admit.
+rewrite /XMSS_N /XMSS_WOTS_LEN /XMSS_WOTS_W  => [#] w_val len_val n_val *.
+proc => /=. 
+seq 1 1 : (#pre /\ size pk{2} = len); first by auto => />; rewrite size_nseq /#.
+swap {2} 1 1.
+seq 1 1: (   
+  val sk_seed{2} = to_list seed{1} /\
+  val _seed{2} = to_list pub_seed{1} /\
+  pk{1} = DecodeWotsSk wots_skey{2} /\
+  size pk{2} = len /\
+  sub a1 0 5 = sub a2 0 5 /\
+  sub addr{1} 0 5 = sub address{2} 0 5 /\
+  sub addr{1} 0 5 = sub a1 0 5 
+).
+    + inline {1} M(Syscall).__expand_seed_ M(Syscall)._expand_seed. 
+      wp; sp.
+      exists * inseed0{1}, pub_seed1{1}, addr1{1}, address{2}; elim * => _P1 _P2 _P3 _P4.
+      call (expand_seed_correct _P1 _P2 _P3 _P4) => [/# |]. 
+      skip => /> &1 &2 *; do split; [| | smt()]; by rewrite insubdK // /P size_to_list n_val.
+     
+conseq (: _ ==> 
+  size pk{2} = len /\
+  sub addr{1} 0 5 = sub a1 0 5 /\
+  forall (k : int), 0 <= k < 2144 => pk{1}.[k] = nth witness (nbytes_flatten pk{2}) k
+). 
+    + auto => /> &1 &2 ??????????*.
+      rewrite /DecodeWotsPk tP => j Hj.
+      rewrite /of_list initE ifT //=. 
+      by rewrite insubdK /#.
+ 
+conseq /> => [/# |].
+while (
+  val sk_seed{2} = to_list seed{1} /\ 
+  val _seed{2} = to_list pub_seed{1} /\
+  sub address{2} 0 5 = sub addr{1} 0 5 /\
+
+  size pk{2} = len /\
+  ={i} /\ 
+  0 <= i{1} <= 67 /\
+
+  sub addr{1} 0 5 = sub a1 0 5 /\
+
+  (forall (k : int), 0 <= k < 32 * i{1} => pk{1}.[k] = nth witness (nbytes_flatten pk{2}) k) /\
+  (forall (k : int), 32 * i{1} <= k < 2144 => pk{1}.[k] = nth witness (nbytes_flatten (val wots_skey{2})) k)
+); last first.
+    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5.
+      do split; 1,2,4,5: by smt().
+      by move => k ??; rewrite /DecodeWotsSk get_of_list.
+
+
+seq 2 1 : (#pre /\ sub address{2} 0 6 = sub addr{1} 0 6).
+    + inline {1}; auto => /> &1 &2 *.
+      rewrite /set_chain_addr.
+      do split; (
+         apply (eq_from_nth witness); [by rewrite !size_sub | rewrite size_sub // => j?];
+         rewrite !nth_sub //= !get_setE //=
+      ).
+        * rewrite ifF 1:/# ifF 1:/#; smt(sub_k).
+        * rewrite ifF 1:/#; smt(sub_k).
+        * case (j = 5) => //; smt(sub_k).
+
+seq 2 2 : (#pre /\ to_list t{1} = val pk_i{2}).
+    + inline M(Syscall).__gen_chain_inplace_ M(Syscall)._gen_chain_inplace; wp; sp.  
+      exists * out0{1}, start0{1}, steps0{1}, addr1{1}, pub_seed1{1}.  
+      elim * => _P1 _P2 _P3 _P4 _P5.  
+      auto => />.  
+      call (gen_chain_inplace_correct _P1 _P2 _P3 _P4 _P5) => [/# |].
+      skip => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 *.   
+      do split. 
+          * apply nbytes_eq.
+            rewrite insubdK; [by rewrite /P size_to_list n_val |].
+            apply (eq_from_nth witness); first by rewrite valP n_val size_to_list.
+            rewrite valP n_val => j?.
+            rewrite get_to_list initiE // => />.
+            rewrite /nbytes_flatten in H6.
+            rewrite H8 1:/#.
+            rewrite (nth_flatten witness 32).
+                - pose P := (fun (s : W8.t list) => size s = 32).
+                  pose L := (map NBytes.val (val wots_skey{2})).
+                  rewrite -(all_nthP P L witness) /P /L size_map LenNBytes.valP len_val => k Hk.
+                  rewrite (nth_map witness); [by rewrite LenNBytes.valP len_val |].  
+                  by rewrite NBytes.valP n_val.
+            rewrite (nth_map witness) 2:/#. 
+            split => [/# | ?]. 
+            rewrite LenNBytes.valP /#. 
+          * by rewrite w_val.
+          * rewrite -H1 #smt:(@NBytes).  
+          * admit.
+
+          * move => *.
+            do split; admit.
+
+auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12*; do split;2,3,6,7:smt(). 
+    + rewrite size_put /#.
+    + move => k Hk0 Hk1. 
+      rewrite initE ifT 1:/# => />. 
+      case (i{2} * 32 <= k && k < i{2} * 32 + 32) => *. 
+          * rewrite nth_nbytes_flatten; first by rewrite size_put /#.
+            rewrite nth_put 1:/# ifT 1:/# -H12 get_to_list /#.
+          * rewrite nth_nbytes_flatten; first by rewrite size_put /#.
+            rewrite nth_put 1:/# ifF 1:/#.
+            rewrite H7 1:/# nth_nbytes_flatten /#.
+    + smt(initiE).
 qed.
-
-
 
 (*** Pk From Sig : Doing ***)
 
@@ -1402,8 +1365,6 @@ qed.
 
 
 (* ============================================================================================================ *)        
-
-
 lemma wots_sign_seed_corect (_m _sk_seed _pub_seed : W8.t Array32.t, a : W32.t Array8.t) :
     n = XMSS_N /\
     floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
@@ -1413,7 +1374,8 @@ lemma wots_sign_seed_corect (_m _sk_seed _pub_seed : W8.t Array32.t, a : W32.t A
     len = XMSS_WOTS_LEN /\ 
     prf_padding_val = XMSS_HASH_PADDING_PRF /\
     padding_len = XMSS_PADDING_LEN /\ 
-    F_padding_val = XMSS_HASH_PADDING_F =>
+    F_padding_val = XMSS_HASH_PADDING_F /\
+    prf_kg_padding_val = XMSS_HASH_PADDING_PRF_KEYGEN =>
     equiv [
       M(Syscall).__wots_sign ~ WOTS.sign_seed :
       arg{1}.`2 = _m /\
@@ -1435,7 +1397,6 @@ proof.
 rewrite /XMSS_N /XMSS_WOTS_LOG_W /XMSS_WOTS_W /XMSS_WOTS_LEN /XMSS_WOTS_LEN1 /XMSS_WOTS_LEN2 => 
     [#] n_val logw_val w_val len1_val len2_val len_val *.
 proc => /=.
-
 conseq ( : 
   M{2} = to_list msg{1} /\
   val sk_seed{2} = to_list seed{1} /\  val pub_seed{2} = to_list pub_seed{1} /\
@@ -1443,166 +1404,135 @@ conseq ( :
   ==>
   _
 ); first by auto => />; rewrite !insubdK // /P size_to_list n_val.
-
 seq 1 1 : (#pre /\ size sig{2} = len); first by auto => /> *; rewrite size_nseq len_val.
-
 swap {1} 2 -1.
 
 seq 1 1 : (
-    #{/~address{2} = addr{1}}pre /\ 
-    sig{1} = DecodeWotsSk wots_skey{2} /\ 
-    address{2}.[0] = addr{1}.[0] /\
-    address{2}.[1] = addr{1}.[1] /\
-    address{2}.[2] = addr{1}.[2] /\
-    address{2}.[3] = addr{1}.[3] /\
-    address{2}.[4] = addr{1}.[4] /\
-    addr{1}.[5]    = W32.of_int (len - 1) /\
-    address{2}.[6] = W32.zero /\
-    addr{1}.[6]    = W32.zero /\
-    address{2}.[6] = W32.zero /\
-    addr{1}.[7]    = W32.zero /\
-    address{2}.[7] = W32.zero 
-). 
+  #{/~address{2} = addr{1}}pre /\
+  sig{1} = DecodeWotsSk wots_skey{2} /\
+  sub addr{1} 0 5 = sub address{2} 0 5
+).
     + inline {1} M(Syscall).__expand_seed_ M(Syscall)._expand_seed.
       wp; sp.
-      exists * inseed0{1}, pub_seed1{1}, addr1{1}.
-      elim * => P0 P1 P2.
-      admit. 
-
-inline {1} M(Syscall).__chain_lengths_ M(Syscall)._chain_lengths.
-inline {1} M(Syscall).__chain_lengths.
-sp 10 0.
+      exists * inseed0{1}, pub_seed1{1}, addr1{1}, address{2}.
+      elim * => P0 P1 P2 P3.
+      call (expand_seed_correct P0 P1 P2 P3) => [// |].  
+      skip => /> &2 <- <- *; smt(@NBytes).
  
-seq 2 1 : (
-    #{/~t0{1} = witness}pre /\ 
-    msg{2} = map W32.to_uint (to_list t0{1}) /\
-    forall (k : int), 0 <= k < 64 => 0 <= to_uint t0{1}.[k] < w
+seq 1 8 : (
+    #pre /\ 
+    map W32.to_uint (to_list lengths{1}) = msg{2} /\
+    (forall (k : int), 0 <= k < 67 => 0 <= to_uint lengths{1}.[k] < w)
 ).
-    + exists * msg2{1}; elim * => P; call (base_w_results_64 P) => //=; auto => />.
+    + inline {1} M(Syscall).__chain_lengths_ M(Syscall)._chain_lengths.
+      inline {1} M(Syscall).__chain_lengths.
+      sp 10 0.
+      seq 2 1 : (
+          #{/~t0{1} = witness}pre /\ 
+          msg{2} = map W32.to_uint (to_list t0{1}) /\
+          forall (k : int), 0 <= k < 64 => 0 <= to_uint t0{1}.[k] < w
+      ); first by exists * msg2{1}; elim * => P; call (base_w_results_64 P) => //=; auto => />.
 
-seq 1 0 : (#{/~lengths2{1} = lengths1{1}}pre /\ map W32.to_uint (sub lengths2{1} 0 64) = msg{2}).
-    + auto => /> &1 &2 *.
-      apply (eq_from_nth witness); first by rewrite !size_map.
-      rewrite size_map size_sub // => i?.
-      rewrite (nth_map witness); first by rewrite size_sub.
-      rewrite nth_sub //= initiE 1:/# /= ifT // (nth_map witness); first by rewrite size_to_list.
-      by rewrite get_to_list.
+      seq 1 0 : (#{/~lengths2{1} = lengths1{1}}pre /\ map W32.to_uint (sub lengths2{1} 0 64) = msg{2}).
+        * auto => /> &1 &2 *.
+          apply (eq_from_nth witness); first by rewrite !size_map.
+          rewrite size_map size_sub // => i?.
+          rewrite (nth_map witness); first by rewrite size_sub.
+          rewrite nth_sub //= initiE 1:/# /= ifT // (nth_map witness); first by rewrite size_to_list.
+          by rewrite get_to_list.
+      
+      wp; conseq /> => [/# |].
 
-inline {1} M(Syscall).__wots_checksum.
+      inline {1} M(Syscall).__wots_checksum.
+      seq 3 0 : (#{/~t1{1} = witness}pre /\ csum_base_w{1} = t1{1} /\ msg_base_w{1} = lengths2{1}); first by auto.
+     
+      seq 4 0 : ( 
+         #pre /\
+         (forall (k : int), 0 <= k < 64 => 0 <= to_uint buf{1}.[k] < w) /\
+         msg{2} = map (W32.to_uint) (to_list buf{1})
+      ).
+          + auto => /> &1 &2 ?????H.
+            split; last first.
+               * apply (eq_from_nth witness); first by rewrite !size_map !size_iota.
+                 rewrite size_map size_to_list => j?.
+                 rewrite -H (nth_map witness); first by rewrite size_sub.
+                 rewrite nth_sub //= (nth_map witness); first by rewrite size_to_list.
+                 by rewrite get_to_list initiE.
+               * move => j??. 
+                 rewrite !initiE //.
+                 have ->: to_uint lengths2{1}.[j] = nth witness (map W32.to_uint (sub lengths2{1} 0 64)) j.
+                   + rewrite (nth_map witness); [by rewrite size_sub | by rewrite nth_sub].
+                 rewrite H (nth_map witness); first by rewrite size_to_list.
+                 rewrite get_to_list /#.
 
-seq 3 0 : (#{/~t1{1} = witness}pre /\ csum_base_w{1} = t1{1} /\ msg_base_w{1} = lengths2{1}); first by auto.
+       seq 1 1 : (#pre /\ to_uint csum{1} = csum{2} /\ 0 <= csum{2} <= len1 * (w - 1)).
+          + exists * buf{1}; elim * => P; call {1} (wots_checksum_results P) => //.
+            skip => /> /#.
+
+       seq 3 0 : (#pre /\ u{1} = W64.of_int 4); first by auto.
  
-seq 4 0 : (
-  #pre /\
-  (forall (k : int), 0 <= k < 64 => 0 <= to_uint buf{1}.[k] < w) /\
-  msg{2} = map (W32.to_uint) (to_list buf{1})
-).
-    + auto => /> &1 &2 ?????????????T H. (* Estas sao as ultimas 2 hipoteses *)
-(* ====================================================================================================== *)
-      have E: forall (k : int), 0 <= k < 64 => to_uint lengths2{1}.[k] = to_uint t0{1}.[k].
-        * move => k0?.
-          rewrite (: to_uint t0{1}.[k0] = nth witness (map W32.to_uint (to_list t0{1})) k0).                          - rewrite (nth_map witness); first by rewrite size_to_list.
-                  by rewrite get_to_list.
-          rewrite -H (nth_map witness); first by rewrite size_sub.
-          by rewrite nth_sub.
-(* ====================================================================================================== *)
-      split => [k* |].
-        * rewrite initiE // E // /#. 
-        * apply (eq_from_nth witness); first by rewrite !size_map.
-          rewrite size_map size_to_list => i?.
-          rewrite -H. 
-          do 2! congr. 
-          apply (eq_from_nth witness); first by rewrite size_to_list size_sub.
-          rewrite size_sub // => j?.
-          by rewrite nth_sub //= initiE.
+       seq 2 2 : (
+           #{/~to_uint csum{1} = csum{2}}
+            {/~u{1} = W64.of_int 4}pre /\ 
+          to_uint csum{1} = to_uint csum_32{2}
+       ).
+          + auto => /> &1 &2 *.
+            rewrite (: 63 = 2^6 - 1) 1:/# and_mod //=. 
+            have ->: truncateu8 ((of_int 4))%W64 = W8.of_int 4 by smt(@W64 pow2_64).
+            rewrite !shl_shlw //= len2_val w_val log2_16 /= from_int_ceil //=. 
+            rewrite !to_uint_shl //= of_uintK //= #smt:(modz_small).
 
-seq 1 1 : (#pre /\ to_uint csum{1} = csum{2} /\ 0 <= csum{2} <= len1 * (w - 1)).
-    + exists * buf{1}; elim * => P; call {1} (wots_checksum_results P) => //.
-      skip => /> /#.
+       seq 0 1 : (#pre /\ len_2_bytes{2} = 2).
+          + auto => /> *. 
+            rewrite w_val len2_val log2_16 -fromintM //= from_int_ceil //=.
+            apply ceil_3_2.
+      
+       seq 1 1 : (#pre /\ to_list csum_bytes_p{1} = csum_bytes{2}).
+          + exists * csum{1}, csum_32{2}.
+            elim * => P0 P1.
+            call {1} (ull_to_bytes2_post P0 P1).
+            by auto.
+  
+       seq 1 1 : (#{/~csum_base_w{1} = t1{1}}pre /\ csum_base_w{2} = map W32.to_uint (to_list csum_base_w{1}) /\ 
+                  forall (k : int), 0 <= k < size csum_base_w{2} => 0 <= nth witness csum_base_w{2} k < w).
+          + wp.
+            exists * csum_bytes_p{1}; elim * => P.
+            call (base_w_results_3 P) => //=.
+            auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 resultL H12 k0 H13. 
+            rewrite size_map size_to_list =>  H14.
+            rewrite (nth_map witness); first by rewrite size_to_list /#.
+            rewrite get_to_list /#.
+       
+       auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10.
+       rewrite size_map size_to_list => H11 *.
+       split; last first.
+          * move => k??. 
+            rewrite initiE //=. 
+            case (64 <= k < 67) => H; last first.
+                    * have ->: to_uint lengths2{1}.[k] = nth witness (map W32.to_uint (sub lengths2{1} 0 64)) k.
+                           + rewrite (nth_map witness) /=; first by rewrite size_sub /#.
+                             rewrite nth_sub /#.
+                      rewrite H5 (nth_map witness); first by rewrite size_to_list /#.
+                      rewrite get_to_list /#.
+                    * have ->: to_uint csum_base_w{1}.[k - 64] = nth witness (map W32.to_uint (to_list csum_base_w{1})) (k - 64).
+                           + rewrite (nth_map witness); first by rewrite size_to_list /#. 
+                             rewrite get_to_list /#.
+                      smt().
 
-seq 3 0 : (#pre /\ u{1} = W64.of_int 4); first by auto.
- 
-seq 2 2 : (
-    #{/~to_uint csum{1} = csum{2}}
-     {/~u{1} = W64.of_int 4}pre /\ 
-     to_uint csum{1} = to_uint csum_32{2}
-).
-    + auto => /> &1 &2 *.
-      rewrite (: 63 = 2^6 - 1) 1:/# and_mod //=. 
-      have ->: truncateu8 ((of_int 4))%W64 = W8.of_int 4 by smt(@W64 pow2_64).
-      rewrite !shl_shlw //= len2_val w_val log2_16 /= from_int_ceil //=. 
-      rewrite !to_uint_shl //= of_uintK //= #smt:(modz_small).
-
-seq 0 1 : (#pre /\ len_2_bytes{2} = 2).
-    + auto => /> *. 
-      rewrite w_val len2_val log2_16 -fromintM //= from_int_ceil //=.
-      apply ceil_3_2.
-
-seq 1 1 : (#pre /\ to_list csum_bytes_p{1} = csum_bytes{2}).
-    + exists * csum{1}, csum_32{2}.
-      elim * => P0 P1.
-      call {1} (ull_to_bytes2_post P0 P1).
-      by auto.
- 
-seq 2 1 : (#pre /\ csum_base_w{2} = map W32.to_uint (to_list csum_base_w{1})).
-    + wp.
-      exists * csum_bytes_p{1}.
-      elim * => P.
-       call (base_w_results_3 P) => //=.
-
-seq 0 0 : (#pre /\ sub lengths2{1} 0 64  = to_list t0{1}). (* Nao da para usar #pre num conseq (ou se da eu nao sei), dai usar um seq 0 0, o q e estupido *)
-    + auto => /> &1 &2 ?????????????? H*. 
-      apply (eq_from_nth witness); first by rewrite size_to_list size_sub.
-      rewrite size_sub // => i?.
-      have ->: nth witness (to_list t0{1}) i = 
-               W32.of_int (nth witness (map W32.to_uint (to_list t0{1})) i).
-          * rewrite get_to_list (nth_map witness); first by rewrite size_to_list.
-            rewrite get_to_list to_uintK //.
-      rewrite -H nth_sub // (nth_map witness); first by rewrite size_sub.
-      by rewrite nth_sub.
-
-
-seq 1 0 : (#{/~msg_base_w{1} = lengths2{1}}pre /\ sub lengths2{1} 64 3 =  to_list t1{1}).
-    + auto => /> &1 &2 ????????????????????H; do split.
-       * rewrite -H.
-         apply (eq_from_nth witness); first by rewrite !size_map.
-         rewrite size_map size_sub // => i?.
-         rewrite (nth_map witness); first by rewrite size_sub.
-         rewrite nth_sub // (nth_map witness); first by rewrite size_sub.
-         by rewrite initiE 1:/# /= ifF 1:/# nth_sub.
-       * rewrite -H. 
-         apply (eq_from_nth witness); first by rewrite !size_map.
-         rewrite size_map size_iota // => i?.
-         rewrite (nth_map witness); first by rewrite size_iota.
-         rewrite nth_sub //= initiE; first by rewrite nth_iota /#. 
-         simplify.
-         rewrite ifF; first by rewrite nth_iota /#.
-         by rewrite nth_iota.
-       * apply (eq_from_nth witness); first by rewrite size_sub // size_to_list.
-         rewrite size_sub // => i?.
-         by rewrite get_to_list nth_sub // initiE 1:/# /= ifT 1:/#.
-
-seq 4 1 : (
-    #{/~msg{2} = map W32.to_uint (to_list t0{1})}
-     {/~msg{2} = map W32.to_uint (to_list buf{1})}
-     {/~map W32.to_uint (sub lengths2{1} 0 64) = msg{2}}pre /\ 
-     map W32.to_uint (to_list lengths{1}) = msg{2} /\ 
-     sub lengths2{1} 64 3 =  to_list t1{1}
-).
-
-    + auto => /> &1 &2 ??????????????H0????? H2 H1.  
-      apply (eq_from_nth witness); first by rewrite size_cat !size_map !size_iota /#.
-      rewrite size_map size_to_list // => j?.      
-      rewrite (nth_map witness); first by rewrite size_to_list.
-      case (64 <= j < 67) => ?; rewrite nth_cat.
-           * rewrite size_map size_to_list ifF 1:/# (nth_map witness); [by rewrite size_iota |]. 
-             rewrite nth_iota // (nth_map witness); first by rewrite size_to_list /#.
-             simplify.
-             have ->: to_uint t1{1}.[j - 64] = to_uint (nth witness (to_list t1{1}) (j-64)) by rewrite get_to_list.
-             rewrite -H1 nth_sub // /#.
-           * rewrite size_map size_to_list ifT 1:/# -H2 get_to_list.
-             rewrite (nth_map witness); first by rewrite size_sub /#.
-             rewrite nth_sub // /#.
+       apply (eq_from_nth witness); first by rewrite !size_map size_iota size_cat !size_map !size_iota /#.
+       rewrite size_map size_to_list => j?.
+       rewrite (nth_map witness); first by rewrite size_to_list /#.
+       rewrite get_to_list initiE //=.
+       case (64 <= j < 67) => H.
+          * rewrite nth_cat size_map size_to_list ifF 1:/# (nth_map witness); first by rewrite size_to_list /#.
+            rewrite get_to_list /#.
+          * rewrite nth_cat size_map size_to_list ifT 1:/# (nth_map witness); first by rewrite size_to_list /#.
+            rewrite get_to_list.
+            have ->: to_uint lengths2{1}.[j] = nth witness (map W32.to_uint (sub lengths2{1} 0 64)) j.
+               + rewrite (nth_map witness); first by rewrite size_sub /#.
+                 rewrite nth_sub /#.
+            rewrite H5 (nth_map witness); first by rewrite size_to_list /#.
+            by rewrite get_to_list.
 
 (* Invariante: Em cada iteracao escrevemos nbytes *)
 (* A chave e inicialmente escrita no array sig e vai sendo sobreescrita ate no fim so estar la assinatura *)
@@ -1615,16 +1545,7 @@ while (
     val pub_seed{2} = to_list pub_seed{1} /\
     M{2} = to_list msg{1} /\ 
 
-    address{2}.[0] = addr{1}.[0] /\
-    address{2}.[1] = addr{1}.[1] /\
-    address{2}.[2] = addr{1}.[2] /\
-    address{2}.[3] = addr{1}.[3] /\
-    address{2}.[4] = addr{1}.[4] /\
-    address{2}.[6] = W32.zero /\
-    addr{1}.[6] = W32.zero /\
-    address{2}.[6] = W32.zero /\
-    addr{1}.[7] = W32.zero /\
-    address{2}.[7] = W32.zero /\
+    sub addr{1} 0 5 = sub address{2} 0 5 /\
 
     map W32.to_uint (to_list lengths{1}) = msg{2} /\
     (forall (k : int), 0 <= k < 67 => 0 <= to_uint lengths{1}.[k] < w) /\
@@ -1632,84 +1553,89 @@ while (
    
     sub sig{1} 0 (32 * i{1}) = sub_list (nbytes_flatten sig{2}) 0 (32 * i{1}) /\
     sub sig{1} (32 * i{1}) (67*32 - 32*i{1}) = sub (DecodeWotsSk wots_skey{2}) (32 * i{1}) (67*32 - 32*i{1})
-); last by admit.
-(*
-    + auto => /> &1 &2 *; do split; 2: by smt().
-        * apply (eq_from_nth witness); [by rewrite size_sub_list // size_sub |].
+); last first.
+    + auto => /> &1 &2 H0 H1 H2 H3 H4.
+      do split; 2: by smt().
+        - apply (eq_from_nth witness); first by rewrite size_sub // size_sub_list.
           rewrite size_sub // /#.
-        * move => addrL sigL addrR i sigR????.
-          have ->: i = 67 by smt().
-          move => H0 ??????? H1.
-          rewrite /EncodeWotsSignature.
+        - move => addrL sigL addrR iR sigR H5 H6 H7 H8 H9 H10 H11 H12.
+          rewrite /EncodeWotsSignature.  
           congr.
-          apply (eq_from_nth witness); first by rewrite size_map size_chunk // size_to_list H0 len_val.
-          rewrite H0 len_val => j?.  
-          rewrite (nth_map witness); first by rewrite size_chunk // size_to_list /#.
-          rewrite /chunk nth_mkseq; [by rewrite size_to_list /# /=|].
-          apply nbytes_eq.
-          rewrite insubdK.
-             - rewrite /P size_take // size_drop 1:/# size_to_list /#.
-          auto => />.
-          apply (eq_from_nth witness); first by rewrite size_take // valP n_val size_drop 1:/# size_to_list /#.
-          rewrite valP n_val => l?.
-          rewrite nth_take // 1:/# nth_drop 1,2:/#.
-          have ->: nth witness (to_list sigL) (32 * j + l) = nth witness (sub sigL 0 (32 * 67)) (32*j + l) by rewrite get_to_list nth_sub 1:/#.
-          rewrite H1 /sub_list nth_mkseq 1:/# /= /nbytes_flatten.
-          rewrite (nth_flatten witness 32).
-             - admit. (* this should be easy to prove *)
-          rewrite (nth_map witness) 1:/#.
-          congr => /#.
-*)
+          apply (eq_from_nth witness); first by rewrite H9 size_map size_chunk // size_to_list /#.
+          rewrite H9 len_val => j?.
+          rewrite (nth_map witness); first by rewrite size_chunk 1:/# size_to_list /#.
+          apply nbytes_eq. 
+          rewrite insubdK. 
+              * rewrite /P /chunk nth_mkseq /=; first by rewrite size_to_list /#.
+                rewrite size_take 1:/# size_drop 1:/# size_to_list /#.
+          rewrite /chunk nth_mkseq /=; first by rewrite size_to_list.
+          apply (eq_from_nth witness); first by rewrite valP size_take 1:/# size_drop 1:/# size_to_list /#.
+          rewrite valP n_val => jj?.
+          rewrite nth_take 1,2:/# nth_drop 1,2:/# get_to_list.
+          have ->: sigL.[32*j + jj] = nth witness (sub sigL 0 (32 * iR)) (32*j + jj) by rewrite nth_sub // /#.
+          rewrite H11 /sub_list nth_mkseq 1:/# /= nth_nbytes_flatten /#.
 
+wp; conseq />.
 
-seq 2 1 : (#pre /\ address{2} = addr{1}).
+seq 2 1 : (#pre /\ sub address{2} 0 6 = sub addr{1} 0 6).
     + inline {1}; auto => /> &1 &2 *.
-      rewrite /set_chain_addr tP => i?.
-      rewrite get_setE //.
-      case (i = 5) => [-> /# | ?]. 
-      rewrite get_setE // ifF // /#.
- 
+      rewrite /set_chain_addr.
+      split; (
+          apply (eq_from_nth witness); [by rewrite !size_sub | rewrite size_sub // => j?];
+          rewrite !nth_sub //= !get_setE //
+      ).
+         - rewrite ifF 1:/# ifF 1:/#; smt(sub_k).
+         - case (j = 5) => //?; smt(sub_k).
+
 inline {1} M(Syscall).__gen_chain_inplace_.
 inline {1} M(Syscall)._gen_chain_inplace.
 sp; wp.
 exists * out0{1}, start0{1}, steps0{1}, addr1{1}, pub_seed1{1}.        
 elim * => _P1 _P2 _P3 _P4 _P5. 
 call (gen_chain_inplace_correct _P1 _P2 _P3 _P4 _P5) => [/# |].
-skip => /> &1 &2 ???? H2?????H0 H1* ; do split.
-    + apply nbytes_eq.
-      rewrite insubdK /=; first by rewrite /P size_to_list n_val. 
-      apply (eq_from_nth witness); first by rewrite valP n_val size_to_list.
-      rewrite valP n_val => j?.
-      rewrite get_to_list initiE //=.
-      have ->: sig{1}.[i{2} * 32 + j] = nth witness (sub sig{1} (32 * i{2}) (2144 - 32 * i{2})) j by rewrite nth_sub /#.
-      rewrite H1 nth_sub 1:/# /DecodeWotsSk.
-      rewrite Array2144.get_of_list 1:/# /nbytes_flatten (nth_flatten witness 32).     
-         * admit. (* Should be easy to prove *)
-      rewrite (nth_map witness); first by rewrite valP len_val /#.
-      do congr => /#.
-    + rewrite (nth_map witness); first by rewrite size_to_list.
-      by rewrite get_to_list.
-    + rewrite -H2 #smt:(@NBytes).
-    + smt().
-    + smt().
-    + smt().
-    + smt().
-    + auto => /> ?????? r H3; do split.
-        * smt().
-        * smt().
-        * rewrite size_put len_val /#.
-        * admit. (* isto e falso *)
-        * admit. (* isto e falso *)
-        * admit. (* isto e falso *)
-        * admit. (* isto e falso *)
-        * admit. (* isto e falso *)
-        * admit. (* isto e falso *)
-        * admit. (* isto e falso *)
-        * apply (eq_from_nth witness); first by rewrite size_sub 1:/# size_sub_list /#.
-          rewrite size_sub 1:/# => j?.
-          rewrite nth_sub 1:/# /sub_list nth_mkseq 1:/# /= initiE 1:/# /=.
-          admit.
-admit.
-        * smt().
-        * smt().
+
+skip => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11.
+do split.
+          + apply nbytes_eq.
+            rewrite insubdK /=; first by rewrite /P size_to_list /#.
+            apply (eq_from_nth witness); first by rewrite valP size_to_list /#.
+            rewrite valP n_val => j?.
+            rewrite get_to_list /= initiE //=.
+            have ->: sig{1}.[i{2} * 32 + j] = nth witness (sub sig{1} (32 * i{2}) (2144 - 32 * i{2})) j by rewrite nth_sub /#.
+            rewrite H8 /DecodeWotsSk nth_sub 1:/# get_of_list 1:/# nth_nbytes_flatten 2:/# valP /#.
+          + rewrite (nth_map witness); [by rewrite size_to_list | by rewrite get_to_list].
+          + rewrite -H4 #smt:(@NBytes).
+          + admit. (* Isto e falso ==> corrigir o gen chain inplace *) 
+          + smt().
+          + smt().
+          + smt().
+          + smt().        
+          + move => H12 H13 H14 H15 H16 H17 H18 resultL resultR H19 *.
+            do split.
+               * smt().
+               * smt().
+               * smt(size_put).
+               * admit. (* Falta isto no gen chain inplace *) 
+               * apply (eq_from_nth witness); first by rewrite size_sub 1:/# size_sub_list /#.
+                 rewrite size_sub 1:/# => j?.
+                 rewrite nth_sub 1:/# initiE 1:/# /=.
+                 rewrite /sub_list nth_mkseq 1:/# /= nth_nbytes_flatten; first by smt(size_put). 
+                 rewrite nth_put 1:/#.
+                 case (i{2} = j %/ n) => //H.
+                    * rewrite ifT 1:/# -get_to_list -H19 /#.
+                    * rewrite ifF 1:/#.
+                      have ->: sig{1}.[j] = nth witness (sub sig{1} 0 (32 * i{2})) j by rewrite nth_sub /#.
+                      rewrite H7 /sub_list nth_mkseq 1:/# /= nth_nbytes_flatten /#.
+               * apply (eq_from_nth witness); first by rewrite !size_sub /#.
+                 rewrite size_sub 1:/# => j?.
+                 rewrite nth_sub 1:/# initiE 1:/# /=.
+                 rewrite nth_sub 1:/# /DecodeWotsSk.
+                 case (i{2} * 32 <= 32 * (i{2} + 1) + j && 32 * (i{2} + 1) + j < i{2} * 32 + 32) => //= H.
+                    * rewrite get_of_list 1:/# nth_nbytes_flatten /#.
+                    * rewrite get_of_list 1:/# nth_nbytes_flatten; first by rewrite valP /#.
+                      have ->: sig{1}.[32 * (i{2} + 1) + j] = nth witness (sub sig{1} (32 * i{2}) (2144 - 32 * i{2})) (32 + j) by rewrite nth_sub /#.
+                      rewrite H8 nth_sub 1:/# /DecodeWotsSk get_of_list 1:/# nth_nbytes_flatten 2:/# valP /#.
+               * smt().
+               * smt().
 qed.
+

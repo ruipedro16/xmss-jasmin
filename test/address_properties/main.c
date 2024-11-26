@@ -268,8 +268,8 @@ void test_pre(const xmss_params *p) {
     puts("                       #PRE");
     puts("================================================================");
 
-    // test_pre_wots_pk_gen(p);
-    test_pre_expand_seed(p);
+    test_pre_wots_pk_gen(p);
+    // test_pre_expand_seed(p);
     // test_pre_gen_chain_inplace(p);
     // test_pre_ltree(p);
     // test_pre_thash_h(p);
@@ -365,8 +365,8 @@ void test_post(const xmss_params *p) {
     puts("                       #POST");
     puts("================================================================");
 
-    // test_post_wots_pk_gen(p);
-    test_post_expand_seed(p);
+    test_post_wots_pk_gen(p);
+    // test_post_expand_seed(p);
     // test_post_gen_chain(p);
     // test_post_l_tree(p);
     // test_post_thash_h(p);
