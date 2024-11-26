@@ -26,7 +26,7 @@
 bool debug = true;
 
 #define I1 (0 <= offset && offset < size_heights)
-#define I2 (0 < offset && offset <= size_heights)
+#define I2 (1 <= offset && offset <= size_heights)
 
 // This also goes through for I2: (0 <= offset - 2 && offset <= size_heights)
 
@@ -89,10 +89,10 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
 
         assert(I2);
         /* While the top-most nodes are of equal height.. */
-        dprintf(5, "offset before the inner loop: %d\n\n", offset);
+        dprintf(5, "[i = %d]: offset before the inner loop: %d\n\n", i, offset);
         while (offset >= 2 && heights[offset - 1] == heights[offset - 2]) {
             assert(I2);
-            dprintf(5, "offset at the start of the iteration (inner loop): %d\n", offset);
+            dprintf(5, "[i = %d] offset at the start of the iteration (inner loop): %d\n", i, offset);
 
             /* Compute index of the new node, in the next layer. */
             tree_idx = ((start_index + i) >> (heights[offset - 1] + 1));
@@ -107,16 +107,16 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
             offset--;
             /* Note that the top-most node is now one layer higher. */
             heights[offset - 1]++;
+            dprintf(6, "Heights: %d\n", heights[offset - 1]);
 
             assert(I2);
-            dprintf(5, "offset at the end of the iteration (inner loop): %d\n", offset);
+            dprintf(5, "[i = %d] offset at the end of the iteration (inner loop): %d\n", i, offset);
         }
-        dprintf(5, "offset after the inner loop: %d\n\n", offset);
+        dprintf(5, "[i = %d] offset after the inner loop: %d\n\n", i, offset);
+        dprintf(4, "offset at the end of the iteration (outer loop): %d\n\n", offset); // aqui 
+        assert(I1);
         assert(I2);
         i += 1;
-
-        assert(I1);
-        dprintf(4, "offset at the end of the iteration (outer loop): %d\n\n", offset);
     }
     assert(I1);
     dprintf(4, "offset at the end of the outer loop: %d\n\n", offset);
