@@ -22,7 +22,7 @@ module TreeHash = {
   proc treehash(pub_seed sk_seed : seed, s t : int, address : adrs) : nbytes = {
     var node : nbytes;
     var stack : nbytes list <- nseq ((h %/ d) + 1) (NBytes.insubd (nseq n W8.zero));
-    var heights : int list <- nseq (h %/ d) witness; (* Used to manage the height of nodes *)
+    var heights : int list <- nseq ((h %/ d) + 1) witness; (* Used to manage the height of nodes *)
     var pk : wots_pk;
     var offset : int;
     var i, j : int;
@@ -48,6 +48,8 @@ module TreeHash = {
       stack <- put stack offset node; (* Push the node onto the stack *)
       offset <- offset + 1;
       heights <- put heights (offset - 1) 0;
+
+      address <- set_type address 2;
       
       while (
           2 <= offset /\ (* The stack needs to have at least two nodes *)
@@ -66,7 +68,7 @@ module TreeHash = {
 
         stack <- put stack (offset - 2) new_node; (* push new node onto the stack *)
         offset <- offset - 1; (* One less node on the stack (removed node0 and node1 and added new_node) *)
-        heights <- put heights (offset - 1) (nth witness heights (offset - 1)); (* The new node is one level higher than the nodes used to compute it *)
+        heights <- put heights (offset - 1) (nth witness heights (offset - 1) + 1); (* The new node is one level higher than the nodes used to compute it *)
       }      
 
       i <- i + 1;

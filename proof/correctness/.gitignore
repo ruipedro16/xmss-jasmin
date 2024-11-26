@@ -6,3 +6,4 @@ tmp/
 
 tmp.ec
 .lia.cache
+.interactive 

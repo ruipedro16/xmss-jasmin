@@ -8,8 +8,7 @@ require import XMSS_IMPL Parameters.
 
 require import Repr2 Utils2.
 
-require import Array4 Array8 Array32 Array64 Array68 Array96 Array132 Array136 Array352 Array2144.
-require import WArray32 WArray96 WArray136.
+require import Array4 Array8 Array32 Array64 Array68 Array96 Array352 Array2144.
 
 require import Correctness_Address Correctness_Bytes Correctness_Mem Correctness_Hash.
 require import DistrUtils.
@@ -21,8 +20,6 @@ require import StdBigop.
 (*---*) import Bigint.
 
 require import Termination.
-
-require import RootFromSig_Hop.
 
 lemma load_store_W64 (mem : global_mem_t) (a : address) (v : W64.t) :
     loadW64 (storeW64 mem a v) a = v.
@@ -67,7 +64,6 @@ case (eq = W8.zero).
     auto => />. 
 qed.
 
-
 lemma p_set_result_post (eq : W8.t) :
     phoare[
       M(Syscall).__set_result :
@@ -80,6 +76,7 @@ lemma p_set_result_post (eq : W8.t) :
 proof.
 by conseq set_result_ll (set_result_post eq); auto.
 qed.
+
 
 (*
 
@@ -128,31 +125,8 @@ proof.
 rewrite /XMSS_N /XMSS_D /XMSS_FULL_HEIGHT => [#] n_val d_val h_val.
 proc => /=. 
 seq 9 0 : #pre; first by auto.
-(*
-seq 29 17 : (
-  (0 <= to_uint (loadW64 Glob.mem{1} (to_uint mlen_ptr{1})) < W64.max_uint) /\
-  is_valid{2} <=> are_equal{1} = W8.zero
-); last first.
-  + ecall {1} (p_set_result_post are_equal{1}).
-    auto => /> &1 &2. 
-    move => [H H1]. 
- do split.
-    have E : (0 <= to_uint (loadW64 Glob.mem{1} (to_uint mlen_ptr{1})) &&
-    to_uint (loadW64 Glob.mem{1} (to_uint mlen_ptr{1})) <
-    18446744073709551615)
-
-
-
-       * smt(@W64 pow2_64). 
-       * move => ?.  
-         admit. (* This is in H *)
-       * move => ?? r *; do split.         
-            - admit.
-            - admit.
-            - admit.
-            - admit.
-*)
-
+ecall {1} (p_set_result_post are_equal{1}).
+conseq />; first by smt().
 seq 3 0 : (
   #pre /\
   sm_offset{1} = W64.zero /\
@@ -166,90 +140,101 @@ seq 3 0 : (
         * apply (eq_from_nth witness); first by rewrite size_to_list size_sub.
           rewrite size_to_list => j?.
           by rewrite nth_sub // get_to_list initiE. 
-swap {1} 4 -2.
-seq 2 0 : (
+
+seq 3 0 : (
     #pre /\
-    ots_addr{1}.[0] = W32.zero /\
-    ots_addr{1}.[1] = W32.zero /\
-    ots_addr{1}.[2] = W32.zero /\
-    ots_addr{1}.[3] = W32.zero /\
-    ots_addr{1}.[4] = W32.zero /\
-    ots_addr{1}.[5] = W32.zero /\
-    ots_addr{1}.[6] = W32.zero /\
-    ots_addr{1}.[7] = W32.zero
+    ots_addr{1} = zero_address /\ 
+    ltree_addr{1} = zero_address /\ 
+    node_addr{1} = zero_address 
 ).
-    + inline M(Syscall).__zero_address_  M(Syscall).__set_type; wp; ecall {1} (zero_addr_res addr{1}).
-      auto => />.
+    + inline {1} 3; wp; ecall {1} (zero_addr_res addr{1}); wp.
+      inline {1} 2; wp; ecall {1} (zero_addr_res addr{1}); wp.
+      inline {1} 1; wp; ecall {1} (zero_addr_res addr{1}); wp.
+      skip => />.
+
+seq 1 0 : (#pre /\ ots_addr{1}.[3] = W32.zero).
+    + inline {1}; auto => /> &1 *; by apply zero_addr_setZero.
+
+seq 1 0 : (
+  #{/~ltree_addr{1} = zero_address}pre /\
+  sub ltree_addr{1} 0 2 = nseq 2 W32.zero /\
+  ltree_addr{1}.[3] = W32.one /\
+  sub ltree_addr{1} 4 4 = nseq 4 W32.zero
+).
+    + inline {1}; auto => /> &1 *.
+      split; (
+         apply (eq_from_nth witness); [by rewrite size_sub // size_nseq | rewrite size_sub // => i?];
+         rewrite nth_sub // nth_nseq //= get_setE // ifF 1:/# zero_addr_i /#
+      ).
+
+seq 1 0 : (
+  #{/~node_addr{1} = zero_address}pre /\
+  sub node_addr{1} 0 2 = nseq 2 W32.zero /\
+  node_addr{1}.[3] = W32.of_int 2 /\
+  sub node_addr{1} 4 4 = nseq 4 W32.zero
+).
+    + inline {1}; auto => /> &1 *.
+      split; (
+         apply (eq_from_nth witness); [by rewrite size_sub // size_nseq | rewrite size_sub // => i?];
+         rewrite nth_sub // nth_nseq //= get_setE // ifF 1:/# zero_addr_i /#
+      ).
+
+seq 2 0 : (#pre /\ to_uint t64{1} = to_uint smlen{1} - XMSS_SIG_BYTES).
+    + auto => /> &1 *.
+      rewrite /XMSS_SIG_BYTES to_uintB 2:/# uleE /#.
+
+swap {2} 4 -3.
+seq 0 1 : (#pre /\ address{2} = zero_address); first by auto.
+
+print loadW64.
+
+seq 1 0 : (
+  #{/~Glob.mem{1} = mem}
+   {/~to_uint t64{1} = to_uint smlen{1} - XMSS_SIG_BYTES}pre /\ 
+  to_uint (loadW64 Glob.mem{1} (to_uint mlen_ptr{1})) = to_uint smlen{1} - XMSS_SIG_BYTES
+); first by auto => /> &1 *; by rewrite load_store_W64.
+
+seq 1 1 : (#pre /\ to_uint idx{1} = to_uint idx_sig{2}).
+    + ecall {1} (bytes_to_ull_ptr_correct Glob.mem{1} sm_ptr{1}).
+      auto => /> &1 *.
+      split => [/# |].
+      move => ??.
+      rewrite /EncodeSignature => />.
+      admit.
+
+swap {2} 2 -1.
+seq 0 1 : (#pre /\ val seed{2} = sub pk{1} 32 32).
+  + auto => /> &1 &2 *.
+    rewrite /EncodePkNoOID => />.
+    rewrite insubdK // /P size_sub /#.
+
+swap {2} 5 -4.
+seq 0 1 : (#pre /\ val root{2} = sub pk{1} 0 32).
+  + auto => /> &1 &2 *.
+    rewrite /EncodePkNoOID => />.
+    rewrite insubdK // /P size_sub /#.
+
+swap {2} 5 -4.
+seq 0 1 : (
+  #pre /\ 
+  val _R{2} = sub_list ((load_signature_mem mem ptr_sm (sm_len - (of_int XMSS_SIG_BYTES)%W64))) XMSS_INDEX_BYTES 32
+).
+    + auto => /> &1 &2 *.
+      rewrite /EncodeSignature => />.
+      rewrite insubdK // /P size_sub_list /#.
+
+
+(* This seq corresponds to memcpy(m + params->sig_bytes, sm + params->sig_bytes, *mlen); *)
 seq 4 0 : (
-    #pre /\
-    
-    ltree_addr{1}.[0] = W32.zero /\
-    ltree_addr{1}.[1] = W32.zero /\
-    ltree_addr{1}.[2] = W32.zero /\
-    ltree_addr{1}.[3] = W32.one /\
-    ltree_addr{1}.[4] = W32.zero /\
-    ltree_addr{1}.[5] = W32.zero /\
-    ltree_addr{1}.[6] = W32.zero /\
-    ltree_addr{1}.[7] = W32.zero /\
-  
-    node_addr{1}.[0] = W32.zero /\
-    node_addr{1}.[1] = W32.zero /\
-    node_addr{1}.[2] = W32.zero /\
-    node_addr{1}.[3] = W32.of_int 2 /\
-    node_addr{1}.[4] = W32.zero /\
-    node_addr{1}.[5] = W32.zero /\
-    node_addr{1}.[6] = W32.zero /\
-    node_addr{1}.[7] = W32.zero
-).
-    + inline {1} 3.
-      inline {1} 7. 
-      inline {1} 2.
-      wp.
-      ecall {1} (zero_addr_res addr1{1}).
-      inline {1} 1.
-      wp.
-      ecall {1} (zero_addr_res addr2{1}).
-      auto => />.
- 
-(* this conseq simplifies #pre so that it fits on the screen *)
-conseq (:
-    Glob.mem{1} = mem /\
-    (0 < to_uint (loadW64 mem (to_uint ptr_mlen)) < W64.max_uint) /\
+    #pre 
+); first by admit.
 
-      valid_ptr_i ptr_sm 36 /\
-      valid_ptr_i ptr_m 2372 /\
+(* After this seq, buf contains sm + params->index_bytes = _R{2} *)
+seq 2 0 : (
+  #pre /\ to_list buf{1} = val _R{2}
+); first by admit.
 
-    m_ptr{1} = ptr_m /\
-    mlen_ptr{1} = ptr_mlen /\
-    sm_ptr{1} = ptr_sm /\ 
-    smlen{1} = sm_len /\ 
-    pk{1} = _pk /\
-    pk{2} = EncodePkNoOID _pk /\
-    m{2} = load_sig_mem mem ptr_sm sm_len /\ 
-    s{2} = EncodeSignature
-       (load_signature_mem mem ptr_sm (sm_len - (of_int XMSS_SIG_BYTES)%W64)) /\
-    sm_offset{1} = W64.zero /\
-    to_list pub_root{1} = sub pk{1} 0 32 /\
-    to_list pub_seed{1} = sub pk{1} 32 32 /\
 
-    ots_addr{1} = zero_address /\
-    ltree_addr{1} = zero_address.[3 <- W32.one] /\
-    node_addr{1} = zero_address.[3 <- W32.of_int 2] /\
-
-         XMSS_SIG_BYTES < to_uint sm_len
-
-    ==>
-    _
-).
-    + auto => /> &1 &2 *; do split.
-         * rewrite /zero_address tP => j?.
-           rewrite initiE // /#.
-         * rewrite /zero_address tP => j?.
-           rewrite get_setE // initiE //.
-           case (j = 3) => /#. 
-         * rewrite /zero_address tP => j?.
-           rewrite get_setE // initiE //.
-           case (j = 3) => /#. 
 
 (* This corresponds to *mlen = smlen - params->sig_bytes; *)
 seq 3 0 : (

@@ -24,116 +24,143 @@ require import StdBigop.
 require import Termination.
 
 print LTree.
+
 (*  proc ltree(pk : wots_pk, address : adrs, _seed : seed) : nbytes *)
 lemma ltree_correct (_pk : W8.t Array2144.t, _pub_seed : W8.t Array32.t, _addr : W32.t Array8.t) : 
     len = XMSS_WOTS_LEN /\ 
     n = XMSS_N =>
     equiv [
-      M(Syscall).__l_tree ~ LTree.ltree :
+      M(Syscall).__l_tree_ ~ LTree.ltree :
       arg{1}.`2 = _pk /\
       arg{1}.`3 = _pub_seed /\
-      arg{1}.`4 = _addr /\
-      arg{2} = (EncodeWotsPk _pk, _addr, NBytes.insubd (to_list _pub_seed))
+
+      arg{2}.`1 = EncodeWotsPk _pk /\
+      arg{2}.`3 = NBytes.insubd (to_list _pub_seed) /\
+
+      sub arg{1}.`4 0 5 = sub arg{2}.`2 0 5
       ==>
-      to_list res{1}.`1 = val res{2}
+      to_list res{1}.`1 = val res{2} /\
+      sub res{1}.`3 0 5 = sub _addr 0 5
     ].
 proof. 
+rewrite /XMSS_WOTS_LEN /XMSS_N.
+move => [#] len_val n_val *.
+proc => /=.
 admit.
 qed.
 
 (*
-rewrite /XMSS_WOTS_LEN /XMSS_N.
-move => [#] len_val n_val.
-proc. 
-auto => />.
 seq 6 3 : (
-  addr{1} = address{2} /\
   pk{2} = EncodeWotsPk wots_pk{1} /\
-  _seed{2} = to_list pub_seed{1} /\
-  _len{2} = to_uint l{1} /\
-  _len{2} = 67 /\
-  size pk{2} = len /\
-  (forall (t0 : W8.t list), t0 \in pk{2} => size t0 = 32) /\
-  height{1} = W32.zero /\
-  address{2}.[5] = height{1}
-); first by inline {1}; auto. 
+  val _seed{2} = to_list pub_seed{1} /\
+  address{2} = addr{1} /\
+  pks{2} = val pk{2} /\
+  to_uint l{1} = _len{2} /\
+  address{2} = set_tree_height _addr 0    
+).
+    + inline {1}; auto => />.
+      split => [| /#].
+      by rewrite insubdK // /P size_to_list n_val.
 
 seq 1 1 : (
   addr{1} = address{2} /\
-  (forall (k : int), 0 <= k < 32 => wots_pk{1}.[k] = nth witness (nth witness pk{2} 0) k) /\ (* The first chunk is equal *)
-  size pk{2} = len /\
-  (forall (t0 : W8.t list), t0 \in pk{2} => size t0 = 32)
+  sub wots_pk{1} 0 32 = val (nth witness pks{2} 0) /\
+  forall (k : int), 0 <= k && k < 5 => addr{1}.[k] = _addr.[k]
 ); last first.
     + ecall {1} (_x_memcpy_u8u8_post tmp{1}).
-      auto => /> &1 &2 H0 *.  
-      have E : forall (k : int), 0 <= k && k < len => size (nth witness pk{2} k) = 32 by smt(@List). 
-      apply (eq_from_nth witness); [by rewrite size_to_list E /# |]. 
-      rewrite size_to_list => j?. 
-      rewrite -H0 //= initiE //=.
+      auto => /> &1 &2 H *.  
+      apply (eq_from_nth witness); first by rewrite valP n_val size_to_list.
+      rewrite size_to_list => i?.
+      rewrite get_to_list initiE //.
+      have ->: wots_pk{1}.[i] = nth witness (sub wots_pk{1} 0 32) i by rewrite nth_sub.
+      by rewrite H.
 
-conseq (: _ ==>
-  addr{1} = address{2} /\
-  (forall (k : int), 0 <= k < 32 =>  wots_pk{1}.[k] = nth witness (flatten pk{2}) k) /\
-  size pk{2} = len /\ 
-  (forall (t0 : W8.t list), t0 \in pk{2} => size t0 = 32)
-).
-    + auto => /> &1 &2 ???? pkL pkR H4 H5 H6 k??. 
-      rewrite -nth_flatten.
-         * rewrite H5 len_val //=.                      
-         * rewrite (: size (nth witness pkR 0) = 32) //= H6 //=; smt(@List). 
-         * rewrite H4 //=; congr. 
-           rewrite sumzE BIA.big_map /(\o) //= -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) 1:#smt:(@List) big_constz count_predT. 
-           rewrite size_take //= ifT 1:/# //=.
 
 (* ------------------------------------------------------------------------------- *)
 (*                     At this point, we only have the while loop                  *)
 (* ------------------------------------------------------------------------------- *)
-
+ 
 while (
-  addr{1} = address{2} /\
-  _seed{2} = to_list pub_seed{1} /\
-  
-  size pk{2} = len /\
-  (forall (t0 : W8.t list), t0 \in pk{2} => size t0 = 32) /\
-
-  1 <= to_uint l{1} <= 67 /\
-  _len{2} = to_uint l{1} /\
-  
-  pk{2} = EncodeWotsPk wots_pk{1} /\ 
-  address{2}.[5] = height{1}
+  pk{2} = EncodeWotsPk wots_pk{1} /\
+  val _seed{2} = to_list pub_seed{1} /\
+  address{2} = addr{1} /\
+  pks{2} = val pk{2} /\
+  to_uint l{1} = _len{2} /\
+  forall (k : int), 0 <= k && k < 5 => addr{1}.[k] = _addr.[k]
 ); last first.
-    + auto => /> *; do split;1..3:smt().
-        * smt(@W64). 
-        * move => *.
-          rewrite /EncodeWotsPk (nth_flatten witness 32); [rewrite size_all_r 1:#smt:(@BitChunking @List) |]. 
-          rewrite /chunk size_to_list nth_mkseq 1:/# => />.
-          rewrite nth_take //= 1:/# nth_drop //= 1,2:/#.
-          congr => /#. 
-
+    + skip => /> &1 &2 H.
+      do split.
+         * move => k??.
+           by rewrite /set_tree_height get_setE // ifF 1:/#.
+         * rewrite ultE /#.
+         * rewrite ultE /#.
+         * move => addrL lL wotspkL.
+           rewrite ultE => ??H1?.
+           apply (eq_from_nth witness); first by rewrite valP n_val size_sub.
+           rewrite size_sub // => i?.
+           rewrite H1.
+           rewrite nth_sub //=.
+           rewrite /EncodeWotsPk insubdK.
+               - rewrite /P size_map size_chunk 1:/# size_to_list /#.
+           rewrite (nth_map witness).
+               - rewrite size_chunk 1:/# size_to_list /#.
+           rewrite insubdK.
+               - rewrite /P /chunk nth_mkseq /=; [rewrite size_to_list /# |].
+                 rewrite size_take 1:/# size_drop // size_to_list /#.
+           rewrite /chunk nth_mkseq.
+               - rewrite size_to_list /#.
+           by rewrite nth_take 1,2:/# nth_drop 1,2:/# get_to_list. 
+ 
 (* ------------------------------------------------------------------------------- *)
 (*              The first subgoal of the outter while loop starts here             *)
 (* ------------------------------------------------------------------------------- *)
  
-(* This removes the addresses at the end *)
-seq 7 4 : (
-  addr{1} = address{2} /\
-  _seed{2} = to_list pub_seed{1} /\
-  size pk{2} = len /\
-  (forall (t0 : W8.t list), t0 \in pk{2} => size t0 = 32) /\
-  1 <= to_uint l{1} <= 67 /\
-  _len{2} = to_uint l{1} /\ 
-  pk{2} = EncodeWotsPk wots_pk{1} /\ 
-  address{2}.[5] = height{1} 
-); last first.  
-    + inline {1}. auto => /> &1 &2 *; do split. 
-        * rewrite /get_tree_height /set_tree_height; congr ; smt(@W32). 
-        * rewrite /get_tree_height /set_tree_height get_setE //=; smt(@W32).
-        * rewrite ultE (: to_uint W64.one = 1) /#.        
-        * rewrite ultE (: to_uint W64.one = 1) /#.        
+seq 2 0 : (#pre /\ to_uint parent_nodes{1} = _len{2} %/ 2); first by auto => /> *; rewrite truncate_1_and_63 to_uint_shr.
 
-seq 2 0 : (#pre /\ to_uint parent_nodes{1} = to_uint l{1} %/ 2).
-    + by auto => /> *; rewrite truncate_1_and_63 shr_1.
- 
+seq 5 5 : (to_uint height{1} = tree_height{2} /\ #post); last first.
+    + inline {1}; auto => /> &1 &2 *.
+      split.
+        * rewrite /set_tree_height; congr; smt(@W32 pow2_32).
+        * move => k??.
+          rewrite get_setE // ifF /#.
+      
+
+seq 2 2 : (
+  addr{1} = address{2} /\
+  val _seed{2} = to_list pub_seed{1} /\
+  _len{2} = to_uint l{1} /\ 1 <= to_uint l{1} <= 67 /\
+  pk{2} = EncodeWotsPk wots_pk{1} /\
+  pks{2} = val pk{2} /\
+  to_uint l{1} = _len{2} /\
+  to_uint height{1} = tree_height{2} /\
+  (forall (k : int), 0 <= k && k < 5 => addr{1}.[k] = _addr.[k]) /\
+  to_uint height{1} = get_tree_height address{2}
+); first by admit.
+    + seq 2 0 : (#pre /\ t{1} = l{1} `&` W64.one); first by auto.
+      
+      (* =============== pnso que seja isto *)
+      seq 1 1 : (
+        #{/~to_uint l{1} = _len{2}}pre /\ 
+        if l{1} `&` W64.one <> W64.zero then to_uint l{1} = _len{2} else to_uint l{1} = _len{2} + 1
+      ).
+
+      admit. (* Obs: Isto nao pode ser resolvido com a tactica if *)
+
+(* ------------------------------------------------------------------------------- *)
+(*                         The inner while loop starts here                        *)
+(* ------------------------------------------------------------------------------- *)
+
+admit.
+
+
+
+qed.
+
+(*
+(* ------------------------------------------------------------------------------- *)
+(*              The first subgoal of the outter while loop starts here             *)
+(* ------------------------------------------------------------------------------- *)
+
 seq 2 2 : (
   addr{1} = address{2} /\
   _seed{2} = to_list pub_seed{1} /\
@@ -271,4 +298,6 @@ do split.
     + rewrite ultE to_uintD_small 1:#smt:(@W64) (: to_uint W64.one = 1) 1:/# H1 //=. 
     + rewrite ultE to_uintD_small 1:#smt:(@W64) (: to_uint W64.one = 1) 1:/# H1 //=. 
 qed.
+*)
+
 *)

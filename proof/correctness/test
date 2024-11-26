@@ -1,7 +1,0 @@
-Require Import Coq.micromega.Lia.
-
-Theorem test : 
-  forall x y, x + 2 * y <= 4 /\ 2 * x + y <= 4 -> x + y < 3.
-Proof. 
-lia.
-Qed.

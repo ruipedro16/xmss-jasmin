@@ -8,9 +8,92 @@ from Jasmin require import JModel.
 
 require import Params Address Hash LTree XMSS_MT_Types.
 
-require import Array8.
+require import Array8 Array11.
 
 (*****) import StdBigop.Bigint.
+
+
+(** -------------------------------------------------------------------------------------------- **)
+
+lemma pow2_bound (a b: int) :
+    0 <= a => 0 <= b =>  a <= b => 
+    a <= 2^b
+by smt(@IntDiv).
+
+(** -------------------------------------------------------------------------------------------- **)
+
+lemma get_setE_to_list (a : W32.t Array11.t) (e : W32.t) (i j : int) :
+    0 <= i < size (to_list a) =>
+    a.[i <- e].[j] = nth witness (put (to_list a) i e) j.
+proof.
+rewrite size_to_list => ?.
+rewrite nth_put.
+  + by rewrite size_to_list. 
+rewrite get_setE // get_to_list /#.
+qed.
+
+
+lemma sub_k (k : int) (a0 a1 : W32.t Array8.t) :
+    0 <= k => sub a0 0 k = sub a1 0 k =>
+      forall (i : int), 0 <= i < k => a0.[i] = a1.[i].
+proof.
+move => H0 H1 i Hi. 
+have ->: a0.[i] = nth witness (sub a0 0 k) i by rewrite nth_sub.
+by rewrite H1 nth_sub.
+qed.
+
+lemma addr_sub_5 (a0 a1 : W32.t Array8.t) :
+    a0.[0] = a1.[0] /\
+    a0.[1] = a1.[1] /\
+    a0.[2] = a1.[2] /\
+    a0.[3] = a1.[3] /\
+    a0.[4] = a1.[4] 
+          <=>
+    sub a0 0 5 = sub a1 0 5.
+proof.
+split.
+  + move => [#] *.
+    apply (eq_from_nth witness); first by rewrite !size_sub.
+    rewrite size_sub // => i?.
+    rewrite !nth_sub //=/#.
+  + move => H.
+    do split.
+       - have ->: a0.[0] = nth witness (sub a0 0 5) 0 by rewrite nth_sub.
+         by rewrite H nth_sub.
+       - have ->: a0.[1] = nth witness (sub a0 0 5) 1 by rewrite nth_sub.
+         by rewrite H nth_sub.
+       - have ->: a0.[2] = nth witness (sub a0 0 5) 2 by rewrite nth_sub.
+         by rewrite H nth_sub.
+       - have ->: a0.[3] = nth witness (sub a0 0 5) 3 by rewrite nth_sub.
+         by rewrite H nth_sub.
+       - have ->: a0.[4] = nth witness (sub a0 0 5) 4 by rewrite nth_sub.
+         by rewrite H nth_sub.
+qed.
+
+(** -------------------------------------------------------------------------------------------- **)
+
+lemma truncate_1_and_63 :
+    truncateu8 (W256.one `&` W256.of_int(63)) = W8.one
+        by rewrite (: 63 = 2 ^ 6 - 1) 1:/# and_mod //=.
+
+
+lemma shr_1 (x : W64.t) :
+    to_uint (x `>>` W8.one) = to_uint x %/ 2
+        by rewrite shr_div (: (to_uint W8.one %% 64) = 1) 1:#smt:(@W64) //=. 
+
+lemma mod2_vals (x : int) :
+    x %% 2 = 0 \/ x %% 2 = 1 by smt(). 
+
+lemma fooT (x : W64.t):
+    to_uint x %% 2 = 1 => W64.of_int (to_uint x %% 2) = W64.one by smt(@W64). 
+
+lemma and_1_mod_2 (x : W64.t):
+    x `&` W64.one <> W64.zero <=> to_uint x %% 2 = 1.
+proof.
+split; rewrite (: 1 = 2 ^ 1 - 1) 1:/# and_mod //=; [smt(fooT) |].
+move => H.
+rewrite fooT //= #smt:(@W64). 
+qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 
@@ -38,32 +121,16 @@ pred mem_dif (m m' : global_mem_t) (p : int) = m.[p] <> m'.[p].
 
 (** -------------------------------------------------------------------------------------------- **)
 
-(*
-In Coq
-Lemma pow2_neq_0 (t : nat) : 0 <> 2^t.
-Proof.
-  symmetry.
-  apply Nat.pow_nonzero.
-  auto.
-Qed.
-*)
+
 lemma pow2_neq_0  (t : int) : 
-    0 <= t => 0 <> 2^t.
-proof.
-admit.
-qed.
+    0 <= t => 0 <> 2^t by smt(@Real).
 
-
-(* In Coq
-Lemma pow2_nonnegative (t : nat) : 0 <= 2 ^ t.
-Proof.
-  apply Nat.le_0_l.
-Qed.
-*)
 lemma pow2_nonnegative ( t : int) :
     0 <= t => 0 <= 2^t.
 proof.
-admit.
+elim t => //.
+move => i??.
+smt(@Real).
 qed.
 
 (** -------------------------------------------------------------------------------------------- **)

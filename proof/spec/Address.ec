@@ -71,17 +71,15 @@ op zero_address : adrs = Array8.init (fun _ => W32.zero).
 
 (**********************************************************************************************************************)
 
-(* layer address describes the height of a tree within the multi-tree, starting from height zero *)
-(* for trees at the bottom layer.  The tree address describes the position of a tree within a    *)
-(* layer of a multi-tree starting with index zero for the leftmost tree.                         *)
 op set_layer_addr (address : adrs, layer : int) : adrs = 
     address.[0 <- W32.of_int layer].
 
 op set_tree_addr (address : adrs, tree_address : int) : adrs = 
        address.[1 <- W32.of_int (tree_address %/ 2^32)].[2 <- W32.of_int (tree_address %% 2^32)].
 
+(* Obs: We furthermore assume that the setType() method sets the four words following the type word to zero. *)
 op set_type (address : adrs, _type : int) : adrs = 
-    address.[3 <- W32.of_int _type].
+    address.[3 <- W32.of_int _type].[4 <- W32.zero].[5 <- W32.zero].[6 <- W32.zero].[7 <- W32.zero].
 
 op set_ots_addr (address : adrs, ots_addr : int) : adrs = 
     address.[4 <- W32.of_int ots_addr].
@@ -109,6 +107,8 @@ op get_tree_index (address : adrs) : int = to_uint (address.[6]).
 op set_key_and_mask (address : adrs, key_and_mask : int) : adrs = 
     address.[7 <- W32.of_int key_and_mask].
 
+
+(* Isto nao devia estar aqui *)
 op BytesToBits (bytes : W8.t list) : bool list = flatten (map W8.w2bits bytes).
 op BitsToBytes (bits : bool list) : W8.t list = map W8.bits2w (chunk W8.size bits).
 

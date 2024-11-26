@@ -9,6 +9,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* We only use this for debugging */
+#if 1
+#include <unistd.h>
+#endif 
+
 #include "hash.h"
 #include "hash_address.h"
 #include "params.h"
@@ -19,6 +24,11 @@
 #include "xmss_commons.h"
 
 bool debug = true;
+
+#define I1 (0 <= offset && offset < size_heights)
+#define I2 (1 <= offset && offset <= size_heights)
+
+// This also goes through for I2: (0 <= offset - 2 && offset <= size_heights)
 
 extern void treehash_jazz(uint8_t *root, const uint8_t *sk_seed, const uint8_t *pub_seed, uint32_t start_index,
                           uint32_t target_height, const uint32_t *subtree_addr);
@@ -34,6 +44,9 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
     unsigned char stack[(params->tree_height + 1) * params->n];
     unsigned int heights[params->tree_height + 1];
     unsigned int offset = 0;
+
+    size_t size_heights = params->tree_height + 1;
+    size_t size_stack = params->tree_height + 1;
 
     /* The subtree has at most 2^20 leafs, so uint32_t suffices. */
     uint32_t i;
@@ -52,10 +65,20 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
     set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
     set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
 
-    for (i = 0; i < (uint32_t)(1 << target_height); i++) {
-        if (debug) {
-            printf("Inicio da %d iteracao do for: offset = %d\n", i, offset);
-        }
+    i = 0;
+    assert(I1);
+
+    dprintf(4, "size heights = %ld\n", size_heights);
+    dprintf(4, "size stack = %ld\n\n\n", size_stack);
+    dprintf(5, "size heights = %ld\n", size_heights);
+    dprintf(5, "size stack = %ld\n\n\n", size_stack);
+    
+
+    dprintf(4, "offset before the outer loop: %d\n\n", offset);
+    while (i < (uint32_t)(1 << target_height)) {
+        assert(I1);
+        dprintf(4, "offset at the start of the iteration (outer loop): %d\n", offset);
+
         /* Add the next leaf node to the stack. */
         set_ltree_addr(ltree_addr, start_index + i);
         set_ots_addr(ots_addr, start_index + i);
@@ -64,13 +87,13 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
         offset++;
         heights[offset - 1] = 0;
 
+        assert(I2);
         /* While the top-most nodes are of equal height.. */
-        while (offset >= 2 &&
-               heights[offset - 1] == heights[offset - 2]) { 
+        dprintf(5, "[i = %d]: offset before the inner loop: %d\n\n", i, offset);
+        while (offset >= 2 && heights[offset - 1] == heights[offset - 2]) {
+            assert(I2);
+            dprintf(5, "[i = %d] offset at the start of the iteration (inner loop): %d\n", i, offset);
 
-            if (debug) {
-                printf("Entrou no while na iteracao %d\n", i);
-            }
             /* Compute index of the new node, in the next layer. */
             tree_idx = ((start_index + i) >> (heights[offset - 1] + 1));
 
@@ -84,13 +107,19 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
             offset--;
             /* Note that the top-most node is now one layer higher. */
             heights[offset - 1]++;
-        }
+            dprintf(6, "Heights: %d\n", heights[offset - 1]);
 
-        if (debug) {
-            printf("Fim da %d iteracao do for: offset = %d\n", i, offset);
+            assert(I2);
+            dprintf(5, "[i = %d] offset at the end of the iteration (inner loop): %d\n", i, offset);
         }
+        dprintf(5, "[i = %d] offset after the inner loop: %d\n\n", i, offset);
+        dprintf(4, "offset at the end of the iteration (outer loop): %d\n\n", offset); // aqui 
+        assert(I1);
+        assert(I2);
+        i += 1;
     }
-
+    assert(I1);
+    dprintf(4, "offset at the end of the outer loop: %d\n\n", offset);
     memcpy(root, stack, params->n);
 }
 
@@ -256,7 +285,7 @@ int xmssmt_core_sign_new(const xmss_params *params, unsigned char *sk, unsigned 
 
     for (unsigned int i = 1; i < params->d; i++) {
         treehash_new(params, root, sk_seed, pub_seed, 0, params->tree_height, ots_addr);
-        idx_tree = idx_tree >> params->tree_height;          /* (h - h / d) most significant bits of idx_sig */
+        idx_tree = idx_tree >> params->tree_height;               /* (h - h / d) most significant bits of idx_sig */
         idx_leaf = (idx_tree & ((1 << params->tree_height) - 1)); /* (h - h / d) least significant bits of idx_sig */
 
         set_layer_addr(ots_addr, i);

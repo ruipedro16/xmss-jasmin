@@ -30,4 +30,5 @@ bin/:
 	mkdir -p $@
 
 clean:
-	-$(RM) -r bin/ *.txt
+	-$(RM) -r bin/
+	find . -name '*.txt' -delete

@@ -3,3 +3,6 @@ venv
 
 flake.nix
 flake.lock
+
+debug/
+
