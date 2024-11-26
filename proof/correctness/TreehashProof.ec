@@ -24,8 +24,6 @@ require import LTReeProof.
 
 require import WArray32.
 
-lemma false_and (a b : bool) : (false = (a /\ b)) => (!a \/ !b) by smt().
-
 lemma nth_nbytes_flatten (x : nbytes list, i : int):
     0 <= i %/ n < size x =>
     nth witness (nbytes_flatten x) i = nth witness (val (nth witness x (i %/ n))) (i %% n).
@@ -37,6 +35,12 @@ rewrite /nbytes_flatten (nth_flatten witness n).
       by rewrite (nth_map witness) // valP.
 by rewrite (nth_map witness).
 qed.
+
+lemma to_uint_eq_int_W32 (a b : W32.t) :
+    0 <= to_uint a < W32.max_uint =>
+    0 <= to_uint b < W32.max_uint =>
+    to_uint a = to_uint b =>
+    a = b by smt(@W32 pow2_32).
 
 (* Se duas slices sao iguais, duas slices dessas slices tb sao *)
 lemma sub_N (a1 a2: W32.t Array8.t) (len1 len2 : int) :
@@ -198,7 +202,7 @@ while (
       node_addr{1}.[4] = W32.zero /\      (* padding *)
       
       map W32.to_uint (sub heights{1} 0 offset{2}) = sub_list heights{2} 0 offset{2} /\
-      (forall (k : int), 0 <= k < offset{2} => 0 <= nth witness heights{2} k < XMSS_FULL_HEIGHT) /\ 
+      (forall (k : int), 0 <= k < offset{2} => 0 <= nth witness heights{2} k < XMSS_TREE_HEIGHT) /\ 
 
       sub _stack{1} 0 (n * offset{2}) = sub_list (nbytes_flatten stack{2}) 0 (n * offset{2})
 ); last first.
@@ -417,7 +421,8 @@ seq 0 1 : (#pre /\ sub node_addr{1} 0 5 = sub address{2} 0 5).
            by rewrite H11 nth_sub /#.
 
 conseq /> => [/# |]. (* simplifies #post *)
-     
+
+      
 while (
   t{2} = to_uint target_height{1} /\
   0 <= t{2} <= h /\
@@ -448,7 +453,7 @@ while (
 
   map W32.to_uint (sub heights{1} 0 offset{2}) = sub_list heights{2} 0 offset{2} /\
 
-  (forall (k : int), 0 <= k < offset{2} => 0 <= nth witness heights{2} k < XMSS_FULL_HEIGHT) /\
+  (forall (k : int), 0 <= k < offset{2} => 0 <= nth witness heights{2} k < XMSS_TREE_HEIGHT) /\
 
   sub _stack{1} 0 (n * offset{2}) = sub_list (nbytes_flatten stack{2}) 0 (n * offset{2}) /\
 
@@ -456,9 +461,10 @@ while (
 
   (cond{1} = W8.one) = (2 <= offset{2} /\ heights{1}.[to_uint offset{1} - 2] = heights{1}.[to_uint offset{1} - 1]) /\
   
-  0 < offset{2} <= size heights{2}
+  0 < offset{2} <= size heights{2} 
+(*  ((heights{1}.[to_uint offset{1} - 2] = heights{1}.[to_uint offset{1} - 1]) => (offset{2} < size heights{2})) *)
+(* This is not true before the loop starts *)
 ); last first. 
-
 
     + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25 -> H27 *.
       do split.  
@@ -480,14 +486,20 @@ while (
           rewrite (nth_map witness); first by rewrite size_sub /#.
           rewrite  nth_sub 1:/# /= => ?.
           smt(@W32 pow2_32).
+ 
         * move => _stack_L cond_L heights_L node_addr_L offset_L address_R heights_R stack_R.
           move => H28 H29 H30 H31 H32 H33 H34 H35 H36 H37 H38 H39 H40 H41 H42 H43.
           have E1 : 2 ^ to_uint target_height{1} <= 2^h by smt(@RealExp).
           have E2 : to_uint i{1} <= 2^h by smt(@RealExp).
           rewrite E0 in E2.
           do split.
-            * smt().
-            * move => ?. rewrite H32 h_val d_val /=. admit. (* 0 <= to_uint offset_L => to_uint offset_L < size heights_R *)
+            * smt(). 
+            * move => ?. rewrite H32 h_val d_val /=. 
+              have E29: (to_uint offset_L <= 2) \/ (nth witness heights_R (to_uint offset_L - 1) <> nth witness heights_R (to_uint offset_L - 2)) by smt().
+              have := E29.
+              move => [? /# | ?].
+              rewrite H32 h_val d_val /= in H43.
+             admit. (* 0 <= to_uint offset_L => to_uint offset_L < size heights_R *)
             * smt().
             * smt().
             * rewrite to_uintD /#.
@@ -595,7 +607,7 @@ have E1: forall (k : int), 0 <= k < to_uint offset{1} => to_uint heights{1}.[k] 
    + move => k?.
      have ->: nth witness heights{2} k = nth witness (sub_list heights{2} 0 (to_uint offset{1})) k by rewrite /sub_list nth_mkseq /#.
      rewrite -H17 (nth_map witness); [by rewrite size_sub /# | by rewrite nth_sub /#].
-have E2: forall (k : int), 0 <= k < to_uint offset{1} => 0 <= to_uint heights{1}.[k] < XMSS_FULL_HEIGHT by smt().         
+have E2: forall (k : int), 0 <= k < to_uint offset{1} => 0 <= to_uint heights{1}.[k] < XMSS_TREE_HEIGHT by smt().         
 do split => //; 1,6,7: by smt(). (* trivial solves two goals: 12 vs 10 subgoals *)
    + apply (eq_from_nth witness); first by rewrite size_map size_sub_list 1:/# size_sub /#. 
      rewrite size_map size_sub 1:/# => i?.
@@ -611,7 +623,12 @@ do split => //; 1,6,7: by smt(). (* trivial solves two goals: 12 vs 10 subgoals 
        * have ->: to_uint (offset{1} - W64.one - W64.one) = to_uint offset{1} - 2 by rewrite to_uintB; [by rewrite uleE to_uintB 2:/# uleE /# | by rewrite /= to_uintB 2:/# uleE /#].
          rewrite ifF 1:/# ifF 1:/# /#.
    + move => k??.     
-     split; [rewrite nth_put /# |]. admit. (* Range das heights *)
+     split; [rewrite nth_put /# |]. 
+     rewrite !nth_put 1:/#.
+     case (k = to_uint offset{1} - 2) => H; last by rewrite ifF /#.
+     rewrite ifT 1:/# => ?.
+     admit. (* Range das heights *)
+
    + apply (eq_from_nth witness); first by rewrite size_sub 1:/# size_sub_list /#.
      rewrite size_sub 1:/# => j?.
      rewrite nth_sub 1:/# /= /sub_list nth_mkseq 1:/# /= nth_nbytes_flatten; first by rewrite size_put /#.
@@ -631,14 +648,25 @@ do split => //; 1,6,7: by smt(). (* trivial solves two goals: 12 vs 10 subgoals 
      have ->: to_uint (offset{1} - W64.one - W64.one) = to_uint offset{1} - 2 by rewrite to_uintB; [by rewrite uleE to_uintB 2:/# uleE /# | by rewrite /= to_uintB 2:/# uleE /#].
      have ->: to_uint (offset{1} - W64.one) = to_uint offset{1} - 1 by rewrite to_uintB 2:/# uleE /#.
      reflexivity.
-   + admit. (* 2 <= to_uint offset{1} - 1 *)
-   + rewrite !nth_put 1,2:/# ifT // ifF 1:/#.
-     move: Hcond.
+   + have E21: (2 <= to_uint offset{1} /\heights{1}.[to_uint offset{1} - 2] = heights{1}.[to_uint offset{1} - 1]) by smt().
+     move: E21 => [#] Ha Hb.
+      admit. (* 2 <= to_uint offset{1} - 1 *)
+   + rewrite !nth_put 1,2:/# ifT // ifF 1:/#. 
+     move: Hcond. 
      have ->: to_uint (offset{1} - W64.one - W64.one) = to_uint offset{1} - 2 by rewrite to_uintB; [by rewrite uleE to_uintB 2:/# uleE /# | by rewrite /= to_uintB 2:/# uleE /#].
      rewrite /treehash_cond.
      have ->: to_uint (offset{1} - W64.one) = to_uint offset{1} - 1 by rewrite to_uintB 2:/# uleE /#.
+     have E21: (2 <= to_uint offset{1} /\heights{1}.[to_uint offset{1} - 2] = heights{1}.[to_uint offset{1} - 1]) by smt().
+     move: E21 => [Ha Hb].
+     rewrite !get_setE 1,2:/# ifF 1:/# ifT 1:/# /=.
      move => Hcond.
-     rewrite -E1 1:/#. admit.
+     rewrite -E1 1:/#. 
+
+     
+     rewrite Hb. rewrite to_uintK.
+     rewrite E1 1:/#.
+
+     admit.
    + move => Ha.
      rewrite !nth_put 1,2:/# ifT // ifF 1:/#.
      rewrite -!E1 1,2:/# => Hb.
@@ -647,5 +675,7 @@ do split => //; 1,6,7: by smt(). (* trivial solves two goals: 12 vs 10 subgoals 
      have ->: to_uint (offset{1} - W64.one - W64.one) = to_uint offset{1} - 2 by rewrite to_uintB; [by rewrite uleE to_uintB 2:/# uleE /# | by rewrite /= to_uintB 2:/# uleE /#].
      have ->: to_uint (offset{1} - W64.one) = to_uint offset{1} - 1 by rewrite to_uintB 2:/# uleE /#.
      rewrite !get_setE 1,2:/# /= ifF 1:/#. 
-     smt(@W32 pow2_32 @IntDiv). 
+     have ->: heights{1}.[to_uint offset{1} - 3] = W32.of_int (to_uint  heights{1}.[to_uint offset{1} - 3]) by rewrite to_uintK.
+     have ->: heights{1}.[to_uint offset{1} - 2] + W32.one = W32.of_int (to_uint heights{1}.[to_uint offset{1} - 2] + 1) by smt(@W32 pow2_32).
+     by rewrite !Hb.
 qed.

@@ -824,26 +824,6 @@ case (i{2} * 32 <= k && k < i{2} * 32 + 32) => *.
       apply H2 => /#.
 qed.
 
-(* Obs: Este lemma e igual ao anteiror *) 
-lemma expand_seed_results (_in_seed _pub_seed : W8.t Array32.t, _addr : W32.t Array8.t) :
-    len = XMSS_WOTS_LEN /\ 
-    n = XMSS_N /\ 
-    prf_padding_val = XMSS_HASH_PADDING_PRF /\
-    prf_kg_padding_val = XMSS_HASH_PADDING_PRF_KEYGEN /\
-    padding_len = XMSS_PADDING_LEN =>
-    equiv [
-      M(Syscall).__expand_seed ~ WOTS.pseudorandom_genSK :
-      arg{1}.`2 = _in_seed /\ 
-      arg{1}.`3 = _pub_seed /\
-      arg{1}.`4 = _addr /\
-      arg{2} = (NBytes.insubd (to_list _in_seed), NBytes.insubd (to_list _pub_seed), _addr) 
-      ==>
-      res{1}.`1 = DecodeWotsSk res{2}
-    ].
-proof.
-admit. (* correctness & wots_sk_size from properties *)
-qed.
-
 lemma pkgen_correct (_seed_ _pub_seed_ : W8.t Array32.t) :
     w = XMSS_WOTS_W /\
     len = XMSS_WOTS_LEN /\
@@ -888,7 +868,7 @@ seq 1 1: (
       skip => /> &1 &2 *; do split.
           * by rewrite insubdK // /P size_to_list n_val.
           * by rewrite insubdK // /P size_to_list n_val.
-          * admit. (* expand_Seed needs information about the result *)
+          * admit. (* expand_Seed needs information about the address in the result *)
 conseq (: _ ==> 
   address{2} = addr{1} /\ 
   size pk{2} = len /\
