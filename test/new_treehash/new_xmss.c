@@ -9,6 +9,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* We only use this for debugging */
+#if 1
+#include <unistd.h>
+#endif 
+
 #include "hash.h"
 #include "hash_address.h"
 #include "params.h"
@@ -24,25 +29,6 @@ bool debug = true;
 #define I2 (0 < offset && offset <= size_heights)
 
 // This also goes through for I2: (0 <= offset - 2 && offset <= size_heights)
-
-static void debug_to_file(const char *filepath, const char *text, uint64_t val, bool print_val) {
-    if (!text) {
-        return;
-    }
-
-    FILE *file;
-    if (!(file = fopen(filepath, "a"))) {
-        perror("Error opening file");
-        return;
-    }
-
-    if (print_val) {
-        fprintf(file, "%s: %ld\n", text, val);
-    } else {
-        fprintf(file, "%s\n", text);
-    }
-    fclose(file);
-}
 
 extern void treehash_jazz(uint8_t *root, const uint8_t *sk_seed, const uint8_t *pub_seed, uint32_t start_index,
                           uint32_t target_height, const uint32_t *subtree_addr);
@@ -79,19 +65,19 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
     set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
     set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
 
-    // auxiliar information to debug
-    debug_to_file("debug_treehash_offset_outer_loop.txt", "size stack", (uint64_t)size_stack, true);
-    debug_to_file("debug_treehash_offset_outer_loop.txt", "size heights", (uint64_t)size_heights, true);
-
-    debug_to_file("debug_treehash_offset_inner_loop.txt", "size stack", (uint64_t)size_stack, true);
-    debug_to_file("debug_treehash_offset_inner_loop.txt", "size heights", (uint64_t)size_heights, true);
-
     i = 0;
     assert(I1);
+
+    dprintf(4, "size heights = %ld\n", size_heights);
+    dprintf(4, "size stack = %ld\n\n\n", size_stack);
+    dprintf(5, "size heights = %ld\n", size_heights);
+    dprintf(5, "size stack = %ld\n\n\n", size_stack);
+    
+
+    dprintf(4, "offset before the outer loop: %d\n\n", offset);
     while (i < (uint32_t)(1 << target_height)) {
         assert(I1);
-        // debug_to_file("debug_treehash_offset_loop.txt", "no inicio da iteracao, i", (uint64_t)i, true);
-        debug_to_file("debug_treehash_offset_outer_loop.txt", "no incio da iteracao, offset", (uint64_t)offset, true);
+        dprintf(4, "offset at the start of the iteration (outer loop): %d\n", offset);
 
         /* Add the next leaf node to the stack. */
         set_ltree_addr(ltree_addr, start_index + i);
@@ -103,9 +89,11 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
 
         assert(I2);
         /* While the top-most nodes are of equal height.. */
+        dprintf(5, "offset before the inner loop: %d\n\n", offset);
         while (offset >= 2 && heights[offset - 1] == heights[offset - 2]) {
             assert(I2);
-            debug_to_file("debug_treehash_offset_inner_loop.txt", "no incio da iteracao, offset", (uint64_t)offset, true);
+            dprintf(5, "offset at the start of the iteration (inner loop): %d\n", offset);
+
             /* Compute index of the new node, in the next layer. */
             tree_idx = ((start_index + i) >> (heights[offset - 1] + 1));
 
@@ -121,25 +109,17 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
             heights[offset - 1]++;
 
             assert(I2);
-            debug_to_file("debug_treehash_offset_inner_loop.txt", "no fim da iteracao, offset", (uint64_t)offset, true);
-            debug_to_file("debug_treehash_offset_inner_loop.txt", "", 0, false); // add a new line
+            dprintf(5, "offset at the end of the iteration (inner loop): %d\n", offset);
         }
+        dprintf(5, "offset after the inner loop: %d\n\n", offset);
         assert(I2);
-        debug_to_file("debug_treehash_offset_inner_loop.txt", "no fim do ciclo, offset", (uint64_t)offset, true);
-        debug_to_file("debug_treehash_offset_inner_loop.txt", "\n\n", 0, false); // add a new line
-
         i += 1;
-        // debug_to_file("debug_treehash_offset_loop.txt", "no fim da iteracao, i", (uint64_t)i, true);
-        // debug_to_file("debug_treehash_offset_loop.txt", "", 0, false); // to print a new line
-        debug_to_file("debug_treehash_offset_outer_loop.txt", "no fim da iteracao, offset", (uint64_t)offset, true);
-        debug_to_file("debug_treehash_offset_outer_loop.txt", "", (uint64_t)offset, false); // to print a new line
+
         assert(I1);
+        dprintf(4, "offset at the end of the iteration (outer loop): %d\n\n", offset);
     }
     assert(I1);
-    // debug_to_file("debug_treehash_offset_loop.txt", "no fim do ciclo, i", (uint64_t)i, true);
-    // debug_to_file("debug_treehash_offset_loop.txt", "", 0, false); // to print a new line
-    debug_to_file("debug_treehash_offset_outer_loop.txt", "no fim do ciclo, offset", (uint64_t)offset, true);
-
+    dprintf(4, "offset at the end of the outer loop: %d\n\n", offset);
     memcpy(root, stack, params->n);
 }
 

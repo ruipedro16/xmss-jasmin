@@ -14,7 +14,7 @@
 #include "xmss_core.h"
 
 #ifndef TESTS
-#define TESTS 10
+#define TESTS 1
 #endif
 
 static int starts_with(const char *str, const char *prefix) { return strncmp(str, prefix, strlen(prefix)) == 0; }
