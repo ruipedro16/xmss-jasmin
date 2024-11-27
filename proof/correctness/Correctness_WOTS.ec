@@ -258,7 +258,7 @@ lemma wots_checksum_results (msg : W32.t Array64.t) :
     len1 = XMSS_WOTS_LEN1 /\  w = XMSS_WOTS_W =>
     equiv [
       M(Syscall).__csum ~ WOTS.checksum :
-      (forall (k : int), 0 <= k < 64 => 0 <= to_uint msg.[k] <= 15) /\ (* 15 = w - 1 *)
+      (forall (k : int), 0 <= k < 64 => 0 <= to_uint msg.[k] <= w - 1) /\ (* 15 = w - 1 *)
       arg{1} = msg /\ arg{2} = map (W32.to_uint) (to_list msg) 
       ==>
       to_uint res{1} = res{2} /\
@@ -305,176 +305,50 @@ lemma gen_chain_inplace_correct (_buf_ : W8.t Array32.t, _start_ _steps_ : W32.t
       arg{2} = (NBytes.insubd (to_list _buf_), to_uint _start_, to_uint _steps_, NBytes.insubd (to_list _pub_seed_), _addr_) /\
       0 <= to_uint _start_ <= XMSS_WOTS_W - 1/\
       0 <= to_uint _steps_ <= XMSS_WOTS_W - 1 /\
-      0 <= to_uint (_start_ + _steps_) <= XMSS_WOTS_W - 1  
+      0 <= to_uint (_start_ + _steps_) <= XMSS_WOTS_W - 1 /\
+      to_uint _start_ < to_uint _start_ + to_uint _steps_
       ==> 
-      val res{2} = to_list res{1}.`1
+      val res{2} = to_list res{1}.`1 /\
+      sub res{1}.`2 0 6 = sub _addr_ 0 6 /\
+      res{1}.`2.[7] = W32.one /\
+      res{1}.`2.[6] = _steps_ - W32.one
     ].
 proof. 
-rewrite /XMSS_N.
-move => [#] nval ?????. 
+rewrite /XMSS_N /XMSS_WOTS_W.
+move => [#] n_val w_val????. 
 proc => //=.
 swap {1} 1 2.
-seq 2 1 : ( 
-  0 <= to_uint start{1} <= XMSS_WOTS_W - 1/\
-  0 <= to_uint steps{1} <= XMSS_WOTS_W - 1 /\
-  0 <= to_uint (start{1} + steps{1}) <= XMSS_WOTS_W - 1 /\
 
+seq 2 1 : ( 
+  0 <= to_uint start{1} <= w - 1/\
+  0 <= to_uint steps{1} <= w - 1 /\
+  0 <= to_uint (start{1} + steps{1}) <= w - 1 /\
+  to_uint start{1} < to_uint start{1} + to_uint steps{1} /\
+ 
   address{2} = addr{1} /\
   val t{2} = to_list out{1} /\
   i{2} = to_uint start{1} /\
   s{2} = to_uint steps{1} /\
   val _seed{2} = to_list pub_seed{1} /\
   val t{2} = to_list out{1} /\  
-  t{1} = start{1} + steps{1}
-); first by auto => /> *; do split; by rewrite NBytes.insubdK /P // size_to_list nval.
-while (
-  #pre /\ 
-  0 <= to_uint i{1} <= to_uint t{1} /\
-  to_uint i{1} = (i{2} + chain_count{2}) /\
-  0 <= chain_count{2} <= s{2}
-); last by auto => />; smt(@W32 pow2_32). 
-wp 3 8.
-seq 2 2 : (#pre). 
-    + inline {1}; auto => /> &1 &2 *. 
-      rewrite /set_hash_addr /set_key_and_mask.
-      by have -> : (of_int (to_uint start{1} + chain_count{2}))%W32 = i{1} by smt(@W32 pow2_32). 
-inline {1} M(Syscall).__thash_f_ M(Syscall)._thash_f M(Syscall).__thash_f.
-inline {2} Hash._F.
-seq 27 9 : (
-  (0 <= to_uint start{1} && to_uint start{1} <= XMSS_WOTS_W - 1) /\
-  (0 <= to_uint steps{1} && to_uint steps{1} <= XMSS_WOTS_W - 1) /\
-  (0 <= to_uint (start{1} + steps{1}) && to_uint (start{1} + steps{1}) <= XMSS_WOTS_W - 1) /\
-  val t{2} = to_list out{1} /\
-  i{2} = to_uint start{1} /\
-  s{2} = to_uint steps{1} /\
-  val _seed{2} = to_list pub_seed{1} /\
-  val t{2} = to_list out{1} /\ 
   t{1} = start{1} + steps{1} /\
-  (0 <= to_uint i{1} && to_uint i{1} <= to_uint t{1}) /\
-  to_uint i{1} = i{2} + chain_count{2} /\
-  0 <= chain_count{2} && chain_count{2} <= s{2} /\
-  (i{1} \ult t{1}) /\ 
-  chain_count{2} < s{2} /\
-  
-  buf{2} = to_list buf{1} /\ 
-  addr2{1} = address{2}
-); last first.
-    + inline {1} M(Syscall).__core_hash__96 M(Syscall)._core_hash_96; wp; sp; ecall {1} (hash_96 in_00{1}); auto => /> *. 
-      do split; 3..5,8,9:smt(@W32 pow2_32); smt().
-seq 17 1 : (
-  #pre /\ 
-  addr2{1} = addr{1} /\ 
-  val addr_bytes{2} = to_list addr_as_bytes{1} /\
-  pub_seed2{1} = pub_seed{1} /\
-  out2{1} = out{1}
-); first by ecall {1} (addr_to_bytes_correctness addr{1}); auto => /> /#. 
-swap {2} 7 -6.
-seq 2 1 : (#pre /\ padding{2} = to_list padding{1}); first by call {1} (ull_to_bytes_32_correct W64.zero); auto => /> /#.
+  addr{1} = _addr_
+).
+    + auto => /> *. 
+      rewrite w_val.
+      do 3! (split => [/# |]); do split; by rewrite NBytes.insubdK /P // size_to_list n_val.
 
-seq 1 0 : (
-  #pre /\
-  (forall (k : int), 0 <= k < 32 => buf{1}.[k] = padding{1}.[k])
-); first by auto => /> *; smt(@Array96).
+(* We unroll the first iteration on both sides so that the invariant is easier to write *)
+(* stupid but works *)
 
-seq 1 1 : (
-  #pre /\ 
-  val _key{2} = to_list aux{1}
-).
-    + inline {1} M(Syscall).__prf_ M(Syscall)._prf; wp; sp.
-      exists * in_00{1}, key0{1}; elim * => _P1 _P2.
-      call {1} (prf_correctness _P1 _P2) => [/# |]. 
-      skip => /> &1 &2 ??????? H *.
-      rewrite -H #smt:(@NBytes).
-seq 1 0 : (
-  #pre /\
-  (forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = nth witness (val _key{2}) k)
-).
-    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 ->.
-      split => k??; rewrite initiE 1:/# => />.
-         * rewrite ifF 1:/#.
-           apply H16 => //.
-         * by rewrite ifT 1:/# //.
-seq 1 1 : (
-  (0 <= to_uint start{1} && to_uint start{1} <= XMSS_WOTS_W - 1) /\
-  (0 <= to_uint steps{1} && to_uint steps{1} <= XMSS_WOTS_W - 1) /\
-  (0 <= to_uint (start{1} + steps{1}) && to_uint (start{1} + steps{1}) <= XMSS_WOTS_W - 1) /\
-  val t{2} = to_list out{1} /\
-  i{2} = to_uint start{1} /\
-  s{2} = to_uint steps{1} /\
-  val _seed{2} = to_list pub_seed{1} /\
-  val t{2} = to_list out{1} /\ 
-  t{1} = start{1} + steps{1} /\
-  (0 <= to_uint i{1} && to_uint i{1} <= to_uint t{1}) /\
-  to_uint i{1} = i{2} + chain_count{2} /\
-  (0 <= chain_count{2} && chain_count{2} <= s{2}) /\
-  (i{1} \ult t{1}) /\ 
-  chain_count{2} < s{2} /\
-  address{2} = addr2{1} /\
-  val addr_bytes{2} = to_list addr_as_bytes{1} /\ 
-  pub_seed2{1} = pub_seed{1} /\
-  padding{2} = to_list padding{1} /\
-  (forall (k : int), 0 <= k && k < 32 => buf{1}.[k] = padding{1}.[k]) /\
-  (forall (k : int), 0 <= k && k < 32 => buf{1}.[32 + k] = aux{1}.[k]) /\
-  val _key{2} = to_list aux{1} /\
-  out2{1} = out{1}
-).
-    + inline {1}.
-      auto => /> &1 &2 ???????????????? H0 H1 H2.
-      move => k??. 
-      rewrite (: aux{1}.[k] = nth witness (to_list aux{1}) k) 1:/# -H1.
-      by apply H2.
-seq 1 1 : (#pre); first by ecall {1} (addr_to_bytes_correctness addr2{1}); auto => /> /#. 
-seq 1 1 : (#pre /\ val bitmask{2} = to_list bitmask{1}).
-    + inline {1} M(Syscall).__prf_ M(Syscall)._prf; wp; sp.
-      exists * in_00{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_correctness _P1 _P2) => [/# |].
-      skip => /> &1 &2 ???????H*. 
-      rewrite -H #smt:(@NBytes). 
-while{1}  ( 
-  #pre /\
-  0 <= to_uint i0{1} <= 32 /\
-  (forall (k : int), 0 <= k < to_uint i0{1} => buf{1}.[64 + k] = out{1}.[k] `^` bitmask{1}.[k])
-) (32 - to_uint i0{1}). 
-    + auto => /> &hr *; do split;3,4,6:smt(@W64 pow2_64).
-        * move => *. rewrite get_setE 1:#smt:(@W64) ifF 1:#smt:(@W64 pow2_64) #smt:(@Array96).
-        * move => *. rewrite get_setE 1:#smt:(@W64) ifF 1:#smt:(@W64 pow2_64) #smt:(@Array96).
-        * move => k *. rewrite get_setE 1:#smt:(@W64). 
-          case (64 + k = to_uint ((of_int 64)%W64 + i0{hr})); [move => ?; do congr |]; smt(@W64 pow2_64).
-    + auto => /> &1 &2. 
-      move => H0 H1 H2 H3 H4 H5 H6 H7 H8 H9.
-      move => H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 *. 
-      split; first by smt(@Array96). 
-      move => bufL i0 *; split; first by smt(@W64 pow2_64). 
-      move => ?????. 
-      have ->: to_uint i0 = 32 by smt(@W64 pow2_64).
-      move => ?. 
-      apply (eq_from_nth witness).     
-           * rewrite !size_cat !size_to_list.
-             have ->: size (val _key{2}) = 32 by smt(NBytes.valP).
-             by have ->: size (val (nbytexor t{2} bitmask{2})) = 32 by smt(size_map size_zip NBytes.valP).
-      have ->:  size (to_list padding{1} ++ val _key{2} ++ val (nbytexor t{2} bitmask{2})) = 96.
-           * rewrite !size_cat !size_to_list.
-             have ->: size (val _key{2}) = 32 by smt(NBytes.valP).
-             by have ->: size (val (nbytexor t{2} bitmask{2})) = 32 by smt(size_map size_zip NBytes.valP).
-      move => j Hj.  
-      case (0 <= j < 32) => *.
-           * rewrite nth_cat. 
-             have ->: size (to_list padding{1} ++ val _key{2}) = 64.
-               - by rewrite size_cat size_to_list (: size (val _key{2}) = 32) 1:#smt:(NBytes.valP).
-             rewrite ifT 1:/# get_to_list nth_cat size_to_list ifT 1:/# get_to_list /#.
-      case (32 <= j < 64) => *.
-           * rewrite nth_cat. 
-             have ->: size (to_list padding{1} ++ val _key{2}) = 64.
-               - by rewrite size_cat size_to_list (: size (val _key{2}) = 32) 1:#smt:(NBytes.valP). 
-             rewrite ifT 1:/# get_to_list nth_cat size_to_list ifF 1:/# H18 get_to_list /#.
-      rewrite nth_cat. 
-      have ->: size (to_list padding{1} ++ val _key{2}) = 64.
-           * by rewrite size_cat size_to_list (: size (val _key{2}) = 32) 1:#smt:(NBytes.valP). 
-      rewrite ifF 1:/# get_to_list nbyte_xor_val H19 H6 /bytexor.
-      rewrite (nth_map witness); [rewrite size_zip !size_to_list /# |].
-      auto => />. 
-      rewrite zip_fst; [rewrite !size_to_list /# |]. 
-      rewrite zip_snd; [rewrite !size_to_list /# |]. 
-      rewrite !get_to_list /#. 
+sp 1 1.
+
+unroll {1} 1; rcondt {1} 1.
+    + auto => /> &hr *. 
+      by rewrite ultE to_uintD_small 1:/#. 
+
+unroll {2} 1; rcondt {2} 1; first by auto => /> /#. 
+admit.
 qed.
 
 
@@ -512,9 +386,6 @@ conseq (: _ ==>
   + auto => /> H0 addrL outseedsL skR H1 H2 H3.
     rewrite /DecodeWotsSk tP => j?. 
     by rewrite get_of_list //= insubdK /P // H2.
-
-
-print set_hash_addr.
 
 seq 5 3 : (
   val sk_seed{2} = to_list inseed{1} /\
@@ -723,7 +594,7 @@ seq 2 2 : (#pre /\ to_list t{1} = val pk_i{2}).
     + inline M(Syscall).__gen_chain_inplace_ M(Syscall)._gen_chain_inplace; wp; sp.  
       exists * out0{1}, start0{1}, steps0{1}, addr1{1}, pub_seed1{1}.  
       elim * => _P1 _P2 _P3 _P4 _P5.  
-      auto => />.  
+      auto => />.   
       call (gen_chain_inplace_correct _P1 _P2 _P3 _P4 _P5) => [/# |].
       skip => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 *.   
       do split. 
@@ -745,10 +616,11 @@ seq 2 2 : (#pre /\ to_list t{1} = val pk_i{2}).
             rewrite LenNBytes.valP /#. 
           * by rewrite w_val.
           * rewrite -H1 #smt:(@NBytes).  
-          * admit.
+          * admit. (* Isto nao e por causa do gen chain ==> falta provas que os ultimos dois indices do address sao iguais *)
 
-          * move => *.
-            do split; admit.
+          * move => ????????H???.
+            do split; 1..3: smt(sub_N). 
+            by rewrite H.
 
 auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12*; do split;2,3,6,7:smt(). 
     + rewrite size_put /#.
