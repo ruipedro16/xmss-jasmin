@@ -32,35 +32,27 @@ proof.
 proc => /=.
 seq 18 : #pre.
   + inline; auto; while (true); auto => />; while (true); auto => />.
-
 seq 1 : (#pre /\ to_list idx_bytes = sub sk 0 3).
   + auto => /> &hr *.
     apply (eq_from_nth witness); first by rewrite size_to_list size_sub.
     rewrite size_to_list => j?.
     by rewrite get_to_list initiE // nth_sub.
-
 seq 1 : (#pre /\ idx = W64ofBytes (sub sk 0 3)); first by ecall (ull_to_bytes_correct_ idx_bytes); auto => /> /#.
-
 conseq (: 2 ^ XMSS_FULL_HEIGHT < to_uint idx /\  to_list idx_bytes = sub sk 0 3 /\ idx = W64ofBytes (sub sk 0 3) ==> _).
   + by auto => /> &hr ? <-.
-
 rcondt 1.
   + auto => /> &hr.
     rewrite /XMSS_FULL_HEIGHT /= => H?. 
     rewrite uleE of_uintK /(`<<`) ifT //= /#.
-
 seq 4 : (2 ^ XMSS_FULL_HEIGHT < to_uint idx).
   + wp. 
     call (: true); first by while (true); auto => />.
     wp.
     call (: true); first by while (true); auto => />.
     by skip.
-
 seq 1 : (#pre /\ #post /\ exit_0 = W8.one); last by rcondf 1; auto.
- 
 rcondt 1; auto => /> ?; rewrite /XMSS_FULL_HEIGHT /= => ?; last by smt(@W64 pow2_64).
 by rewrite /(`<<`) ifT // ultE /= /#.
-
 qed.
 
 
@@ -81,8 +73,7 @@ op EncodeIdx (idx : W32.t) : W8.t list =
 lemma size_EncodeIdx (x : W32.t) : 
     size (EncodeIdx x) = XMSS_INDEX_BYTES by rewrite /EncodeIdx size_take 1:/# size_W32toBytes /#.
 
-
-lemma sign_correct (_sk : xmss_sk, _sm_ptr _smlen_ptr _m_ptr _mlen : W64.t) :
+lemma sign_correct mem (_sk : xmss_sk, _sm_ptr _smlen_ptr _m_ptr _mlen : W64.t) :
     n = XMSS_N /\ 
     d = XMSS_D /\
     h = XMSS_FULL_HEIGHT /\
@@ -90,6 +81,8 @@ lemma sign_correct (_sk : xmss_sk, _sm_ptr _smlen_ptr _m_ptr _mlen : W64.t) :
     padding_len = XMSS_PADDING_LEN =>
     equiv [
       M(Syscall).__xmssmt_core_sign ~ XMSS_MT_PRF.sign :
+
+      Glob.mem{1} = mem /\
 
       arg{1}.`1 = DecodeSkNoOID _sk /\
       arg{1}.`2 = _sm_ptr /\
@@ -112,22 +105,37 @@ lemma sign_correct (_sk : xmss_sk, _sm_ptr _smlen_ptr _m_ptr _mlen : W64.t) :
 proof.
 rewrite /XMSS_N /XMSS_D /XMSS_TREE_HEIGHT /XMSS_FULL_HEIGHT => [#] n_val d_val h_val ??.
 proc => /=.
-
 seq 11 0 : #pre; first by auto.
- 
 seq 2 0 : (
   #pre /\ 
   exit_0{1} = W8.zero /\
   ots_addr{1} = zero_addr
 ); first by inline {1} M(Syscall).__zero_address_; wp; ecall {1} (zero_addr_res addr{1}); auto.
-
 seq 1 0 : #pre.
     + inline {1}; auto => /> *.
       smt(zero_addr_setZero).
 
 (* Copy the message to the signed message = msg || signature ==> Not relevant for the proof *)
 (* Adicionar um touches *)
-seq 1 0 : #pre; first by admit.
+seq 1 0 : (
+    #{/~Glob.mem{1} = mem}pre /\
+    touches mem Glob.mem{1} (to_uint sm_ptr{1}) (to_uint mlen{1})
+).
+    + exists * sm_ptr{1}, m_ptr{1}, mlen{1}.
+      elim * => P0 P1 P2.
+      call {1} (memcpy_u8pu8p_touches mem P0 P1 P2).
+      skip => /> *.
+      do split.
+          * smt(@W64 pow2_64).
+          * admit. (* 0 <= to_uint _sm_ptr + to_uint _mlen => to_uint _sm_ptr + to_uint _mlen < 18446744073709551615  ==> Add to precondition *)
+          * admit. (* to_uint _sm_ptr + 4963 + to_uint _mlen < 18446744073709551615 ==> Add to precondition *)
+          * move => ????.
+            rewrite /touches /load_message => H.
+            apply (eq_from_nth witness); first by rewrite !size_mkseq.
+            rewrite size_mkseq (: max 0 (to_uint _mlen) = to_uint _mlen) 1:/# => i?.
+            rewrite !nth_mkseq // /=.
+            admit.
+
 
 seq 2 0 : (#pre /\ to_uint t64{1} = to_uint mlen{1} + XMSS_SIG_BYTES).
     + auto => /> *.
@@ -135,7 +143,8 @@ seq 2 0 : (#pre /\ to_uint t64{1} = to_uint mlen{1} + XMSS_SIG_BYTES).
 
 seq 1 0 : (#pre /\ to_uint (loadW64 Glob.mem{1} (to_uint smlen_ptr{1})) = to_uint mlen{1} + XMSS_SIG_BYTES).
   + auto => /> &1 *.
-    split; admit.
+    split.
+
 
 swap {2} 2 -1.
 

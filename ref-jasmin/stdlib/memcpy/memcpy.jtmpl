@@ -191,8 +191,7 @@ inline fn __memcpy_u8u8_3<OUTLEN,INLEN>(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Same as before but u8pu8p
-
+// same as memcpy(out_ptr + out_offset, in_ptr + in_offset, bytes)
 inline fn __memcpy_u8pu8p(
     reg u64 out_ptr,
     reg u64 out_offset,

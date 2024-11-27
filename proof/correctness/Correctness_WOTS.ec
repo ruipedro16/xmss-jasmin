@@ -472,7 +472,7 @@ seq 2 1 : (#pre /\ val sk_i{2} = to_list ith_seed{1}).
       rewrite -H4 #smt:(@NBytes).  
 
 auto => /> &1 &2  ? sizeSK ??? H0 H1 H2 H3 H4 H5 H6 H7 H8 H9. 
-do split;2,3,5,6:smt(); [by rewrite size_put sizeSK |]. 
+do split; 2,3,5,6:smt(); [by rewrite size_put sizeSK |]. 
 move => k Hk0 Hk1; rewrite initE ifT 1:/#; auto => />. 
 case (i{2} * 32 <= k && k < i{2} * 32 + 32) => *.
     + rewrite (nth_flatten witness 32). 

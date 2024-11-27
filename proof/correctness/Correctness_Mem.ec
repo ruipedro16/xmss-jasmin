@@ -9,6 +9,62 @@ require import XMSS_IMPL.
 require import Utils2. (* valid_ptr predicate *)
 require import Termination.
 
+print touches.
+
+(* // same as memcpy(out_ptr + out_offset, in_ptr + in_offset, bytes) *)
+lemma memcpy_u8pu8p_touches mem (optr iptr l : W64.t) :
+    phoare [
+    M(Syscall)._x__memcpy_u8pu8p:
+      Glob.mem = mem /\
+      0 <= to_uint l /\
+      0 <= to_uint optr + to_uint l < W64.max_uint /\
+      to_uint optr + 4963 + (to_uint l) < W64.max_uint /\
+      arg = (optr, (of_int 4963)%W64, iptr, W64.zero, l)
+      ==>
+      touches mem Glob.mem (to_uint optr) (to_uint l)
+    ] = 1%r.
+proof.
+proc => /=.
+while (
+  0 <= to_uint i <= to_uint bytes /\
+  bytes = l /\
+  out_ptr = optr /\
+  touches mem Glob.mem (to_uint optr) (to_uint i) /\
+  to_uint optr + 4963 + (to_uint l) < W64.max_uint /\
+  to_uint out_offset = 4963 + to_uint i /\
+  forall (k : int), 0 <= k < to_uint i => Glob.mem.[to_uint (out_ptr + out_offset)] = mem.[to_uint (in_ptr + in_offset)]
+)
+(to_uint bytes - to_uint i)
+; last first.
+admit.
+admit.
+(*
+    + auto => /> H0 H1 H2 H3.
+      split => [/# |_mem j].
+      rewrite ultE -lezNgt => ?????H??.
+      move: H.
+      by rewrite (: j = l) //; smt(@W64 pow2_64).
+
+auto => /> &hr ??H??.
+rewrite ultE => ??.
+do split; 1,2: by rewrite to_uintD /#.
+rewrite /touches => k Hk.
+have E: (k < 0 \/ to_uint (i{hr} + W64.one) <= k) by smt().
+rewrite /storeW8 /loadW8 get_setE.
+case (k = to_uint out_offset{hr}) => [-> |?]; last by admit.
+    + rewrite ifT; first by rewrite to_uintD_small // /#.
+      rewrite /touches in H. 
+      rewrite -H 1:/#.
+      admit.
+
+    + smt(@W64 pow2_64).
+    + rewrite to_uintD_small 1:#smt:(@W64 pow2_64) /= => k??.
+      rewrite /storeW8 /loadW8 get_setE ifF 1:#smt:(@W64 pow2_64).
+      admit.
+*)
+qed.
+
+
 lemma _memcpy_u8u8_2_32_2144_post (_in : W8.t Array2144.t, oi : W64.t):
     hoare [
       M(Syscall).__memcpy_u8u8_2_32_2144 : 
@@ -20,6 +76,7 @@ lemma _memcpy_u8u8_2_32_2144_post (_in : W8.t Array2144.t, oi : W64.t):
       ==>
       to_list res.`1 = sub _in (to_uint oi) 32
     ].
+
 proof.
 proc => //=.
 while (  

@@ -7,10 +7,13 @@ require import XMSS_IMPL.
 
 require import Array2 Array3 Array32.
 
-require import Hash BaseW.
+require import Address Hash BaseW.
 require import Termination.
 
 require import Utils2.
+
+require import BitEncoding.
+(*---*) import BitChunking.
 
 (** -------------------------------------------------------------------------------------------- **)
 
@@ -21,6 +24,7 @@ lemma ull_to_bytes2_post (x : W64.t, y : W32.t) :
     ==>
     to_list res = toByte y 2 ] = 1%r.
 proof.
+proc.
 admit.
 qed.
 
@@ -28,7 +32,13 @@ lemma _ull_to_bytes_32_correct (x : W64.t) :
     hoare [M(Syscall).__ull_to_bytes_32 :
       arg.`2 = x ==> to_list res = lenbytes_be64 x 32].
 proof.
-admit. 
+proc => /=.
+auto.
+(*
+  lenbytes_be64 = rev (mkseq (fun (i : int) => (BitsToBytes (w2bits val)).[i]) len).
+  BitsToBytes = map W8.bits2w (chunk 8 bits).
+*)
+admit.
 qed.
 
 lemma ull_to_bytes_32_correct (x : W64.t) : 
