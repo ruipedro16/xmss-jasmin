@@ -177,7 +177,7 @@ fn __xmssmt_core_sign(
 
     if (exit != TRUE) { 
         // memcpy(sm, sk, params->index_bytes);
-        signature[0 : XMSS_INDEX_BYTES] = _x_memcpy_u8u8<XMSS_INDEX_BYTES, XMSS_INDEX_BYTES>(signature[0 : XMSS_INDEX_BYTES], idx_bytes);
+        signature[0 : XMSS_INDEX_BYTES] = #copy_8(idx_bytes);
         () = #spill(sm_ptr, idx);
 
         // Increment the index
