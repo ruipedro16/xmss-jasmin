@@ -254,34 +254,6 @@ if.
           rewrite to_uint_zeroextu32 to_uint_truncateu8 !of_uintK #smt:(modz_small).
 qed.
 
-lemma wots_checksum_correctness (msg : W32.t Array64.t) :
-    len1 = XMSS_WOTS_LEN1 /\  w = XMSS_WOTS_W =>
-    equiv [M(Syscall).__csum ~ WOTS.checksum :
-      (forall (k : int), 0 <= k < 64 => 0 <= to_uint msg.[k] <= 15) /\ (* 15 = w - 1 *)
-      arg{1} = msg /\ arg{2} = map (W32.to_uint) (to_list msg) ==>
-        to_uint res{1} = res{2}].
-proof.
-rewrite /XMSS_WOTS_LEN1 /XMSS_WOTS_W => [#] len1_val w_val.
-proc.
-while (
-  #pre /\
-  to_uint csum{1} = checksum{2} /\
-  0 <= to_uint csum{1} <= (i{2} * (w - 1) * 2^8) /\
-  i{2} = to_uint i{1} /\ 
-  0 <= i{2} <= len1 /\
-  m{2} = map (W32.to_uint) (to_list msg{1})
-); last by auto => /> /#.
-    + auto => /> &1 Hmsg Hcsum0 Hcsum1 Hi0 _. 
-      rewrite /(\ult) of_uintK /= => Hlt Hi1.
-      rewrite to_uintD to_uintB.
-        * by rewrite /(\ule) /= to_uint_zeroextu64 1:/#.
-      rewrite !of_uintK /= modz_small 1:/# modz_small 1:/#.
-      have -> : nth witness (map W32.to_uint (to_list msg)) (to_uint i{1}) = 
-                to_uint (zeroextu64 msg.[to_uint i{1}]).
-        * rewrite to_uint_zeroextu64 (nth_map witness) //= size_to_list /#. 
-      by rewrite !to_uint_zeroextu64 to_uintD_small /= /#.
-qed.
-
 lemma wots_checksum_results (msg : W32.t Array64.t) :
     len1 = XMSS_WOTS_LEN1 /\  w = XMSS_WOTS_W =>
     equiv [
