@@ -67,12 +67,6 @@ proc __xmssmt_core_sign (sk:W8.t Array131.t, sm_ptr:W64.t, smlen_ptr:W64.t,
 proc sign(sk : xmss_sk, m : msg_t) : sig_t * xmss_sk
 *)
 
-op EncodeIdx (idx : W32.t) : W8.t list = 
-  take XMSS_INDEX_BYTES (W32toBytes idx).
-
-lemma size_EncodeIdx (x : W32.t) : 
-    size (EncodeIdx x) = XMSS_INDEX_BYTES by rewrite /EncodeIdx size_take 1:/# size_W32toBytes /#.
-
 lemma sign_correct mem (_sk : xmss_sk, _sm_ptr _smlen_ptr _m_ptr _mlen : W64.t) :
     n = XMSS_N /\ 
     d = XMSS_D /\
@@ -106,21 +100,173 @@ proof.
 rewrite /XMSS_N /XMSS_D /XMSS_TREE_HEIGHT /XMSS_FULL_HEIGHT => [#] n_val d_val h_val ??.
 proc => /=.
 seq 11 0 : #pre; first by auto.
+
 seq 2 0 : (
   #pre /\ 
   exit_0{1} = W8.zero /\
   ots_addr{1} = zero_addr
 ); first by inline {1} M(Syscall).__zero_address_; wp; ecall {1} (zero_addr_res addr{1}); auto.
+
 seq 1 0 : #pre.
     + inline {1}; auto => /> *.
       smt(zero_addr_setZero).
 
-(* Copy the message to the signed message = msg || signature ==> Not relevant for the proof *)
-(* Adicionar um touches *)
+swap {2} 1 3.
+
+seq 0 1 : (#pre /\ ots_addr{1} = address{2}); first by auto.
+
+seq 0 2 : (
+  #pre /\
+  val root{2} = sub sk{1} (XMSS_INDEX_BYTES + 2 * n) n /\
+  val sk_prf{2} = sub sk{1} (XMSS_INDEX_BYTES +  n) n
+).
+    + auto => /> &1 &2 *.
+      rewrite /DecodeSkNoOID.
+      split; (
+           apply (eq_from_nth witness); [by rewrite valP size_sub /# | rewrite valP n_val => i?];
+           rewrite nth_sub // get_of_list 1:/# /= /XMSS_INDEX_BYTES;
+           rewrite nth_cat ifT /=; [by rewrite !size_cat !valP size_take //= size_W32toBytes /# |];
+           rewrite nth_cat !size_cat size_EncodeIdx !valP
+      ).
+         - rewrite ifF /#.
+         - rewrite nth_cat !size_cat size_EncodeIdx !valP ifT 1:/# ifF 1:/# /#.
+ 
+seq 0 1 : (
+    #pre /\ 
+    idx{2} = sk{2}.`idx /\                    
+    EncodeIdx idx{2} = (sub sk{1} 0 XMSS_INDEX_BYTES) /\
+    0 <= to_uint idx{2} <= 1048575
+). 
+    + auto => /> &1 *; split => [| /#].
+      apply (eq_from_nth witness); first by rewrite size_sub 1:/# size_EncodeIdx.
+      rewrite size_EncodeIdx /XMSS_INDEX_BYTES => j?.
+      rewrite nth_sub // /DecodeSkNoOID => />.
+      rewrite get_of_list 1:/#.
+      do (rewrite nth_cat ifT; [by rewrite !size_cat !valP size_EncodeIdx /# |]).
+      by rewrite nth_cat ifT; first by rewrite size_EncodeIdx /#.
+       
 seq 1 0 : (
     #{/~Glob.mem{1} = mem}pre /\
     touches mem Glob.mem{1} (to_uint sm_ptr{1}) (to_uint mlen{1})
+); first by admit.
+
+seq 3 0 : (
+  #pre /\
+  touches mem Glob.mem{1} (to_uint smlen_ptr{1}) 0 
 ).
+    + auto => /> &1 &2 *.
+      do split; admit.
+
+seq 1 0 : (#pre /\ to_list idx_bytes{1} = EncodeIdx sk{2}.`idx).
+    + auto => /> &1 &2 *.
+      apply (eq_from_nth witness); first by rewrite size_to_list size_EncodeIdx.
+      rewrite size_to_list => j?.
+      rewrite get_to_list initiE // /DecodeSkNoOID get_of_list 1:/#.
+      do 3! (rewrite nth_cat ifT; first by rewrite !size_cat !valP /= size_EncodeIdx /#).
+      by rewrite nth_cat ifT; [by rewrite size_EncodeIdx /# |].
+
+seq 1 0 : (#pre /\ to_uint idx{1} = to_uint idx{2}).
+    + ecall {1} (ull_to_bytes_correct idx_bytes{1}).
+      auto => /> &1 &2 *.
+      admit.
+
+rcondf {1} 1.
+    + auto => /> &hr ??????????????H.
+      rewrite uleE /(`<<`) /= -ltzNge H /#.
+
+rcondt {1} 1.
+    + auto => /> &hr *.
+      smt(@W8).
+
+seq 28 14 : (#{/~r{1} = W64.zero}post); last by auto.
+ 
+seq 26 14 : (sk{1} = DecodeSkNoOID sk{2} /\ sig{2} = EncodeSignature (to_list signature{1})); last first.
+    + conseq (: _ ==> to_list signature {1} = load_message Glob.mem{1} _sm_ptr ((of_int XMSS_SIG_BYTES))%W64).
+         * by auto => /> *; congr.
+      while {1} (
+          #pre /\
+          0 <= i{1} <= 4963 /\
+          sub signature{1} 0 i{1} = sub_list (load_message Glob.mem{1} _sm_ptr ((of_int XMSS_SIG_BYTES))%W64) 0 i{1}
+      )
+      (4963 - i{1}); last first.
+         * auto => /> &1 *.
+           split.
+               - apply (eq_from_nth witness); first by rewrite size_sub // size_sub_list.
+                 rewrite size_sub // /#. 
+               - move => memL iL *. 
+                 split => [/# | ???].
+                 have ->: iL = 4963 by smt().
+                 have ->: sub signature{1} 0 4963 = to_list signature{1}.
+                    + apply (eq_from_nth witness); first by rewrite size_to_list size_sub.
+                      rewrite size_sub // => j?.
+                      by rewrite get_to_list nth_sub.
+                 move => ->.
+                 apply (eq_from_nth witness); first by rewrite size_sub_list // /load_message size_mkseq /XMSS_SIG_BYTES /#.
+                 rewrite size_sub_list // => j?.
+                 by rewrite /sub_list nth_mkseq.
+         * auto => /> &hr *. 
+           do split; 1,2,4: by smt().
+           apply (eq_from_nth witness); first by rewrite size_sub 1:/# size_sub_list /#.
+           rewrite size_sub 1:/# => j?.
+           rewrite nth_sub 1:/# /sub_list nth_mkseq 1:/# /= /load_message nth_mkseq /=.
+               - rewrite of_uintK /#.
+           rewrite /storeW8 get_setE //.
+           case (i{hr} = j) => [-> | ?]; admit. (* tenho smptr e smptr{1}, quando nao tenho garantias que sejam iguais *)
+seq 1 0 : (#pre /\ sub signature{1} 0 XMSS_INDEX_BYTES = EncodeIdx sk{2}.`idx).
+    + auto => /> &1 &2 ?????????????H?.
+      apply (eq_from_nth witness); first by rewrite size_sub // size_EncodeIdx /#.
+      rewrite size_sub // => j?.
+      by rewrite nth_sub // initiE 1:/# /= ifT 1:/# /copy_8 -get_to_list H.
+
+seq 2 1 : (#pre /\ to_uint t64{1} = to_uint idx_new{2}); first by auto => /> *; rewrite !to_uintD_small /#.
+
+seq 2 1 : (
+    #{/~to_list idx_bytes{1} = EncodeIdx sk{2}.`Types.idx}
+     {/~to_uint sk{2}.`Types.idx < 1048575}pre /\
+     to_uint sk{2}.`Types.idx <= 1048575
+).
+    + auto => />.
+      admit.
+
+seq 1 1 : (#pre /\ to_list index_bytes{1} = val idx_bytes{2}).
+    + admit.
+
+seq 2 1 : (#pre /\ to_list buf{1} = val _R{2}).
+
+    + inline {1} M(Syscall).__prf_ M(Syscall)._prf; wp; sp.
+      exists * in_00{1}, key0{1}; elim * => _P1 _P2.
+      call {1} (prf_correctness _P1 _P2) => [/# |].  
+      skip => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 ->.
+      do split; first by smt(@NBytes).
+          - 
+
+
+
+
+
+
+
+search (<) [!].
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     + exists * sm_ptr{1}, m_ptr{1}, mlen{1}.
       elim * => P0 P1 P2.
       call {1} (memcpy_u8pu8p_touches mem P0 P1 P2).

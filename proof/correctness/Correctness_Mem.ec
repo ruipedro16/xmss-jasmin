@@ -5,6 +5,8 @@ require import AllCore List RealExp IntDiv.
 from Jasmin require import JModel.
 
 require import Array3 Array32 Array64 Array128 Array2144.
+require import Array352.
+
 require import XMSS_IMPL.
 require import Utils2. (* valid_ptr predicate *)
 require import Termination.
@@ -961,54 +963,6 @@ proof.
 admit.
 qed.
 
-
-lemma _memcpy_u8u8_3_3_post (_in : W8.t Array3.t):
-    hoare [
-      M(Syscall).__memcpy_u8u8_3_3 : arg.`2 = _in 
-        ==> res = _in].
-proof.
-proc => /=.
-while (#pre /\ 0 <= to_uint i <= 3 /\ forall (k : int), 0 <= k < to_uint i => out.[k] = in_0.[k]).
-  + auto => /> &hr ?? H *.
-    do split => [|?|k*].
-      - rewrite to_uintD /#.
-      - rewrite to_uintD; smt(@W64 pow2_64).
-      - rewrite get_setE 1:#smt:(@W64).
-        case (k = to_uint i{hr}) => [/# | ?].
-        by apply H; smt(@W64).
-  + auto => /> &hr *.
-    split => [/# | i out].
-    rewrite ultE of_uintK /= => ???.
-    have ->: to_uint i = 3 by smt().
-    by rewrite tP.
-qed.
-
-lemma _memcpy_u8u8_3_3_post_p (_in : W8.t Array3.t):
-    phoare [
-      M(Syscall).__memcpy_u8u8_3_3 : arg.`2 = _in 
-        ==> res = _in] = 1%r.
-proof.
-proc => /=.
-while (#pre /\ 0 <= to_uint i <= 3 /\ forall (k : int), 0 <= k < to_uint i => out.[k] = in_0.[k]) (3 - to_uint i).
-  + auto => /> &hr ?? H *.
-    do split => [|?|k*|].
-      - rewrite to_uintD /#.
-      - rewrite to_uintD; smt(@W64 pow2_64).
-      - rewrite get_setE 1:#smt:(@W64).
-        case (k = to_uint i{hr}) => [/# | ?].
-        by apply H; smt(@W64).
-      - rewrite to_uintD /#.
-  + auto => /> &hr *.
-    split => [/# | i out].
-    split. 
-      - move => ????.
-        rewrite ultE of_uintK /#.
-      - rewrite ultE of_uintK /= => ???.
-        have ->: to_uint i = 3 by smt().
-        by rewrite tP.
-qed.
-
-require import Array352.
 
 lemma memcpy_u8u8_3_352_32_post (o : W8.t Array352.t, input : W8.t Array32.t, offset : W64.t) :
   phoare [

@@ -181,10 +181,20 @@ op EncodePkNoOID (x : W8.t Array64.t) : xmss_pk = {| pk_oid      = witness;
                                                      pk_pub_seed = NBytes.insubd (sub x 32 32);
                                                    |}. 
 
+op EncodeIdx (idx : W32.t) : W8.t list = 
+  take XMSS_INDEX_BYTES (W32toBytes idx).
+
+lemma size_EncodeIdx (x : W32.t) : 
+    size (EncodeIdx x) = XMSS_INDEX_BYTES by rewrite /EncodeIdx size_take 1:/# size_W32toBytes /#.
 
 op DecodeSkNoOID (x : xmss_sk) : W8.t Array131.t = 
-  Array131.of_list witness (take XMSS_INDEX_BYTES (W32toBytes x.`idx) ++ val x.`sk_seed ++ val x.`sk_prf ++ 
-                            val x.`sk_root ++ val  x.`pub_seed_sk).
+  Array131.of_list witness (
+          EncodeIdx x.`idx ++ 
+          val x.`sk_seed ++ 
+          val x.`sk_prf ++ 
+          val x.`sk_root ++ 
+          val  x.`pub_seed_sk
+  ).
 
 (** -------------------------------------------------------------------------------------------- **)
 

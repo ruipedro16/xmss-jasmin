@@ -196,9 +196,7 @@ fn __xmssmt_core_sign(
         // prf(params, sm + params->index_bytes, idx_bytes_32, sk_prf);
         // This computes R and writes it to the signature
         sk_prf = sk[XMSS_INDEX_BYTES + XMSS_N : XMSS_N];   
-        buf = __prf_(buf, index_bytes, sk_prf); // prf kills sm_ptr and sk
-        // Aqui nao posso escrever diretamente para a assinatura pq tenho este erro
-        // variable allocation: bad range alignment for out.44078[0]/u32 in signature.44025[3; 35[ 
+        buf = __prf_(buf, index_bytes, sk_prf);
 
         // sm_ptr, _ = _x_memcpy_u8pu8<XMSS_N>(sm_ptr, XMSS_INDEX_BYTES, buf); // Write R to the signature 
         signature[XMSS_INDEX_BYTES : XMSS_N] = _x_memcpy_u8u8<XMSS_N, XMSS_N>(signature[XMSS_INDEX_BYTES : XMSS_N], buf);
@@ -208,7 +206,7 @@ fn __xmssmt_core_sign(
         () = #unspill(sm_ptr, mlen, idx);
         pub_root = sk[XMSS_INDEX_BYTES + 2*XMSS_N : XMSS_N];
         t64 = sm_ptr; t64 += XMSS_SIG_BYTES - XMSS_PADDING_LEN - 3*XMSS_N;
-        mhash = __hash_message(mhash, signature[XMSS_INDEX_BYTES : XMSS_N], pub_root, idx, t64, mlen); // this function is not used anywhere else so we can use the inline
+        mhash = __hash_message(mhash, signature[XMSS_INDEX_BYTES : XMSS_N], pub_root, idx, t64, mlen); // the __hash_message function is not used anywhere else so we can inline it
 
         ots_addr = __set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
         ots_addr = __set_layer_addr(ots_addr, 0);

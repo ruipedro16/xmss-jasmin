@@ -933,39 +933,6 @@ inline fn __u32_to_bytes(reg ptr u8[4] out, reg u32 in) -> reg ptr u8[4] {
   return out;
 }
 
-inline fn __ull_to_bytes_32(
-  reg ptr u8[32] out,
-  reg u64 in
-) -> reg ptr u8[32]
-{
-  // if 32 == 4 { 
-  //   out[u64 0] = in; 
-  // } else if 32 == 32 { 
-  //   out[u64 0] = in; 
-  //   out[u64 1] = 0; 
-  //   out[u64 2] = 0; 
-  //   out[u64 3] = 0; 
-  // }
-
-  /* https://stackoverflow.com/questions/3784263/converting-an-int-into-a-4-byte-char-array-c
-  buffer[0] = (value >> 24) & 0xFF;
-  buffer[1] = (value >> 16) & 0xFF;
-  buffer[2] = (value >> 8) & 0xFF;
-  buffer[3] = value & 0xFF;
-  */
-
-  inline int i;
-
-  in = in;
-
-  for i=32-1 downto -1 {
-    out[i] = (8u) in;
-    in >>= 8;
-  }
-
-  return out;
-}
-
 inline fn __ull_to_bytes_3(
   reg ptr u8[3] out,
   reg u64 in
@@ -992,6 +959,39 @@ inline fn __ull_to_bytes_3(
   in = in;
 
   for i=3-1 downto -1 {
+    out[i] = (8u) in;
+    in >>= 8;
+  }
+
+  return out;
+}
+
+inline fn __ull_to_bytes_32(
+  reg ptr u8[32] out,
+  reg u64 in
+) -> reg ptr u8[32]
+{
+  // if 32 == 4 { 
+  //   out[u64 0] = in; 
+  // } else if 32 == 32 { 
+  //   out[u64 0] = in; 
+  //   out[u64 1] = 0; 
+  //   out[u64 2] = 0; 
+  //   out[u64 3] = 0; 
+  // }
+
+  /* https://stackoverflow.com/questions/3784263/converting-an-int-into-a-4-byte-char-array-c
+  buffer[0] = (value >> 24) & 0xFF;
+  buffer[1] = (value >> 16) & 0xFF;
+  buffer[2] = (value >> 8) & 0xFF;
+  buffer[3] = value & 0xFF;
+  */
+
+  inline int i;
+
+  in = in;
+
+  for i=32-1 downto -1 {
     out[i] = (8u) in;
     in >>= 8;
   }
@@ -1224,22 +1224,6 @@ inline fn __memcpy_u8u8_offset(
     return out;
 }//<>
 
-inline fn __memcpy_u8u8_3_3(
-    reg ptr u8[3] out,
-    reg ptr u8[3] in
-) -> reg ptr u8[3]
-{
-    reg u64 i;
-    
-    i = 0;
-    while (i < 3) {
-        out[i] = in[i];
-        i += 1;
-    }
-
-    return out;
-}
-
 inline fn __memcpy_u8u8_32_32(
     reg ptr u8[32] out,
     reg ptr u8[32] in
@@ -1289,16 +1273,6 @@ inline fn __memcpy_u8u8_64_32(
 }
 
 #[returnaddress="stack"]
-fn _memcpy_u8u8_3_3(
-    reg ptr u8[3] out,
-    reg ptr u8[3] in
-) -> reg ptr u8[3]
-{
-    out = __memcpy_u8u8_3_3(out, in);
-    return out;
-}
-
-#[returnaddress="stack"]
 fn _memcpy_u8u8_32_32(
     reg ptr u8[32] out,
     reg ptr u8[32] in
@@ -1325,21 +1299,6 @@ fn _memcpy_u8u8_64_32(
 ) -> reg ptr u8[64]
 {
     out = __memcpy_u8u8_64_32(out, in);
-    return out;
-}
-
-inline fn _x_memcpy_u8u8_3_3(
-    reg ptr u8[3] out,
-    reg ptr u8[3] in
-) -> reg ptr u8[3]
-{
-    out = out;
-    in = in;
-
-    out = _memcpy_u8u8_3_3(out, in);
-
-    out = out;
-
     return out;
 }
 
@@ -1433,6 +1392,26 @@ inline fn _x_memcpy_u8u8p(
 
 // Same as _x_memcpy_u8u8 but with offset in and out
 
+inline fn __memcpy_u8u8_2_64_352(
+    reg ptr u8[64] out,
+    reg ptr u8[352] in,
+    reg u64 in_offset,
+    reg u64 bytes
+) -> reg ptr u8[64], reg u64
+{
+    reg u64 i;
+
+    i = 0;
+    while (i < bytes) {
+        // out[out_offset] = in[in_offset];
+        out[i] = in[in_offset];
+        i += 1;
+        in_offset += 1;
+    }
+
+    return out, in_offset;
+}
+
 inline fn __memcpy_u8u8_2_32_2144(
     reg ptr u8[32] out,
     reg ptr u8[2144] in,
@@ -1473,26 +1452,6 @@ inline fn __memcpy_u8u8_2_64_2144(
     return out, in_offset;
 }
 
-inline fn __memcpy_u8u8_2_64_352(
-    reg ptr u8[64] out,
-    reg ptr u8[352] in,
-    reg u64 in_offset,
-    reg u64 bytes
-) -> reg ptr u8[64], reg u64
-{
-    reg u64 i;
-
-    i = 0;
-    while (i < bytes) {
-        // out[out_offset] = in[in_offset];
-        out[i] = in[in_offset];
-        i += 1;
-        in_offset += 1;
-    }
-
-    return out, in_offset;
-}
-
 inline fn __memcpy_u8u8_3_352_32(
     reg ptr u8[352] out,
     reg ptr u8[32] in,
@@ -1512,8 +1471,7 @@ inline fn __memcpy_u8u8_3_352_32(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Same as before but u8pu8p
-
+// same as memcpy(out_ptr + out_offset, in_ptr + in_offset, bytes)
 inline fn __memcpy_u8pu8p(
     reg u64 out_ptr,
     reg u64 out_offset,
@@ -2227,10 +2185,10 @@ fn __gen_chain_inplace_(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline fn __base_w_64_32(
-  reg ptr u32[64] output,
-  reg ptr u8[32] input
-) -> reg ptr u32[64]
+inline fn __base_w_3_2(
+  reg ptr u32[3] output,
+  reg ptr u8[2] input
+) -> reg ptr u32[3]
 {
     reg u64 in out;
     reg u8 total;
@@ -2245,7 +2203,7 @@ inline fn __base_w_64_32(
     total = 0;
 
     // for (consumed = 0; consumed < out_len; consumed++) 
-    for consumed=0 to 64 {
+    for consumed=0 to 3 {
         // if (bits == 0) { total = input[in]; in++; bits += 8; }
         if (bits == 0) 
         {
@@ -2270,10 +2228,10 @@ inline fn __base_w_64_32(
     return output;
 }
 
-inline fn __base_w_3_2(
-  reg ptr u32[3] output,
-  reg ptr u8[2] input
-) -> reg ptr u32[3]
+inline fn __base_w_64_32(
+  reg ptr u32[64] output,
+  reg ptr u8[32] input
+) -> reg ptr u32[64]
 {
     reg u64 in out;
     reg u8 total;
@@ -2288,7 +2246,7 @@ inline fn __base_w_3_2(
     total = 0;
 
     // for (consumed = 0; consumed < out_len; consumed++) 
-    for consumed=0 to 3 {
+    for consumed=0 to 64 {
         // if (bits == 0) { total = input[in]; in++; bits += 8; }
         if (bits == 0) 
         {
@@ -3753,7 +3711,7 @@ fn __xmssmt_core_sign(
 
     if (exit != TRUE) { 
         // memcpy(sm, sk, params->index_bytes);
-        signature[0 : XMSS_INDEX_BYTES] = _x_memcpy_u8u8_3_3(signature[0 : XMSS_INDEX_BYTES], idx_bytes);
+        signature[0 : XMSS_INDEX_BYTES] = #copy_8(idx_bytes);
         () = #spill(sm_ptr, idx);
 
         // Increment the index
