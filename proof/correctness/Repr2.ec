@@ -109,6 +109,18 @@ rewrite -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => n)) /=.
 rewrite big_constz count_predT size_map //=.
 qed.
 
+lemma nth_nbytes_flatten (x : nbytes list, i : int):
+    0 <= i %/ n < size x =>
+    nth witness (nbytes_flatten x) i = nth witness (val (nth witness x (i %/ n))) (i %% n).
+move => H.
+rewrite /nbytes_flatten (nth_flatten witness n).
+    - pose P := (fun (s0 : W8.t list) => size s0 = n).
+      pose L := (map NBytes.val x).
+      rewrite -(all_nthP P L witness) /P /L size_map => j?. 
+      by rewrite (nth_map witness) // valP.
+by rewrite (nth_map witness).
+qed.
+
 (** -------------------------------------------------------------------------------------------- **)
 
 op DecodeWotsSk (sk : wots_sk) : W8.t Array2144.t = 

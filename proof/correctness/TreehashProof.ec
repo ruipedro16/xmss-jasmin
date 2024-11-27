@@ -24,37 +24,11 @@ require import LTReeProof.
 
 require import WArray32.
 
-lemma nth_nbytes_flatten (x : nbytes list, i : int):
-    0 <= i %/ n < size x =>
-    nth witness (nbytes_flatten x) i = nth witness (val (nth witness x (i %/ n))) (i %% n).
-move => H.
-rewrite /nbytes_flatten (nth_flatten witness n).
-    - pose P := (fun (s0 : W8.t list) => size s0 = n).
-      pose L := (map NBytes.val x).
-      rewrite -(all_nthP P L witness) /P /L size_map => j?. 
-      by rewrite (nth_map witness) // valP.
-by rewrite (nth_map witness).
-qed.
- 
 lemma to_uint_eq_int_W32 (a b : W32.t) :
     0 <= to_uint a < W32.max_uint =>
     0 <= to_uint b < W32.max_uint =>
     to_uint a = to_uint b =>
     a = b by smt(@W32 pow2_32).
-
-
-lemma sub_N (a1 a2: W32.t Array8.t) (len1 len2 : int) :
-    0 <= len1 <= len2 =>
-    sub a1 0 len2 = sub a2 0 len2 =>
-    sub a1 0 len1 = sub a2 0 len1.
-proof.
-move => [H0 H1] H2.
-apply (eq_from_nth witness); first by rewrite !size_sub /#.
-rewrite size_sub // => i?.
-have ?: forall (k : int), 0 <= k < len2 => a1.[k] = a2.[k] by smt(sub_k).
-rewrite !nth_sub /#.
-qed.
- 
 
 lemma treehash_correct ( _sk_seed _pub_seed : W8.t Array32.t, _s _t:W32.t, _addr:W32.t Array8.t): 
     n = XMSS_N /\

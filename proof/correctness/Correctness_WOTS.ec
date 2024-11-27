@@ -678,17 +678,6 @@ while{1}  (
       rewrite !get_to_list /#. 
 qed.
 
-lemma nth_nbytes_flatten (x : nbytes list, i : int):
-    0 <= i %/ n < size x =>
-    nth witness (nbytes_flatten x) i = nth witness (val (nth witness x (i %/ n))) (i %% n).
-move => H.
-rewrite /nbytes_flatten (nth_flatten witness n).
-    - pose P := (fun (s0 : W8.t list) => size s0 = n).
-      pose L := (map NBytes.val x).
-      rewrite -(all_nthP P L witness) /P /L size_map => j?. 
-      by rewrite (nth_map witness) // valP.
-by rewrite (nth_map witness).
-qed.
 
 lemma expand_seed_correct (_in_seed _pub_seed : W8.t Array32.t) (a1 a2 : W32.t Array8.t):
     len = XMSS_WOTS_LEN /\ 

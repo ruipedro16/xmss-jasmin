@@ -42,6 +42,18 @@ have ->: a0.[i] = nth witness (sub a0 0 k) i by rewrite nth_sub.
 by rewrite H1 nth_sub.
 qed.
 
+lemma sub_N (a1 a2: W32.t Array8.t) (len1 len2 : int) :
+    0 <= len1 <= len2 =>
+    sub a1 0 len2 = sub a2 0 len2 =>
+    sub a1 0 len1 = sub a2 0 len1.
+proof.
+move => [H0 H1] H2.
+apply (eq_from_nth witness); first by rewrite !size_sub /#.
+rewrite size_sub // => i?.
+have ?: forall (k : int), 0 <= k < len2 => a1.[k] = a2.[k] by smt(sub_k).
+rewrite !nth_sub /#.
+qed.
+
 lemma addr_sub_5 (a0 a1 : W32.t Array8.t) :
     a0.[0] = a1.[0] /\
     a0.[1] = a1.[1] /\
