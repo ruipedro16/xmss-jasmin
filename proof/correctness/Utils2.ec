@@ -15,6 +15,9 @@ require import Array8 Array11.
 
 (** -------------------------------------------------------------------------------------------- **)
 
+lemma and_comm (a b : W32.t) : a `&` b = b `&` a by smt(@W32 pow2_32).
+
+
 lemma pow2_bound (a b: int) :
     0 <= a => 0 <= b =>  a <= b => 
     a <= 2^b

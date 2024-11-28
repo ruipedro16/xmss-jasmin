@@ -178,9 +178,9 @@ rcondt {1} 1.
     + auto => /> &hr *.
       smt(@W8).
 
-seq 28 14 : (#{/~r{1} = W64.zero}post); last by auto.
+seq 27 14 : (#{/~r{1} = W64.zero}post); last by auto.
  
-seq 26 14 : (sk{1} = DecodeSkNoOID sk{2} /\ sig{2} = EncodeSignature (to_list signature{1})); last first.
+seq 25 14 : (sk{1} = DecodeSkNoOID sk{2} /\ sig{2} = EncodeSignature (to_list signature{1})); last first.
     + conseq (: _ ==> to_list signature {1} = load_message Glob.mem{1} _sm_ptr ((of_int XMSS_SIG_BYTES))%W64).
          * by auto => /> *; congr.
       while {1} (
@@ -232,353 +232,81 @@ seq 1 1 : (#pre /\ to_list index_bytes{1} = val idx_bytes{2}).
     + admit.
 
 seq 2 1 : (#pre /\ to_list buf{1} = val _R{2}).
-
     + inline {1} M(Syscall).__prf_ M(Syscall)._prf; wp; sp.
       exists * in_00{1}, key0{1}; elim * => _P1 _P2.
       call {1} (prf_correctness _P1 _P2) => [/# |].  
       skip => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 ->.
       do split; first by smt(@NBytes).
-          - 
+          - apply nbytes_eq.
+            rewrite insubdK; first by rewrite /P size_to_list /#.
+            apply (eq_from_nth witness); first by rewrite valP n_val size_to_list.
+            rewrite valP n_val => j?.
+            rewrite get_to_list initiE //= H6.
+            by rewrite nth_sub 1:/# /XMSS_INDEX_BYTES n_val /=.
+          - by move => ????->.
 
+seq 1 0 : (#pre /\ sub signature{1} XMSS_INDEX_BYTES n = val _R{2}).
+    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 <-.
+      split.
+         * rewrite /XMSS_INDEX_BYTES.
+           apply (eq_from_nth witness); first by rewrite size_sub // size_EncodeIdx. 
+           rewrite size_sub // => i?. 
+           rewrite -H13.
+           by rewrite !nth_sub //= initiE 1:/# /= ifF 1:/#.
+         * apply (eq_from_nth witness); first by rewrite size_to_list size_sub n_val.
+           rewrite size_sub n_val // => j?.
+           by rewrite nth_sub // initiE 1:/# /= ifT 1:/# /copy_8 /XMSS_INDEX_BYTES.
 
-
-
-
-
-
-search (<) [!].
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    + exists * sm_ptr{1}, m_ptr{1}, mlen{1}.
-      elim * => P0 P1 P2.
-      call {1} (memcpy_u8pu8p_touches mem P0 P1 P2).
-      skip => /> *.
-      do split.
-          * smt(@W64 pow2_64).
-          * admit. (* 0 <= to_uint _sm_ptr + to_uint _mlen => to_uint _sm_ptr + to_uint _mlen < 18446744073709551615  ==> Add to precondition *)
-          * admit. (* to_uint _sm_ptr + 4963 + to_uint _mlen < 18446744073709551615 ==> Add to precondition *)
-          * move => ????.
-            rewrite /touches /load_message => H.
-            apply (eq_from_nth witness); first by rewrite !size_mkseq.
-            rewrite size_mkseq (: max 0 (to_uint _mlen) = to_uint _mlen) 1:/# => i?.
-            rewrite !nth_mkseq // /=.
-            admit.
-
-
-seq 2 0 : (#pre /\ to_uint t64{1} = to_uint mlen{1} + XMSS_SIG_BYTES).
-    + auto => /> *.
-      rewrite /XMSS_SIG_BYTES to_uintD_small of_uintK // /#.
-
-seq 1 0 : (#pre /\ to_uint (loadW64 Glob.mem{1} (to_uint smlen_ptr{1})) = to_uint mlen{1} + XMSS_SIG_BYTES).
-  + auto => /> &1 *.
-    split.
-
-
-swap {2} 2 -1.
-
-seq 0 1 : (#pre /\ ots_addr{1} = address{2}); first by auto.
-
-seq 0 1 : (
+seq 1 1 : (
     #pre /\ 
-    EncodeIdx idx{2} = (sub sk{1} 0 XMSS_INDEX_BYTES) /\
-    0 <= to_uint idx{2} <= 1048575
+    to_list pub_root{1} = val root{2} /\
+    val t{2} = val _R{2} ++ val root{2} ++ val idx_bytes{2}
 ).
-    + auto => /> &1 *.
-      rewrite /DecodeSkNoOID. admit.
-(*
-      apply (eq_from_nth witness); first by rewrite size_EncodeIdx size_sub // /#.
-      rewrite size_EncodeIdx /XMSS_INDEX_BYTES => i?.
-      rewrite nth_sub //= get_of_list 1:/# nth_cat ifT.
-         * rewrite !size_cat size_take // !valP sizeW32toBytes /#.
-      rewrite nth_cat ifT.
-         * rewrite !size_cat size_take // !valP sizeW32toBytes /#.
-      rewrite nth_cat ifT.
-         * rewrite !size_cat size_take // !valP sizeW32toBytes /#.
-      rewrite nth_cat ifT.
-         * rewrite size_take // sizeW32toBytes /#.
-      by rewrite /EncodeIdx /XMSS_INDEX_BYTES.
-*)
-
-seq 0 1 : (
-  #pre /\
-  val root{2} = sub sk{1} (XMSS_INDEX_BYTES + 2 * n) n
-).
-    + auto => /> &1 &2 *.
-      rewrite /DecodeSkNoOID.
-      apply (eq_from_nth witness); first by rewrite valP size_sub /#.
-      rewrite valP n_val => i?.
-      rewrite nth_sub // get_of_list /= 1:/# nth_cat.
-      rewrite ifT.
-         * rewrite /XMSS_INDEX_BYTES !size_cat size_take // size_W32toBytes !valP /#.
-      rewrite nth_cat ifF.
-         * rewrite /XMSS_INDEX_BYTES !size_cat size_take // size_W32toBytes !valP /#.
-      congr.
-      rewrite !size_cat valP size_take 1:/# size_W32toBytes /XMSS_INDEX_BYTES /= valP /#.
-
-seq 0 1 : (
-    #pre /\ 
-    val sk_prf{2} = sub sk{1} (XMSS_INDEX_BYTES +  n) n
-).
-    + auto => /> &1 &2 *.
-      rewrite /DecodeSkNoOID.
-      apply (eq_from_nth witness); first by rewrite valP size_sub /#.
-      rewrite valP n_val => i?.
-      rewrite nth_sub // get_of_list 1:/# /= /XMSS_INDEX_BYTES.
-      rewrite nth_cat ifT.
-         * rewrite !size_cat !valP size_take //= size_W32toBytes /#.
-      rewrite nth_cat ifT.
-         * rewrite !size_cat !valP size_take //= size_W32toBytes /#.
-      rewrite nth_cat ifF.
-         * rewrite !size_cat !valP size_take //= size_W32toBytes /#.
-      congr.
-      rewrite !size_cat valP size_take // size_W32toBytes /=/#.
-
-seq 2 0 : (#pre /\ to_uint idx{1} = to_uint idx{2}).
+    + auto => /> &1 &2 H0 H1 H2 H3 H4 -> H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17.
+      split.
+          * apply (eq_from_nth witness); first by rewrite size_to_list size_sub n_val.
+            rewrite size_to_list => i?.
+            by rewrite get_to_list initiE //= nth_sub 1:/# /XMSS_INDEX_BYTES n_val.
+          * rewrite insubdK // /P !size_cat !valP size_sub /#.
+    
+seq 3 1 : (#pre /\ to_list mhash{1} = val _M'{2}).
     + admit.
 
-seq 0 1 : (#pre /\ to_uint idx_new{2} = to_uint idx{2} + 1).
-    + auto => /> &1 &2 *.
-      rewrite to_uintD_small //=/#.
- 
-rcondt {1} 1.
-    + auto => /> &1 ?????????????H?*.
-      rewrite /(`<<`) /= uleE of_uintK H (: 1048575 %% W64.modulus = 1048575) 1:/#. 
-      admit.
+seq 2 0 : #pre; first by inline {1}; auto => /> *; smt(zero_addr_setZero).
+
+seq 2 1 : (#pre /\ to_uint idx_tree{1} = to_uint idx_tree{2}).
+    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20.
+      by rewrite h_val d_val /= !to_uint_shr // of_uintK /= H12.
+
+seq 2 1 : (#pre /\ to_uint idx_leaf{1} = to_uint idx_leaf{2}).
+    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21.
+      rewrite d_val h_val /= /(`<<`) /= and_comm.
+      congr; congr.
+      by rewrite /truncateu32 H12 to_uintK.
+
+seq 0 1 : #pre; first by auto => /> *; rewrite /set_layer_addr; smt(zero_addr_setZero).
+     
+seq 1 1 : (#{/~ots_addr{1} = zero_addr}pre).
+    + inline {1}; auto => /> &1 &2 ?????????????????????<-?.
+      rewrite /set_tree_addr tP => j?.
+      rewrite !get_setE //.
+      case (j = 1) => [-> | ?].
+         * rewrite ifF 1:/# ifF 1:/# /truncateu32.
+           congr.
+           by rewrite (: 63 = 2^6 -1) 1:/# and_mod //= to_uint_shr /truncateu8 of_uintK of_uintK 1:/#.
+      case (j = 2) => [? | //].
+      rewrite /truncateu32; smt(@W32 pow2_32).
+
+
+
+
+(* =========================================== fiquei aqui *)
 
       
 
-seq 1 0 : (#pre /\ idx_bytes{1} = W32toBytes sk{2}.`Types.idx).
- 
-seq 2 1 : (#pre /\ to_uint idx{1} = sK.`ty{2}).
-  + ecall {1} (ull_to_bytes_correct idx_bytes{1}).
-    auto => /> &1 *. 
-    rewrite /DecodeSkNoOID.
-    admit.
- 
-rcondt {1} 1.
-  + auto => /> &hr *.
-    rewrite uleE of_uintK /(`<<`) //=. (* 1048575 <= to_uint idx{hr} *) 
-    admit.
 
 
 
-
-
-
-
-
-
- 
-
-
-
-
-
-seq 13 5 : (
-  #pre /\
-  exit_0{1} = W8.zero /\
-  ots_addr{1} = zero_addr /\
-  
-  idx{2} = sk{2}.`Types.idx /\
-  idx{2} = W32ofBytes (sub sk{1} 0 4) /\
-
-  address{2} = zero_addr /\
-  root{2} = sk{2}.`sk_root /\
-  sk_prf{2} = sk{2}.`Types.sk_prf /\
-
-  idx_new{2} = idx{2} + W32.one
-). 
-    + inline {1} 13.
-      wp.
-      ecall {1} (zero_addr_res addr{1}).
-      auto => /> *.
-      rewrite /DecodeSkNoOID.
-
-
-   
-      admit.
-
-seq 1 0 : #pre.
-    + inline {1}; auto => /> *; by apply zero_addr_setZero.
-
-seq 0 1 : (
-  #{/~idx{2} = sk{2}.`Types.idx}
-   {/~sk{2} = _sk}
-   {/~0 <= to_uint sk{2}.`Types.idx < 2 ^ XMSS_FULL_HEIGHT - 1}pre /\ 
-  sk{2} = {| _sk with idx=idx_new{2} |} /\
-  0 < to_uint sk{2}.`Types.idx <= 2 ^ XMSS_FULL_HEIGHT 
-).
-    + auto => /> ?????H?. 
-      rewrite /XMSS_FULL_HEIGHT //= in H.
-      rewrite /XMSS_FULL_HEIGHT to_uintD.
-      do split => *; 1,3,4: by smt(@W32 pow2_32). 
-      simplify.
-      admit. (* Rever: Isto e falso *)
-
-
-
-seq 1 0 : (#pre).
-    + inline; wp; sp. 
-      while {1} (true) (to_uint bytes1{1} - to_uint i0{1}); auto => /> *; first by smt(@W64 pow2_64).
-      split; first by rewrite ultE /#.
-      rewrite ultE => ?. 
-      congr.
-      admit. (* This is false *)
-
-seq 2 0 : (#pre /\ to_uint t64{1} = to_uint mlen{1} + XMSS_SIG_BYTES).
-  + auto => /> *.
-    rewrite /XMSS_SIG_BYTES to_uintD_small of_uintK /#.
-
-seq 1 0 : (#pre).
-    + auto => /> &1 *.
-         admit.
-
-
-
-seq 1 1 : (#pre /\ to_list idx_bytes{1} = sub sk{1} 0 XMSS_INDEX_BYTES).
-    + auto => /> &1 &2 *.
-      apply (eq_from_nth witness); first by rewrite size_to_list size_sub /#.
-      rewrite size_to_list => i?.
-      rewrite get_to_list initiE // /DecodeSkNoOID get_of_list 1:/# nth_sub 1:/# get_of_list // /#.
-
-seq 1 0 : (#pre /\ to_uint idx{1} = to_uint sk{2}.`Types.idx /\ to_uint idx{1} < 2 ^ XMSS_FULL_HEIGHT - 1).
-
-    + admit.
-
-
-
-(* We dont enter this if statement because we assumed that the index is valid *)
-rcondf {1} 1.
-    + auto => /> &hr ???????????H.
-      rewrite /XMSS_FULL_HEIGHT /= in H.
-      rewrite uleE of_uintK /(`<<`) ifT // /#.
-
-(* We enter this if statement because we assumed that the index is valid *)
-rcondt {1} 1; first by auto => /> ; smt(@W8).
-
-seq 2 0 : (#pre /\ sub signature{1} 0 XMSS_INDEX_BYTES = to_list idx_bytes{1}).
-    + wp.
-      inline {1} 1.
-      inline {1} 5.
-      wp.
-      exists * idx_bytes{1}; elim * => P0.
-      ecall {1} (_memcpy_u8u8_3_3_post_p P0).
-      auto => /> &1 ????????? H *. 
-      rewrite H.
-      apply (eq_from_nth witness); first by rewrite /XMSS_INDEX_BYTES !size_sub.
-      rewrite size_sub // /XMSS_INDEX_BYTES => i?.
-      rewrite !nth_sub // /DecodeSkNoOID initiE 1:/# get_of_list 1:/# /= ifT //.
-      rewrite nth_cat ifT.
-           * rewrite !size_cat !valP n_val size_take // sizeW32toBytes ifT /#.
-      rewrite nth_cat ifT.
-           * rewrite !size_cat !valP n_val size_take // sizeW32toBytes ifT /#.
-      rewrite nth_cat ifT.
-           * rewrite !size_cat !valP n_val size_take // sizeW32toBytes ifT /#.
-      rewrite nth_cat ifT.
-           * rewrite size_take // sizeW32toBytes ifT /#.
-      rewrite nth_take // 1:/#.
-      rewrite -get_to_list H.
-      rewrite !nth_sub // /DecodeSkNoOID initiE 1:/# /=.
-      rewrite nth_cat ifT.
-           * rewrite !size_cat !valP n_val size_take // sizeW32toBytes ifT /#.
-      rewrite nth_cat ifT.
-           * rewrite !size_cat !valP n_val size_take // sizeW32toBytes ifT /#.
-      rewrite nth_cat ifT.
-           * rewrite !size_cat !valP n_val size_take // sizeW32toBytes ifT /#.
-      rewrite nth_cat ifT.
-           * rewrite size_take // sizeW32toBytes ifT /#.
-      rewrite nth_take // /#.
-
-seq 27 11 : (#{/~r{1} = W64.zero}post); last by auto => />.
-
-seq 2 0 : (#{/~to_uint t64{1} = to_uint mlen{1} + XMSS_SIG_BYTES}pre /\ 
-           t64{1} = idx{1} + W64.one); first by auto.
-
-seq 5 1 : (#pre /\ to_list buf{1} = val _R{2}).
-    + admit.
-
-seq 2 0 : (#pre /\ sub signature{1} XMSS_INDEX_BYTES n = val _R{2}).
-    + wp.
-      exists * buf{1}; elim * => P1.
-      call {1} (_x_memcpy_u8u8_post P1).
-      auto => /> &1 &2 ???????????H0 H1 ; split.
-           * apply (eq_from_nth witness); first by rewrite size_to_list size_sub.
-             rewrite size_sub // /XMSS_INDEX_BYTES => i?.             
-             rewrite nth_sub // initiE 1:/# /= ifF 1:/#.
-             rewrite (: idx_bytes{1}.[i] = nth witness (to_list idx_bytes{1}) i) 1:/# -H0 nth_sub //.
-           * apply (eq_from_nth witness); first by rewrite size_sub 1:/# valP.
-             rewrite size_sub 1:/# n_val => i?.
-             by rewrite nth_sub // initiE 1:/# /= ifT 1:/# -H1 /XMSS_INDEX_BYTES get_to_list.
-
-seq 1 0 : (#{/~t64{1} = idx{1} + W64.one}pre /\ to_list pub_root{1} = val root{2}).
-    + auto => /> &1 &2 *.
-      apply (eq_from_nth witness); first by rewrite size_to_list valP n_val.
-      rewrite size_to_list => i?.
-      rewrite get_to_list initiE //= /DecodeSkNoOID get_of_list 1:/# nth_cat ifT.
-          * rewrite !size_cat !valP n_val size_take //= sizeW32toBytes ifT /#.
-      rewrite nth_cat ifF.
-          * rewrite !size_cat !valP n_val size_take //= sizeW32toBytes ifT /#.
-      rewrite !size_cat !valP n_val size_take // sizeW32toBytes ifT /#.
-
-seq 3 2 : (#pre /\ val _M'{2} = to_list mhash{1}).
-    + wp.
-      admit.
-
-seq 2 0 : #pre; first by inline {1}; auto => /> &1 &2 *;rewrite !zero_addr_setZero //.
-
-seq 2 1 : (#pre /\ to_uint idx_tree{1} = to_uint idx_tree{2}).
-    + auto => /> &1 &2 *. 
-      rewrite  shr_div of_uintK //= h_val d_val /= /W32.
-      admit.
-
-seq 2 1 : (#pre /\ to_uint idx_leaf{1} = to_uint idx_leaf{2}).
-    + auto => /> &1 &2 *.
-      admit.
-
-seq 1 2 : (#{/~ots_addr{1} = zero_addr}
-            {/~address{2} = zero_addr}pre /\  
-           address{2} = ots_addr{1}).
-    + inline {1}; auto => /> &1 &2 *.
-      rewrite /set_tree_addr /set_layer_addr.
-      rewrite tP => i?.
-      rewrite get_setE //.
-      case (i = 2) => *.
-         * rewrite get_setE // ifT // #smt:(@W32 pow2_32).
-      rewrite get_setE //.
-      case (i = 1) => *.
-         * rewrite get_setE // ifF 1:/# get_setE // ifT //. 
-           rewrite (: 63 = 2^6 - 1) 1:/# and_mod // of_uintK.
-           rewrite /truncateu8 of_uintK //=.
-           rewrite /truncateu32 shr_div of_uintK /= /#. 
-      rewrite get_setE //.
-      case (i = 0) => *.
-         * by rewrite get_setE // ifF 1:/# get_setE // ifF 1:/# zero_addr_i.
-      by rewrite get_setE // ifF 1:/# get_setE // ifF 1:/#.
-
-seq 5 4 : (
-            to_uint _sm_ptr + XMSS_SIG_BYTES <= W64.max_uint /\
-            sm_ptr{1} = _sm_ptr /\ 
-            sk{1} = DecodeSkNoOID sk{2} /\ 
-            sig{2} = EncodeSignature (to_list signature{1})
-); last first.
 
 while {1}
 (#pre /\
@@ -609,43 +337,4 @@ while {1}
 
 admit.
 qed.
-
-
-
-(* ========================================================================================================================================= *)
-
-
-swap {2} 2 - 1.
-seq 1 1 : (
-    #pre /\
-    to_list idx_bytes{1} = val idx_bytes{2}
-); first by admit. (* este idx e o original ou o que foi incrementado? ++> O original *)
-
-seq 0 1 : (#pre /\ sk{1} = DecodeSkNoOID sk{2}). (* Isto nao e #pre *)
-    + auto => /> &1 *; do split => />. 
-        * admit.
-        * rewrite to_uintD /#.
-        * move => ?. rewrite /XMSS_FULL_HEIGHT /= to_uintD. admit.
-        * admit.
-        * admit.
-        * admit.
-
-seq 1 0 : (#pre /\ to_list sk_prf{1} = val sk_prf{2}).
-    + auto => /> &1 &2 *.
-      apply (eq_from_nth witness); first by rewrite valP n_val _to_list.
-      rewrite size_to_list => j?. 
-      rewrite get_to_list initiE // => />.
-      rewrite /DecodeSkNoOID get_of_list 1:/#.
-      rewrite nth_cat !size_cat !valP n_val sizeW32toBytes /= ifT 1:/#.
-      rewrite nth_cat !size_cat !valP n_val sizeW32toBytes /= ifT 1:/#.
-      by rewrite nth_cat !size_cat !valP n_val sizeW32toBytes /= ifF 1:/#.
-
-seq 1 1 : (#pre /\ to_list buf{1} = val _R{2}).
-    + inline {1} M(Syscall).__prf_ M(Syscall)._prf; wp; sp.
-      exists * in_00{1}, key0{1}; elim * => _P1 _P2; call {1} (prf_correctness _P1 _P2) => [/# |]. 
-      skip => /> &1 &2  ???? H0 H1 H2 H3 H4 H5 H6; do split. 
-        * rewrite H5 #smt:(@NBytes).
-        * rewrite H6 #smt:(@NBytes).
-        * by move => ???? ->.
-admit.
 qed.

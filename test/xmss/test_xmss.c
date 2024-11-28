@@ -177,7 +177,7 @@ void test_xmssmt_keypair(void) {
             puts("Ref finished");
         }
 
-        res_jasmin = xmss_keypair_jazz(pk_jasmin, sk_jasmin); /* TODO: Rename MT */
+        res_jasmin = xmss_keypair_jazz(pk_jasmin, sk_jasmin); 
 
         assert(res_jasmin == res_ref);
 
@@ -230,8 +230,8 @@ void test_xmss_sign(void) {
     size_t smlen_ref, smlen_jasmin;
 
     for (int i = 0; i < TESTS; i++) {
-        size_t mlen = MAX_MSG_LEN;  // todo: remove this when i uncomment the for loop
-                                    // for (size_t mlen = 1; mlen <= MAX_MSG_LEN; mlen++) {
+        size_t mlen = MAX_MSG_LEN;  
+                                    
 
         memset(sm_ref, 0, p.sig_bytes + MAX_MSG_LEN);
         memset(sm_jasmin, 0, p.sig_bytes + MAX_MSG_LEN);
