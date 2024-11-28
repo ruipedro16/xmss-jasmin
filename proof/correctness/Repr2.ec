@@ -72,6 +72,31 @@ rewrite size_nseq (: max 0 8 = 8) 1:/# => j?.
 rewrite nth_nseq //= /int2bs nth_mkseq //=.
 qed.
 
+(* TMP: MOVE THIS TO THE RIGHT PLACE LATER *)
+op BitsToBytes (bits : bool list) : W8.t list = map W8.bits2w (chunk W8.size bits).
+
+lemma W32toBytes_Eq (x : W32.t) :
+    W32toBytes x = 
+    (mkseq (fun i => nth W8.zero (BitsToBytes (W32.w2bits x)) i) 4).
+proof.
+rewrite /W32toBytes.
+apply (eq_from_nth witness); first by rewrite size_map size_chunk // size_w2bits size_mkseq /#.
+rewrite size_map size_chunk // size_w2bits /= => j?.
+rewrite nth_mkseq 1:/#.
+rewrite /BitsToBytes.
+rewrite (nth_map witness).
+  + by rewrite size_chunk // size_w2bits.
+rewrite wordP => jw?.
+rewrite bits2wE initiE // /= /chunk nth_mkseq /= 1:/#.
+rewrite nth_take // 1:/# nth_drop 1,2:/#.
+rewrite (nth_map witness).
+  +rewrite size_mkseq /#.
+rewrite bits2wE initiE // /= /chunk nth_mkseq /= 1:/#.
+rewrite nth_take // 1:/# nth_drop 1,2:/#.
+by rewrite /w2bits nth_mkseq 1:/# /=.
+qed.
+   
+
 (** -------------------------------------------------------------------------------------------- **)
 
 (* W8 list w/32 elements loaded from memory *)
