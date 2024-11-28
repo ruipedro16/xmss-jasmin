@@ -199,7 +199,7 @@ fn __xmssmt_core_sign(
         buf = __prf_(buf, index_bytes, sk_prf);
 
         // sm_ptr, _ = _x_memcpy_u8pu8<XMSS_N>(sm_ptr, XMSS_INDEX_BYTES, buf); // Write R to the signature 
-        signature[XMSS_INDEX_BYTES : XMSS_N] = _x_memcpy_u8u8<XMSS_N, XMSS_N>(signature[XMSS_INDEX_BYTES : XMSS_N], buf);
+        signature[XMSS_INDEX_BYTES : XMSS_N] = #copy_8(buf);
 
         // hash_message(params, mhash, sm + params->index_bytes, pub_root, idx, sm + params->sig_bytes - 
         // Compute the message hash 
