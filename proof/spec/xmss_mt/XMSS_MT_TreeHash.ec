@@ -17,12 +17,14 @@ pred leftmost_leaf (s t : int)  = s %% 2^t = 0.
 (* Precondition *)
 pred treehash_p (s t : int) = s %% (1 `<<` t) <> 0.
 
+op nbytes_zero : nbytes = NBytes.insubd (nseq n W8.zero).
+
 module TreeHash = {
   (* Computes the root *)
   proc treehash(pub_seed sk_seed : seed, s t : int, address : adrs) : nbytes = {
     var node : nbytes;
-    var stack : nbytes list <- nseq ((h %/ d) + 1) (NBytes.insubd (nseq n W8.zero));
-    var heights : int list <- nseq ((h %/ d) + 1) witness; (* Used to manage the height of nodes *)
+    var stack : nbytes list <- nseq ((h %/ d) + 1) nbytes_zero;
+    var heights : int list <- nseq ((h %/ d) + 1) 0; (* Used to manage the height of nodes *)
     var pk : wots_pk;
     var offset : int;
     var i, j : int;
@@ -61,14 +63,14 @@ module TreeHash = {
         address <- set_tree_height address (nth witness heights (offset - 1));
         address <- set_tree_index address (W32.to_uint tree_index);
 
-        node0 <- nth witness stack (offset - 2);
-        node1 <- nth witness stack (offset - 1);
+        node0 <- nth nbytes_zero stack (offset - 2);
+        node1 <- nth nbytes_zero stack (offset - 1);
 
         new_node <@ Hash.rand_hash(node0, node1, pub_seed, address);
 
         stack <- put stack (offset - 2) new_node; (* push new node onto the stack *)
         offset <- offset - 1; (* One less node on the stack (removed node0 and node1 and added new_node) *)
-        heights <- put heights (offset - 1) (nth witness heights (offset - 1) + 1); (* The new node is one level higher than the nodes used to compute it *)
+        heights <- put heights (offset - 1) (nth 0 heights (offset - 1) + 1); (* The new node is one level higher than the nodes used to compute it *)
       }      
 
       i <- i + 1;
