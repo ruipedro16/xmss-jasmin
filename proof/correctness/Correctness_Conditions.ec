@@ -8,14 +8,12 @@ require import XMSS_IMPL.
 
 require import Array11.
 
-lemma neg_impl (p : bool) : !p <=> (p => false) by smt().
-lemma not_b_implies_b_false (b : bool) : !b => b = false by smt().
-lemma false_neq (a b : W8.t) : (a <> b) => ((a = b) = false) by move => ?; apply not_b_implies_b_false.
-
 lemma setcc_false (p : bool) : !p => SETcc p = W8.zero by rewrite /SETcc /#.
 lemma setcc_true  (p : bool) :  p => SETcc p = W8.one  by rewrite /SETcc /#.
 
-pred treehash_cond (h : W32.t Array11.t) (o : W64.t) = 2 <= to_uint o /\ (h.[to_uint o - 2] = h.[to_uint o -1]).
+pred treehash_cond (h : W32.t Array11.t) (o : W64.t) = W64.of_int 2 \ule o /\ 
+                                                       (h.[to_uint (o - W64.of_int 2)] = h.[to_uint (o - W64.one)]).
+
 lemma treehash_cond_ll : islossless M(Syscall).__treehash_cond by proc; auto.
 
 (* ============================================================================================================================= *)
@@ -57,27 +55,21 @@ lemma treehash_condition_correct_eq (h : W32.t Array11.t) (o : W64.t) :
     ].
 proof.
 proc => /=.
-seq 3 : (#pre /\ bc1 = if (2 <= to_uint offset) then W8.one else W8.zero). 
+seq 3 : (#pre /\ bc1 = if (W64.of_int 2 \ule offset) then W8.one else W8.zero).
   + auto => /> *.
-    case (2 <= to_uint o) => H; [rewrite setcc_true | rewrite setcc_false] => //; rewrite cmp_eq_W64 cmp_lt_W64 /_uGE /_uLT; [smt(@W64) |].
-    rewrite ultE of_uintK // #smt(@W64).
+    by case ((of_int 2)%W64 \ule o) => H; [rewrite setcc_true | rewrite setcc_false] => //; rewrite cmp_eq_W64 cmp_lt_W64 /#. 
 if.
 - (* 1st branch: bc1 = W8.zero i.e 2 <= offset is false so the whole expression is false *)
    auto => /> ???.
    rewrite /treehash_cond.
-   have ->: 2 <= to_uint o = false by smt(@W8).
-   simplify.
-   have E: W8.zero <> W8.one by smt(@W8).
-   have ->: (W8.zero = W8.one) = false by apply false_neq; assumption.
-   trivial.
+   have ->: ((of_int 2)%W64 \ule o) = false; by smt(@W8). (* este ; aplica o by smt aos 2 subgoals *)
 - (* 2nd branch: bc1 = W8.zero i.e. 2 <= offset is true *)
    auto => /> *.
-   have E: 2 <= to_uint o by smt().
+   have E: (of_int 2)%W64 \ule o by smt().
    rewrite /treehash_cond /=.
-   have ->: 2 <= to_uint o = true by smt().
+   have ->: (of_int 2)%W64 \ule o = true by smt().
    simplify.
-   rewrite /_EQ cmp_eq_W32 !to_uintB; 1,2: by rewrite uleE /#.
-   rewrite of_uintK /= /#.
+   rewrite /_EQ cmp_eq_W32 !to_uintB 2,3:/# #smt:(@W64 pow2_64).
 qed.
 
 lemma treehash_condition_correct_equiv (h : W32.t Array11.t) (o : W64.t) :
@@ -91,27 +83,21 @@ lemma treehash_condition_correct_equiv (h : W32.t Array11.t) (o : W64.t) :
 proof.
 conseq (: _ ==> (res = W8.one) = treehash_cond h o); first by auto => /> /#. (* Reuse the proof from before *)
 proc => /=.
-seq 3 : (#pre /\ bc1 = if (2 <= to_uint offset) then W8.one else W8.zero). 
+seq 3 : (#pre /\ bc1 = if (W64.of_int 2 \ule offset) then W8.one else W8.zero).
   + auto => /> *.
-    case (2 <= to_uint o) => H; [rewrite setcc_true | rewrite setcc_false] => //; rewrite cmp_eq_W64 cmp_lt_W64 /_uGE /_uLT; [smt(@W64) |].
-    rewrite ultE of_uintK // #smt(@W64).
+    by case ((of_int 2)%W64 \ule o) => H; [rewrite setcc_true | rewrite setcc_false] => //; rewrite cmp_eq_W64 cmp_lt_W64 /#. 
 if.
 - (* 1st branch: bc1 = W8.zero i.e 2 <= offset is false so the whole expression is false *)
    auto => /> ???.
    rewrite /treehash_cond.
-   have ->: 2 <= to_uint o = false by smt(@W8).
-   simplify.
-   have E: W8.zero <> W8.one by smt(@W8).
-   have ->: (W8.zero = W8.one) = false by apply false_neq; assumption.
-   trivial.
+   have ->: ((of_int 2)%W64 \ule o) = false; by smt(@W8). (* este ; aplica o by smt aos 2 subgoals *)
 - (* 2nd branch: bc1 = W8.zero i.e. 2 <= offset is true *)
    auto => /> *.
-   have E: 2 <= to_uint o by smt().
+   have E: (of_int 2)%W64 \ule o by smt().
    rewrite /treehash_cond /=.
-   have ->: 2 <= to_uint o = true by smt().
+   have ->: (of_int 2)%W64 \ule o = true by smt().
    simplify.
-   rewrite /_EQ cmp_eq_W32 !to_uintB; 1,2: by rewrite uleE /#.
-   rewrite of_uintK /= /#.
+   rewrite /_EQ cmp_eq_W32 !to_uintB 2,3:/# #smt:(@W64 pow2_64).
 qed.
 
 (* ============================================================================================================================= *)
