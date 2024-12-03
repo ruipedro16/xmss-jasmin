@@ -48,7 +48,6 @@ qed.
 lemma treehash_condition_correct_eq (h : W32.t Array11.t) (o : W64.t) :
     hoare [
     M(Syscall).__treehash_cond :
-    0 <= to_uint o <= W32.max_uint /\
     arg = (h, o) 
     ==>
     (res = W8.one) = treehash_cond h o
@@ -60,7 +59,7 @@ seq 3 : (#pre /\ bc1 = if (W64.of_int 2 \ule offset) then W8.one else W8.zero).
     by case ((of_int 2)%W64 \ule o) => H; [rewrite setcc_true | rewrite setcc_false] => //; rewrite cmp_eq_W64 cmp_lt_W64 /#. 
 if.
 - (* 1st branch: bc1 = W8.zero i.e 2 <= offset is false so the whole expression is false *)
-   auto => /> ???.
+   auto => /> ?.
    rewrite /treehash_cond.
    have ->: ((of_int 2)%W64 \ule o) = false; by smt(@W8). (* este ; aplica o by smt aos 2 subgoals *)
 - (* 2nd branch: bc1 = W8.zero i.e. 2 <= offset is true *)
@@ -75,7 +74,6 @@ qed.
 lemma treehash_condition_correct_equiv (h : W32.t Array11.t) (o : W64.t) :
     hoare [
     M(Syscall).__treehash_cond :
-    0 <= to_uint o <= W32.max_uint /\
     arg = (h, o) 
     ==>
     (res = W8.one) <=> treehash_cond h o
@@ -88,7 +86,7 @@ seq 3 : (#pre /\ bc1 = if (W64.of_int 2 \ule offset) then W8.one else W8.zero).
     by case ((of_int 2)%W64 \ule o) => H; [rewrite setcc_true | rewrite setcc_false] => //; rewrite cmp_eq_W64 cmp_lt_W64 /#. 
 if.
 - (* 1st branch: bc1 = W8.zero i.e 2 <= offset is false so the whole expression is false *)
-   auto => /> ???.
+   auto => /> ?.
    rewrite /treehash_cond.
    have ->: ((of_int 2)%W64 \ule o) = false; by smt(@W8). (* este ; aplica o by smt aos 2 subgoals *)
 - (* 2nd branch: bc1 = W8.zero i.e. 2 <= offset is true *)
@@ -107,7 +105,6 @@ qed.
 lemma p_treehash_condition_correct_eq (h : W32.t Array11.t) (o : W64.t) :
     phoare [
     M(Syscall).__treehash_cond :
-    0 <= to_uint o <= W32.max_uint /\
     arg = (h, o) 
     ==>
     (res = W8.one) = treehash_cond h o
@@ -116,7 +113,6 @@ lemma p_treehash_condition_correct_eq (h : W32.t Array11.t) (o : W64.t) :
 lemma p_treehash_condition_correct_equiv (h : W32.t Array11.t) (o : W64.t) :
     phoare [
     M(Syscall).__treehash_cond :
-    0 <= to_uint o <= W32.max_uint /\
     arg = (h, o) 
     ==>
     (res = W8.one) <=> treehash_cond h o
