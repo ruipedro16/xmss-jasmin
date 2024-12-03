@@ -32,6 +32,17 @@ move => ?.
 rewrite /sub_list size_mkseq /#.
 qed.
 
+op sub_mem_ptr (mem : global_mem_t) (ptr len : int) : W8.t list =
+  mkseq (fun (i : int) => loadW8 mem (ptr + i)) len.
+ 
+lemma size_sub_mem_ptr (mem : global_mem_t) (ptr len : int) :
+    0 <= len =>
+    size (sub_mem_ptr mem ptr len) = len.
+proof.
+move => ?.
+rewrite /sub_mem_ptr.
+rewrite size_mkseq /#.
+qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 
