@@ -65,10 +65,7 @@ if.
 - (* 2nd branch: bc1 = W8.zero i.e. 2 <= offset is true *)
    auto => /> *.
    have E: (of_int 2)%W64 \ule o by smt().
-   rewrite /treehash_cond /=.
-   have ->: (of_int 2)%W64 \ule o = true by smt().
-   simplify.
-   rewrite /_EQ cmp_eq_W32 !to_uintB 2,3:/# #smt:(@W64 pow2_64).
+   rewrite /treehash_cond /= (: (of_int 2)%W64 \ule o = true) 1:/# /= /_EQ cmp_eq_W32 !to_uintB 2,3:/# #smt:(@W64 pow2_64).
 qed.
 
 lemma treehash_condition_correct_equiv (h : W32.t Array11.t) (o : W64.t) :
@@ -92,10 +89,7 @@ if.
 - (* 2nd branch: bc1 = W8.zero i.e. 2 <= offset is true *)
    auto => /> *.
    have E: (of_int 2)%W64 \ule o by smt().
-   rewrite /treehash_cond /=.
-   have ->: (of_int 2)%W64 \ule o = true by smt().
-   simplify.
-   rewrite /_EQ cmp_eq_W32 !to_uintB 2,3:/# #smt:(@W64 pow2_64).
+   rewrite /treehash_cond /= (: (of_int 2)%W64 \ule o = true) 1:/# /= /_EQ cmp_eq_W32 !to_uintB 2,3:/# #smt:(@W64 pow2_64).
 qed.
 
 (* ============================================================================================================================= *)
