@@ -63,7 +63,8 @@ fn __treehash(
     reg u32 i upper_bound t32 u tree_idx;
     reg u64 t64;
     reg u64 offset = 0;
-
+    reg u8 val;
+    
     reg u8 cond;
 
     inline int j;
@@ -121,7 +122,8 @@ fn __treehash(
             tree_idx += i; // At this point, tree_idx = start_index + i
             u = heights[offset - 1];
             u += 1; // u = heighs[offset - 1] + 1
-            tree_idx >>= (u & 31); // tree_idx = ((start_index + i) >> (heights[offset - 1] + 1));
+            val = (u8) u;
+            tree_idx >>= val; // tree_idx = ((start_index + i) >> (heights[offset - 1] + 1));
 
             // set_tree_height(node_addr, heights[offset - 1]);
             node_addr = __set_tree_height(node_addr, heights[offset - 1]);

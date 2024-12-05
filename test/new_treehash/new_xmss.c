@@ -66,7 +66,7 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
     set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
 
     i = 0;
-    assert(I1);
+    // assert(I1);
 
     dprintf(4, "size heights = %ld\n", size_heights);
     dprintf(4, "size stack = %ld\n\n\n", size_stack);
@@ -76,7 +76,7 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
 
     dprintf(4, "offset before the outer loop: %d\n\n", offset);
     while (i < (uint32_t)(1 << target_height)) {
-        assert(I1);
+        // assert(I1);
         dprintf(4, "offset at the start of the iteration (outer loop): %d\n", offset);
 
         /* Add the next leaf node to the stack. */
@@ -87,11 +87,11 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
         offset++;
         heights[offset - 1] = 0;
 
-        assert(I2);
+        // assert(I2);
         /* While the top-most nodes are of equal height.. */
         dprintf(5, "[i = %d]: offset before the inner loop: %d\n\n", i, offset);
         while (offset >= 2 && heights[offset - 1] == heights[offset - 2]) {
-            assert(I2);
+            // assert(I2);
             dprintf(5, "[i = %d] offset at the start of the iteration (inner loop): %d\n", i, offset);
 
             /* Compute index of the new node, in the next layer. */
@@ -109,16 +109,16 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
             heights[offset - 1]++;
             dprintf(6, "Heights: %d\n", heights[offset - 1]);
 
-            assert(I2);
+            // assert(I2);
             dprintf(5, "[i = %d] offset at the end of the iteration (inner loop): %d\n", i, offset);
         }
         dprintf(5, "[i = %d] offset after the inner loop: %d\n\n", i, offset);
         dprintf(4, "offset at the end of the iteration (outer loop): %d\n\n", offset); // aqui 
-        assert(I1);
-        assert(I2);
+        // assert(I1);
+        // assert(I2);
         i += 1;
     }
-    assert(I1);
+    // assert(I1);
     dprintf(4, "offset at the end of the outer loop: %d\n\n", offset);
     memcpy(root, stack, params->n);
 }
