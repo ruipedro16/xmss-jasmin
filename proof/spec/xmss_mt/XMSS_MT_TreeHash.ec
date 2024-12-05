@@ -59,7 +59,7 @@ module TreeHash = {
           nth witness heights (to_uint (offset - W64.one)) = nth witness heights (to_uint (offset - W64.of_int 2))
       ) {
 
-        tree_index <- W32.of_int(s + i) `>>` truncateu8 (((nth witness heights (to_uint (offset - W64.one))) + W32.one)); (* FIXME: Demasiado proximo da implementacao *)
+        tree_index <- W32.of_int(s + i) `>>` truncateu8 (((nth witness heights (to_uint (offset - W64.one))) + W32.one) `&` (of_int 31)%W32); (* FIXME: Demasiado proximo da implementacao *)
         
         address <- set_tree_height address (to_uint (nth witness heights (to_uint (offset - W64.one))));
         address <- set_tree_index address (W32.to_uint tree_index);

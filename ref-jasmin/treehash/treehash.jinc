@@ -118,12 +118,11 @@ fn __treehash(
         while { cond = __treehash_cond(heights, offset); } (cond == 1) {
             // tree_idx = ((start_index + i) >> (heights[offset - 1] + 1));
             () = #unspill(start_index, i); /* At this point, offset should be live so we dont need to unspill it */
-            tree_idx = start_index;
-            tree_idx += i; // At this point, tree_idx = start_index + i
-            u = heights[offset - 1];
-            u += 1; // u = heighs[offset - 1] + 1
-            val = (u8) u;
-            tree_idx >>= val; // tree_idx = ((start_index + i) >> (heights[offset - 1] + 1));
+            tree_idx = start_index; tree_idx += i; // At this point, tree_idx = start_index + i
+            u = heights[offset - 1]; u += 1; // u = heighs[offset - 1] + 1
+
+            // tree_idx = ((start_index + i) >> (heights[offset - 1] + 1));
+            tree_idx >>= u & 31;
 
             // set_tree_height(node_addr, heights[offset - 1]);
             node_addr = __set_tree_height(node_addr, heights[offset - 1]);
