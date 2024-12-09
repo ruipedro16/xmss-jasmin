@@ -186,8 +186,6 @@ seq 2 0 : (#pre /\ to_uint t64{1} = to_uint smlen{1} - XMSS_SIG_BYTES).
 swap {2} 4 -3.
 seq 0 1 : (#pre /\ address{2} = zero_address); first by auto.
 
-print loadW64.
-
 seq 1 0 : (
   #{/~Glob.mem{1} = mem}
    {/~to_uint t64{1} = to_uint smlen{1} - XMSS_SIG_BYTES}pre /\ 
@@ -479,7 +477,7 @@ seq 0 1 : (
 
 unroll {1} 2.
 rcondt {1} 2; first by auto.
-print truncateu32.
+
 seq 3 0 : (
   #pre /\
   i{1} = W32.zero /\

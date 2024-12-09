@@ -13,10 +13,6 @@ require import Termination.
 
 require import Params.
 require import Parameters. 
-print touches.
-
-print put.
-
 
 (* FIXME: Remove this. this lemma already exists: put_out *)
 lemma put_out_of_bounds (l : W8.t list) (v : W8.t) (idx : int) :

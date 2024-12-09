@@ -23,8 +23,6 @@ require import StdBigop.
 
 require import Termination.
 
-print LTree.
-
 (*  proc ltree(pk : wots_pk, address : adrs, _seed : seed) : nbytes *)
 lemma ltree_correct (_pk : W8.t Array2144.t, _pub_seed : W8.t Array32.t, _addr : W32.t Array8.t) : 
     len = XMSS_WOTS_LEN /\ 
