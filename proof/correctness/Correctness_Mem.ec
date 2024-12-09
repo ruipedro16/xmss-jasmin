@@ -15,9 +15,22 @@ require import Params.
 require import Parameters. 
 print touches.
 
+print put.
+
+
+(* FIXME: Remove this. this lemma already exists: put_out *)
+lemma put_out_of_bounds (l : W8.t list) (v : W8.t) (idx : int) :
+    size l <= idx =>
+    put l idx v = l.
+proof.
+by move => ?; rewrite /put ifF 1:/#.
+qed.
+
 lemma treehash_memcpy (node : W8.t Array32.t) (stack : nbytes list) (_stack : W8.t Array352.t) (offset : W64.t) : 
-    phoare [
+    n = XMSS_N => 
+    hoare [
       M(Syscall).__memcpy_u8u8_3_352_32 :
+      0 <= to_uint offset /\
       size stack = 11 /\
       sub _stack 0 (XMSS_N * min (to_uint offset) (size stack)) = sub_list (nbytes_flatten stack) 0  (XMSS_N * min (to_uint offset) (size stack)) /\
       arg = (_stack, node, offset * (W64.of_int 32), 32) 
@@ -28,19 +41,55 @@ lemma treehash_memcpy (node : W8.t Array32.t) (stack : nbytes list) (_stack : W8
              (put stack (to_uint offset) ((insubd (to_list node)))%NBytes)) 
           0
           (XMSS_N * min (to_uint offset) (size stack))
-    ] = 1%r.
+    ].
 proof.
+rewrite /XMSS_N => n_val.
 proc => /=.
-admit.
-qed.
-(*
-while (
+sp.
+while ( 
   bytes = 32 /\
+  aux = bytes /\
   0 <= i <= 32 /\
-  forall (k : int), 0 <= 
-).
-*)
+  in_0 = node /\
+  out_offset = offset * (of_int 32)%W64 /\
+  0 <= to_uint offset /\
+  (forall (k : int), !(to_uint out_offset <= k < to_uint (out_offset + (of_int k)%W64)) => out.[k] = _stack.[k]) /\
+  (forall (k : int), 0 <= k < i => out.[to_uint (out_offset + (of_int k)%W64)] = node.[k]) 
+); last first.
+    + auto => /> H0 H1 H2 *.
+      split => [/# |].
+      move => i0 out0 ???.
+      have ->: i0 = 32 by smt().
+      move => H3 H4.
+      case (to_uint offset < size stack) => Ha.
+(* ====== this is the in bounds case [of the last subgoal of while] *)
+      have E: min (to_uint offset) (size stack) = to_uint offset by smt(). 
+      rewrite E /=.
+      rewrite H1 in Ha.
+      apply (eq_from_nth witness); first by rewrite size_sub 1:/# size_sub_list /#.
+      rewrite size_sub 1:/# => j?.
+      rewrite -E H2.
+      rewrite E /sub_list !nth_mkseq //= nth_nbytes_flatten 1:/# nth_nbytes_flatten; first by rewrite size_put H1 /#.
+      rewrite nth_put 1:/#. 
+      rewrite ifF /#.
+(* ====== this is the out of bounds case [of the last subgoal of while] *)  
+      have E: min (to_uint offset) (size stack) = size stack by smt().
+      rewrite E H1 /=.
+      rewrite H1 in Ha.
+      apply (eq_from_nth witness); first by rewrite size_sub // size_sub_list.
+      rewrite size_sub // => j?.
+      rewrite nth_sub 1:/# /= /sub_list nth_mkseq 1:/# /= nth_nbytes_flatten; first by rewrite size_put /#.
+      have ->: (put stack (to_uint offset) ((insubd (to_list node)))%NBytes) = stack by smt(put_out_of_bounds).
+      have ->: _stack.[j] = nth witness (sub _stack 0 (32 * min (to_uint offset) (size stack))) j by rewrite E nth_sub /#.
+      rewrite H2 /sub_list nth_mkseq 1:/# /= nth_nbytes_flatten /#.
 
+
+(* ===== this is the first goal of while *)
+auto => /> &hr H0 H1 H2 H3 H4 H5.
+do split; 1,2: by smt().
+    - case (to_uint offset < size stack) => Ha; admit.
+    - case (to_uint offset < size stack) => Ha; admit.
+qed.
 
 (* // same as memcpy(out_ptr + out_offset, in_ptr + in_offset, bytes) *)
 lemma memcpy_u8pu8p_touches mem (optr iptr l : W64.t) :

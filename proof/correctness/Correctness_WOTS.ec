@@ -528,27 +528,17 @@ seq 2 2 : (
 outline {2} [1-6] { (t, address) <@ ThashF.thash_f (t, _seed, address); }.
 
 
-seq 1 1 : (#pre /\ to_list out{1} = val t{2} /\ addr{1}.[7] = W32.one); last by admit.
+seq 1 1 : (#pre /\ to_list out{1} = val t{2} /\ addr{1}.[7] = W32.one).
     + inline M(Syscall).__thash_f_ M(Syscall)._thash_f; wp; sp.
       exists * out1{1}, pub_seed1{1}, addr{1}.
       elim * => P0 P1 P2.
       call (thash_f_equiv P0 P1 P2) => [/# |].
       auto => /> &1 &2 *.
       do split => //=; 1,2: by smt(@NBytes).
-      move => H0 H1 H2 H3 H4 H5 H6 *.
+      move => *.
       do split; 1..3: by smt().
-smt().smt().
-smt().
-smt().
-
-
-
-   
-
-
-
+      smt(sub_k).
       
-inline {1} 1.
 
 while ( 
   ((0 < chain_count{2}) => addr{1}.[6] = i{1}) /\
@@ -559,13 +549,15 @@ while (
   0 <= to_uint (start{1} + steps{1}) <= w - 1 /\
   to_uint start{1} < to_uint start{1} + to_uint steps{1} /\
   address{2} = addr{1} /\ 
-  to_uint start{1} <= to_uint i{1} <= to_uint start{1} + to_uint steps{1} /\
+  to_uint start{1} < to_uint i{1} <= to_uint start{1} + to_uint steps{1} /\
   t{1} = start{1} + steps{1} /\
   to_uint i{1} = i{2} + chain_count{2} /\
   0 <= chain_count{2} <= s{2} 
-); last first.
+);  first by admit.
     + auto => /> &1 &2 *.
-      rewrite !ultE to_uintD. 
+      rewrite !ultE to_uintD.
+      do split => //=.
+ 
       do split; 1..3: by smt().
       move => addrL iL outL chaincountR t.
       rewrite ultE -!lezNgt => ????? *.
