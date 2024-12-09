@@ -539,15 +539,24 @@ seq 1 1 : (#pre /\ to_list out{1} = val t{2} /\ addr{1}.[7] = W32.one).
       do split; 1..3: by smt().
       smt(sub_k).
       
+seq 1 1 : (
+  #{/~chain_count{2} = 0}
+   {/~i{1} = start{1}}
+   {/~addr{1}.[6] = i{1}}pre /\
+   i{1} = start{1} + W32.one /\
+   chain_count{2} = to_uint start{1} + to_uint i{1}  
+).
 
+
+(* 
 while ( 
   ((0 < chain_count{2}) => addr{1}.[6] = i{1}) /\
   sub addr{1} 0 6 = sub _addr_ 0 6 /\
   val t{2} = to_list out{1} /\
   0 <= to_uint start{1} <= w - 1/\
-  0 <= to_uint steps{1} <= w - 1 /\
+  0 <= to_uint steps{1} <= w - 1 /\ 
   0 <= to_uint (start{1} + steps{1}) <= w - 1 /\
-  to_uint start{1} < to_uint start{1} + to_uint steps{1} /\
+  to_uint start{1} <= to_uint start{1} + to_uint steps{1} /\
   address{2} = addr{1} /\ 
   to_uint start{1} < to_uint i{1} <= to_uint start{1} + to_uint steps{1} /\
   t{1} = start{1} + steps{1} /\
@@ -558,6 +567,9 @@ while (
       rewrite !ultE to_uintD.
       do split => //=.
  
+
+
+
       do split; 1..3: by smt().
       move => addrL iL outL chaincountR t.
       rewrite ultE -!lezNgt => ????? *.
@@ -610,6 +622,9 @@ admit.
 while (
   (to_uint start{2} < to_uint i{1}
 ); first by admit.
+*)
+admit.
+admit.
 
 qed.
 

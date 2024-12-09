@@ -22,6 +22,10 @@ proof.
 by move => ?; rewrite /put ifF 1:/#.
 qed.
 
+lemma treehash_memcpy_ll : 
+    phoare [ M(Syscall).__memcpy_u8u8_3_352_32 : arg.`4 = 32 ==> true] = 1%r.
+proof. by proc; while (true) (32 - i); auto => /> /#. qed.
+
 lemma treehash_memcpy (node : W8.t Array32.t) (stack : nbytes list) (_stack : W8.t Array352.t) (offset : W64.t) : 
     n = XMSS_N => 
     hoare [
@@ -86,6 +90,27 @@ do split; 1,2: by smt().
     - case (to_uint offset < size stack) => Ha; admit.
     - case (to_uint offset < size stack) => Ha; admit.
 qed.
+
+lemma p_treehash_memcpy (node : W8.t Array32.t) (stack : nbytes list) (_stack : W8.t Array352.t) (offset : W64.t) : 
+    n = XMSS_N => 
+    phoare [
+      M(Syscall).__memcpy_u8u8_3_352_32 :
+      0 <= to_uint offset /\
+      size stack = 11 /\
+      sub _stack 0 (XMSS_N * min (to_uint offset) (size stack)) = sub_list (nbytes_flatten stack) 0  (XMSS_N * min (to_uint offset) (size stack)) /\
+      arg = (_stack, node, offset * (W64.of_int 32), 32) 
+      ==> 
+      sub res 0 (XMSS_N * min (to_uint offset) (size stack)) =
+      sub_list
+          (nbytes_flatten
+             (put stack (to_uint offset) ((insubd (to_list node)))%NBytes)) 
+          0
+          (XMSS_N * min (to_uint offset) (size stack))
+    ] = 1%r.
+proof.
+admit.
+qed.
+
 
 (* // same as memcpy(out_ptr + out_offset, in_ptr + in_offset, bytes) *)
 lemma memcpy_u8pu8p_touches mem (optr iptr l : W64.t) :
@@ -1033,21 +1058,6 @@ lemma memcpy_ptr_touches_p mem (out offset len : W64.t) :
       ==>
       touches Glob.mem mem (to_uint (out + offset)) (to_uint len)
     ] = 1%r.
-proof.
-admit.
-qed.
-
-
-lemma memcpy_u8u8_3_352_32_post (o : W8.t Array352.t, input : W8.t Array32.t, offset : W64.t) :
-  phoare [
-    M(Syscall).__memcpy_u8u8_3_352_32 :
-    arg =(o, input, offset, 32) /\
-    0 <= to_uint offset <= 352-32 
-    ==>
-    (forall (k : int), 0 <= k < to_uint offset => res.[k] = o.[k]) /\
-    (forall (k : int), 0 <= k < 32 => res.[to_uint offset + k] = input.[k]) /\
-    (forall (k : int), to_uint offset + 32 <= k < 352 => res.[k] = o.[k])
-  ] = 1%r.
 proof.
 admit.
 qed.
