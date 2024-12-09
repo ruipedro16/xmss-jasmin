@@ -8,10 +8,39 @@ require import Array3 Array32 Array64 Array128 Array2144.
 require import Array352.
 
 require import XMSS_IMPL.
-require import Utils2. (* valid_ptr predicate *)
+require import Utils2 Repr2. (* valid_ptr predicate *)
 require import Termination.
 
+require import Params.
+require import Parameters. 
 print touches.
+
+lemma treehash_memcpy (node : W8.t Array32.t) (stack : nbytes list) (_stack : W8.t Array352.t) (offset : W64.t) : 
+    phoare [
+      M(Syscall).__memcpy_u8u8_3_352_32 :
+      size stack = 11 /\
+      sub _stack 0 (XMSS_N * min (to_uint offset) (size stack)) = sub_list (nbytes_flatten stack) 0  (XMSS_N * min (to_uint offset) (size stack)) /\
+      arg = (_stack, node, offset * (W64.of_int 32), 32) 
+      ==> 
+      sub _stack 0 (XMSS_N * min (to_uint offset) (size stack)) =
+      sub_list
+          (nbytes_flatten
+             (put stack (to_uint offset) ((insubd (to_list node)))%NBytes)) 
+          0
+          (XMSS_N * min (to_uint offset) (size stack))
+    ] = 1%r.
+proof.
+proc => /=.
+admit.
+qed.
+(*
+while (
+  bytes = 32 /\
+  0 <= i <= 32 /\
+  forall (k : int), 0 <= 
+).
+*)
+
 
 (* // same as memcpy(out_ptr + out_offset, in_ptr + in_offset, bytes) *)
 lemma memcpy_u8pu8p_touches mem (optr iptr l : W64.t) :

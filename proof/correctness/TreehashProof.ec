@@ -329,128 +329,19 @@ auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H
   
 seq 2 0 : (#pre /\ t64{1} = offset{2} * W64.of_int 32); first by auto.
 
-seq 3 3 : (#{/~ t64{1} = offset{2} * W64.of_int 32}pre); last by admit.
-          + inline {1}; wp.
-            conseq />.
-            sp.
-            case (to_uint offset{2} <= size heights{2}); first by admit.
-(* =========================================================================== *)
-            while {1} 
-            (bytes{1} = 32 /\
-             aux0{1} = bytes{1} /\
-             0 <= i0{1} <= aux0{1} /\
-             out_offset{1} = t64{1} /\ 
-             t64{1} = offset{2} * W64.of_int 32 /\
-             ={offset} /\
-             size stack{2} = h %/ d + 1 /\
-             size heights{2} = h %/ d + 1 /\
-             (i{2} <> 0 => 0 < to_uint offset{2}) /\
-             (forall (k : int), 0 <= k < i0{1} => out{1}.[to_uint (out_offset{1} + (of_int k)%W64)] = in_0{1}.[k]) /\
-             (forall (k : int), 0 <= k <= to_uint out_offset{1} => out{1}.[k] = nth witness (nbytes_flatten stack{2}) k) /\
-             (forall (k : int), to_uint (out_offset{1} + (of_int k)%W64) <= k < size (nbytes_flatten stack{2}) => out{1}.[k] = nth witness (nbytes_flatten stack{2}) k)
-            )
-            (32 - i0{1}); first by admit.
-                * auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23  *.
-                  have E1:  (min (to_uint offset{2}) (size heights{2})) = size heights{2} by smt().
-                  do split.
-                     - smt(). 
-                     - admit.        
-                     - move => k?.
-                       rewrite size_nbytes_flatten n_val => ?.
-                       admit.
-                     - move => i0L outL; do split.
-                          + move => ??.
-                            
+seq 3 3 : (#{/~ t64{1} = offset{2} * W64.of_int 32}pre).
+    + wp.
+      exists * buf{1}, stack{2}, _stack{1}, offset{1}.
+      elim * => P0 P1 P2 P3.
+      call {1} (treehash_memcpy P0 P1 P2 P3).
+      auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23.
+      split => [/# |]. 
+      move => H24 result H25.
+      rewrite !size_put; do split => //; first by smt(@W64 pow2_64).
+           * move => ?. rewrite to_uintD. admit.
+           * admit.
+           * admit.
 
-
-(* =========================================================================== *)
-            while {1} 
-            (bytes{1} = 32 /\
-             aux0{1} = bytes{1} /\
-             0 <= i0{1} <= aux0{1} /\
-             out_offset{1} = t64{1} /\ 
-             t64{1} = offset{2} * W64.of_int 32 /\
-             ={offset} /\
-             0 <= to_uint offset{2} < size heights{2} /\
-             size stack{2} = h %/ d + 1 /\
-             size heights{2} = h %/ d + 1 /\
-             (i{2} <> 0 => 0 < to_uint offset{2}) /\
-             (forall (k : int), 0 <= k < i0{1} => out{1}.[to_uint (out_offset{1} + (of_int k)%W64)] = in_0{1}.[k]) /\
-             (forall (k : int), 0 <= k <= to_uint out_offset{1} => out{1}.[k] = nth witness (nbytes_flatten stack{2}) k) /\
-             (forall (k : int), to_uint (out_offset{1} + (of_int k)%W64) <= k < size (nbytes_flatten stack{2}) => out{1}.[k] = nth witness (nbytes_flatten stack{2}) k)
-            )
-            (32 - i0{1}); first by admit.
-                * auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 *.
-                  have E1 :  (min (to_uint offset{2}) (size heights{2})) = to_uint offset{2} by smt().
-
-
-
-
-
-
-                  split; last by admit.
-                  split => [/# |].
-                  move => i0L outL.
-                  split => [/# |].XS
-                  move => ???.
-                  have ->: i0L = 32 by smt().
-                  move => H.
-                  rewrite !size_put.
-                  do split => //.
-                      - rewrite to_uintD /#.
-                      - smt(@W64 pow2_64).
-                      - apply (eq_from_nth witness).  
-                             + rewrite size_sub; first by smt(@W64 pow2_64). 
-                               rewrite size_sub_list; first by smt(@W64 pow2_64).
-                               reflexivity.
-                        rewrite size_sub; first by smt(@W64 pow2_64).
-                        move => j?.
-                        rewrite nth_sub // /sub_list nth_mkseq //= nth_put; first by smt(@W64 pow2_64).
-                        have ->: to_uint (offset{2} + W64.one - W64.one) = to_uint offset{2} by smt(@W64 pow2_64).
-                        rewrite get_setE; first by smt(@W64 pow2_64).
-                        case (j = to_uint offset{2}) => ?; first by rewrite ifT /#.
-                        rewrite ifF 1:/#.
-                        have ->: heights{1}.[j] = nth witness (sub heights{1} 0 (min (to_uint offset{2}) (size heights{2}))) j by rewrite E1 nth_sub 2:/#; smt(@W64 pow2_64).
-                        rewrite H17.
-                        by rewrite /sub_list nth_mkseq // E1; smt(@W64 pow2_64).
-                      - apply (eq_from_nth witness). 
-                             + rewrite size_sub; first by smt(@W64 pow2_64). 
-                               rewrite size_sub_list; first by smt(@W64 pow2_64).
-                               reflexivity.
-                        rewrite size_sub; first by smt(@W64 pow2_64). 
-                        move => j Hj.                        
-                        rewrite nth_sub //= /sub_list nth_mkseq //=.
-                        rewrite nth_nbytes_flatten; first by rewrite size_put; smt(@W64 pow2_64).
-                        rewrite nth_put 1:/#.
-                        case (to_uint offset{2} = j %/ n) => Ha; first by admit.
-                             + 
-
-
-                             + rewrite H22 get_to_list.
-                               have E2: sub outL (to_uint offset{2} * 32) 32 = to_list buf{1}.
-                                    - apply (eq_from_nth witness); first by rewrite size_to_list size_sub.
-                                      rewrite size_sub // => k?.
-                                      rewrite get_to_list -H // nth_sub //.
-                                      by congr; smt(@W64 pow2_64).
-                               have ->: outL.[j] = nth witness (sub outL (to_uint offset{2} * 32) 32) (j - 32 * to_uint offset{2}) by rewrite nth_sub 1:/#; congr; smt(@W64 pow2_64).
-                               rewrite E2 get_to_list /#.
-
-
-
-
-                * auto => /> &hr ???????Ha?. 
-                  do split; 1,2,4: by smt().
-                  move => k??.
-                  rewrite get_setE; first by smt(@W64 pow2_64).
-                  case (k = i0{hr}) => [-> /=// | ?]. 
-                  rewrite ifF; first by smt(@W64 pow2_64).
-                  apply Ha => /#.
-               
-
- 
- 
-            admit.
- 
 seq 1 0 : (
     #pre /\ 
     (cond{1} = W8.one) = 
