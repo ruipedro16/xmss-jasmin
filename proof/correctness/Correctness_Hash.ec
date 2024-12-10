@@ -6,7 +6,7 @@ from Jasmin require import JModel.
 require import XMSS_IMPL Parameters.
 require import Params Address Hash.
 require import Correctness_Bytes Correctness_Mem Correctness_Address.
-require import Utils2.
+require import Utils2 Repr2.
 
 require import Array8 Array32 Array64 Array96 Array128.
 
@@ -26,18 +26,15 @@ axiom hash_128 (x : W8.t Array128.t) :
       to_list res = val (Hash (to_list x))
     ] = 1%r.
 
-op load_buf (mem : global_mem_t) (ptr : W64.t) (len : int) : W8.t list =
-  mkseq (fun i => loadW8 mem (to_uint ptr + i)) len.
-
-axiom hash_ptr_correct (mem : global_mem_t) (ptr len : W64.t) :
-  phoare[
+axiom hash_ptr_correct (ptr len : W64.t) :
+  hoare[
       M(Syscall).__core_hash_in_ptr_ :
       valid_ptr_i ptr (to_uint len) /\
       arg.`2 = ptr /\
       arg.`3 = len 
       ==>
-      to_list res = val (Hash (load_buf mem ptr (to_uint len)))
-  ] = 1%r.
+      to_list res = val (Hash (load_buf Glob.mem ptr (to_uint len)))
+  ].
 
 
 lemma prf_correctness (a b : W8.t Array32.t) :
@@ -730,43 +727,188 @@ while {1}
                smt(@W64 pow2_64).
 qed.
 
+require import LTree.
+
 lemma hash_message_correct (mem : global_mem_t) (R _root : W8.t Array32.t) (_idx msg_ptr _mlen : W64.t) :
+    n = XMSS_N /\
+    padding_len = XMSS_PADDING_LEN =>
     hoare [
       M(Syscall).__hash_message :
 
-      valid_ptr msg_ptr _mlen /\
+      valid_ptr_i msg_ptr (4*XMSS_N + to_uint _mlen) /\
       0 < to_uint _mlen /\
+      
+      0 <= to_uint _idx < 2^XMSS_FULL_HEIGHT /\
 
       arg.`2 = R /\
       arg.`3 = _root /\
       arg.`4 = _idx /\
       arg.`5 = msg_ptr /\
-      arg.`6 = mlen /\
-      Glob.mem = mem
+      arg.`6 = mlen 
       ==>
-      false
+      let idx_bytes = lenbytes_be64 (W64.of_int (to_uint _idx)) 32 in
+      to_list res = val (H_msg 
+                    (TheeNBytes.insubd (to_list R ++ to_list _root ++ idx_bytes))
+                    (load_buf Glob.mem msg_ptr (to_uint _mlen)))
+
+(*      to_list res = H_msg (ThreeNBytes.insubd (to_list R ++ to_list _root ++ idx_bytes)) *)
     ].
 proof.
+rewrite /XMSS_N => [#] n_val *.
 proc => /=.
 seq 2 : #pre; first by auto.
+
 seq 1 : (#pre /\ to_list buf = lenbytes_be64 (of_int 2)%W64 32).
-  + (* call {1} (ull_to_bytes_32_correct ((of_int 2)%W64)) doesnt work *)
-    admit.
+  + by call (_ull_to_bytes_32_correct ((of_int 2)%W64)); auto.
 
-seq 9 : (
-  valid_ptr_i m_with_prefix_ptr (to_uint len + 128) /\
-  load_buf Glob.mem m_with_prefix_ptr (to_uint len + 128) = 
-  (lenbytes_be64 (of_int 2)%W64 32) ++ to_list r ++ to_list root ++ (lenbytes_be64 idx 32) ++ load_buf Glob.mem m_with_prefix_ptr (to_uint len)
-); first by admit.
+seq 2 : (
+  #pre /\ 
+  offset = W64.of_int 32 /\
+  load_buf Glob.mem m_with_prefix_ptr 32 = lenbytes_be64 (of_int 2)%W64 32
+).
+    + inline 2; inline 8.
+      sp; wp.
+      ecall (write_buf_ptr Glob.mem out0 offset1 in_00).
+      skip => /> &hr *; do split.
+       - smt(@W64 pow2_64).
+       - smt(@W64 pow2_64).
+       - move => ?? result mem0 -> ?? /#. 
 
-seq 2 : (#pre /\ to_uint len = to_uint mlen + 128).
-    + auto => /> &hr.  
-      rewrite /valid_ptr_i => [#] *.
-      split.
+seq 2 : (
+  #{/~offset = W64.of_int 32}pre /\ 
+  offset = W64.of_int 64 /\
+  load_buf Glob.mem (m_with_prefix_ptr + W64.of_int 32) 32 = to_list r
+).
+    + inline 2; inline 8.
+      sp; wp.
+      ecall (write_buf_ptr Glob.mem out0 offset1 in_00).
+      skip => /> &hr H0 H1 H2 H3 H4 H5; do split.
+       - smt(@W64 pow2_64).
+       - smt(@W64 pow2_64).
+       - move => ?? result mem0 H6 H7 H8 H9.
+         move: H6; rewrite H8 => H6. 
+         have ->: load_buf mem0 m_with_prefix_ptr{hr} 32  = load_buf Glob.mem{hr} m_with_prefix_ptr{hr} 32; last by smt().
+         apply (eq_from_nth witness); first by rewrite !size_load_buf.
+         rewrite size_load_buf // => j?.
+         rewrite /load_buf !nth_mkseq //=.
+         rewrite H7 //= /#.
 
-        * admit.
-        * rewrite to_uintD_small. 
-            - admit.
-          by rewrite of_uintK /=.
+seq 2 : (
+  #{/~offset = W64.of_int 64}pre /\ 
+  offset = W64.of_int 96 /\
+  load_buf Glob.mem (m_with_prefix_ptr + W64.of_int 64) 32 = to_list root
+).
+    + inline 2; inline 8.
+      sp; wp.
+      ecall (write_buf_ptr Glob.mem out0 offset1 in_00).
+      skip => /> &hr H0 H1 H2 H3 H4 H5 H6; do split.
+       - smt(@W64 pow2_64).
+       - smt(@W64 pow2_64).
+       - move => ?? result mem0 H7 H8 H9 H10.
+         move: H7; rewrite H9 => H7. 
+         split.
+           * have ->: load_buf mem0 m_with_prefix_ptr{hr} 32  = load_buf Glob.mem{hr} m_with_prefix_ptr{hr} 32; last by smt().
+             apply (eq_from_nth witness); first by rewrite !size_load_buf.
+             rewrite size_load_buf // => j?.
+             rewrite /load_buf !nth_mkseq //=.
+             rewrite H8 //= /#.
+           * have ->: load_buf mem0 (m_with_prefix_ptr{hr} + (of_int 32)%W64) 32 = load_buf Glob.mem{hr} (m_with_prefix_ptr{hr} + (of_int 32)%W64) 32; last by smt().
+             apply (eq_from_nth witness); first by rewrite !size_load_buf.
+             rewrite size_load_buf // => j?.
+             rewrite /load_buf !nth_mkseq //=.
+             rewrite H8 //=; smt(@W64 pow2_64). 
+ 
+seq 0 : (
+    #pre /\
+    load_buf Glob.mem m_with_prefix_ptr 96 = lenbytes_be64 ((of_int 2))%W64 32 ++ to_list r ++ to_list root
+).
+    + auto => /> &hr H0 H1 H2 H3 H4 H5 H6 H7.
+      apply (eq_from_nth witness); first by rewrite size_load_buf // !size_cat !size_to_list size_lenbytes_be64.
+      rewrite size_load_buf // => j?.
+      case (0 <= j < 32) => Ha.
+        - rewrite nth_cat.
+            * rewrite !size_cat !size_to_list size_lenbytes_be64 // ifT 1:/#.
+          rewrite nth_cat.
+            * rewrite size_lenbytes_be64 // ifT 1:/#. 
+          rewrite -H5 /load_buf !nth_mkseq //=.
+      case (32 <= j < 64) => Hb.
+        - rewrite nth_cat.
+            * rewrite !size_cat !size_to_list size_lenbytes_be64 // ifT 1:/#.
+          rewrite nth_cat.
+            * rewrite size_lenbytes_be64 // ifF 1:/#. 
+          rewrite -H6 /load_buf !nth_mkseq //= 1:/#.
+          congr.
+          smt(@W64 pow2_64).
+      rewrite nth_cat.
+        - rewrite !size_cat !size_to_list size_lenbytes_be64 // ifF 1:/#.
+      rewrite -H7.
+      rewrite /load_buf !nth_mkseq 1,2:/# /=.
+      congr.
+      smt(@W64 pow2_64).
+
+seq 1 : (#pre /\ to_list buf_n = lenbytes_be64 idx 32).
+  + by ecall (_ull_to_bytes_32_correct idx); auto.
+
+seq 2 : (
+  #{/~offset = W64.of_int 96}pre /\ 
+  load_buf Glob.mem (m_with_prefix_ptr + W64.of_int 96) 32 = lenbytes_be64 idx 32
+).
+    + inline 2; inline 8.
+      sp; wp.
+      ecall (write_buf_ptr Glob.mem out0 offset1 in_00).
+      skip => /> &hr H0 H1 H2 H3 H4 H5 H6 H7 H8 H9; do split.
+       - smt(@W64 pow2_64).
+       - smt(@W64 pow2_64).
+       - move => ?? result mem0 H10 H11 H12 H13.
+         move: H10; rewrite H12 => H10. 
+         do split.
+           * have ->: load_buf mem0 m_with_prefix_ptr{hr} 32  = load_buf Glob.mem{hr} m_with_prefix_ptr{hr} 32; last by smt().
+             apply (eq_from_nth witness); first by rewrite !size_load_buf.
+             rewrite size_load_buf // => j?.
+             rewrite /load_buf !nth_mkseq //=.
+             rewrite H11 //= /#.
+           * have ->: load_buf mem0 (m_with_prefix_ptr{hr} + (of_int 32)%W64) 32 = load_buf Glob.mem{hr} (m_with_prefix_ptr{hr} + (of_int 32)%W64) 32; last by smt().
+             apply (eq_from_nth witness); first by rewrite !size_load_buf.
+             rewrite size_load_buf // => j?.
+             rewrite /load_buf !nth_mkseq //=.
+             rewrite H11 //=; smt(@W64 pow2_64). 
+           * have ->: load_buf mem0 (m_with_prefix_ptr{hr} + (of_int 64)%W64) 32 = load_buf Glob.mem{hr} (m_with_prefix_ptr{hr} + (of_int 64)%W64) 32; last by smt().
+             apply (eq_from_nth witness); first by rewrite !size_load_buf.
+             rewrite size_load_buf // => j?.
+             rewrite /load_buf !nth_mkseq //=.
+             rewrite H11 //=; smt(@W64 pow2_64). 
+           * have ->: load_buf mem0 m_with_prefix_ptr{hr} 96 = load_buf Glob.mem{hr} m_with_prefix_ptr{hr} 96; last by smt().
+             apply (eq_from_nth witness); first by rewrite !size_load_buf.
+             rewrite size_load_buf // => j?.
+             rewrite /load_buf !nth_mkseq //=.
+             rewrite H11 //=; smt(@W64 pow2_64). 
+           * by rewrite H10 H9.
+
+seq 2 : (#pre /\ len = mlen + W64.of_int 128); first by auto => />. 
+
+exists * m_with_prefix_ptr, len.
+elim * => P0 P1.
+ecall (hash_ptr_correct P0 P1).
+auto => /> &hr H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10.
+do split.
+have ->:  (to_uint (mlen{hr} + (of_int 128)%W64)) =  (4 * XMSS_N + to_uint _mlen). rewrite /XMSS_N /= to_uintD_small of_uintK /=. admit.
+ring.
 admit.
+admit.
+
+
+move => ? result ->.
+congr.
+rewrite /H_msg => />.
+congr.
+apply (eq_from_nth witness).
+rewrite size_load_buf; first by smt(@W64 pow2_64).
+rewrite !size_cat valP n_val size_lenbytes_be64 /= 1:/#.
+rewrite (: padding_len = 32) 1:/# size_load_buf 1:/# /=. admit.
+
+rewrite size_load_buf. smt(@W64 pow2_64).
+move => j?.
+
+admit.
+
 qed.

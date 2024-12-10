@@ -18,7 +18,7 @@ op w : { int | w = 4 \/ w = 16} as w_vals.
 
 const len1 : int = ceil (8%r * n%r / log2 w%r).
 const len2 : int = floor (log2 (len1 * (w - 1))%r / log2 w%r) + 1.
-const len : int = len1 + len2.
+const len  : int = len1 + len2.
 
 axiom ge0_h : 0 <= h.
 axiom ge0_len  : 0 <= len.

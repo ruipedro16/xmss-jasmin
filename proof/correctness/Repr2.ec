@@ -21,6 +21,19 @@ require import Utils2.
 
 (** -------------------------------------------------------------------------------------------- **)
 
+op load_buf (mem : global_mem_t) (ptr : W64.t) (len : int) : W8.t list =
+  mkseq (fun i => loadW8 mem (to_uint ptr + i)) len.
+
+lemma size_load_buf (mem : global_mem_t) (ptr : W64.t) (len : int) :
+    0 <= len =>
+    size (load_buf mem ptr len) = len.
+proof.
+move => ?; rewrite /load_buf size_mkseq /#.
+qed.
+
+(** -------------------------------------------------------------------------------------------- **)
+
+
 op sub_list ['a] (x : 'a list) (k len : int) : 'a list = 
   mkseq (fun (i : int) => nth witness x (k + i)) len.
 

@@ -14,6 +14,66 @@ require import Termination.
 require import Params.
 require import Parameters. 
 
+print loadW8.
+
+lemma write_buf_ptr (mem : global_mem_t) (ptr _offset : W64.t) (buf : W8.t Array32.t) :
+    hoare [
+      M(Syscall).__memcpy_u8pu8_32 :
+      valid_ptr_i ptr 32 /\
+      arg = (ptr, _offset, buf) /\
+      Glob.mem = mem
+      ==>
+      load_buf Glob.mem (ptr + _offset) 32 = to_list buf /\
+      (* O resto da memoria continua inalterada *)
+      (forall (k : address), 
+        (0 <= k < W64.max_uint =>
+        (!(to_uint ptr + to_uint _offset <= k < to_uint ptr + to_uint _offset + 32) =>
+        loadW8 mem k = loadW8 Glob.mem k))
+      ) /\
+      res.`1 = ptr /\
+      res.`2 = _offset + W64.of_int 32 
+    ].
+proof.
+proc => /=.
+sp.
+admit.
+qed.
+(*
+
+print address.
+while (
+  out = ptr /\
+  in_0 = buf /\
+  valid_ptr_i ptr 32 /\
+  0 <= to_uint i <= 32 /\
+  forall (k : int), 0 <= k < to_uint i => buf.[to_uint i] = 
+                                          loadW8 
+                                          Glob.mem
+                                          (to_uint (ptr + offset))
+); last by admit.      
+    + auto => /> &hr H0 H1 H2 H3 H4 H5*.
+      do split; 1,2: by smt(@W64 pow2_64).
+      move => k??.
+      rewrite /loadW8 /storeW8 get_setE.
+      rewrite ifF; first by smt(@W64 pow2_64).
+      admit.
+qed.
+
+lemma p_write_buf_ptr (ptr _offset : W64.t) (buf : W8.t Array32.t) :
+    phoare [
+      M(Syscall).__memcpy_u8pu8_32 :
+      valid_ptr_i ptr 32 /\
+      arg = (ptr, _offset, buf) 
+      ==>
+      load_buf Glob.mem ptr 32 = to_list buf
+    ] = 1%r.
+proof.
+proc => /=.
+admit.
+qed.
+*)
+      
+
 (* FIXME: Remove this. this lemma already exists: put_out *)
 lemma put_out_of_bounds (l : W8.t list) (v : W8.t) (idx : int) :
     size l <= idx =>
