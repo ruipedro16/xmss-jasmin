@@ -731,7 +731,8 @@ require import LTree.
 
 lemma hash_message_correct (mem : global_mem_t) (R _root : W8.t Array32.t) (_idx msg_ptr _mlen : W64.t) :
     n = XMSS_N /\
-    padding_len = XMSS_PADDING_LEN =>
+    padding_len = XMSS_PADDING_LEN /\
+    H_msg_padding_val = XMSS_HASH_PADDING_HASH =>
     hoare [
       M(Syscall).__hash_message :
 
@@ -744,18 +745,16 @@ lemma hash_message_correct (mem : global_mem_t) (R _root : W8.t Array32.t) (_idx
       arg.`3 = _root /\
       arg.`4 = _idx /\
       arg.`5 = msg_ptr /\
-      arg.`6 = mlen 
+      arg.`6 = _mlen 
       ==>
       let idx_bytes = lenbytes_be64 (W64.of_int (to_uint _idx)) 32 in
       to_list res = val (H_msg 
                     (TheeNBytes.insubd (to_list R ++ to_list _root ++ idx_bytes))
-                    (load_buf Glob.mem msg_ptr (to_uint _mlen)))
-
-(*      to_list res = H_msg (ThreeNBytes.insubd (to_list R ++ to_list _root ++ idx_bytes)) *)
+                    (load_buf Glob.mem (msg_ptr + (W64.of_int 128)) (to_uint _mlen)))
     ].
 proof.
-rewrite /XMSS_N => [#] n_val *.
-proc => /=.
+rewrite /XMSS_N /XMSS_PADDING_LEN /XMSS_HASH_PADDING_HASH  => [#] n_val pad_len pad_val *.
+proc => /=. 
 seq 2 : #pre; first by auto.
 
 seq 1 : (#pre /\ to_list buf = lenbytes_be64 (of_int 2)%W64 32).
@@ -890,25 +889,64 @@ exists * m_with_prefix_ptr, len.
 elim * => P0 P1.
 ecall (hash_ptr_correct P0 P1).
 auto => /> &hr H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10.
-do split.
-have ->:  (to_uint (mlen{hr} + (of_int 128)%W64)) =  (4 * XMSS_N + to_uint _mlen). rewrite /XMSS_N /= to_uintD_small of_uintK /=. admit.
-ring.
-admit.
-admit.
-
-
-move => ? result ->.
+split => [| ?]; first by smt(@W64 pow2_64).
+move => result ->.
 congr.
 rewrite /H_msg => />.
 congr.
 apply (eq_from_nth witness).
+    + rewrite size_load_buf; first by smt(@W64 pow2_64).
+      rewrite !size_cat valP n_val size_lenbytes_be64 /= 1:/#.
+      rewrite (: padding_len = 32) 1:/# size_load_buf 1:/# /=. 
+      smt(@W64 pow2_64).
+
 rewrite size_load_buf; first by smt(@W64 pow2_64).
-rewrite !size_cat valP n_val size_lenbytes_be64 /= 1:/#.
-rewrite (: padding_len = 32) 1:/# size_load_buf 1:/# /=. admit.
-
-rewrite size_load_buf. smt(@W64 pow2_64).
+have ->: to_uint (_mlen + (of_int 128)%W64) = to_uint _mlen + 128 by smt(@W64 pow2_64).
 move => j?.
+case (0 <= j < 32) => ?.
+    + rewrite !nth_cat.
+      rewrite !size_cat !size_lenbytes_be64 1:/# !valP n_val ifT 1:/#.
+      rewrite ifT 1:/#.
+      rewrite pad_len pad_val -H5.
+      by rewrite /load_buf !nth_mkseq.
+case (32 <= j < 64) => ?.
+    + rewrite !nth_cat.
+      rewrite !size_cat !size_lenbytes_be64 1:/# !valP n_val ifT 1:/# ifF 1:/#.
+      have ->: nth witness (load_buf Glob.mem{hr} msg_ptr (to_uint _mlen + 128)) j = 
+               nth witness (load_buf Glob.mem{hr} (msg_ptr + (of_int 32)%W64) 32) (j - 32)
+               by rewrite /load_buf !nth_mkseq // 1:/# /=; smt(@W64 pow2_64).
+      rewrite H6 get_to_list insubdK.
+         - rewrite /P !size_cat !size_to_list size_lenbytes_be64 /#.
+      rewrite nth_cat.
+         - rewrite !size_cat !size_to_list ifT 1:/#.
+      rewrite nth_cat.
+         - rewrite size_to_list ifT 1:/#.
+      by rewrite get_to_list pad_len.
+case (64 <= j < 96) => ?.
+    + rewrite !nth_cat.
+      rewrite !size_cat !size_lenbytes_be64 1:/# !valP n_val ifT 1:/# ifF 1:/#.
+      have ->: nth witness (load_buf Glob.mem{hr} msg_ptr (to_uint _mlen + 128)) j = 
+               nth witness (load_buf Glob.mem{hr} (msg_ptr + (of_int 64)%W64) 32) (j - 64)
+               by rewrite /load_buf !nth_mkseq // 1:/# /=; smt(@W64 pow2_64).
+      rewrite insubdK.
+        - rewrite /P !size_cat !size_to_list size_lenbytes_be64 /#.
+      rewrite !nth_cat. 
+         - rewrite !size_cat !size_to_list pad_len /= ifT 1:/#.
+      rewrite ifF 1:/#.
+      by rewrite H7 get_to_list.     
+case (96 <= j < 128) => ?.
+    + rewrite !nth_cat.
+      rewrite !size_cat !size_lenbytes_be64 1:/# !valP n_val ifT 1:/# ifF 1:/#.
+      rewrite insubdK.
+        - rewrite /P !size_cat !size_to_list size_lenbytes_be64 /#.
+      rewrite !nth_cat. 
+         - rewrite !size_cat !size_to_list pad_len /= ifF 1:/#.
+      rewrite -H10 /load_buf !nth_mkseq // 1:/#; smt(@W64 pow2_64).
 
-admit.
-
+rewrite !nth_cat.
+rewrite !size_cat !size_lenbytes_be64 1:/# !valP n_val ifF 1:/#.
+rewrite pad_len /=.
+rewrite /load_buf !nth_mkseq // 1:/# /=. 
+congr; smt(@W64 pow2_64).
 qed.
+
