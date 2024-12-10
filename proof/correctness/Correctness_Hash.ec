@@ -55,7 +55,7 @@ proc => /=.
 seq 9 2 : (buf{2} = to_list buf{1}); last first.
   + inline M(Syscall).__core_hash__96 M(Syscall)._core_hash_96; wp; sp.
     ecall {1} (hash_96 buf{1}); auto => /> /#.
-seq 3 0 : (#pre); 1:auto. 
+seq 3 0 : #pre; 1:auto. 
 seq 1 1 : (#pre /\ padding{2} = to_list padding_buf{1}).
   + call {1} (ull_to_bytes_32_correct (of_int 3)%W64). 
     auto => /> ? ->. 
@@ -140,7 +140,7 @@ proc => //=.
 seq 9 2 : (buf{2} = to_list buf{1}); last first.
   + inline M(Syscall).__core_hash__128 M(Syscall)._core_hash_128; wp; sp.
     ecall {1} (hash_128 buf{1}); auto => /> /#.
-seq 3 0 : (#pre); 1:auto.
+seq 3 0 : #pre; 1:auto.
 seq 1 1 : (#pre /\ padding{2} = to_list padding_buf{1}).
   + call {1} (ull_to_bytes_32_correct (of_int 4)%W64). 
     auto => /> ? ->. 
@@ -515,7 +515,7 @@ lemma rand_hash_correct (i0 i1: nbytes, _pub_seed : W8.t Array32.t, _in : W8.t A
 proof.
 rewrite /XMSS_PADDING_LEN /XMSS_HASH_PADDING_PRF /XMSS_PADDING_LEN /XMSS_N => [#] plen pval pprfval nval.
 proc => /=.
-seq 3 0 : (#pre); 1:auto. 
+seq 3 0 : #pre; 1:auto. 
 seq 1 1 : (#pre /\ padding{2} = to_list aux{1} /\ size padding{2} = 32).
     + call {1} (ull_to_bytes_32_correct W64.one). 
       (* A seta refere se a hipotese to_list result = lenbytes_be64 W64.one 32 *)

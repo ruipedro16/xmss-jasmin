@@ -24,6 +24,11 @@ require import LTReeProof.
 
 require import WArray32.
 
+lemma foo P3 : W64.zero \ule P3 => W64.zero \ult P3 + W64.one.
+admit.
+qed.
+
+
 lemma treehash_correct ( _sk_seed _pub_seed : W8.t Array32.t, _s _t:W32.t, _addr:W32.t Array8.t): 
     n = XMSS_N /\
     d = XMSS_D /\
@@ -148,9 +153,9 @@ while (
       t{2} = to_uint target_height{1} /\ 0 <= t{2} <= h /\
       s{2} = to_uint start_index{1} /\ 0 <= s{2} <= h /\ 
 
-      0 <= to_uint offset{2} /\ 
+      W64.zero \ule offset{2} /\ 
       ={offset} /\  
-      (i{2} <> 0 => 0 < to_uint offset{2}) /\
+      (i{2} <> 0 => W64.zero \ult offset{2}) /\
 
       0 <= i{2} <= 2^t{2} /\ to_uint i{1} = i{2} /\
       to_uint upper_bound{1} = 2 ^ t{2} /\
@@ -195,8 +200,9 @@ while (
           rewrite /sub /sub_list/XMSS_TREE_HEIGHT n_val /=.
           move => T.
           rewrite nth_mkseq 1:/# /=.
-          have ->: _stack_L.[j] = nth witness (mkseq (fun (i0 : int) => _stack_L.[i0]) (32 * min (to_uint heights_R) (size stack_R))) j by rewrite nth_mkseq // 1:/#.
-          by rewrite T nth_mkseq 1:/# /= nth_nbytes_flatten /#.
+          have ->: _stack_L.[j] = nth witness (mkseq (fun (i0 : int) => _stack_L.[i0]) (32 * min (to_uint heights_R) (size stack_R))) j by rewrite nth_mkseq //; smt(@W64 pow2_64).
+          rewrite T nth_mkseq /=; first by smt(@W64 pow2_64).
+          rewrite nth_nbytes_flatten /#.
 
 (* ============================================ last subgoal of the first while loop ends here *)
 
@@ -335,11 +341,11 @@ seq 3 3 : (#{/~ t64{1} = offset{2} * W64.of_int 32}pre); last by admit.
       elim * => P0 P1 P2 P3.
       call {1} (p_treehash_memcpy P0 P1 P2 P3) => [/# |].
       auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 *.
-      split => [/# |]. 
+      split; first by smt(@W64 pow2_64).
       move => H24 result H25.
-      rewrite !size_put. 
+      rewrite !size_put.  
       move => stackRes H; do split => //; first by smt(@W64 pow2_64).
-           * move => ?. rewrite to_uintD. admit.
+           * move => ?. admit.
            * apply (eq_from_nth witness).
                 - rewrite size_sub; first by smt(@W64 pow2_64).
                   by rewrite size_sub_list /=; first by smt(@W64 pow2_64).
@@ -363,7 +369,8 @@ seq 3 3 : (#{/~ t64{1} = offset{2} * W64.of_int 32}pre); last by admit.
              rewrite put_out 1:/# get_set_if ifF 1:/#.
              have ->: heights{1}.[j] = nth witness (sub heights{1} 0 (min (to_uint P3) (size heights{2}))) j by rewrite nth_sub /#.
              rewrite H17.
-             rewrite /sub_list /= nth_mkseq /#.       
+             rewrite /sub_list /= nth_mkseq /#.        
+
            * apply (eq_from_nth witness). 
                 - rewrite size_sub; first by smt(@W64 pow2_64).
                   by rewrite size_sub_list /=; first by smt(@W64 pow2_64).
@@ -374,40 +381,22 @@ seq 3 3 : (#{/~ t64{1} = offset{2} * W64.of_int 32}pre); last by admit.
                        by do ! congr; smt(@NBytes).
              rewrite nth_sub //= /sub_list nth_mkseq //= nth_nbytes_flatten; first by rewrite size_put /#.
              case (to_uint P3 < size P1) => Ha.
+             (* Case 1: in Bounds *)
              have E: min (to_uint P3) (size P1) = to_uint P3 by smt().
              move: Hj.
              have ->:  min (to_uint (P3 + W64.one)) (size P1)  = to_uint (P3 + W64.one) by smt(@W64 pow2_64).
-             move => Hj. 
-                - rewrite nth_put 1:/#.
-                  case (to_uint P3 = j %/ n) => Hb; last by admit.
-                  + 
-
-
-                  + have ->:  nth witness (val (nth witness P1 (j %/ n))) (j %% n) = 
-                              nth witness (sub_list (nbytes_flatten P1) 0 (n * min (to_uint P3) (size P1))) j.
-                          * rewrite /sub_list nth_mkseq; first by smt(@W64 pow2_64). 
-                            rewrite /= nth_nbytes_flatten 2:/#.
-                            split => [/# |]; smt(@W64 pow2_64).
-                            rewrite -H18. 
-                            rewrite /XMSS_N in H25. 
-                            rewrite n_val.
-                            rewrite H25.
-                    rewrite /sub_list nth_mkseq; first by smt(@W64 pow2_64).
-                    rewrite /= nth_nbytes_flatten; first by smt(@W64 pow2_64).
-                    have ->:  nth witness (val (nth witness P1 (j %/ n))) (j %% n) = nth witness 
-                              ( sub_list
-                                 (nbytes_flatten (put P1 (to_uint P3) ((insubd (to_list P0)))%NBytes)
-                              ) 
-                              0
-                              (XMSS_N * min (to_uint P3) (size P1))
-                              ) j.
-                          * rewrite /XMSS_N /sub_list nth_mkseq /=. smt(@W64 pow2_64).
-                            rewrite nth_nbytes_flatten; first by rewrite size_put; smt(@W64 pow2_64).
-                            rewrite nth_put; first by smt(@W64 pow2_64).
-                            by rewrite ifF 1:/#.
-                    rewrite -H.
-                    rewrite E nth_sub //. 
-                    smt(@W64 pow2_64).
+             move => Hj.  
+             rewrite nth_put 1:/#. 
+             case (to_uint P3 = j %/ n) => Hb; last first. 
+                - have ->: stackRes.[j] = nth witness (sub stackRes 0 (XMSS_N * min (to_uint P3) (size P1))) j by rewrite E /XMSS_N nth_sub /=; smt(@W64 pow2_64).
+                  rewrite H.
+                  rewrite /sub_list nth_mkseq; first by smt(@W64 pow2_64).
+                  rewrite /= nth_nbytes_flatten; first by rewrite size_put; smt(@W64 pow2_64).
+                  smt(@List @NBytes).          
+                - rewrite insubdK; first by rewrite /P size_to_list /#.
+                  have ?: nth witness (sub stackRes 0 (32 * to_uint P3)) j = witness by rewrite nth_out // size_sub /#.  
+                  admit.
+             (* Case 2: out of bounds *)
                 - rewrite put_out; first by smt(@W64 pow2_64).
                   have ->: stackRes.[j] = nth witness (sub stackRes 0 (XMSS_N * min (to_uint P3) (size P1))) j by rewrite nth_sub /#.
                   rewrite H.

@@ -105,7 +105,7 @@ lemma treehash_memcpy (node : W8.t Array32.t) (stack : nbytes list) (_stack : W8
 proof.
 rewrite /XMSS_N => n_val.
 proc => /=.
-sp.
+sp. 
 while ( 
   bytes = 32 /\
   aux = bytes /\
@@ -113,6 +113,7 @@ while (
   in_0 = node /\
   out_offset = offset * (of_int 32)%W64 /\
   0 <= to_uint offset /\
+  size stack = 11 /\
   (forall (k : int), !(to_uint out_offset <= k < to_uint (out_offset + (of_int k)%W64)) => out.[k] = _stack.[k]) /\
   (forall (k : int), 0 <= k < i => out.[to_uint (out_offset + (of_int k)%W64)] = node.[k]) 
 ); last first.
@@ -143,12 +144,28 @@ while (
       have ->: _stack.[j] = nth witness (sub _stack 0 (32 * min (to_uint offset) (size stack))) j by rewrite E nth_sub /#.
       rewrite H2 /sub_list nth_mkseq 1:/# /= nth_nbytes_flatten /#.
 
-
 (* ===== this is the first goal of while *)
-auto => /> &hr H0 H1 H2 H3 H4 H5.
-do split; 1,2: by smt().
-    - case (to_uint offset < size stack) => Ha; admit.
-    - case (to_uint offset < size stack) => Ha; admit.
+auto => /> &hr H0 H1 H2 H3 H4 H5 *.
+do split.
+    - smt(). 
+    - smt().
+    - case (to_uint offset < size stack) => Ha; last by admit. 
+        * move => k?.
+          rewrite get_setE; first by smt(@W64 pow2_64).
+          case (k = to_uint (offset * (of_int 32)%W64 + (of_int i{hr})%W64)) => Hb; last first.
+             - rewrite H4 /=; smt(@W64 pow2_64).
+             - admit.
+    - case (to_uint offset < size stack) => Ha.
+        * move => k??.
+          rewrite get_setE; first by smt(@W64 pow2_64).
+          case (k = i{hr}) => Hb. 
+             * rewrite ifT; first by smt(@W64 pow2_64). 
+               congr; smt().
+             * rewrite ifF; first by smt(@W64 pow2_64).
+               smt().
+        * move => k??.
+          search "_.[_<-_]".
+          admit.
 qed.
 
 lemma p_treehash_memcpy (node : W8.t Array32.t) (stack : nbytes list) (_stack : W8.t Array352.t) (offset : W64.t) : 
