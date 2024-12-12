@@ -16,6 +16,64 @@ require import Parameters.
 
 print loadW8.
 
+lemma memcpy_treehash_node_2 (_stack_impl : W8.t Array352.t, o : W64.t) (stack_spec : nbytes list) :
+    n = XMSS_N =>
+    phoare [
+      M(Syscall).__memcpy_u8u8_2_64_352 :
+
+      size stack_spec = 11 /\ 
+
+      sub _stack_impl 0 (XMSS_N * min (to_uint o) (size stack_spec)) = 
+      sub_list (nbytes_flatten stack_spec) 0 (XMSS_N * min (to_uint o) (size stack_spec)) /\
+
+      arg.`2 = _stack_impl /\
+      arg.`3 = (o - W64.of_int 2) * (W64.of_int 32) /\
+      arg.`4 = (W64.of_int 64)
+      ==>
+      to_list res.`1 = val (nth witness stack_spec (to_uint (o - (of_int 2)%W64)))  ++ 
+                       val (nth witness stack_spec (to_uint (o - (of_int 1)%W64)))
+    ] = 1%r.
+proof.
+rewrite /XMSS_N => n_val.
+proc => /=.
+conseq />.
+while 
+(
+  size stack_spec = 11 /\
+  sub _stack_impl 0 (XMSS_N * min (to_uint o) (size stack_spec)) =  sub_list (nbytes_flatten stack_spec) 0 (XMSS_N * min (to_uint o) (size stack_spec)) /\
+  in_0 = _stack_impl /\
+  bytes = (of_int 64)%W64 /\
+  in_offset = (o - (of_int 2)%W64) * (of_int 32)%W64 +  i /\
+
+  0 <= to_uint i <= 64 /\
+  sub out 0 (to_uint i) = sub_list (val (nth witness stack_spec (to_uint (o - (of_int 2)%W64))) ++ val (nth witness stack_spec (to_uint (o - W64.one)))) 0 (to_uint i) 
+  
+) 
+(64 - to_uint i); last first.
+  + auto => /> &hr H0 H1.
+    do split => [| i0 out0].
+      * apply (eq_from_nth witness); [by rewrite size_sub // size_sub_list | rewrite size_sub // /#].
+        do split; first by rewrite ultE of_uintK /#.
+        rewrite ultE of_uintK /= => ? H2 ??.
+        have ->: to_uint i0 = 64 by smt().
+        move => H3.
+        apply (eq_from_nth witness); first by rewrite size_to_list size_cat !valP n_val.
+        rewrite size_to_list => j?.
+        have ->: to_list out0 = sub out0 0 64 by apply (eq_from_nth witness); [by rewrite size_sub // size_to_list | by rewrite size_to_list => ??; rewrite get_to_list nth_sub].
+        by rewrite H3 /sub_list nth_mkseq.
+
+auto => /> &hr H0 H1 H2 H3 H4 H5.
+do split; 2,3,5: by smt(@W64 pow2_64).
+  - admit.
+  - apply (eq_from_nth witness).
+     * rewrite size_sub; first by smt(@W64 pow2_64).
+       by rewrite size_sub_list /=; first by smt(@W64 pow2_64).
+     rewrite size_sub; first by smt(@W64 pow2_64).
+     move => j?.
+     rewrite /sub_list !nth_mkseq //=.
+     admit.
+qed.   
+
 lemma write_buf_ptr (mem : global_mem_t) (ptr _offset : W64.t) (buf : W8.t Array32.t) :
     hoare [
       M(Syscall).__memcpy_u8pu8_32 :
@@ -100,11 +158,15 @@ lemma treehash_memcpy (node : W8.t Array32.t) (stack : nbytes list) (_stack : W8
           (nbytes_flatten
              (put stack (to_uint offset) ((insubd (to_list node)))%NBytes)) 
           0
-          (XMSS_N * min (to_uint offset) (size stack))
+          (XMSS_N * min (to_uint offset + 1) (size stack))
     ].
 proof.
 rewrite /XMSS_N => n_val.
 proc => /=.
+admit.
+qed.
+
+(*
 sp. 
 while ( 
   bytes = 32 /\
@@ -167,6 +229,7 @@ do split.
           search "_.[_<-_]".
           admit.
 qed.
+*)
 
 lemma p_treehash_memcpy (node : W8.t Array32.t) (stack : nbytes list) (_stack : W8.t Array352.t) (offset : W64.t) : 
     n = XMSS_N => 
@@ -177,16 +240,38 @@ lemma p_treehash_memcpy (node : W8.t Array32.t) (stack : nbytes list) (_stack : 
       sub _stack 0 (XMSS_N * min (to_uint offset) (size stack)) = sub_list (nbytes_flatten stack) 0  (XMSS_N * min (to_uint offset) (size stack)) /\
       arg = (_stack, node, offset * (W64.of_int 32), 32) 
       ==> 
-      sub res 0 (XMSS_N * min (to_uint offset) (size stack)) =
+      sub res 0 (XMSS_N * min (to_uint offset + 1) (size stack)) =
       sub_list
           (nbytes_flatten
              (put stack (to_uint offset) ((insubd (to_list node)))%NBytes)) 
           0
-          (XMSS_N * min (to_uint offset) (size stack))
+          (XMSS_N * min (to_uint offset + 1) (size stack))
     ] = 1%r.
 proof.
 admit.
 qed.
+
+lemma p_treehash_memcpy_2 (node : W8.t Array32.t) (stack : nbytes list) (_stack : W8.t Array352.t) (offset : W64.t) : 
+    n = XMSS_N => 
+    phoare [
+      M(Syscall).__memcpy_u8u8_3_352_32 :
+      0 <= to_uint offset /\
+      size stack = 11 /\
+      sub _stack 0 (XMSS_N * min (to_uint offset) (size stack)) = sub_list (nbytes_flatten stack) 0  (XMSS_N * min (to_uint offset) (size stack)) /\
+      arg = (_stack, node, (offset - W64.of_int 2) * (W64.of_int 32), 32) 
+      ==> 
+      sub res 0 (n * min (to_uint offset) (size stack)) =
+      sub_list
+          (nbytes_flatten
+             (put stack (to_uint (offset - W64.of_int 2)) ((insubd (to_list node)))%NBytes)) 
+          0
+          (n * min (to_uint offset) (size stack))
+    ] = 1%r.
+proof.
+admit.
+qed.
+
+
 
 
 (* // same as memcpy(out_ptr + out_offset, in_ptr + in_offset, bytes) *)

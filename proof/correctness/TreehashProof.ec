@@ -24,7 +24,7 @@ require import LTReeProof.
 
 require import WArray32.
 
-lemma foo P3 : W64.zero \ule P3 => W64.zero \ult P3 + W64.one.
+lemma foo (x : W64.t) : W64.zero \ule x => W64.zero \ult x + W64.one.
 admit.
 qed.
 
@@ -334,8 +334,12 @@ auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H
 (* ================================================== proof for gen leaf ends here =================================================================== *)
   
 seq 2 0 : (#pre /\ t64{1} = offset{2} * W64.of_int 32); first by auto.
+ 
 
-seq 3 3 : (#{/~ t64{1} = offset{2} * W64.of_int 32}pre); last by admit.
+print p_treehash_memcpy.
+
+
+seq 3 3 : (#{/~ t64{1} = offset{2} * W64.of_int 32}pre).
     + wp.
       exists * buf{1}, stack{2}, _stack{1}, offset{1}.
       elim * => P0 P1 P2 P3.
@@ -364,7 +368,6 @@ seq 3 3 : (#{/~ t64{1} = offset{2} * W64.of_int 32}pre); last by admit.
              rewrite /sub_list /= nth_mkseq 2:/#.       
              smt(@W64 pow2_64).
              (* === This is the out of bounds case *)
-             search "_.[_<-_]".
              have E: ! (0 <= to_uint P3 && to_uint P3 < size heights{2}) by smt().
              rewrite put_out 1:/# get_set_if ifF 1:/#.
              have ->: heights{1}.[j] = nth witness (sub heights{1} 0 (min (to_uint P3) (size heights{2}))) j by rewrite nth_sub /#.
@@ -381,7 +384,7 @@ seq 3 3 : (#{/~ t64{1} = offset{2} * W64.of_int 32}pre); last by admit.
                        by do ! congr; smt(@NBytes).
              rewrite nth_sub //= /sub_list nth_mkseq //= nth_nbytes_flatten; first by rewrite size_put /#.
              case (to_uint P3 < size P1) => Ha.
-             (* Case 1: in Bounds *)
+             (* Case 1: in Bounds *) 
              have E: min (to_uint P3) (size P1) = to_uint P3 by smt().
              move: Hj.
              have ->:  min (to_uint (P3 + W64.one)) (size P1)  = to_uint (P3 + W64.one) by smt(@W64 pow2_64).
@@ -394,8 +397,11 @@ seq 3 3 : (#{/~ t64{1} = offset{2} * W64.of_int 32}pre); last by admit.
                   rewrite /= nth_nbytes_flatten; first by rewrite size_put; smt(@W64 pow2_64).
                   smt(@List @NBytes).          
                 - rewrite insubdK; first by rewrite /P size_to_list /#.
-                  have ?: nth witness (sub stackRes 0 (32 * to_uint P3)) j = witness by rewrite nth_out // size_sub /#.  
-                  admit.
+                  have E1: nth witness (sub stackRes 0 (32 * to_uint P3)) j = witness by rewrite nth_out // size_sub /#.  
+                  rewrite Hb n_val /= in E1.
+                  rewrite -H22 n_val /=.
+move: H; rewrite E /XMSS_N -H22 => H.
+admit.
              (* Case 2: out of bounds *)
                 - rewrite put_out; first by smt(@W64 pow2_64).
                   have ->: stackRes.[j] = nth witness (sub stackRes 0 (XMSS_N * min (to_uint P3) (size P1))) j by rewrite nth_sub /#.

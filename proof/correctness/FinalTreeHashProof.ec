@@ -569,7 +569,7 @@ seq 1 1 : #pre.
   
 auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25 H26 cond ->.
 rewrite !size_put /treehash_cond.
-do split => //; 5,6: by admit.
+do split => //.
     + smt(@W64 pow2_64).
  
     + apply (eq_from_nth witness).
@@ -610,62 +610,64 @@ do split => //; 5,6: by admit.
       rewrite /sub_list !nth_mkseq; smt(@W64 pow2_64).
 
     + smt(@W64 pow2_64).
+
+    + have ->: offset{2} - W64.one - W64.one = offset{2} - (W64.of_int 2) by smt(@W64 pow2_64).
+      rewrite uleE of_uintK /=.
+      case (2 <= to_uint offset{2} < size stack{2}) => ?.
+        (* === case in bounds === *)
+        - rewrite !get_setE; 1,2: by smt(@W64 pow2_64).
+          rewrite ifF; first by smt(@W64 pow2_64).
+          rewrite ifT // => [#] ? H.
+          split; first by assumption.
+          rewrite !nth_put //=; 1,2: by smt(@W64 pow2_64).
+          rewrite ifF; first by smt(@W64 pow2_64).
+          have E1 : min (to_uint offset{2}) (size stack{2}) = to_uint offset{2} by smt().
+          have E2 : forall (k : int), 0 <= k < min (to_uint offset{2}) (size stack{2}) => heights{1}.[k] = nth witness heights{2} k.
+              * rewrite E1 => k?.
+                have ->: heights{1}.[k] = nth witness (sub heights{1} 0 (min (to_uint offset{2}) (size heights{2}))) k by rewrite nth_sub 1:/#.
+                rewrite H17 /sub_list nth_mkseq /#.
+          have E3 : size heights{2} = size stack{2} by smt().
+          rewrite -E2; first by rewrite E1; smt(@W64 pow2_64).
+          rewrite -H E2 // E1; smt(@W64 pow2_64).
+        (* === case out of bounds === *)          
+        - have E1 : min (to_uint offset{2}) (size stack{2}) = size stack{2} by smt(@W64 pow2_64).
+          have E3 : size heights{2} = size stack{2} by smt().
+          rewrite get_set_if.
+          rewrite ifF; first by smt(@W64 pow2_64).
+          move => [#] ? H.
+          split; first by assumption.
+          move: H.
+          admit. (* Separar em dois cases *)
+
+    + have ->: offset{2} - W64.one - W64.one = offset{2} - (W64.of_int 2) by smt(@W64 pow2_64).
+      rewrite uleE of_uintK /=.
+      case (2 <= to_uint offset{2} < size stack{2}) => ?.
+        (* === case in bounds === *)
+        - rewrite !get_setE; 1,2: by smt(@W64 pow2_64).
+          rewrite ifF; first by smt(@W64 pow2_64).
+          rewrite ifT //.
+          rewrite nth_put //=; first by smt(@W64 pow2_64).
+          rewrite nth_put; first by smt(@W64 pow2_64).
+          rewrite ifF; first by smt(@W64 pow2_64).
+          move => [#] ? H.
+          split; first by assumption.
+          have E1 : min (to_uint offset{2}) (size stack{2}) = to_uint offset{2} by smt().
+          have E2 : forall (k : int), 0 <= k < min (to_uint offset{2}) (size stack{2}) => heights{1}.[k] = nth witness heights{2} k.
+              * rewrite E1 => k?.
+                have ->: heights{1}.[k] = nth witness (sub heights{1} 0 (min (to_uint offset{2}) (size heights{2}))) k by rewrite nth_sub 1:/#.
+                rewrite H17 /sub_list nth_mkseq /#.
+          have E3 : size heights{2} = size stack{2} by smt().
+          rewrite E2; first by rewrite E1; smt(@W64 pow2_64).
+          rewrite -H E2 // E1; smt(@W64 pow2_64).
+        (* === case out of bounds === *)          
+        - have E1 : min (to_uint offset{2}) (size stack{2}) = size stack{2} by smt(@W64 pow2_64).
+          have E3 : size heights{2} = size stack{2} by smt().
+          rewrite get_set_if.
+          rewrite ifF; first by smt(@W64 pow2_64).
+          move => [#] ? H.
+          split; first by assumption.
+          move: H.
+
+          admit. (* Separar em dois cases *)
+
 qed.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-(*
-
-    + rewrite uleE of_uintK /=.
-      have ->: to_uint (offset{2} - W64.one - W64.one) = to_uint (offset{2} - (of_int 2)%W64) by smt(@W64 pow2_64).
-      move => [#] Ha Hb.
-
-      have E: forall (k : int), 0 <= k < (min (to_uint offset{2}) (size heights{2})) => heights{1}.[k] = nth witness heights{2} k.
-        * move => k?.
-          have ->: heights{1}.[k] = nth witness (sub heights{1} 0 (min (to_uint offset{2}) (size heights{2}))) k by rewrite nth_sub; smt(@W64 pow2_64).
-          by rewrite H17 /sub_list nth_mkseq.
-
-      split; first by assumption.
-      rewrite uleE of_uintK /= in H22.
-      clear H21.
-
- 
-      case (0 <= to_uint (offset{2} - (of_int 2)%W64) < size heights{2}) => Hc; last first.
-        (* === caso out of bounds ===*)
-        * move: Hb.  
-          rewrite !get_set_if. 
-          rewrite ifF; first by smt(@W64 pow2_64).
-          rewrite ifF; first by smt(@W64 pow2_64).
-          move => Hb. 
-          rewrite put_out; first by smt(@W64 pow2_64).
-          rewrite nth_out; first by smt(@W64 pow2_64).
-          
-
-        (* === caso in bounds ===*)
-        * have := Hb.
-          rewrite !get_setE; 1,2: by smt(@W64 pow2_64).
-          rewrite ifF; first by smt(@W64 pow2_64).
-          rewrite ifT // => H.
-          rewrite !nth_put; 1,2: by smt(@W64 pow2_64).
-          rewrite ifT // ifF; first by smt(@W64 pow2_64).
-          rewrite -!E; 1,2: by smt(@W64 pow2_64).
-          by rewrite H.
-
-
-
-*)
