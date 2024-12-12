@@ -10,6 +10,8 @@ require import XMSS_IMPL Parameters.
 
 require import Array2 Array3 Array8 Array32 Array64 Array67 Array96 Array2144.
 
+require import WArray32.
+
 require import Correctness_Bytes Correctness_Mem Correctness_Address Correctness_Hash. 
 require import Repr2.
 require import Utils2.
@@ -434,7 +436,7 @@ lemma wots_checksum_results (msg : W32.t Array64.t) :
     len1 = XMSS_WOTS_LEN1 /\  w = XMSS_WOTS_W =>
     equiv [
       M(Syscall).__csum ~ WOTS.checksum :
-      (forall (k : int), 0 <= k < 64 => 0 <= to_uint msg.[k] <= w - 1) /\ (* 15 = w - 1 *)
+      (forall (k : int), 0 <= k < 64 => 0 <= to_uint msg.[k] <= w - 1) /\ 
       arg{1} = msg /\ arg{2} = map (W32.to_uint) (to_list msg) 
       ==>
       to_uint res{1} = res{2} /\
@@ -654,7 +656,6 @@ lemma expand_seed_correct (_in_seed _pub_seed : W8.t Array32.t) (a1 a2 : W32.t A
 proof.
 rewrite /XMSS_N  => [#] len_val n_val ???.
 proc => /=.
-
 conseq (: _ ==> 
   size sk{2} = len /\
   (forall (k : int), 0 <= k < 2144 => outseeds{1}.[k] = nth witness (nbytes_flatten sk{2}) k) /\
@@ -686,11 +687,19 @@ seq 5 3 : (
           case (k = 6) => //?.
           smt(sub_k).
 
-seq 1 0 : (#pre /\ aux{1} = pub_seed{1}); first by ecall {1} (_x_memcpy_u8u8_post pub_seed{1}).
+seq 1 0 : (#pre /\ sub buf{1} 0 n = to_list pub_seed{1}).
+    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5.
+      apply (eq_from_nth witness); first by rewrite n_val size_sub // size_to_list.
+      rewrite n_val size_sub // => j?.
+      rewrite get_to_list nth_sub // initiE 1:/# /= ifT // initiE // /get8 /init32 /= initiE // /= /copy_32 initiE 1:/# /=.
+      rewrite get32E pack4E /= wordP => k?.
+      rewrite bits8E initiE //= initiE 1:/# /= initiE /= 1:/#.
+      rewrite /init8 initiE /#.
 
-seq 1 0 : (#pre /\ forall (k : int), 0 <= k < 32 => buf{1}.[k] = pub_seed{1}.[k]).
-    + auto => /> &1 &2 *.
-      by rewrite initiE 1:/# /= ifT.
+seq 0 0 : (#pre /\ forall (k : int), 0 <= k < 32 => buf{1}.[k] = pub_seed{1}.[k]).
+    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 k??.
+      have ->: buf{1}.[k] = nth witness (sub buf{1} 0 n) k by rewrite nth_sub /#.
+      by rewrite H6 get_to_list.
 
 while (
   len{2} = 67 /\
@@ -752,34 +761,13 @@ auto => /> &1 &2  ? sizeSK ??? H0 H1 H2 H3 H4 H5 H6 H7 H8 H9.
 do split; 2,3,5,6:smt(); [by rewrite size_put sizeSK |]. 
 move => k Hk0 Hk1; rewrite initE ifT 1:/#; auto => />. 
 case (i{2} * 32 <= k && k < i{2} * 32 + 32) => *.
-    + rewrite (nth_flatten witness 32). 
-        * pose P := (fun (s : W8.t list) => size s = 32).
-          pose L := (map NBytes.val (put sk{2} i{2} sk_i{2})).
-          rewrite -(all_nthP P L witness). 
-          rewrite /L size_map size_put sizeSK len_val => j Hj.
-          rewrite /P map_put nth_put; [rewrite size_map /# |]. 
-          case (i{2} = j) => *; [by rewrite valP /# |].
-          rewrite (nth_map witness) => [/# |].
-          smt(NBytes.valP).
-      rewrite map_put nth_put; [rewrite size_map /# |].
+    + rewrite nth_nbytes_flatten; first by rewrite size_put /#.
+      rewrite nth_put 1:/#.
       rewrite ifT 1:/# H9 get_to_list /#.
-    + rewrite /nbytes_flatten (nth_flatten witness 32). 
-        * pose P := (fun (s : W8.t list) => size s = 32).
-          pose L := (map NBytes.val (put sk{2} i{2} sk_i{2})).
-          rewrite -(all_nthP P L witness). 
-          rewrite /L size_map size_put sizeSK len_val => j Hj.
-          rewrite /P map_put nth_put; [rewrite size_map /# |]. 
-          case (i{2} = j) => *; [by rewrite valP /# |].
-          rewrite (nth_map witness) => [/# |].
-          smt(NBytes.valP).
-      rewrite map_put nth_put; [rewrite size_map /# |].
-      rewrite ifF 1:/# -nth_flatten. 
-        * pose P := (fun (s : W8.t list) => size s = 32).
-          pose L := (map NBytes.val sk{2}).
-          rewrite -(all_nthP P L witness). 
-          rewrite /L size_map sizeSK => i?.
-          rewrite /P (nth_map witness) 1:/# #smt:(NBytes.valP).       
-      rewrite /nbytes_flatten in H2.
+    + rewrite nth_nbytes_flatten; first by rewrite size_put /#.
+      rewrite nth_put 1:/#.
+      rewrite ifF 1:/#.
+      rewrite -nth_nbytes_flatten 1:/#. 
       apply H3 => /#.
 qed.
 

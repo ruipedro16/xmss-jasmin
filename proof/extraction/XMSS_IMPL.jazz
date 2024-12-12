@@ -873,17 +873,6 @@ fn _core_hash_128(
     return out;
 }
 
-inline fn __core_hash__128(
-    reg ptr u8[XMSS_N] out,
-    reg ptr u8[128] in
-) -> reg ptr u8[XMSS_N]
-{  
-    in = in; out = out;
-    out = _core_hash_128(out, in);
-    out = out;
-    return out;
-}
-
 inline fn __core_hash__96(
     reg ptr u8[XMSS_N] out,
     reg ptr u8[96] in
@@ -891,6 +880,17 @@ inline fn __core_hash__96(
 {  
     in = in; out = out;
     out = _core_hash_96(out, in);
+    out = out;
+    return out;
+}
+
+inline fn __core_hash__128(
+    reg ptr u8[XMSS_N] out,
+    reg ptr u8[128] in
+) -> reg ptr u8[XMSS_N]
+{  
+    in = in; out = out;
+    out = _core_hash_128(out, in);
     out = out;
     return out;
 }
@@ -933,39 +933,6 @@ inline fn __u32_to_bytes(reg ptr u8[4] out, reg u32 in) -> reg ptr u8[4] {
   return out;
 }
 
-inline fn __ull_to_bytes_3(
-  reg ptr u8[3] out,
-  reg u64 in
-) -> reg ptr u8[3]
-{
-  // if 3 == 4 { 
-  //   out[u64 0] = in; 
-  // } else if 3 == 32 { 
-  //   out[u64 0] = in; 
-  //   out[u64 1] = 0; 
-  //   out[u64 2] = 0; 
-  //   out[u64 3] = 0; 
-  // }
-
-  /* https://stackoverflow.com/questions/3784263/converting-an-int-into-a-4-byte-char-array-c
-  buffer[0] = (value >> 24) & 0xFF;
-  buffer[1] = (value >> 16) & 0xFF;
-  buffer[2] = (value >> 8) & 0xFF;
-  buffer[3] = value & 0xFF;
-  */
-
-  inline int i;
-
-  in = in;
-
-  for i=3-1 downto -1 {
-    out[i] = (8u) in;
-    in >>= 8;
-  }
-
-  return out;
-}
-
 inline fn __ull_to_bytes_2(
   reg ptr u8[2] out,
   reg u64 in
@@ -992,6 +959,39 @@ inline fn __ull_to_bytes_2(
   in = in;
 
   for i=2-1 downto -1 {
+    out[i] = (8u) in;
+    in >>= 8;
+  }
+
+  return out;
+}
+
+inline fn __ull_to_bytes_3(
+  reg ptr u8[3] out,
+  reg u64 in
+) -> reg ptr u8[3]
+{
+  // if 3 == 4 { 
+  //   out[u64 0] = in; 
+  // } else if 3 == 32 { 
+  //   out[u64 0] = in; 
+  //   out[u64 1] = 0; 
+  //   out[u64 2] = 0; 
+  //   out[u64 3] = 0; 
+  // }
+
+  /* https://stackoverflow.com/questions/3784263/converting-an-int-into-a-4-byte-char-array-c
+  buffer[0] = (value >> 24) & 0xFF;
+  buffer[1] = (value >> 16) & 0xFF;
+  buffer[2] = (value >> 8) & 0xFF;
+  buffer[3] = value & 0xFF;
+  */
+
+  inline int i;
+
+  in = in;
+
+  for i=3-1 downto -1 {
     out[i] = (8u) in;
     in >>= 8;
   }
@@ -1100,11 +1100,11 @@ inline fn __memset_zero_u8(reg ptr u8[XMSS_INDEX_BYTES] a) -> reg ptr u8[XMSS_IN
     return a;
 }
 
-inline fn __memset_u8_3(reg ptr u8[3] a, reg u8 value) -> reg ptr u8[3] {
+inline fn __memset_u8_128(reg ptr u8[128] a, reg u8 value) -> reg ptr u8[128] {
     reg u64 i;
 
     i = 0;
-    while (i < 3) {
+    while (i < 128) {
         a[i] = value;
         i += 1;
     }
@@ -1112,11 +1112,11 @@ inline fn __memset_u8_3(reg ptr u8[3] a, reg u8 value) -> reg ptr u8[3] {
     return a;
 }
 
-inline fn __memset_u8_128(reg ptr u8[128] a, reg u8 value) -> reg ptr u8[128] {
+inline fn __memset_u8_3(reg ptr u8[3] a, reg u8 value) -> reg ptr u8[3] {
     reg u64 i;
 
     i = 0;
-    while (i < 128) {
+    while (i < 3) {
         a[i] = value;
         i += 1;
     }
@@ -1142,12 +1142,12 @@ inline fn __memset_u8_ptr(reg u64 _ptr inlen, reg u8 value) {
 //
 // post condition: sub out offset_out XMSS_N = sub in offset_in XMSS_N 
 
-inline fn __nbytes_copy_offset_64_32(
-    reg ptr u8[64] out,
+inline fn __nbytes_copy_offset_131_32(
+    reg ptr u8[131] out,
     reg u64 offset_out,
     reg ptr u8[32] in,
     reg u64 offset_in
-) -> reg ptr u8[64]
+) -> reg ptr u8[131]
 {
     // TODO: XMSS_N is either 24, 32 or 64 (all divisible by 4), meaning that we can 
     //       copy 4 bytes (i.e a u64) at a time
@@ -1163,12 +1163,12 @@ inline fn __nbytes_copy_offset_64_32(
     return out;
 }
 
-inline fn __nbytes_copy_offset_131_32(
-    reg ptr u8[131] out,
+inline fn __nbytes_copy_offset_64_32(
+    reg ptr u8[64] out,
     reg u64 offset_out,
     reg ptr u8[32] in,
     reg u64 offset_in
-) -> reg ptr u8[131]
+) -> reg ptr u8[64]
 {
     // TODO: XMSS_N is either 24, 32 or 64 (all divisible by 4), meaning that we can 
     //       copy 4 bytes (i.e a u64) at a time
@@ -1392,26 +1392,6 @@ inline fn _x_memcpy_u8u8p(
 
 // Same as _x_memcpy_u8u8 but with offset in and out
 
-inline fn __memcpy_u8u8_2_64_352(
-    reg ptr u8[64] out,
-    reg ptr u8[352] in,
-    reg u64 in_offset,
-    reg u64 bytes
-) -> reg ptr u8[64], reg u64
-{
-    reg u64 i;
-
-    i = 0;
-    while (i < bytes) {
-        // out[out_offset] = in[in_offset];
-        out[i] = in[in_offset];
-        i += 1;
-        in_offset += 1;
-    }
-
-    return out, in_offset;
-}
-
 inline fn __memcpy_u8u8_2_64_2144(
     reg ptr u8[64] out,
     reg ptr u8[2144] in,
@@ -1438,6 +1418,26 @@ inline fn __memcpy_u8u8_2_32_2144(
     reg u64 in_offset,
     reg u64 bytes
 ) -> reg ptr u8[32], reg u64
+{
+    reg u64 i;
+
+    i = 0;
+    while (i < bytes) {
+        // out[out_offset] = in[in_offset];
+        out[i] = in[in_offset];
+        i += 1;
+        in_offset += 1;
+    }
+
+    return out, in_offset;
+}
+
+inline fn __memcpy_u8u8_2_64_352(
+    reg ptr u8[64] out,
+    reg ptr u8[352] in,
+    reg u64 in_offset,
+    reg u64 bytes
+) -> reg ptr u8[64], reg u64
 {
     reg u64 i;
 
@@ -2051,9 +2051,10 @@ fn __expand_seed(
     addr = __set_key_and_mask(addr, 0);
 
     // memcpy(buf, pub_seed, params->n);
-    buf[0 : XMSS_N] = _x_memcpy_u8u8_32_32(buf[0 : XMSS_N], pub_seed);
+    // old: buf[0 : XMSS_N] = _x_memcpy_u8u8_32_32(buf[0 : XMSS_N], pub_seed);
+    buf[0 : XMSS_N] = #copy_32(pub_seed);
 
-    for i=0 to XMSS_WOTS_LEN {
+    for i = 0 to XMSS_WOTS_LEN {
         // NOTE: addr is live at the beggining of the loop => we must unspill it at the end
         // set_chain_addr(addr, i);
         addr = __set_chain_addr(addr, i);
