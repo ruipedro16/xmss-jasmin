@@ -92,6 +92,26 @@ if.
    rewrite /treehash_cond /= (: (of_int 2)%W64 \ule o = true) 1:/# /= /_EQ cmp_eq_W32 !to_uintB 2,3:/# #smt:(@W64 pow2_64).
 qed.
 
+lemma treehash_condition_if (h : W32.t Array11.t) (o : W64.t) :
+    hoare [
+    M(Syscall).__treehash_cond :
+    arg = (h, o) 
+    ==>
+    if treehash_cond h o then res = W8.one else res = W8.zero
+    ].
+proof.
+proc => /=.
+seq 3 : (#pre /\ bc1 = if (W64.of_int 2 \ule offset) then W8.one else W8.zero).
+  + auto => /> *.
+    by case ((of_int 2)%W64 \ule o) => H; [rewrite setcc_true | rewrite setcc_false] => //; rewrite cmp_eq_W64 cmp_lt_W64 /#. 
+if; first by auto => />.
+- (* 2nd branch: bc1 = W8.zero i.e. 2 <= offset is true *)
+   auto => /> *.
+   have E: (of_int 2)%W64 \ule o by smt().
+   rewrite /treehash_cond /= (: (of_int 2)%W64 \ule o = true) 1:/# /= /_EQ cmp_eq_W32 !to_uintB //; smt(@W64 pow2_64).
+qed.
+
+
 (* ============================================================================================================================= *)
 (* PHOARE VERSION OF THE LEMMAS *)
 (* ============================================================================================================================= *)
@@ -112,3 +132,10 @@ lemma p_treehash_condition_correct_equiv (h : W32.t Array11.t) (o : W64.t) :
     (res = W8.one) <=> treehash_cond h o
     ] = 1%r by conseq treehash_cond_ll (treehash_condition_correct_equiv h o).
 
+lemma p_treehash_condition_if (h : W32.t Array11.t) (o : W64.t) :
+    phoare [
+    M(Syscall).__treehash_cond :
+    arg = (h, o) 
+    ==>
+    if treehash_cond h o then res = W8.one else res = W8.zero
+    ] = 1%r by conseq treehash_cond_ll (treehash_condition_if h o).
