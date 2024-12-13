@@ -136,13 +136,9 @@ pred mem_dif (m m' : global_mem_t) (p : int) = m.[p] <> m'.[p].
 
 (** -------------------------------------------------------------------------------------------- **)
 
-
 lemma pow2_pos (e : int) :
-    0 < e => 0 < 2^e.
-proof.
-move => H.
-admit.
-qed.
+    0 <= e => 0 < 2^e.
+proof. move => ?; smt(@IntDiv). qed.
 
 lemma pow2_neq_0  (t : int) : 
     0 <= t => 0 <> 2^t by smt(@Real).
