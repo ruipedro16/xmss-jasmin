@@ -850,10 +850,8 @@ do split; 1,3: by smt().
                 rewrite H8 /sub_list nth_mkseq 1:/# /= nth_nbytes_flatten // /#.
 qed. 
 
-
-
 (* ============================================================================================================ *)        
-lemma wots_sign_seed_corect (_m _sk_seed _pub_seed : W8.t Array32.t, a : W32.t Array8.t) :
+lemma wots_sign_seed_corect (mem : global_mem_t)  (_m _sk_seed _pub_seed : W8.t Array32.t, a : W32.t Array8.t) :
     n = XMSS_N /\
     floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
     w = XMSS_WOTS_W /\ 
@@ -874,24 +872,29 @@ lemma wots_sign_seed_corect (_m _sk_seed _pub_seed : W8.t Array32.t, a : W32.t A
       arg{2}.`1 = to_list _m /\
       arg{2}.`2 = NBytes.insubd (to_list _sk_seed) /\
       arg{2}.`3 = NBytes.insubd (to_list _pub_seed) /\
-      arg{2}.`4 = a
+      arg{2}.`4 = a /\
+      
+      Glob.mem{1} = mem
       (* Nao me interessa o valor de address no resultado pq 
          nao se usa mais o addr depois de chamar esta funcao 
        *)
       ==>
-      res{2} = EncodeWotsSignature res{1}.`1
+      res{2} = EncodeWotsSignature res{1}.`1 /\
+      Glob.mem{1} = mem
     ].
 proof.
-rewrite /XMSS_N /XMSS_WOTS_LOG_W /XMSS_WOTS_W /XMSS_WOTS_LEN /XMSS_WOTS_LEN1 /XMSS_WOTS_LEN2 => 
-    [#] n_val logw_val w_val len1_val len2_val len_val *.
+rewrite /XMSS_N /XMSS_WOTS_LOG_W /XMSS_WOTS_W /XMSS_WOTS_LEN /XMSS_WOTS_LEN1 /XMSS_WOTS_LEN2.
+move =>  [#] n_val logw_val w_val len1_val len2_val len_val *.
 proc => /=.
 conseq ( : 
   M{2} = to_list msg{1} /\
   val sk_seed{2} = to_list seed{1} /\  val pub_seed{2} = to_list pub_seed{1} /\
-  address{2} = addr{1}
+  address{2} = addr{1} /\
+  Glob.mem{1} = mem
   ==>
   _
 ); first by auto => />; rewrite !insubdK // /P size_to_list n_val.
+
 seq 1 1 : (#pre /\ size sig{2} = len); first by auto => /> *; rewrite size_nseq len_val.
 swap {1} 2 -1.
 
@@ -1021,7 +1024,7 @@ seq 1 8 : (
                  rewrite nth_sub /#.
             rewrite H5 (nth_map witness); first by rewrite size_to_list /#.
             by rewrite get_to_list.
-
+ 
 (* Invariante: Em cada iteracao escrevemos nbytes *)
 (* A chave e inicialmente escrita no array sig e vai sendo sobreescrita ate no fim so estar la assinatura *)
 
@@ -1040,9 +1043,10 @@ while (
    
    
     sub sig{1} 0 (32 * i{1}) = sub_list (nbytes_flatten sig{2}) 0 (32 * i{1}) /\
-    sub sig{1} (32 * i{1}) (67*32 - 32*i{1}) = sub (DecodeWotsSk wots_skey{2}) (32 * i{1}) (67*32 - 32*i{1})
+    sub sig{1} (32 * i{1}) (67*32 - 32*i{1}) = sub (DecodeWotsSk wots_skey{2}) (32 * i{1}) (67*32 - 32*i{1}) /\
+    Glob.mem{1} = mem
 ); last first.
-    + auto => /> &1 &2 H0 H1 H2 H3 H4.
+    + auto => /> &1 &2 H0 H1 H2 H3 H4 *.
       do split; 2: by smt().
         - apply (eq_from_nth witness); first by rewrite size_sub // size_sub_list.
           rewrite size_sub // /#.
@@ -1078,11 +1082,11 @@ seq 2 1 : (#pre /\ sub address{2} 0 6 = sub addr{1} 0 6).
 inline {1} M(Syscall).__gen_chain_inplace_.
 inline {1} M(Syscall)._gen_chain_inplace.
 sp; wp.
-exists * out0{1}, start0{1}, steps0{1}, addr1{1}, pub_seed1{1}.        
-elim * => _P1 _P2 _P3 _P4 _P5. 
-call (gen_chain_inplace_correct _P1 _P2 _P3 _P4 _P5) => [/# |].
+exists * out0{1}, start0{1}, steps0{1}, pub_seed1{1}, addr1{1}, address{2}.        
+elim * => _P1 _P2 _P3 _P4 _P5 _P6. 
+call (gen_chain_correct _P1 _P2 _P3 _P4 _P5 _P6) => [/# |].
 
-skip => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11.
+skip => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 *.
 do split.
           + apply nbytes_eq.
             rewrite insubdK /=; first by rewrite /P size_to_list /#.
@@ -1093,24 +1097,27 @@ do split.
             rewrite H8 /DecodeWotsSk nth_sub 1:/# get_of_list 1:/# nth_nbytes_flatten 2:/# valP /#.
           + rewrite (nth_map witness); [by rewrite size_to_list | by rewrite get_to_list].
           + rewrite -H4 #smt:(@NBytes).
-          + admit. (* Isto e falso ==> corrigir o gen chain inplace *) 
+          + smt().
           + smt().
           + smt().
           + smt().
           + smt().        
-          + move => H12 H13 H14 H15 H16 H17 H18 resultL resultR H19 *.
+          + move => H12 H13 H14 H15 H16 H17 H18 resultL resultR H19 H20 H21 H22 H23 *.
             do split.
                * smt().
                * smt().
                * smt(size_put).
-               * admit. (* Falta isto no gen chain inplace *) 
+               * apply (eq_from_nth witness); first by rewrite !size_sub.
+                 rewrite size_sub // => j?.
+                 have ->: nth witness (sub resultR.`2 0 5) j = nth witness (sub resultR.`2 0 6) j by rewrite !nth_sub /#.
+                 rewrite H21 -H11 !nth_sub // /#.
                * apply (eq_from_nth witness); first by rewrite size_sub 1:/# size_sub_list /#.
                  rewrite size_sub 1:/# => j?.
                  rewrite nth_sub 1:/# initiE 1:/# /=.
                  rewrite /sub_list nth_mkseq 1:/# /= nth_nbytes_flatten; first by smt(size_put). 
                  rewrite nth_put 1:/#.
                  case (i{2} = j %/ n) => //H.
-                    * rewrite ifT 1:/# -get_to_list -H19 /#.
+                    * rewrite ifT 1:/# -get_to_list -H20 /#.
                     * rewrite ifF 1:/#.
                       have ->: sig{1}.[j] = nth witness (sub sig{1} 0 (32 * i{2})) j by rewrite nth_sub /#.
                       rewrite H7 /sub_list nth_mkseq 1:/# /= nth_nbytes_flatten /#.
