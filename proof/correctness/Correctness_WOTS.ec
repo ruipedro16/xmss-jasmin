@@ -523,7 +523,7 @@ seq 2 2 : (#pre /\ to_list t{1} = val pk_i{2}).
           * rewrite -H1 #smt:(@NBytes).  
           * smt().
           * by rewrite H11.
-          * move => H12 H13 H14 H15 H16 H17 H18 resultL resultR -> H19 H20 H21.
+          * move => H12 H13 H14 H15 H16 H17 H18 resultL resultR -> H19.
             do split; smt(sub_N).
 
 auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12*; do split;2,3,6,7:smt(). 
@@ -835,7 +835,7 @@ do split; 1,3: by smt().
          - rewrite to_uintD H12. 
            have ->: to_uint lengths{1}.[i{2}] = nth witness (map W32.to_uint (to_list lengths{1})) i{2} by rewrite (nth_map witness); [by rewrite size_to_list | by rewrite get_to_list].
            smt().
-         - move => H15 H16 H17 H18 H19 H20 H21 H22 H23 resL resR H24 H25 H26 H27.
+         - move => H15 H16 H17 H18 H19 H20 H21 H22 H23 resL resR H24 H25.
 
            rewrite size_put.
            do split; 1..4,6,7: by smt().
@@ -1102,7 +1102,7 @@ do split.
           + smt().
           + smt().
           + smt().        
-          + move => H12 H13 H14 H15 H16 H17 H18 resultL resultR H19 H20 H21 H22 H23 *.
+          + move => H12 H13 H14 H15 H16 H17 H18 resultL resultR H19 H20 H21.
             do split.
                * smt().
                * smt().
