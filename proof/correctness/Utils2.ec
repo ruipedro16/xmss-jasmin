@@ -112,30 +112,6 @@ qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 
-(* from MLKEM proof *)
-
-(* m and m' are memories that differ on the contents of addresses in the range [p; p+len[ *)
-pred touches (m m' : global_mem_t) (p : address) (len : int) =
-    forall (i : int), !(0 <= i < len) => m'.[p + i] = m.[p + i].
-
-(* m and m' are memories that differ on the contents of addresses 
-   in the range [p1; p1+len1[ and 
-   in the range [p2; p2+len2[
-*)
-pred touches2 (m m' : global_mem_t) (p1 p2 : address) (len1 len2 : int) =
-  forall (a : int), ! (p1 <= a < p1 + len1) =>  
-                    ! (p2 <= a < p2 + len2) => 
-                        m'.[a] = m.[a].
-
-lemma touches_touches2 (m m' : global_mem_t) (p1 p2 : address) (len1 len2 : int) :
-    touches m m' p1 len1 /\ touches m m' p2 len2 =>
-       touches2 m m' p1 p2 len1 len2 by smt().
-
-(*  m and m' are memories that differ on the contents of address p *)
-pred mem_dif (m m' : global_mem_t) (p : int) = m.[p] <> m'.[p].
-
-(** -------------------------------------------------------------------------------------------- **)
-
 lemma pow2_pos (e : int) :
     0 <= e => 0 < 2^e.
 proof. move => ?; smt(@IntDiv). qed.

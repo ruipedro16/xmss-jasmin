@@ -16,6 +16,79 @@ require import Parameters.
 
 print loadW8.
 
+print load_message.
+print load_buf.
+locate load_buf.
+print load_buf.
+
+print valid_ptr.
+
+
+(* Copia de memoria para memoria *)
+lemma __memcpy_mem_mem (mem : global_mem_t) (o_ptr i_ptr len o_off i_off : W64.t)  :
+    hoare[
+      M(Syscall).__memcpy_u8pu8p :
+      arg = (o_ptr, o_off, i_ptr, i_off, len) /\
+      valid_ptr (i_ptr + i_off) len /\
+      valid_ptr (o_ptr + o_off) len /\
+      0 <= to_uint len < W64.max_uint /\
+      
+      Glob.mem = mem
+      ==>
+      
+      load_buf mem (o_ptr + o_off) (to_uint len) = load_buf mem (i_ptr + i_off) (to_uint len)
+    ].
+proof.
+proc => /=.
+conseq (: _ ==> 
+  forall (k : int), 0 <= k < to_uint len => 
+      mem.[to_uint (o_ptr + o_off) + k] = mem.[to_uint (i_ptr + i_off) + k]
+).
+    + auto => /> H0 H1 H2 H3 H4.
+      apply (eq_from_nth witness); first by rewrite !size_load_buf.
+      rewrite size_load_buf // => j?.
+      rewrite !nth_mkseq //= /loadW8. 
+      by apply H4.
+
+while (
+  out_ptr = o_ptr /\
+  out_offset = o_off + i /\
+  in_ptr = i_ptr /\ 
+  in_offset = i_off + i /\
+  bytes = len /\
+  valid_ptr (i_ptr + i_off) len /\
+  valid_ptr (i_ptr + i_off) len /\
+  0 <= to_uint len < W64.max_uint /\
+  
+
+  0 <= to_uint i <= to_uint bytes /\
+  
+    forall (k : int), 0 <= k < to_uint i => 
+    mem.[to_uint (o_ptr + o_off) + k] = mem.[to_uint (i_ptr + i_off) + k]
+); last first.
+    + auto => /> H0 H1 H2 *. 
+      split => [/# |].
+      move => i0.
+      rewrite ultE => H3 H4 H5.
+      have ->: to_uint i0 = to_uint len by smt(). 
+      move => H6 k??.
+      by apply H6.
+
+auto => /> &hr H0 H1 H2 H3 H4 H5.
+rewrite ultE => H6.
+do split. 
+- ring. (* smt takes too long or fails *)
+- ring. (* same here *)
+- rewrite to_uintD /#.
+- rewrite to_uintD /#.
+- rewrite to_uintD_small 1:/# /=. 
+  move => k??.
+  rewrite H5 //.
+  split => [/# | ?].
+  admit.
+qed. 
+      
+     
 lemma memcpy_treehash_node_2 (_stack_impl : W8.t Array352.t, o : W64.t) (stack_spec : nbytes list) :
     n = XMSS_N =>
     phoare [
@@ -37,6 +110,38 @@ proof.
 rewrite /XMSS_N => n_val.
 proc => /=.
 conseq />.
+conseq (: _ 
+  ==>
+  (forall (k : int), 0 <= k < 32 => out.[k] = nth witness (val (nth witness stack_spec (to_uint (o - (of_int 2)%W64)))) k) /\
+  (forall (k : int), 0 <= k < 32 => out.[32 + k] = nth witness (val (nth witness stack_spec (to_uint (o - (of_int 1)%W64)))) k)
+).
+    + auto => /> H0 H1 out.
+      do split => H2.
+        * split => k??; rewrite -get_to_list H2 nth_cat valP n_val; [by rewrite ifT | by rewrite ifF 1:/#].
+        * move => H3.
+          apply (eq_from_nth witness); first by rewrite size_to_list size_cat !valP n_val. 
+          rewrite size_to_list => j?.
+          rewrite get_to_list.
+          case (0 <= j < 32) => ?.
+             - rewrite H2 // nth_cat valP n_val ifT //#.
+             - rewrite nth_cat valP n_val ifF //#.
+admit.
+(*
+
+unroll 2; rcondt 2; first by auto.
+
+seq 4 :
+
+
+
+unroll 2. unroll 3. unroll 4. unroll 5. unroll 6. unroll 7. unroll 8. unroll 9. unroll 10. unroll 11. unroll 12. unroll 13. unroll 14. unroll 15. unroll 16. unroll 17. unroll 18. unroll 19. unroll 20. unroll 21. unroll 22. unroll 23. unroll 24. unroll 25. unroll 26. unroll 27. unroll 28. unroll 29. unroll 30. unroll 31. unroll 32. unroll 33. unroll 34. unroll 35. unroll 36. unroll 37. unroll 38. unroll 39. unroll 40. unroll 41. unroll 42. unroll 43. unroll 44. unroll 45. unroll 46. unroll 47. unroll 48. unroll 49. unroll 50. unroll 51. unroll 52. unroll 53. unroll 54. unroll 55. unroll 56. unroll 57. unroll 58. unroll 59. unroll 60. unroll 61. unroll 62. unroll 63. unroll 64. unroll 65. 
+
+rcondt 2; first by auto.
+rcondt 5; first by auto.
+rcondt 8 ; first by auto.
+
+
+
 while 
 (
   size stack_spec = 11 /\
@@ -71,7 +176,10 @@ do split; 2,3,5: by smt(@W64 pow2_64).
      rewrite size_sub; first by smt(@W64 pow2_64).
      move => j?.
      rewrite /sub_list !nth_mkseq //=.
+     rewrite get_setE; first by smt(@W64 pow2_64).
      admit.
+*)
+
 qed.   
 
 lemma write_buf_ptr (mem : global_mem_t) (ptr _offset : W64.t) (buf : W8.t Array32.t) :
@@ -271,61 +379,6 @@ proof.
 admit.
 qed.
 
-
-
-
-(* // same as memcpy(out_ptr + out_offset, in_ptr + in_offset, bytes) *)
-lemma memcpy_u8pu8p_touches mem (optr iptr l : W64.t) :
-    phoare [
-    M(Syscall)._x__memcpy_u8pu8p:
-      Glob.mem = mem /\
-      0 <= to_uint l /\
-      0 <= to_uint optr + to_uint l < W64.max_uint /\
-      to_uint optr + 4963 + (to_uint l) < W64.max_uint /\
-      arg = (optr, (of_int 4963)%W64, iptr, W64.zero, l)
-      ==>
-      touches mem Glob.mem (to_uint optr) (to_uint l)
-    ] = 1%r.
-proof.
-proc => /=.
-while (
-  0 <= to_uint i <= to_uint bytes /\
-  bytes = l /\
-  out_ptr = optr /\
-  touches mem Glob.mem (to_uint optr) (to_uint i) /\
-  to_uint optr + 4963 + (to_uint l) < W64.max_uint /\
-  to_uint out_offset = 4963 + to_uint i /\
-  forall (k : int), 0 <= k < to_uint i => Glob.mem.[to_uint (out_ptr + out_offset)] = mem.[to_uint (in_ptr + in_offset)]
-)
-(to_uint bytes - to_uint i)
-; last first.
-admit.
-admit.
-(*
-    + auto => /> H0 H1 H2 H3.
-      split => [/# |_mem j].
-      rewrite ultE -lezNgt => ?????H??.
-      move: H.
-      by rewrite (: j = l) //; smt(@W64 pow2_64).
-
-auto => /> &hr ??H??.
-rewrite ultE => ??.
-do split; 1,2: by rewrite to_uintD /#.
-rewrite /touches => k Hk.
-have E: (k < 0 \/ to_uint (i{hr} + W64.one) <= k) by smt().
-rewrite /storeW8 /loadW8 get_setE.
-case (k = to_uint out_offset{hr}) => [-> |?]; last by admit.
-    + rewrite ifT; first by rewrite to_uintD_small // /#.
-      rewrite /touches in H. 
-      rewrite -H 1:/#.
-      admit.
-
-    + smt(@W64 pow2_64).
-    + rewrite to_uintD_small 1:#smt:(@W64 pow2_64) /= => k??.
-      rewrite /storeW8 /loadW8 get_setE ifF 1:#smt:(@W64 pow2_64).
-      admit.
-*)
-qed.
 
 
 lemma _memcpy_u8u8_2_32_2144_post (_in : W8.t Array2144.t, oi : W64.t):
@@ -1176,77 +1229,6 @@ lemma nbytes_copy_131_32_p (o : W8.t Array131.t, _in : W8.t Array32.t)  :
  (* ================================================================================= *)
 
 lemma neg_lt (a b : int) : ! (a < b) => b <= a by smt().
-
-lemma memcpy_ptr_touches (mem : global_mem_t) (out offset _bytes : W64.t) :
-    hoare [
-      M(Syscall)._x__memcpy_u8pu8p :
-      arg.`1 = out /\
-      arg.`2 = offset /\
-      arg.`5 = _bytes /\
-
-      0 <= to_uint _bytes /\
-      to_uint out + to_uint offset < W64.modulus
-      ==>
-      touches Glob.mem mem (to_uint (out + offset)) (to_uint _bytes)
-    ].
-proof.
-proc => /=.
-inline.
-sp.
-
-while (
-  #{/~out_offset1 = out_offset0}{/in_offset1 = in_offset0}pre /\ 
-  0 <= to_uint i <= to_uint bytes1 /\
-  touches Glob.mem mem (to_uint (out + offset)) (to_uint i)
-); last first.
-     - auto => /> &hr *; do split.
-         * rewrite /touches; admit.
-         * move => ??; rewrite ultE /= /#.
-
-auto => /> &hr ??.
-admit.
-
-
-
-
-qed.
-
-lemma memcpy_ptr_touches_p mem (out offset len : W64.t) :
-    phoare [
-      M(Syscall)._x__memcpy_u8pu8p :
-      arg.`1 = out /\
-      arg.`2 = offset /\
-      arg.`5 = bytes
-      ==>
-      touches Glob.mem mem (to_uint (out + offset)) (to_uint len)
-    ] = 1%r.
-proof.
-admit.
-qed.
-
-(*
-proc => /=.
-sp 1.
-while (
-  #pre /\
-  0 <= i <= 32 /\
-  (forall (k : int), 0 <= k < i => out.[to_uint out_offset + k] = in_0.[k])
-)
-(32 - i); last first.
-  + auto => /> *; split => [/# | j].
-    split => [/# | ???].
-    have ->: j = 32 by smt().
-    smt().
-  + auto => /> &hr *; do split; 2,3,5: by smt().
-      * admit.
-      * move => k??.
-        rewrite get_setE 1:#smt:(@W64 pow2_64).
-        case (k = i{hr}) => [-> | ?].
-           - rewrite ifT // to_uintD_small of_uintK // /#.
-           - rewrite ifF => [| /#].
-             rewrite to_uintD_small of_uintK /#.
-qed.
-*)
 
 lemma memcpy_u8u8_2_64_352_post (o : W8.t Array64.t) (_in : W8.t Array352.t) (off : W64.t):
     phoare [
