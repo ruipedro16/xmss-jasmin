@@ -55,11 +55,6 @@ rcondt 1; auto => /> ?; rewrite /XMSS_FULL_HEIGHT /= => ?; last by smt(@W64 pow2
 by rewrite /(`<<`) ifT // ultE /= /#.
 qed.
 
-
-op load_message (mem : global_mem_t) (ptr : W64.t) (len : W64.t) =
-  mkseq (fun (i : int) => mem.[to_uint ptr + i]) (to_uint len).
-
-
 (*
 proc __xmssmt_core_sign (sk:W8.t Array131.t, sm_ptr:W64.t, smlen_ptr:W64.t,
                            m_ptr:W64.t, mlen:W64.t) : W8.t Array131.t * W64.t 
@@ -67,7 +62,7 @@ proc __xmssmt_core_sign (sk:W8.t Array131.t, sm_ptr:W64.t, smlen_ptr:W64.t,
 proc sign(sk : xmss_sk, m : msg_t) : sig_t * xmss_sk
 *)
 
-lemma sign_correct mem (_sk : xmss_sk, _sm_ptr _smlen_ptr _m_ptr _mlen : W64.t) :
+lemma sign_correct (_sk : xmss_sk, _sm_ptr _smlen_ptr _m_ptr _mlen : W64.t) :
     n = XMSS_N /\ 
     d = XMSS_D /\
     h = XMSS_FULL_HEIGHT /\
@@ -76,8 +71,6 @@ lemma sign_correct mem (_sk : xmss_sk, _sm_ptr _smlen_ptr _m_ptr _mlen : W64.t) 
     equiv [
       M(Syscall).__xmssmt_core_sign ~ XMSS_MT_PRF.sign :
 
-      Glob.mem{1} = mem /\
-
       arg{1}.`1 = DecodeSkNoOID _sk /\
       arg{1}.`2 = _sm_ptr /\
       arg{1}.`3 = _smlen_ptr /\
@@ -85,7 +78,7 @@ lemma sign_correct mem (_sk : xmss_sk, _sm_ptr _smlen_ptr _m_ptr _mlen : W64.t) 
       arg{1}.`5 = _mlen  /\
 
       arg{2}.`1 =_sk /\
-      arg{2}.`2 = load_message Glob.mem{1} _m_ptr _mlen /\
+      arg{2}.`2 = load_buf Glob.mem{1} _m_ptr (to_uint _mlen) /\
 
       valid_ptr_i arg{1}.`5 2500 /\
       to_uint _sm_ptr + XMSS_SIG_BYTES <= W64.max_uint /\
@@ -94,7 +87,7 @@ lemma sign_correct mem (_sk : xmss_sk, _sm_ptr _smlen_ptr _m_ptr _mlen : W64.t) 
       ==>
       res{1}.`1 = DecodeSkNoOID res{2}.`2 /\
       res{1}.`2 = W64.zero /\
-      res{2}.`1 = EncodeSignature  (load_message Glob.mem{1} _sm_ptr (W64.of_int XMSS_SIG_BYTES))
+      res{2}.`1 = EncodeSignature  (load_buf Glob.mem{1} _sm_ptr XMSS_SIG_BYTES)
     ].
 proof.
 rewrite /XMSS_N /XMSS_D /XMSS_TREE_HEIGHT /XMSS_FULL_HEIGHT => [#] n_val d_val h_val ??.
@@ -146,16 +139,29 @@ seq 0 1 : (
       by rewrite nth_cat ifT; first by rewrite size_EncodeIdx /#.
        
 seq 1 0 : (
-    #{/~Glob.mem{1} = mem}pre /\
-    touches mem Glob.mem{1} (to_uint sm_ptr{1}) (to_uint mlen{1})
-); first by admit.
-
-seq 3 0 : (
   #pre /\
-  touches mem Glob.mem{1} (to_uint smlen_ptr{1}) 0 
+  load_buf Glob.mem{1} sm_ptr{1} (to_uint mlen{1}) = m{2}
 ).
-    + auto => /> &1 &2 *.
-      do split; admit.
+    + inline M(Syscall)._x__memcpy_u8pu8p.
+      inline M(Syscall)._memcpy_u8pu8p.
+      wp; sp.
+      exists * Glob.mem{1}, out_ptr0{1}, out_offset0{1}, in_ptr0{1}, in_offset0{1}, bytes0{1}.
+      elim * => P0 P2 P3 P4 P5 P6.
+      (* invalid goal shape when I use call *)
+      admit.
+
+seq 3 0 : #pre. (* o valor escrito p memoria aqui nao me interessa *)
+    + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 *.
+      split; (
+         apply (eq_from_nth witness); [by rewrite !size_load_buf // | rewrite size_load_buf // => j?];
+         rewrite nth_load_buf //
+      ); last by admit.
+         * rewrite /load_buf /storeW64 nth_mkseq //= /loadW8. 
+           search stores.
+           rewrite get_storesE.
+           rewrite ifF //; first by admit.
+
+
 
 seq 1 0 : (#pre /\ to_list idx_bytes{1} = EncodeIdx sk{2}.`idx).
     + auto => /> &1 &2 *.
@@ -171,7 +177,7 @@ seq 1 0 : (#pre /\ to_uint idx{1} = to_uint idx{2}).
       admit.
 
 rcondf {1} 1.
-    + auto => /> &hr ??????????????H.
+    + auto => /> &hr ?????????????H.
       rewrite uleE /(`<<`) /= -ltzNge H /#.
 
 rcondt {1} 1.
@@ -181,7 +187,7 @@ rcondt {1} 1.
 seq 27 14 : (#{/~r{1} = W64.zero}post); last by auto.
  
 seq 25 14 : (sk{1} = DecodeSkNoOID sk{2} /\ sig{2} = EncodeSignature (to_list signature{1})); last first.
-    + conseq (: _ ==> to_list signature {1} = load_message Glob.mem{1} _sm_ptr ((of_int XMSS_SIG_BYTES))%W64).
+    + conseq (: _ ==> to_list signature {1} = load_buf Glob.mem{1} _sm_ptr XMSS_SIG_BYTES).
          * by auto => /> *; congr.
       while {1} (
           #pre /\

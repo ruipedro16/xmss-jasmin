@@ -209,7 +209,7 @@ lemma gen_chain_correct (_buf_ : W8.t Array32.t, _start_ _steps_ : W32.t, _pub_s
     F_padding_val = XMSS_HASH_PADDING_F =>
     equiv [
       M(Syscall).__gen_chain_inplace ~ Chain.chain : 
-      arg{1}= (_buf_, _start_, _steps_, _pub_seed_, a1) /\
+      arg{1} = (_buf_, _start_, _steps_, _pub_seed_, a1) /\
       arg{2} = (NBytes.insubd (to_list _buf_), to_uint _start_, to_uint _steps_, NBytes.insubd (to_list _pub_seed_), a2) /\
       0 <= to_uint _start_ <= XMSS_WOTS_W - 1/\
       0 <= to_uint _steps_ <= XMSS_WOTS_W - 1 /\
@@ -224,13 +224,6 @@ rewrite /XMSS_N /XMSS_WOTS_W => [#] n_val w_val *.
 proc => //=.
 
 swap {1} 1 2.
-
-(* i{1} = start  to start + steps
-   chain_count{2} = 0 to steps 
-
-  i{1} = i{2} + chain_count{2}
-
-*)
 
 seq 2 1 : ( 
   0 <= to_uint start{1} <= w - 1/\
@@ -248,11 +241,6 @@ seq 2 1 : (
   steps{1} = _steps_ 
 ); first by auto => /> *; do split => [/# | /# | | |]; by rewrite insubdK /P // size_to_list n_val.
 
-
-print set_hash_addr. (* altera o idx 6 *)
-print set_key_and_mask. (* altera o idx 7 *)
-
-  
 while (
   sub addr{1} 0 6 = sub address{2} 0 6 /\ 
   sub addr{1} 0 6 = sub a1 0 6 /\

@@ -31,6 +31,31 @@ proof.
 move => ?; rewrite /load_buf size_mkseq /#.
 qed.
 
+(** lemma nth_mkseq ['a]:
+  forall (x0 : 'a) (f : int -> 'a) (n i : int),
+    0 <= i && i < n => nth x0 (mkseq f n) i = f i.
+
+**)
+lemma nth_load_buf (mem : global_mem_t) (ptr : W64.t) (len i : int) :
+    0 <= i < len =>
+    nth witness (load_buf mem ptr len) i = mem.[to_uint ptr + i]. (* loadW8 mem (to_uint ptr + i). *)
+proof.
+move => ?.
+by rewrite nth_mkseq //=.
+qed.
+
+lemma load_buf_E (mem : global_mem_t) (ptr1 ptr2 : W64.t) (len : int):
+    0 <= len =>
+    load_buf mem ptr1 len = load_buf mem ptr2 len =>
+    forall (k : int), 0 <= k < len => loadW8 mem (to_uint ptr1 + k) = loadW8 mem (to_uint ptr2 + k).
+proof.
+rewrite /load_buf => H0 H1.
+move => k?.
+have ->: loadW8 mem (to_uint ptr1 + k) = nth witness (mkseq (fun (i : int) => loadW8 mem (to_uint ptr1 + i)) len) k by rewrite /loadW8 nth_mkseq.
+rewrite H1.
+by rewrite /loadW8 nth_mkseq.
+qed.
+
 (** -------------------------------------------------------------------------------------------- **)
 
 

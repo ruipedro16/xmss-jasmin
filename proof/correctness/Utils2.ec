@@ -13,7 +13,20 @@ require import Array8 Array11.
 (*****) import StdBigop.Bigint.
 
 
+(** ----cenas de memorias --------------------------------------------------------------------- **)
+
+(* ar: address used for reading
+   aw: address used for writing 
+*)
+lemma load_store_mem (mem : global_mem_t) (ar aw : address) (val : W8.t) :
+    loadW8 (storeW8 mem aw val) ar = (if ar = aw then val else mem.[ar]).
+proof.
+by rewrite /loadW8 /storeW8 get_setE.
+qed.
+
+
 (** -------------------------------------------------------------------------------------------- **)
+
 
 lemma and_comm (a b : W32.t) : a `&` b = b `&` a by smt(@W32 pow2_32).
 

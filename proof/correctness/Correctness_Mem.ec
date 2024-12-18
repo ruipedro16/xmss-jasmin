@@ -8,7 +8,7 @@ require import Array3 Array32 Array64 Array128 Array2144.
 require import Array352.
 
 require import XMSS_IMPL.
-require import Utils2 Repr2. (* valid_ptr predicate *)
+require import Utils2 Repr2.
 require import Termination.
 
 require import Params.
@@ -36,19 +36,17 @@ lemma __memcpy_mem_mem (mem : global_mem_t) (o_ptr i_ptr len o_off i_off : W64.t
       Glob.mem = mem
       ==>
       
-      load_buf mem (o_ptr + o_off) (to_uint len) = load_buf mem (i_ptr + i_off) (to_uint len)
+      load_buf Glob.mem (o_ptr + o_off) (to_uint len) = 
+      load_buf Glob.mem (i_ptr + i_off) (to_uint len) /\
+      
+      (* o resto da memoria fica inalterada *)
+      forall (k : int), 0 <= k < W64.max_uint =>
+        !(to_uint (o_ptr + o_off) <= k < to_uint (o_ptr + o_off + len)) =>
+          loadW8 mem k = loadW8 Glob.mem k
+
     ].
 proof.
 proc => /=.
-conseq (: _ ==> 
-  forall (k : int), 0 <= k < to_uint len => 
-      mem.[to_uint (o_ptr + o_off) + k] = mem.[to_uint (i_ptr + i_off) + k]
-).
-    + auto => /> H0 H1 H2 H3 H4.
-      apply (eq_from_nth witness); first by rewrite !size_load_buf.
-      rewrite size_load_buf // => j?.
-      rewrite !nth_mkseq //= /loadW8. 
-      by apply H4.
 
 while (
   out_ptr = o_ptr /\
@@ -57,35 +55,76 @@ while (
   in_offset = i_off + i /\
   bytes = len /\
   valid_ptr (i_ptr + i_off) len /\
-  valid_ptr (i_ptr + i_off) len /\
+  valid_ptr (o_ptr + o_off) len /\
   0 <= to_uint len < W64.max_uint /\
   
-
   0 <= to_uint i <= to_uint bytes /\
-  
-    forall (k : int), 0 <= k < to_uint i => 
-    mem.[to_uint (o_ptr + o_off) + k] = mem.[to_uint (i_ptr + i_off) + k]
-); last first.
-    + auto => /> H0 H1 H2 *. 
-      split => [/# |].
-      move => i0.
-      rewrite ultE => H3 H4 H5.
-      have ->: to_uint i0 = to_uint len by smt(). 
-      move => H6 k??.
-      by apply H6.
+  load_buf Glob.mem (o_ptr + o_off) (to_uint i) =  load_buf Glob.mem (i_ptr + i_off) (to_uint i) /\
+  load_buf Glob.mem (o_ptr + o_off) (to_uint i) =  load_buf mem (i_ptr + i_off) (to_uint i) /\
+  load_buf Glob.mem (i_ptr + i_off) (to_uint i) =  load_buf mem (i_ptr + i_off) (to_uint i) /\
 
-auto => /> &hr H0 H1 H2 H3 H4 H5.
-rewrite ultE => H6.
-do split. 
-- ring. (* smt takes too long or fails *)
-- ring. (* same here *)
+      forall (k : int), 0 <= k < W64.max_uint =>
+        !(to_uint (o_ptr + o_off) <= k < to_uint (o_ptr + o_off + i)) =>
+          loadW8 mem k = loadW8 Glob.mem k
+
+); last first.
+- auto => /> H0 H1 H2 H3.
+  do split. 
+    + apply (eq_from_nth witness); first by rewrite !size_load_buf.
+      rewrite size_load_buf /#.
+    + apply (eq_from_nth witness); first by rewrite !size_load_buf.
+      rewrite size_load_buf /#.
+    + move => mem0 i0.
+      rewrite ultE => H4 H5 H6.
+      have E: to_uint i0 = to_uint len by smt().
+      rewrite E => H7 H8 *.
+      split => [| /#].
+      by assumption.
+
+auto => /> &hr H0 H1 H2 H3 H4 H5 H6 H7.
+rewrite ultE => H8 *.
+
+(* rewrite H6, H7 and H8 as a forall *)
+have E6 : forall (k : int), 0 <= k < to_uint i{hr} => 
+          Glob.mem{hr}.[to_uint (o_ptr + o_off) + k] =
+          Glob.mem{hr}.[to_uint (i_ptr + i_off) + k].
+- move => k?.
+  have ->: Glob.mem{hr}.[to_uint (o_ptr + o_off) + k] = nth witness (load_buf Glob.mem{hr} (o_ptr + o_off) (to_uint i{hr})) k by rewrite nth_mkseq ///#.
+  rewrite H6.
+  by rewrite nth_mkseq.
+
+have E7 : forall (k : int), 0 <= k < to_uint i{hr} => 
+          Glob.mem{hr}.[to_uint (o_ptr + o_off) + k] =
+          mem{hr}.[to_uint (i_ptr + i_off) + k].
+- move => k?.
+  have ->: Glob.mem{hr}.[to_uint (o_ptr + o_off) + k] = nth witness (load_buf Glob.mem{hr} (o_ptr + o_off) (to_uint i{hr})) k by rewrite nth_mkseq ///#.
+  rewrite H7.
+  by rewrite nth_mkseq.
+
+have E8 : forall (k : int), 0 <= k < to_uint i{hr} => 
+          Glob.mem{hr}.[to_uint (i_ptr + i_off) + k] =
+          mem{hr}.[to_uint (i_ptr + i_off) + k].
+- move => k?.
+  have ->: Glob.mem{hr}.[to_uint (i_ptr + i_off) + k] = nth witness (load_buf Glob.mem{hr} (i_ptr + i_off) (to_uint i{hr})) k by rewrite nth_mkseq ///#.
+  rewrite H8.
+  by rewrite nth_mkseq.
+
+do split.
+- ring.
+- ring.
 - rewrite to_uintD /#.
 - rewrite to_uintD /#.
-- rewrite to_uintD_small 1:/# /=. 
-  move => k??.
-  rewrite H5 //.
-  split => [/# | ?].
+- admit.
+- apply (eq_from_nth witness); first by rewrite !size_load_buf // to_uintD /#.
+  rewrite size_load_buf to_uintD_small 1..3:/# /= => j?.
+  rewrite !nth_load_buf //.
+  rewrite /storeW8 /loadW8 !get_setE.
   admit.
+- admit.
+- move => k?? H.
+  rewrite load_store_mem.
+  admit.
+
 qed. 
       
      

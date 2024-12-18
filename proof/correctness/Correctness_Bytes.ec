@@ -10,21 +10,110 @@ require import Array2 Array3 Array32.
 require import Address Hash BaseW.
 require import Termination.
 
+require import Parameters.
+
 require import Utils2.
 
 require import BitEncoding.
 (*---*) import BitChunking.
+
+require import StdBigop. 
+(*---*) import Bigint.
+
 
 (** -------------------------------------------------------------------------------------------- **)
 
 lemma ull_to_bytes2_post (x : W64.t, y : W32.t) :
   phoare[
     M(Syscall).__ull_to_bytes_2 : 
-    arg.`2 = x /\ to_uint x = to_uint y
+    arg.`2 = x /\ to_uint x = to_uint y 
     ==>
     to_list res = toByte y 2 ] = 1%r.
 proof.
 proc.
+conseq (
+  : _ 
+  ==> 
+    out.[0] = nth witness (to_list (unpack8 y)) 3 /\
+    out.[1] = nth witness (to_list (unpack8 y)) 2
+).
+    + auto => /> H  out.
+      split => [H1 | H1 H2].
+        - rewrite -!get_to_list H1 /toByte !nth_take // !nth_rev; 1,2: by rewrite size_to_list.
+          by rewrite size_to_list.
+        - apply (eq_from_nth witness); first by rewrite size_to_list /toByte size_take // size_rev size_to_list.
+          rewrite size_to_list => j?.
+          rewrite get_to_list.
+          case (j = 0) => [-> | ?].
+             * by rewrite H1 /toByte nth_take // nth_rev. 
+             * by rewrite (: j = 1) 1:/# H2 /toByte nth_take // nth_rev.
+
+simplify.
+
+unroll 4; unroll 5.
+
+sp 3.
+rcondt 1; first by auto.
+sp 3.
+rcondt 1; first by auto.
+sp.
+rcondf 1; first by auto.
+auto => /> H0  . 
+split; first by admit.
+    + rewrite /to_list nth_mkseq //= bits8E /=.
+      rewrite /truncateu8 H0 of_intE /=.
+      rewrite /int2bs /bits2w /=.
+      rewrite wordP => i?.
+      rewrite !initiE // nth_mkseq // /= to_uintE.
+      rewrite /w2bits /bs2int.
+      rewrite size_mkseq (: max 0 32 = 32) 1:/#.
+      rewrite BIA.big_int /b2i => />.
+     
+(* 
+search foldr.
+
+auto => />.
+print BIA.
+
+print BIA.bigi.
+
+search (W8.bits2w (int2bs _ _)).
+search int2bs.
+search bits2w.
+
+      rewrite wordP => i?.
+
+      case (i = 0) => [-> /= | ?]; last by admit.
+print W8.
+
+search (W8.of_int (W32.to_uint _)).
+
+
+    + rewrite /to_list nth_mkseq //= bits8E.
+      rewrite wordP => i?.
+      rewrite initiE //=.
+      rewrite /truncateu8 to_uint_shr 1:/# H0 of_uintK /=.
+      case (i = 0) => [-> /= | ?]; by admit.
+
+
+      rewrite /(`>>`) of_uintK /= /(`>>>`).
+
+
+
+
+rewrite wordP => j?.
+rewrite /unpack8. 
+rewrite /truncateu8 to_uint_shr.
+    + by rewrite of_uintK. 
+rewrite !of_uintK //.
+rewrite /to_list.
+rewrite nth_mkseq // => />.
+rewrite bits8E initiE //.
+rewrite H0.
+case (j = 0) => [-> | ?]; last by admit.
+
+admit.
+*)
 admit.
 qed.
 

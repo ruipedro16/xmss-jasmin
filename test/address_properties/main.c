@@ -268,9 +268,9 @@ void test_pre(const xmss_params *p) {
     puts("                       #PRE");
     puts("================================================================");
 
-    test_pre_wots_pk_gen(p);
+    // test_pre_wots_pk_gen(p);
     // test_pre_expand_seed(p);
-    // test_pre_gen_chain_inplace(p);
+    test_pre_gen_chain_inplace(p);
     // test_pre_ltree(p);
     // test_pre_thash_h(p);
 }
@@ -313,6 +313,8 @@ void test_post_gen_chain(const xmss_params *p) {
     uint8_t buf0[p->n], buf1[p->n];
     uint32_t addr_before[8], addr_after[8];
 
+    uint32_t start, steps;
+
     randombytes(buf0, p->n * sizeof(uint8_t));
     randombytes(buf1, p->n * sizeof(uint8_t));
 
@@ -320,8 +322,31 @@ void test_post_gen_chain(const xmss_params *p) {
     memset(addr_before, -1, 8 * sizeof(uint32_t));
     memcpy(addr_after, addr_before, 8 * sizeof(uint32_t));
     assert(!memcmp(addr_before, addr_after, 8 * sizeof(uint32_t)));
-    gen_chain(p, buf0, buf0, 0, 10, buf1, addr_after);
+
+    do {
+        randombytes((uint8_t *)&start, sizeof(uint32_t));
+        randombytes((uint8_t *)&steps, sizeof(uint32_t));
+        start = start % p->wots_w;
+        steps = steps % p->wots_w;
+    } while (start == 0 || steps == 0 || start + steps >= p->wots_w || steps == 1);
+
+    assert(start + steps <= p->wots_w - 1);
+    assert(start + steps >= 0);
+
+    assert(start <= p->wots_w - 1);
+    assert(start >= 0);
+
+    assert(steps >= 0);
+
+    #ifdef DEBUG    
+    printf("start: %u, steps: %u\n", start, steps);
+    #endif
+
+    gen_chain(p, buf0, buf0, start, steps, buf1, addr_after);
     print_diff_addr("gen_chain_inplace", addr_before, addr_after);
+
+    assert(addr_after[7] == 1);
+    assert(addr_after[6] == start + steps - 1);
 }
 
 void test_post_l_tree(const xmss_params *p) {
@@ -365,9 +390,9 @@ void test_post(const xmss_params *p) {
     puts("                       #POST");
     puts("================================================================");
 
-    test_post_wots_pk_gen(p);
+    // test_post_wots_pk_gen(p);
     // test_post_expand_seed(p);
-    // test_post_gen_chain(p);
+    test_post_gen_chain(p);
     // test_post_l_tree(p);
     // test_post_thash_h(p);
 }
