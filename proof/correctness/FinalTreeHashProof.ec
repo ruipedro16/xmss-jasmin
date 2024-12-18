@@ -196,7 +196,86 @@ seq 1 4 : (
    {/~ltree_addr{1}.[4] = (of_int (s{2} + i{2}))%W32}pre /\
    val node{2} = to_list buf{1} /\ 
    sub ots_addr{1} 0 3 = sub address{2} 0 3
-); first by admit.
+).
+
+(* ================================================== proof for gen leaf starts here =================================================================== *)
+
+inline {1} M(Syscall).__gen_leaf_wots_ M(Syscall)._gen_leaf_wots M(Syscall).__gen_leaf_wots.             
+
+seq 22 0 : (
+    #pre /\
+  sk_seed2{1} = sk_seed{1} /\
+  pub_seed2{1} = pub_seed{1} /\
+  ots_addr2{1} = ots_addr{1} /\
+  ltree_addr2{1} = ltree_addr{1}
+); first by auto.
+
+seq 1 1 : (
+        #{/~ots_addr2{1} = ots_addr{1}}pre /\ 
+        pk{1} = DecodeWotsPk pk{2} /\
+        ots_addr2{1}.[0] = address{2}.[0] /\
+        ots_addr2{1}.[1] = address{2}.[1] /\
+        ots_addr2{1}.[2] = address{2}.[2] /\
+        ots_addr2{1}.[3] = W32.zero 
+).
+         * exists * sk_seed2{1}, pub_seed2{1}, ots_addr2{1}, address{2}.
+           elim * => P3 P4 P5 P6.
+           call {1} (pkgen_correct P3 P4 P5 P6) => [/# |].
+           auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 resultL resultR H18 H19.
+           do split; [
+               have ->: P6.[0] = nth witness (sub P6 0 5) 0 by rewrite nth_sub | 
+               have ->: P6.[1] = nth witness (sub P6 0 5) 1 by rewrite nth_sub |     
+               have ->: P6.[2] = nth witness (sub P6 0 5) 2 by rewrite nth_sub |
+           ]; 1..3: by  rewrite -H17 -H19 nth_sub /#.        
+           have ->: resultL.`2.[3] = nth witness (sub resultL.`2 0 5) 3 by rewrite nth_sub /#.
+           by rewrite H19 nth_sub.
+
+seq 0 2 : (
+          #{/~sub ots_addr{1} 0 5 = sub address{2} 0 5}pre /\ 
+          sub ltree_addr2{1} 0 5 = sub address{2} 0 5
+      ).
+         * auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20. 
+           rewrite /set_ltree_addr /set_type.
+           do split; (
+              apply (eq_from_nth witness); [by rewrite !size_sub | rewrite size_sub // => i?];
+              rewrite !nth_sub // !get_setE //=
+           ).
+               - do (rewrite ifF 1:/#).
+                 have ->: ltree_addr{1}.[i] = nth witness (sub ltree_addr{1} 0 3) i by rewrite nth_sub.
+                 by rewrite H9 nth_sub.
+               - do (rewrite ifF 1:/#).
+                 have ->: node_addr{1}.[i] = nth witness (sub node_addr{1} 0 3) i by rewrite nth_sub.
+                 by rewrite H10 nth_sub.
+               - case (i = 4) => [-> /# |?].
+                 case (i = 3) => [-> /# |?].
+                 do (rewrite ifF 1:/#).
+                 have ->: ltree_addr{1}.[i] = nth witness (sub ltree_addr{1} 0 3) i by rewrite nth_sub /#.
+                 by rewrite H9 nth_sub /#.
+
+seq 1 1 : (
+          #{/~ltree_addr2{1} = ltree_addr{1}}pre /\ 
+          to_list leaf1{1} = val node{2} /\
+          ltree_addr2{1}.[0] = address{2}.[0] /\
+          ltree_addr2{1}.[1] = address{2}.[1] /\
+          ltree_addr2{1}.[2] = address{2}.[2] /\
+          ltree_addr2{1}.[3] = W32.one
+      ).
+         * exists * pk{1}, ltree_addr2{1}, pub_seed2{1}.
+           elim * => P0 P1 P2.
+           call (ltree_correct P0 P2 P1) => [/# |].
+           auto => /> &1 &2 *; split; [apply enc_dec_wots_pk => /# | smt(addr_sub_5)].
+
+auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25.
+      do split.
+         * apply (eq_from_nth witness); first by rewrite !size_sub.
+           rewrite size_sub // => i?. 
+           rewrite !nth_sub /#.
+         * by rewrite H21.
+         * apply (eq_from_nth witness); first by rewrite !size_sub.
+           rewrite size_sub // => i?. 
+           rewrite !nth_sub /#.
+
+(* ================================================== proof for gen leaf ends here =================================================================== *)
 
 seq 3 1 : (
     #pre /\ 

@@ -27,7 +27,6 @@ qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 
-
 lemma and_comm (a b : W32.t) : a `&` b = b `&` a by smt(@W32 pow2_32).
 
 
@@ -69,6 +68,7 @@ rewrite size_sub // => i?.
 have ?: forall (k : int), 0 <= k < len2 => a1.[k] = a2.[k] by smt(sub_k).
 rewrite !nth_sub /#.
 qed.
+
 
 lemma addr_sub_5 (a0 a1 : W32.t Array8.t) :
     a0.[0] = a1.[0] /\

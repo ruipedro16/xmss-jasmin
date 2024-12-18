@@ -11,18 +11,7 @@ require import XMSS_IMPL.
 require import Utils2 Repr2.
 require import Termination.
 
-require import Params.
-require import Parameters. 
-
-print loadW8.
-
-print load_message.
-print load_buf.
-locate load_buf.
-print load_buf.
-
-print valid_ptr.
-
+require import Params Parameters. 
 
 (* Copia de memoria para memoria *)
 lemma __memcpy_mem_mem (mem : global_mem_t) (o_ptr i_ptr len o_off i_off : W64.t)  :
@@ -43,7 +32,6 @@ lemma __memcpy_mem_mem (mem : global_mem_t) (o_ptr i_ptr len o_off i_off : W64.t
       forall (k : int), 0 <= k < W64.max_uint =>
         !(to_uint (o_ptr + o_off) <= k < to_uint (o_ptr + o_off + len)) =>
           loadW8 mem k = loadW8 Glob.mem k
-
     ].
 proof.
 proc => /=.
@@ -61,7 +49,7 @@ while (
   0 <= to_uint i <= to_uint bytes /\
   load_buf Glob.mem (o_ptr + o_off) (to_uint i) =  load_buf Glob.mem (i_ptr + i_off) (to_uint i) /\
   load_buf Glob.mem (o_ptr + o_off) (to_uint i) =  load_buf mem (i_ptr + i_off) (to_uint i) /\
-  load_buf Glob.mem (i_ptr + i_off) (to_uint i) =  load_buf mem (i_ptr + i_off) (to_uint i) /\
+  load_buf Glob.mem (i_ptr + i_off) (to_uint len) =  load_buf mem (i_ptr + i_off) (to_uint len) /\
 
       forall (k : int), 0 <= k < W64.max_uint =>
         !(to_uint (o_ptr + o_off) <= k < to_uint (o_ptr + o_off + i)) =>
@@ -84,6 +72,8 @@ while (
 auto => /> &hr H0 H1 H2 H3 H4 H5 H6 H7.
 rewrite ultE => H8 *.
 
+(* ============================================================================================================= *)
+
 (* rewrite H6, H7 and H8 as a forall *)
 have E6 : forall (k : int), 0 <= k < to_uint i{hr} => 
           Glob.mem{hr}.[to_uint (o_ptr + o_off) + k] =
@@ -101,36 +91,32 @@ have E7 : forall (k : int), 0 <= k < to_uint i{hr} =>
   rewrite H7.
   by rewrite nth_mkseq.
 
-have E8 : forall (k : int), 0 <= k < to_uint i{hr} => 
+have E8 : forall (k : int), 0 <= k < to_uint len => 
           Glob.mem{hr}.[to_uint (i_ptr + i_off) + k] =
           mem{hr}.[to_uint (i_ptr + i_off) + k].
 - move => k?.
-  have ->: Glob.mem{hr}.[to_uint (i_ptr + i_off) + k] = nth witness (load_buf Glob.mem{hr} (i_ptr + i_off) (to_uint i{hr})) k by rewrite nth_mkseq ///#.
-  rewrite H8.
-  by rewrite nth_mkseq.
+  have ->: Glob.mem{hr}.[to_uint (i_ptr + i_off) + k] = nth witness (load_buf Glob.mem{hr} (i_ptr + i_off) (to_uint len)) k by rewrite nth_load_buf.
+  by rewrite H8 nth_load_buf.
 
-do split.
+(* ============================================================================================================= *)
+
+do split; 6..8: by admit.
 - ring.
 - ring.
 - rewrite to_uintD /#.
 - rewrite to_uintD /#.
-- admit.
 - apply (eq_from_nth witness); first by rewrite !size_load_buf // to_uintD /#.
   rewrite size_load_buf to_uintD_small 1..3:/# /= => j?.
-  rewrite !nth_load_buf //.
-  rewrite /storeW8 /loadW8 !get_setE.
+  rewrite !nth_load_buf // /storeW8 /loadW8.
+  rewrite !get_setE.
+  case (j = to_uint i{hr}) => [-> | ?]; last by admit.
   admit.
-- admit.
-- move => k?? H.
-  rewrite load_store_mem.
-  admit.
-
 qed. 
       
      
 lemma memcpy_treehash_node_2 (_stack_impl : W8.t Array352.t, o : W64.t) (stack_spec : nbytes list) :
     n = XMSS_N =>
-    phoare [
+    hoare [
       M(Syscall).__memcpy_u8u8_2_64_352 :
 
       size stack_spec = 11 /\ 
@@ -144,7 +130,7 @@ lemma memcpy_treehash_node_2 (_stack_impl : W8.t Array352.t, o : W64.t) (stack_s
       ==>
       to_list res.`1 = val (nth witness stack_spec (to_uint (o - (of_int 2)%W64)))  ++ 
                        val (nth witness stack_spec (to_uint (o - (of_int 1)%W64)))
-    ] = 1%r.
+    ].
 proof.
 rewrite /XMSS_N => n_val.
 proc => /=.
@@ -154,16 +140,26 @@ conseq (: _
   (forall (k : int), 0 <= k < 32 => out.[k] = nth witness (val (nth witness stack_spec (to_uint (o - (of_int 2)%W64)))) k) /\
   (forall (k : int), 0 <= k < 32 => out.[32 + k] = nth witness (val (nth witness stack_spec (to_uint (o - (of_int 1)%W64)))) k)
 ).
-    + auto => /> H0 H1 out.
-      do split => H2.
-        * split => k??; rewrite -get_to_list H2 nth_cat valP n_val; [by rewrite ifT | by rewrite ifF 1:/#].
-        * move => H3.
-          apply (eq_from_nth witness); first by rewrite size_to_list size_cat !valP n_val. 
-          rewrite size_to_list => j?.
-          rewrite get_to_list.
-          case (0 <= j < 32) => ?.
-             - rewrite H2 // nth_cat valP n_val ifT //#.
-             - rewrite nth_cat valP n_val ifF //#.
+    + auto => /> H0 H1 out H2 H3.
+       * apply (eq_from_nth witness); first by rewrite size_to_list size_cat !valP n_val. 
+         rewrite size_to_list => j?.
+         rewrite get_to_list.
+         case (0 <= j < 32) => ?.
+          - rewrite H2 // nth_cat valP n_val ifT //#.
+          - rewrite nth_cat valP n_val ifF //#.
+
+while (
+  size stack_spec = 11 /\
+  in_0 = _stack_impl /\
+  in_offset = (o - (of_int 2)%W64) * (of_int 32)%W64 + i /\
+  bytes = (of_int 64)%W64 /\ 
+  0 <= to_uint i <= 64 /\
+  sub _stack_impl 0 (32 * min (to_uint o) (size stack_spec)) =  sub_list (nbytes_flatten stack_spec) 0  (32 * min (to_uint o) (size stack_spec)) 
+  sub out 
+); first by admit.
+
+
+
 admit.
 (*
 
@@ -1267,18 +1263,48 @@ lemma nbytes_copy_131_32_p (o : W8.t Array131.t, _in : W8.t Array32.t)  :
  
  (* ================================================================================= *)
 
-lemma neg_lt (a b : int) : ! (a < b) => b <= a by smt().
-
 lemma memcpy_u8u8_2_64_352_post (o : W8.t Array64.t) (_in : W8.t Array352.t) (off : W64.t):
     phoare [
        M(Syscall).__memcpy_u8u8_2_64_352 :
-       arg = (o, _in, off, W64.of_int 64)       
+       arg = (o, _in, off, W64.of_int 64) /\
+       0 <= to_uint off < 353 - 64      
        ==>
        to_list res.`1 = sub _in (to_uint off) 64
        ] = 1%r.
 proof.
 proc => /=.
+conseq (: _ ==>
+  forall (k : int), 0 <= k < 64 => out.[k] = _in.[to_uint off + k]
+).
+- auto => /> ?? out0; split => [H k?? | H].
+    + have ->: out0.[k] = nth witness (to_list out0) k by rewrite get_to_list.
+      by rewrite H nth_sub.
+    + apply (eq_from_nth witness); first by rewrite size_to_list size_sub.  
+      rewrite size_to_list => j?.
+      by rewrite get_to_list H // nth_sub.
 
-admit.
+while (
+  in_0 = _in /\ 
+  in_offset = off + i /\
+  bytes = (of_int 64)%W64 /\
+  0 <= to_uint i <= 64 /\
+  0 <= to_uint off < 289 /\
+  forall (k : int), 0 <= k && k < to_uint i => out.[k] = _in.[to_uint off + k]
+)
+(64 - to_uint i); last first.     
+
+- auto => /> ??.
+  split => [/# |].
+  move => i0 out0.
+  split; by rewrite ultE /#.
+
+- auto => /> &hr H0 H1 H2 H3 H4.
+  rewrite ultE to_uintD_small 1:/# of_uintK /= => H5.
+  do split; 2,3,5: by smt().
+  * ring.
+  * move => k??.
+    rewrite get_setE 1:/#.
+    case (k = to_uint i{hr}) => [-> | /#].
+    by congr; rewrite to_uintD_small //#.
 qed.
 

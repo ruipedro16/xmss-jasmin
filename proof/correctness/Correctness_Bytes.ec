@@ -20,6 +20,45 @@ require import BitEncoding.
 require import StdBigop. 
 (*---*) import Bigint.
 
+import W4u8.Pack.
+
+(**  relacao entre o toByte da spec e os outros da impl ------------------------------------------------------------ **)
+
+lemma to_bytes_eq (x : W32.t) (k : int) : 
+    0 <= k < 4 =>
+    toByte x k = rev (lenbytes_be32 x k).
+proof.
+move => [#] k_ge0 ?.
+rewrite /toByte /lenbytes_be32.
+apply (eq_from_nth W8.zero); first by rewrite size_take // size_rev size_to_list !size_rev size_mkseq /#.
+rewrite size_take // size_rev size_to_list ifT // => i?.
+rewrite nth_rev. 
+  + rewrite size_rev size_mkseq /#.
+rewrite nth_rev.
+  + rewrite size_rev size_mkseq /#.
+rewrite nth_mkseq.
+  + rewrite size_mkseq size_rev size_mkseq /#.
+rewrite nth_take 1,2:/# nth_rev.
+  + rewrite size_to_list /#.
+rewrite size_to_list /=.
+rewrite /BitsToBytes size_mkseq wordP => j?. 
+rewrite (nth_map witness).
+  + rewrite size_chunk //  size_rev size_mkseq /#.
+rewrite bits2wE initiE // /= /chunk /= nth_mkseq.
+  + rewrite size_rev size_mkseq /#.
+rewrite nth_take // 1:/#.
+rewrite nth_drop 2:/#.
+  + rewrite size_rev size_mkseq /#.
+rewrite size_rev size_mkseq.
+rewrite  w2bitsE nth_mkseq 1:/# /= unpack8E.
+auto => />.
+rewrite W4u8.Pack.initiE 1:/#.
+rewrite bits8E initiE //=.
+rewrite (: max 0 k = k) 1:/#.
+congr.
+ring.
+admit.
+qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 
