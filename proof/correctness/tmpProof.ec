@@ -104,28 +104,52 @@ while (
 
   0 <= to_uint i <= 64 /\
 
-  sub out 0 (to_uint i) = 
-  sub_list 
-  (val (nth witness stack_spec (to_uint (o - (of_int 2)%W64))) ++ val (nth witness stack_spec (to_uint (o - W64.one))))
-  0 (to_uint i)
+  sub out 0 (to_uint i) = sub in_0 (to_uint ((o - (of_int 2)%W64) * (of_int 32)%W64))
+                                   (to_uint i)
 ); last first.
-
 - auto => /> &hr H0 H1.
+  have E0: val (nth witness stack_spec (to_uint (o - (of_int 2)%W64))) ++ 
+           val (nth witness stack_spec (to_uint (o - W64.one))) = 
+           sub_list (nbytes_flatten stack_spec) (32 * (to_uint (o - (of_int 2)%W64))) 64.
+  + apply (eq_from_nth witness); first by rewrite size_cat !valP n_val size_sub_list.
+    rewrite size_cat !valP n_val /= => j?.
+    rewrite /sub_list nth_mkseq //= nth_nbytes_flatten. admit.
+    case (0 <= j < 32) => [Hfst | Hsnd];
+        rewrite nth_cat valP n_val; [by rewrite ifT 1:/#; do congr; smt(@W64 pow2_64) | rewrite ifF 1:/#].
+    admit.
+           
   split.
-  + apply (eq_from_nth witness); first by rewrite size_sub // size_sub_list.      
+  + apply (eq_from_nth witness); first by rewrite !size_sub.
     rewrite size_sub // /#.
   + move => j out0.
-    rewrite ultE of_uintK /= => ???.
+    rewrite ultE of_uintK /= => H2 H3 H4.
     have ->: to_uint j = 64 by smt().
-    move => H.
-    apply (eq_from_nth witness); first by rewrite size_to_list size_cat !valP n_val.
-    rewrite size_to_list => i?.
-    have ->: to_list out0 = sub out0 0 64.
-       * apply (eq_from_nth witness); first by rewrite size_to_list size_sub.
-         rewrite size_to_list => ??.
-         by rewrite get_to_list nth_sub.
-    rewrite H.
-    by rewrite /sub_list nth_mkseq.
+    have ->: sub out0 0 64 = to_list out0.
+      * apply (eq_from_nth witness); first by rewrite size_to_list size_sub.
+        by rewrite size_sub // => ??; rewrite get_to_list nth_sub.
+    move => ->.
+    apply (eq_from_nth witness); first by rewrite size_cat !valP n_val size_sub.
+    rewrite size_sub // => i?.
+    rewrite nth_sub //.
+    case (0 <= to_uint o < size stack_spec) => [H_o_inbounds | H_o_out_of_bounds]; last by admit.
+      * have E: min (to_uint o) (size stack_spec) = to_uint o by smt(). 
+        move: H1; rewrite E => H1.
+        rewrite E0.
+
+
+ 
+
+
+
+
+
+
+    case (0 <= to_uint ((o - (of_int 2)%W64) * (of_int 32)%W64) + i < 11 * 32) 
+        => /= [H_in_bounds | H_out_of_bounds].
+      * 
+      * rewrite get_out 1:/#.
+
+
 
 - auto => /> &hr H0 H1 H2 H3 H4.
   rewrite ultE of_uintK /= => H5.
@@ -134,32 +158,24 @@ while (
   + rewrite to_uintD /#.
   + rewrite to_uintD /#.
   + apply (eq_from_nth witness).
-       * rewrite size_sub; first by rewrite to_uintD /#.
-         rewrite size_sub_list; first by rewrite to_uintD /#.
-         reflexivity.
+      * rewrite !size_sub; 1,2: by rewrite to_uintD /#.
+        reflexivity.
     rewrite size_sub; first by rewrite to_uintD /#.
     rewrite to_uintD_small 1:/# /= => j?.
-    rewrite nth_sub //= /sub_list nth_mkseq //=.
-    case (2 <= to_uint o < size stack_spec) => [H_in_bounds | H_out_of_bounds]; last by admit.
-    (* ============== case in bounds ============ *)    
-    have E0 : min (to_uint o) (size stack_spec) = to_uint o by smt().
-    move: H1; rewrite E0 => H1.
-    case (0 <= j < 32) => ?; 
-       rewrite nth_cat valP n_val; [rewrite ifT 1:/# | rewrite ifF 1:/#];
-       rewrite get_setE 1:/#;
-       case (j = to_uint i{hr}) => [-> | ? | -> | ?]. 
-       * admit.
-       * have ->: out{hr}.[j] = nth witness (sub out{hr} 0 (to_uint i{hr})) j by rewrite nth_sub // /#.
-         rewrite H4 /sub_list nth_mkseq 1:/# //= nth_cat ifT.
-            + rewrite valP /#.
-         by congr; rewrite valP n_val.
-       * admit.
-       * have ->: out{hr}.[j] = nth witness (sub out{hr} 0 (to_uint i{hr})) j by rewrite nth_sub // /#.
-         rewrite H4 /sub_list nth_mkseq 1:/# //= nth_cat ifF.
-            + rewrite valP /#.
-         by congr; rewrite valP n_val.
-         
- 
-
-    (* ============== case out of bounds ============ *)      
-
+    rewrite !nth_sub //= get_setE 1:/#.
+    case (0 <= to_uint ((o - (of_int 2)%W64) * (of_int 32)%W64 + i{hr}) < 11 * 32) 
+        => /= [H_in_bounds | H_out_of_bounds]; last first.
+    (* case out of bounds *)  
+    case (j = to_uint i{hr}) => [-> | ?]; first by rewrite !get_out 1:/# //; smt(@W64 pow2_64).
+    have ->: out{hr}.[j] = nth witness (sub out{hr} 0 (to_uint i{hr})) j by rewrite nth_sub /#.       
+    by rewrite H4 nth_sub 1:/#.
+    (* case in bounds *)  
+    case (j = to_uint i{hr}) => [-> | ?]; last first.
+      * have ->: out{hr}.[j] = nth witness (sub out{hr} 0 (to_uint i{hr})) j by rewrite nth_sub /#.       
+        by rewrite H4 nth_sub 1:/#.
+      * congr.
+        move: H_in_bounds => [#] Ha Hb.
+        rewrite to_uintD_small //=.
+        admit. (* smt(@W64 pow2_64 @IntDiv) Used to work but doesnt anymore *)
+qed.
+                             
