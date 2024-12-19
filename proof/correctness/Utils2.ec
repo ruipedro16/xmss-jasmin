@@ -24,6 +24,12 @@ proof.
 by rewrite /loadW8 /storeW8 get_setE.
 qed.
 
+lemma pow2_leq_1 (a : int): 
+    0 <= a =>
+    1 <= 2 ^ a.
+proof.
+smt(StdOrder.IntOrder.exprn_ege1).
+qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 
