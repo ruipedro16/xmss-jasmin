@@ -113,10 +113,10 @@ do split; 6..8: by admit.
   admit.
 qed. 
       
-     
+(* Obs: Este lema precisa de ser phoare p ser usado na prova do treehash *)     
 lemma memcpy_treehash_node_2 (_stack_impl : W8.t Array352.t, o : W64.t) (stack_spec : nbytes list) :
     n = XMSS_N =>
-    hoare [
+    phoare [
       M(Syscall).__memcpy_u8u8_2_64_352 :
 
       size stack_spec = 11 /\ 
@@ -130,91 +130,12 @@ lemma memcpy_treehash_node_2 (_stack_impl : W8.t Array352.t, o : W64.t) (stack_s
       ==>
       to_list res.`1 = val (nth witness stack_spec (to_uint (o - (of_int 2)%W64)))  ++ 
                        val (nth witness stack_spec (to_uint (o - (of_int 1)%W64)))
-    ].
+    ] = 1%r.
 proof.
 rewrite /XMSS_N => n_val.
 proc => /=.
 conseq />.
-conseq (: _ 
-  ==>
-  (forall (k : int), 0 <= k < 32 => out.[k] = nth witness (val (nth witness stack_spec (to_uint (o - (of_int 2)%W64)))) k) /\
-  (forall (k : int), 0 <= k < 32 => out.[32 + k] = nth witness (val (nth witness stack_spec (to_uint (o - (of_int 1)%W64)))) k)
-).
-    + auto => /> H0 H1 out H2 H3.
-       * apply (eq_from_nth witness); first by rewrite size_to_list size_cat !valP n_val. 
-         rewrite size_to_list => j?.
-         rewrite get_to_list.
-         case (0 <= j < 32) => ?.
-          - rewrite H2 // nth_cat valP n_val ifT //#.
-          - rewrite nth_cat valP n_val ifF //#.
-
-while (
-  size stack_spec = 11 /\
-  in_0 = _stack_impl /\
-  in_offset = (o - (of_int 2)%W64) * (of_int 32)%W64 + i /\
-  bytes = (of_int 64)%W64 /\ 
-  0 <= to_uint i <= 64 /\
-  sub _stack_impl 0 (32 * min (to_uint o) (size stack_spec)) =  sub_list (nbytes_flatten stack_spec) 0  (32 * min (to_uint o) (size stack_spec)) 
-  sub out 
-); first by admit.
-
-
-
-admit.
-(*
-
-unroll 2; rcondt 2; first by auto.
-
-seq 4 :
-
-
-
-unroll 2. unroll 3. unroll 4. unroll 5. unroll 6. unroll 7. unroll 8. unroll 9. unroll 10. unroll 11. unroll 12. unroll 13. unroll 14. unroll 15. unroll 16. unroll 17. unroll 18. unroll 19. unroll 20. unroll 21. unroll 22. unroll 23. unroll 24. unroll 25. unroll 26. unroll 27. unroll 28. unroll 29. unroll 30. unroll 31. unroll 32. unroll 33. unroll 34. unroll 35. unroll 36. unroll 37. unroll 38. unroll 39. unroll 40. unroll 41. unroll 42. unroll 43. unroll 44. unroll 45. unroll 46. unroll 47. unroll 48. unroll 49. unroll 50. unroll 51. unroll 52. unroll 53. unroll 54. unroll 55. unroll 56. unroll 57. unroll 58. unroll 59. unroll 60. unroll 61. unroll 62. unroll 63. unroll 64. unroll 65. 
-
-rcondt 2; first by auto.
-rcondt 5; first by auto.
-rcondt 8 ; first by auto.
-
-
-
-while 
-(
-  size stack_spec = 11 /\
-  sub _stack_impl 0 (XMSS_N * min (to_uint o) (size stack_spec)) =  sub_list (nbytes_flatten stack_spec) 0 (XMSS_N * min (to_uint o) (size stack_spec)) /\
-  in_0 = _stack_impl /\
-  bytes = (of_int 64)%W64 /\
-  in_offset = (o - (of_int 2)%W64) * (of_int 32)%W64 +  i /\
-
-  0 <= to_uint i <= 64 /\
-  sub out 0 (to_uint i) = sub_list (val (nth witness stack_spec (to_uint (o - (of_int 2)%W64))) ++ val (nth witness stack_spec (to_uint (o - W64.one)))) 0 (to_uint i) 
-  
-) 
-(64 - to_uint i); last first.
-  + auto => /> &hr H0 H1.
-    do split => [| i0 out0].
-      * apply (eq_from_nth witness); [by rewrite size_sub // size_sub_list | rewrite size_sub // /#].
-        do split; first by rewrite ultE of_uintK /#.
-        rewrite ultE of_uintK /= => ? H2 ??.
-        have ->: to_uint i0 = 64 by smt().
-        move => H3.
-        apply (eq_from_nth witness); first by rewrite size_to_list size_cat !valP n_val.
-        rewrite size_to_list => j?.
-        have ->: to_list out0 = sub out0 0 64 by apply (eq_from_nth witness); [by rewrite size_sub // size_to_list | by rewrite size_to_list => ??; rewrite get_to_list nth_sub].
-        by rewrite H3 /sub_list nth_mkseq.
-
-auto => /> &hr H0 H1 H2 H3 H4 H5.
-do split; 2,3,5: by smt(@W64 pow2_64).
-  - admit.
-  - apply (eq_from_nth witness).
-     * rewrite size_sub; first by smt(@W64 pow2_64).
-       by rewrite size_sub_list /=; first by smt(@W64 pow2_64).
-     rewrite size_sub; first by smt(@W64 pow2_64).
-     move => j?.
-     rewrite /sub_list !nth_mkseq //=.
-     rewrite get_setE; first by smt(@W64 pow2_64).
-     admit.
-*)
-
+admit. 
 qed.   
 
 lemma write_buf_ptr (mem : global_mem_t) (ptr _offset : W64.t) (buf : W8.t Array32.t) :
