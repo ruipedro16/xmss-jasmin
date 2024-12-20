@@ -174,6 +174,20 @@ lemma ull_to_bytes_32_correct (x : W64.t) :
       arg.`2 = x ==> to_list res = lenbytes_be64 x 32] = 1%r
         by conseq ull_to_bytes_32_ll (_ull_to_bytes_32_correct x).
 
+lemma ull_to_bytes_3_correct (x : W64.t) : 
+    phoare [
+      M(Syscall).__ull_to_bytes_3 :
+      arg.`2 = x 
+      ==> 
+      to_list res = lenbytes_be64 x 3
+    ] = 1%r.
+proof.
+proc => /=.
+admit.
+qed.
+        
+
+
 (** -------------------------------------------------------------------------------------------- **)
 
 lemma _bytes_to_ull_ptr_correct (mem : global_mem_t) (ptr : W64.t) :

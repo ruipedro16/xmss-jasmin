@@ -14,6 +14,7 @@ require import Termination.
 require import Params Parameters. 
 
 (* Copia de memoria para memoria *)
+(* Apagar este lemma: isto tem que ser phoare *)
 lemma __memcpy_mem_mem (mem : global_mem_t) (o_ptr i_ptr len o_off i_off : W64.t)  :
     hoare[
       M(Syscall).__memcpy_u8pu8p :
@@ -112,7 +113,31 @@ do split; 6..8: by admit.
   case (j = to_uint i{hr}) => [-> | ?]; last by admit.
   admit.
 qed. 
+
+
+lemma p_memcpy_mem_mem (mem : global_mem_t) (o_ptr i_ptr len o_off i_off : W64.t)  :
+    phoare[
+      M(Syscall).__memcpy_u8pu8p :
+      arg = (o_ptr, o_off, i_ptr, i_off, len) /\
+      valid_ptr (i_ptr + i_off) len /\
+      valid_ptr (o_ptr + o_off) len /\
+      0 <= to_uint len < W64.max_uint /\
       
+      Glob.mem = mem
+      ==>
+      
+      load_buf Glob.mem (o_ptr + o_off) (to_uint len) = 
+      load_buf Glob.mem (i_ptr + i_off) (to_uint len) /\
+      
+      (* o resto da memoria fica inalterada *)
+      forall (k : int), 0 <= k < W64.max_uint =>
+        !(to_uint (o_ptr + o_off) <= k < to_uint (o_ptr + o_off + len)) =>
+          loadW8 mem k = loadW8 Glob.mem k
+    ] = 1%r.
+proof.
+admit.
+qed.
+
 (* Obs: Este lema precisa de ser phoare p ser usado na prova do treehash *)     
 lemma memcpy_treehash_node_2 (_stack_impl : W8.t Array352.t, o : W64.t) (stack_spec : nbytes list) :
     n = XMSS_N =>

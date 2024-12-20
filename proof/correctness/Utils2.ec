@@ -213,6 +213,16 @@ move => ?.
 by rewrite -W64_W32_of_bytes // to_uint_zeroextu64.
 qed.
 
+lemma to_uint_W64_W32 (x0 : W64.t) (x1 : W32.t) :
+    0 <= to_uint x0 < W32.max_uint /\
+    0 <= to_uint x1 < W32.max_uint /\
+    to_uint x0 = to_uint x1 =>
+    x0 = zeroextu64 x1.
+proof.
+move => [#] *.
+smt(@W64).
+qed.
+
 (** -------------------------------------------------------------------------------------------- **)
 
 op zero_addr : adrs = Array8.init (fun _ => W32.zero). 
