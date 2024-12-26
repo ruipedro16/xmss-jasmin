@@ -18,14 +18,11 @@ op rand_hash_padding : W64.t = W64.one.
 op padding_len : int.
 axiom padding_len_ge0 : 0 <= padding_len.
 
+op toByte_64(x : W64.t, k : int) : W8.t list =  
+     take k (rev (to_list (W8u8.unpack8 x))).
+
 op bytexor(a b : W8.t list) : W8.t list = 
    map (fun (ab : W8.t * W8.t) => ab.`1 `^` ab.`2) (zip a b).
-
-op lenbytes_be64(val : W64.t, len : int) = 
-   rev (mkseq (fun i => nth W8.zero (BitsToBytes (W64.w2bits val)) i) len).
-
-op lenbytes_be32(val : W32.t, len : int) =  
-   rev (mkseq (fun i => nth W8.zero (BitsToBytes (W32.w2bits val)) i) len).
 
 module Hash = {
   proc prf (in_0  key : nbytes) : nbytes = {
@@ -33,7 +30,7 @@ module Hash = {
     var padding : W8.t list;
     var buf : W8.t list;
 
-    padding <- lenbytes_be64 prf_padding_val padding_len;
+    padding <- toByte_64 prf_padding_val padding_len;
     buf <- padding ++ val key ++ val in_0;
 
     r <- Hash buf;
@@ -47,7 +44,7 @@ module Hash = {
     var padding : W8.t list;
     var buf : W8.t list;
 
-    padding <- lenbytes_be64 prf_kg_padding_val padding_len;
+    padding <- toByte_64 prf_kg_padding_val padding_len;
     buf <- padding ++ val key ++ in_0;
 
     r <- Hash buf;
@@ -62,7 +59,7 @@ module Hash = {
     var buf : W8.t list;
     var padding : W8.t list;
 
-    padding <- lenbytes_be64 F_padding_val padding_len;
+    padding <- toByte_64 F_padding_val padding_len;
     buf <- padding ++ val key ++ val t;
 
     r <- Hash buf;
@@ -78,7 +75,7 @@ module Hash = {
       var addr_bytes : nbytes;
       var r : W8.t list;
     
-      padding <- lenbytes_be64 rand_hash_padding  padding_len;
+      padding <- toByte_64 rand_hash_padding  padding_len;
 
       address <- set_key_and_mask address 0;
       addr_bytes <- addr_to_bytes address;
