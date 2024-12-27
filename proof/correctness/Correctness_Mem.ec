@@ -360,101 +360,6 @@ proof.
 admit.
 qed.
 
-
-
-lemma _memcpy_u8u8_2_32_2144_post (_in : W8.t Array2144.t, oi : W64.t):
-    hoare [
-      M(Syscall).__memcpy_u8u8_2_32_2144 : 
-      arg.`2 = _in /\
-      arg.`3 = oi /\
-      arg.`4 = W64.of_int 32 /\
-      0 <= to_uint oi < W32.max_uint /\
-      0 <= to_uint (oi + W64.of_int 32) < 2144
-      ==>
-      to_list res.`1 = sub _in (to_uint oi) 32
-    ].
-
-proof.
-proc => //=.
-while (  
-  in_0 = _in /\ 
-  bytes = (of_int 32)%W64 /\
-  (0 <= to_uint oi < 2144) /\
-
-  0 <= to_uint i <= 32 /\
-  in_offset = oi + i /\
-
-  (forall (k : int), 0 <= k < to_uint i => out.[k] = in_0.[to_uint oi + k]) 
-).
-    + auto => /> &hr H0 H1 H2 H3 H4 H5.  
-      do split.
-          * rewrite to_uintD /= #smt:(modz_small).
-          * move => ?. 
-            rewrite to_uintD /= #smt:(@W64 pow2_64).
-          * ring.
-          * move => k??.
-            rewrite get_setE 1:#smt:(@W64).
-            case (k = to_uint i{hr}) => H; first by rewrite H to_uintD /#.
-            rewrite H4 // #smt:(@W64).
-    + auto => /> &hr ????; do split.
-          * smt(@W64 pow2_64). 
-          * smt().  
-          * move => i0 out0 ????. 
-            have ->: to_uint i0 = 32 by smt(@W64 pow2_64). 
-            move => H. 
-            apply (eq_from_nth witness); first by rewrite size_to_list size_sub.
-            rewrite size_to_list => j?.
-            by rewrite get_to_list H // nth_sub.
-qed.
-
-lemma memcpy_u8u8_2_32_2144_post (_in : W8.t Array2144.t, oi :W64.t):
-    phoare [
-      M(Syscall).__memcpy_u8u8_2_32_2144 : 
-      arg.`2 = _in /\
-      arg.`3 = oi /\
-      arg.`4 = W64.of_int 32 /\
-      0 <= to_uint oi < W32.max_uint /\
-      0 <= to_uint (oi + W64.of_int 32) < 2144
-      ==>
-      to_list res.`1 = sub _in (to_uint oi) 32
-    ] = 1%r.
-proof.
-proc => //=.
-while (  
-  in_0 = _in /\ 
-  bytes = (of_int 32)%W64 /\
-  (0 <= to_uint oi < 2144) /\
-
-  0 <= to_uint i <= 32 /\
-  in_offset = oi + i /\
-
-  (forall (k : int), 0 <= k < to_uint i => out.[k] = in_0.[to_uint oi + k]) 
-)
-(32 - to_uint i).
-
-    + auto => /> &hr H0 H1 H2 H3 H4 H5.  
-      do split.
-          * rewrite to_uintD /= #smt:(modz_small).
-          * move => ?. 
-            rewrite to_uintD /= #smt:(@W64 pow2_64).
-          * ring.
-          * move => k??.
-            rewrite get_setE 1:#smt:(@W64).
-            case (k = to_uint i{hr}) => H; first by rewrite H to_uintD /#.
-            rewrite H4 // #smt:(@W64).
-          * rewrite to_uintD /#.
-    + auto => /> &hr ????; do split.
-          * smt(@W64 pow2_64). 
-          * smt().  
-          * move => i0 out0. 
-            split => ????; [by rewrite ultE of_uintK /# |].
-            have ->: to_uint i0 = 32 by smt(@W64 pow2_64). 
-            move => H. 
-            apply (eq_from_nth witness); first by rewrite size_to_list size_sub.
-            rewrite size_to_list => j?.
-            by rewrite get_to_list H // nth_sub.
-qed.
-
 lemma _memcpy_u8u8_2_64_2144_post (_in : W8.t Array2144.t, oi : W64.t):
     hoare [
       M(Syscall).__memcpy_u8u8_2_64_2144 : 
@@ -927,34 +832,41 @@ qed.
 (* 0 <= offset + 32 <= 2144 *)
 (* 0 <= offset <= 2112 *)
 (* same as memcpy(out + offset, in, sizeof(in)); *)
-lemma memcpy_offset_1 (_out_ : W8.t Array2144.t, _offset_ : W64.t, _in_ : W8.t Array32.t) :
-    hoare [
+lemma memcpy_offset_1 (_offset_ : W64.t, _in_ : W8.t Array32.t) :
+    phoare [
       M(Syscall).__memcpy_u8u8_offset : 
       arg.`2=_offset_ /\ 
       arg.`3=_in_ /\  
       0 <= to_uint _offset_ < (2144 - 32)
       ==>
       (forall (k : int), 0 <= k < 32 => (res.[to_uint _offset_ + k] = _in_.[k]))
-    ].
+    ] = 1%r.
 proof.
-(* Easier to read #post *)
+
 conseq (: _ ==> sub res (to_uint _offset_) 32 = sub _in_ 0 32).
-  + auto => /> &hr H0 H1 result H2 k??.
-    have ->: in_0{hr}.[k] = nth witness (sub in_0{hr} 0 32) k by rewrite nth_sub.
-    by rewrite -H2 nth_sub.
+  + auto => /> &hr H0 H1 result.
+    split => H.
+        * apply (eq_from_nth witness); rewrite !size_sub // => j?.
+          rewrite !nth_sub // /#.
+        * move => k??.
+          have ->: in_0{hr}.[k] = nth witness (sub in_0{hr} 0 32) k by rewrite nth_sub.
+          by rewrite -H nth_sub.
+
 proc => /=.
+
 while (
   #{/~offset = _offset_}pre /\
   0 <= to_uint i <= 32 /\
   offset = _offset_ + i /\
   sub out (to_uint _offset_) (to_uint i) = sub _in_ 0 (to_uint i)  
-); last first.
+)
+(32 - to_uint i); last first.
     + auto => /> &hr H0 H1. 
       do split.
          - apply (eq_from_nth witness); first by rewrite !size_sub.
            rewrite size_sub // /#.
          - move => i0 out0.
-           rewrite ultE of_uintK /= => H2 H3 H4.
+           split; rewrite ultE of_uintK /= => H2 H3 H4; first by smt().
            have ->: to_uint i0 = 32 by smt().
            by move => ->.
     + auto => /> &hr H0 H1 H2 H3 H4.
@@ -971,57 +883,7 @@ while (
                 - rewrite ifF; first rewrite to_uintD /#.
                   have ->: _in_.[j] = nth witness (sub _in_ 0 (to_uint i{hr})) j by rewrite nth_sub // /#. 
                   rewrite -H4 nth_sub /#.
-qed.
-
-(* FIXME: Nova precondicao: oo + 32 e ii + 32 sao disjuntos *)
-lemma nbytes_copy_inplace_correct (x : W8.t Array2144.t, oo oi : W64.t) :
-    hoare [
-      M(Syscall).__nbytes_copy_inplace_2144 :
-      arg=(x, oo, oi) /\
-      0 <= to_uint oo /\
-      to_uint oo + 32 < 2144 /\
-      0 <= to_uint oi /\
-      to_uint oi + 32 < 2144
-      ==>
-      sub res (to_uint oo) 32 = sub x (to_uint oi) 32 /\
-      (forall (k : int), 0 <= k < to_uint oo => res.[k] = x.[k]) /\
-      (forall (k : int), to_uint oo + 32 <= k < 2144 => res.[k] = x.[k])
-      (* values outside the range offset_out to offset_out + n - 1 remain unchanged *)
-      ].
-proof.
-proc => /=.  
-while (
-  #{/~out = x}pre /\
-  0 <= i <= 32 /\
-  sub out (to_uint oo) i = sub x (to_uint oi) i /\
-  (forall (k : int), 0 <= k < to_uint oo => out.[k] = x.[k]) /\
-  (forall (k : int), to_uint oo + i <= k < 2144 => out.[k] = x.[k])
-
-); last first.
-    + auto => /> H0 H1 H2 H3.
-      split => [| /#].
-      apply (eq_from_nth witness); first by rewrite !size_sub.
-      rewrite size_sub /#.
-auto => /> &hr H0 H1 H2 H3 H4 H5 H6 H7 H8 H9.
-do split;4..5: by admit.
-    + smt().
-    + smt().
-    + apply (eq_from_nth witness); first by rewrite !size_sub /#.
-      rewrite size_sub 1:/# => j?.
-      rewrite !nth_sub 1,2:/# get_setE; first by rewrite to_uintD of_uintK /#.
-      case(j = i{hr}) => [-> | //?]; last first.
-         + rewrite ifF; first by rewrite to_uintD of_uintK /#.
-           have ->: x.[to_uint oi + j] = nth witness (sub x (to_uint oi) i{hr}) j by rewrite nth_sub /#.
-           rewrite -H6 nth_sub /#.
-      rewrite ifT; first by rewrite to_uintD of_uintK /#.
-      have ->: to_uint (oi + (of_int i{hr})%W64) = to_uint oi + i{hr} by rewrite to_uintD of_uintK /#.
-      case (0 <= to_uint oi + i{hr} < to_uint oo) => Ha.
-          + rewrite H7 /#. 
-      case (to_uint oo + i{hr} < 2144) => Hb.
-rewrite H8 //. have E: 0 <= i{hr} < 32 by smt().
-      admit
-.
-      admit.
+          - rewrite to_uintD /#.
 qed.
 
 lemma _x_memcpy_u8u8_64_32_p (o : W8.t Array64.t) (x : W8.t Array32.t) :
