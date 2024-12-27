@@ -6,7 +6,7 @@ from Jasmin require import JModel.
 
 (*****) import StdBigop.Bigint.
 
-require import Params Parameters Types WOTS XMSS_MT_Params LTree XMSS_MT_Types.
+require import Params Parameters Types BaseW Hash WOTS XMSS_MT_Params LTree XMSS_MT_Types.
 
 require import Array32 Array64 Array68 Array131 Array2144.
 
@@ -83,6 +83,23 @@ rewrite size_mkseq /#.
 qed.
 
 (** -------------------------------------------------------------------------------------------- **)
+
+lemma size_toByte_32 (x : W32.t) (i : int) : 
+    0 <= i => 
+    size (toByte x i) = min i 4.
+proof.
+move => ?.
+rewrite /toByte size_take // size_rev size_to_list /#.
+qed.
+
+lemma size_toByte_64 (x : W64.t) (i : int) : 
+    0 <= i => 
+    size (toByte_64 x i) = i.
+proof.
+move => ?.
+rewrite /toByte_64.
+rewrite size_rev size_mkseq /#.
+qed.
 
 lemma size_W32toBytes (x : W32.t) :
     size (W32toBytes x) = 4
@@ -193,6 +210,24 @@ rewrite /nbytes_flatten (nth_flatten witness n).
       rewrite -(all_nthP P L witness) /P /L size_map => j?. 
       by rewrite (nth_map witness) // valP.
 by rewrite (nth_map witness).
+qed.
+
+lemma nth_nbytes_put (x : nbytes list) (i j : int) (v : nbytes) :
+    n = XMSS_N =>
+    0 <= i < size x =>
+    0 <= j %/ n && j %/ n < size x =>
+    nth witness (nbytes_flatten (put x i v)) j = 
+    nth witness (val (if i = j %/ n then v else nth witness x (j %/ n))) (j %% n).
+proof.
+rewrite /XMSS_N => n_val ??.
+rewrite /nbytes_flatten (nth_flatten witness n).
+  - pose P := (fun (s : W8.t list) => size s = n).
+    pose L := (map NBytes.val (put x i v)).
+    rewrite -(all_nthP P L witness) /P /L size_map size_put => ??. 
+    rewrite (nth_map witness); first by rewrite size_put.
+    by rewrite valP.
+rewrite (nth_map witness); first by rewrite size_put.
+by rewrite nth_put.
 qed.
 
 (** -------------------------------------------------------------------------------------------- **)
@@ -330,6 +365,6 @@ op load_signature_mem (mem : global_mem_t) (sm_ptr mlen : W64.t) : W8.t list =
 
 op EncodeSignature (sig_bytes : W8.t list) : sig_t =
   {| sig_idx  = W32ofBytes (sub_list sig_bytes 0 XMSS_INDEX_BYTES);
-     r        = NBytes.insubd (sub_list sig_bytes 3 32);
+     r        = NBytes.insubd (sub_list sig_bytes XMSS_INDEX_BYTES XMSS_N);
      r_sigs   = map EncodeReducedSignature (chunk 2176 (sub_list sig_bytes 36 (36 - 2500)));
   |}.
