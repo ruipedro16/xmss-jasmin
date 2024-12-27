@@ -53,10 +53,6 @@ inline fn __l_tree(
 
             // First we need to copy wots_pk + i*params->n and wots_pk + (i*2)*params->n to the respective buffers
             () = #unspill(wots_pk);
-            offset_in = i * XMSS_N;
-            bytes = XMSS_N;
-            buf0, _ = __memcpy_u8u8_2<XMSS_N, XMSS_WOTS_SIG_BYTES>(buf0, wots_pk, offset_in, bytes);
-
             offset_in = (i * 2); offset_in *= XMSS_N;
             bytes = 2 * XMSS_N;
             buf1, _ = __memcpy_u8u8_2<2 * XMSS_N, XMSS_WOTS_SIG_BYTES>(buf1, wots_pk, offset_in, bytes);
