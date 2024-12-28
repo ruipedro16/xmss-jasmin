@@ -32,12 +32,24 @@
 #define XMSS_SIGN_FILE "csv/xmss_sign.csv"
 #endif
 
+#ifndef XMSSMT_VERIFY_FILE
+#define XMSSMT_VERIFY_FILE "csv/xmssmt_verify.csv"
+#endif
+
+#ifndef XMSS_VERIFY_FILE
+#define XMSS_VERIFY_FILE "csv/xmss_verfify.csv"
+#endif
+
 #ifndef MESSAGE_SIZE
 #define MESSAGE_SIZE 65
 #endif
 
+#ifndef RUNS
+#define RUNS 1
+#endif
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Based on
+// Based on https://github.com/formosa-crypto/formosa-mldsa/blob/amd64/bench/bench.c
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 extern int xmss_keypair_jazz(uint8_t *pk, uint8_t *sk);
@@ -252,7 +264,7 @@ void xmssmt_bench_sign(const xmss_params *params, uint32_t oid) {
         write_csv_header(XMSSMT_SIGN_FILE, "xmssmt_sign");
     }
 
-    // First we need to generate a keypair
+    // First we need to generate a valid keypair
     xmssmt_keypair(pk, sk_ref, oid);
     memcpy(sk_jasmin, sk_ref, XMSS_OID_LEN + params->sk_bytes);
 
@@ -320,6 +332,90 @@ void xmss_bench_sign(const xmss_params *params, uint32_t oid) {
     write_results(XMSS_SIGN_FILE, "xmss_sign", median_ref, avg_ref, median_jasmin, avg_jasmin);
 }
 
+void xmssmt_bench_verify(const xmss_params *params, uint32_t oid) {
+    assert(params != NULL);
+
+    uint8_t m[MESSAGE_SIZE];
+    uint8_t pk[XMSS_OID_LEN + params->pk_bytes];
+    uint8_t sk[XMSS_OID_LEN + params->sk_bytes];
+    uint8_t sm[params->sig_bytes + MESSAGE_SIZE];
+    size_t mlen;
+
+    uint64_t observations_ref[DATA_POINTS];
+    uint64_t observations_jasmin[DATA_POINTS];
+
+    uint64_t before, after;
+
+    uint64_t cpucycles_overhead = overhead_of_cpucycles_call();
+
+    if (!file_exists(XMSSMT_VERIFY_FILE)) {
+        write_csv_header(XMSSMT_VERIFY_FILE, "xmssmt_verify");
+    }
+
+    // First we need to generate a keypair
+    xmssmt_keypair(pk, sk, oid);
+
+    for (size_t i = 0; i + 1 < DATA_POINTS; i++) {
+        before = cpucycles();
+        xmssmt_sign_open(m, (unsigned long long *)&mlen, sm, params->sig_bytes + MESSAGE_SIZE, pk);
+        after = cpucycles();
+        observations_ref[i] = (after - cpucycles_overhead) - before;
+
+        before = cpucycles();
+        xmssmt_sign_open_jazz(m, &mlen, sm, params->sig_bytes + MESSAGE_SIZE, pk);
+        after = cpucycles();
+        observations_jasmin[i] = (after - cpucycles_overhead) - before;
+    }
+
+    uint64_t median_ref = median(observations_ref, DATA_POINTS);
+    uint64_t median_jasmin = median(observations_jasmin, DATA_POINTS);
+    uint64_t avg_ref = average(observations_ref, DATA_POINTS);
+    uint64_t avg_jasmin = average(observations_jasmin, DATA_POINTS);
+    write_results(XMSSMT_VERIFY_FILE, "xmssmt_verify", median_ref, avg_ref, median_jasmin, avg_jasmin);
+}
+
+void xmss_bench_verify(const xmss_params *params, uint32_t oid) {
+    assert(params != NULL);
+
+    uint8_t m[MESSAGE_SIZE];
+    uint8_t pk[XMSS_OID_LEN + params->pk_bytes];
+    uint8_t sk[XMSS_OID_LEN + params->sk_bytes];
+    uint8_t sm[params->sig_bytes + MESSAGE_SIZE];
+    size_t mlen;
+
+    uint64_t observations_ref[DATA_POINTS];
+    uint64_t observations_jasmin[DATA_POINTS];
+
+    uint64_t before, after;
+
+    uint64_t cpucycles_overhead = overhead_of_cpucycles_call();
+
+    if (!file_exists(XMSS_VERIFY_FILE)) {
+        write_csv_header(XMSS_VERIFY_FILE, "xmss_verify");
+    }
+
+    // First we need to generate a keypair
+    xmss_keypair(pk, sk, oid);
+
+    for (size_t i = 0; i + 1 < DATA_POINTS; i++) {
+        before = cpucycles();
+        xmss_sign_open(m, (unsigned long long *)&mlen, sm, params->sig_bytes + MESSAGE_SIZE, pk);
+        after = cpucycles();
+        observations_ref[i] = (after - cpucycles_overhead) - before;
+
+        before = cpucycles();
+        xmss_sign_open_jazz(m, &mlen, sm, params->sig_bytes + MESSAGE_SIZE, pk);
+        after = cpucycles();
+        observations_jasmin[i] = (after - cpucycles_overhead) - before;
+    }
+
+    uint64_t median_ref = median(observations_ref, DATA_POINTS);
+    uint64_t median_jasmin = median(observations_jasmin, DATA_POINTS);
+    uint64_t avg_ref = average(observations_ref, DATA_POINTS);
+    uint64_t avg_jasmin = average(observations_jasmin, DATA_POINTS);
+    write_results(XMSS_VERIFY_FILE, "xmss_verify", median_ref, avg_ref, median_jasmin, avg_jasmin);
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main(void) {
@@ -337,9 +433,11 @@ int main(void) {
             exit(-1);
         }
 
-        xmssmt_bench_kg(&params, oid);
-        xmssmt_bench_sign(&params, oid);
-
+        for (int i = 0; i < RUNS; i++) {
+            xmssmt_bench_kg(&params, oid);
+            xmssmt_bench_sign(&params, oid);
+            xmssmt_bench_verify(&params, oid);
+        }
     } else {
         if (xmss_str_to_oid(&oid, IMPL) == -1) {
             fprintf(stderr, "Failed to generate oid from impl name\n");
@@ -351,8 +449,11 @@ int main(void) {
             exit(-1);
         }
 
-        xmss_bench_kg(&params, oid);
-        xmss_bench_sign(&params, oid);
+        for (int i = 0; i < RUNS; i++) {
+            xmss_bench_kg(&params, oid);
+            xmss_bench_sign(&params, oid);
+            xmss_bench_verify(&params, oid);
+        }
     }
 
     return EXIT_SUCCESS;

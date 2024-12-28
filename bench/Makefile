@@ -23,6 +23,8 @@ SOURCES :=  ../submodules/xmss-reference/fips202.c \
 			../submodules/xmss-reference/xmss_core.c \
 			../submodules/xmss-reference/xmss.c
 
+RUNS ?= 1
+
 # --------------------------------------------------------------------------------------------------
 
 default: $(BIN)
@@ -35,7 +37,7 @@ bin/bench_xmssmt-sha2_20_2_256: asm/xmssmt-sha2_20_2_256.s | csv/ bin/
 	$(CC) $(CFLAGS) -o $@ \
 	bench.c -I../submodules/xmss-reference/ -I./common/ \
 	common/notrandombytes.c \
-	$< $(SOURCES) $(LDLIBS)
+	$< $(SOURCES) -DRUNS=$(RUNS) $(LDLIBS)
 
 bin/%.out: bin/%
 	@./$<
@@ -55,6 +57,3 @@ clean:
 	-$(RM) -r $(BIN)
 
 # --------------------------------------------------------------------------------------------------
-
-debug:
-	@echo $(OUT)
