@@ -61,7 +61,8 @@ run: $(OUT)
 
 jpp_files: $(JPP_FILES)
 jazz_files: $(JAZZ_FILES)
-asm_files: $(ALL_ASM_FILES)
+asm_files: $(ASM_FILES)
+all_asm_files: $(ALL_ASM_FILES)
 obj_files: $(OBJ_FILES)
 
 ct: $(CHECK_CT)
