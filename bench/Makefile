@@ -2,10 +2,6 @@
 
 # --------------------------------------------------------------------------------------------------
 
-default: check_empty
-
-# --------------------------------------------------------------------------------------------------
-
 AS       ?= as
 CC       ?= clang
 CFLAGS   ?= -Wall -O3 -Wextra -Wpedantic
@@ -13,19 +9,36 @@ LDLIBS   = -lcrypto
 
 # --------------------------------------------------------------------------------------------------
 
-ASM_FILES := $(wildcard asm/*.s)
-BIN       := $(patsubst asm/%.s,bin/bench%,$(ASM_FILES))
+ASM_FILES := asm/xmssmt-sha2_20_2_256.s
+BIN       := bin/bench_xmssmt-sha2_20_2_256
 OUT       := $(addsuffix .out,$(BIN))
+
+SOURCES :=  ../submodules/xmss-reference/fips202.c \
+			../submodules/xmss-reference/hash_address.c \
+			../submodules/xmss-reference/hash.c \
+			../submodules/xmss-reference/params.c \
+			../submodules/xmss-reference/utils.c \
+			../submodules/xmss-reference/wots.c \
+			../submodules/xmss-reference/xmss_commons.c \
+			../submodules/xmss-reference/xmss_core.c \
+			../submodules/xmss-reference/xmss.c
 
 # --------------------------------------------------------------------------------------------------
 
-check_empty:
-ifeq ($(strip $(ASM_FILES)),)
-	@echo "No ASM files found in asm/. Running ../scripts/jazz.sh asm/"
-	@../scripts/jazz.sh asm/
-else
-	@echo "ASM files found: $(ASM_FILES)"
-endif
+default: $(BIN)
+all: default
+run: $(OUT)
+
+# --------------------------------------------------------------------------------------------------
+
+bin/bench_xmssmt-sha2_20_2_256: asm/xmssmt-sha2_20_2_256.s | csv/ bin/
+	$(CC) $(CFLAGS) -o $@ \
+	bench.c -I../submodules/xmss-reference/ -I./common/ \
+	common/notrandombytes.c \
+	$< $(SOURCES) $(LDLIBS)
+
+bin/%.out: bin/%
+	@./$<
 
 # --------------------------------------------------------------------------------------------------
 
@@ -35,11 +48,13 @@ csv/:
 bin/:
 	mkdir -p $@
 
-asm/:
-	mkdir -p $@
-
 # --------------------------------------------------------------------------------------------------
 
 .PHONY: clean
 clean:
-	-$(RM) -r asm/ bin/
+	-$(RM) -r $(BIN)
+
+# --------------------------------------------------------------------------------------------------
+
+debug:
+	@echo $(OUT)
