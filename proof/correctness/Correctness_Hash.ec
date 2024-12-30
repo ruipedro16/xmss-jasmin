@@ -952,3 +952,30 @@ rewrite /load_buf !nth_mkseq // 1:/# /=.
 congr; smt(@W64 pow2_64).
 qed.
 
+lemma p_hash_message_correct (mem : global_mem_t) (R _root : W8.t Array32.t) (_idx msg_ptr _mlen : W64.t) :
+    n = XMSS_N /\
+    padding_len = XMSS_PADDING_LEN /\
+    H_msg_padding_val = XMSS_HASH_PADDING_HASH =>
+    phoare [
+      M(Syscall).__hash_message :
+
+      valid_ptr_i msg_ptr (4*XMSS_N + to_uint _mlen) /\
+      0 < to_uint _mlen /\
+      
+      0 <= to_uint _idx < 2^XMSS_FULL_HEIGHT /\
+
+      arg.`2 = R /\
+      arg.`3 = _root /\
+      arg.`4 = _idx /\
+      arg.`5 = msg_ptr /\
+      arg.`6 = _mlen 
+      ==>
+      let idx_bytes = toByte_64 (W64.of_int (to_uint _idx)) 32 in
+      to_list res = val (H_msg 
+                    (TheeNBytes.insubd (to_list R ++ to_list _root ++ idx_bytes))
+                    (load_buf Glob.mem (msg_ptr + (W64.of_int 128)) (to_uint _mlen))) /\
+      Glob.mem = mem
+    ] = 1%r.
+proof.
+admit.
+qed.
