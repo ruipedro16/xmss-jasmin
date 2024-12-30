@@ -745,10 +745,8 @@ lemma _x_memcpy_u8u8_64_post (x : W8.t Array64.t) :
 (******************************************************************************)
 
 lemma memcmp_true (x y : W8.t Array32.t) :
-    x = y => 
-        hoare[M(Syscall).__memcmp : arg = (x, y) ==> res = W8.zero].
+        hoare[M(Syscall).__memcmp : x = y /\ arg = (x, y) ==> res = W8.zero].
 proof.
-move => xy_eq.
 proc.
 while(0 <= to_uint i <= 32 /\ a = b /\ acc = W8.zero) ; auto => /> *; smt(@W64).
 qed.
@@ -756,20 +754,16 @@ qed.
 
 (* conseq is not working here so i wrote the proof twice *)
 lemma p_memcmp_true (x y : W8.t Array32.t) :
-    x = y => 
-        phoare[M(Syscall).__memcmp : arg = (x, y) ==> res = W8.zero] = 1%r.
+        phoare[M(Syscall).__memcmp : x = y /\ arg = (x, y) ==> res = W8.zero] = 1%r.
 proof.
-move => ?.
 proc.
 while(0 <= to_uint i <= 32 /\ a = b /\ acc = W8.zero) (32 - to_uint i); auto => /> *; smt(@W64).
 qed.
 
 
 lemma memcmp_false (x y : W8.t Array32.t) :
-    x <> y => 
-        hoare[M(Syscall).__memcmp : arg = (x, y) ==> res <> W8.zero].
+        hoare[M(Syscall).__memcmp : x<>y /\ arg = (x, y) ==> res <> W8.zero].
 proof.
-move => ?. 
 have E : exists (i : int), 0 <= i < 32 => x.[i] <> y.[i] by smt(@Array32). 
 proc.
 while (
@@ -778,7 +772,7 @@ while (
   0 <= to_uint i <= 32 /\ 
   (acc = W8.zero <=> forall (k : int), 0 <= k < to_uint i => x.[k] = y.[k])
 ). 
-    + auto => /> &hr i0???H0. 
+    + auto => /> &hr i0????H0. 
       rewrite ultE of_uintK (: 32 %% W64.modulus = 32) 1:/# => ?. 
       do split; 1,2: smt(@W64).       
          * move => ?. 
@@ -789,17 +783,15 @@ while (
            rewrite to_uintD_small /#.
          * rewrite to_uintD_small 1:/# (: to_uint W64.one = 1) 1:/# => H.
            rewrite or_zero; split; [rewrite H0 | rewrite H ] => /#.
-    + auto => />; split => [/# | ?i0]. 
+    + auto => /> *; split => [/# | ?i0]. 
       rewrite ultE -lezNgt of_uintK //= => [????? ->].
       have ->: to_uint i0 = 32 by smt(). 
       smt(@Array32). 
 qed.
 
 lemma p_memcmp_false (x y : W8.t Array32.t) :
-    x <> y => 
-        phoare[M(Syscall).__memcmp : arg = (x, y) ==> res <> W8.zero] = 1%r.
+        phoare[M(Syscall).__memcmp : x<>y /\ arg = (x, y) ==> res <> W8.zero] = 1%r.
 proof.
-move => ?. 
 have E : exists (i : int), 0 <= i < 32 => x.[i] <> y.[i] by smt(@Array32). 
 proc.
 while (
@@ -809,7 +801,7 @@ while (
   (acc = W8.zero <=> forall (k : int), 0 <= k < to_uint i => x.[k] = y.[k])
 )
 (32 - to_uint i). 
-    + auto => /> &hr i0???H0. 
+    + auto => /> &hr i0????H0. 
       rewrite ultE of_uintK (: 32 %% W64.modulus = 32) 1:/# => ?. 
       do split; 1,2: smt(@W64).       
          * move => ?. 
@@ -821,17 +813,12 @@ while (
          * rewrite to_uintD_small 1:/# (: to_uint W64.one = 1) 1:/# => H.
            rewrite or_zero; split; [rewrite H0 | rewrite H ] => /#.
          * smt(@W64 pow2_64).
-    + auto => />; split => [/# | ?i0]. 
+    + auto => /> *; split => [/# | ?i0]. 
       rewrite ultE -lezNgt of_uintK //=; split => [|????? ->]; first by smt(@W64 pow2_64).
       have ->: to_uint i0 = 32 by smt(). 
       smt(@Array32). 
 qed.
 
-(* INLEN = 32 /\ OUTLEN = 2144 *)
-(* pre: copying all elements of in does not write out of bounds in out *)
-(* 0 <= offset + 32 <= 2144 *)
-(* 0 <= offset <= 2112 *)
-(* same as memcpy(out + offset, in, sizeof(in)); *)
 lemma memcpy_offset_1 (_offset_ : W64.t, _in_ : W8.t Array32.t) :
     phoare [
       M(Syscall).__memcpy_u8u8_offset : 

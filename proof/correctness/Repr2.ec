@@ -31,14 +31,9 @@ proof.
 move => ?; rewrite /load_buf size_mkseq /#.
 qed.
 
-(** lemma nth_mkseq ['a]:
-  forall (x0 : 'a) (f : int -> 'a) (n i : int),
-    0 <= i && i < n => nth x0 (mkseq f n) i = f i.
-
-**)
 lemma nth_load_buf (mem : global_mem_t) (ptr : W64.t) (len i : int) :
     0 <= i < len =>
-    nth witness (load_buf mem ptr len) i = mem.[to_uint ptr + i]. (* loadW8 mem (to_uint ptr + i). *)
+    nth witness (load_buf mem ptr len) i = mem.[to_uint ptr + i].
 proof.
 move => ?.
 by rewrite nth_mkseq //=.
@@ -86,10 +81,10 @@ qed.
 
 lemma size_toByte_32 (x : W32.t) (i : int) : 
     0 <= i => 
-    size (toByte x i) = min i 4.
+    size (toByte x i) = i.
 proof.
 move => ?.
-rewrite /toByte size_take // size_rev size_to_list /#.
+rewrite /toByte size_rev size_mkseq /#.
 qed.
 
 lemma size_toByte_64 (x : W64.t) (i : int) : 
@@ -368,3 +363,9 @@ op EncodeSignature (sig_bytes : W8.t list) : sig_t =
      r        = NBytes.insubd (sub_list sig_bytes XMSS_INDEX_BYTES XMSS_N);
      r_sigs   = map EncodeReducedSignature (chunk 2176 (sub_list sig_bytes 36 (36 - 2500)));
   |}.
+
+lemma sig_eq (s1 s2 : sig_t) :
+    s1.`sig_idx = s2.`sig_idx /\
+    s1.`r       = s2.`r       /\
+    s1.`r_sigs  = s2.`r_sigs => 
+    s1 = s2 by smt(). 

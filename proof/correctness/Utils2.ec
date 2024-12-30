@@ -12,8 +12,9 @@ require import Array8 Array11.
 
 (*****) import StdBigop.Bigint.
 
-
-(** ----cenas de memorias --------------------------------------------------------------------- **)
+lemma to_uint_xor_1_W32 (x : W32.t) : 
+    0 <= to_uint x < W32.max_uint - 1 => 
+    0 <= to_uint (x `^` W32.one) < W32.max_uint by smt(@W32 pow2_32).
 
 (* ar: address used for reading
    aw: address used for writing 
@@ -34,7 +35,6 @@ qed.
 (** -------------------------------------------------------------------------------------------- **)
 
 lemma and_comm (a b : W32.t) : a `&` b = b `&` a by smt(@W32 pow2_32).
-
 
 lemma pow2_bound (a b: int) :
     0 <= a => 0 <= b =>  a <= b => 
@@ -147,7 +147,6 @@ smt(@Real).
 qed.
 
 (** -------------------------------------------------------------------------------------------- **)
-
 
 op concatMap  (f: 'a -> 'b list) (a: 'a list): 'b list = flatten (map f a).
 
@@ -266,6 +265,39 @@ pred valid_ptr (p o : W64.t) =
 pred valid_ptr_i (p : W64.t) (o : int) = 
   0 <= o => 
     0 <= to_uint p /\ to_uint (p) + o < W64.modulus.
+
+(*
+ States that if a pointer p is valid for a certain length l1 and 
+ l2 is a non-negative integer that is less than l1, then the pointer p 
+ is also valid for the length l2
+*)
+lemma valid_ptr_sub (p : W64.t) (l1 l2 : int) :
+    0 <= l1 => 
+    valid_ptr_i p l1 =>
+    l2 < l1 => 
+    valid_ptr_i p l2 by smt().
+
+pred valid_addr(p : int, o : int) = 
+  0 <= o => 0 <= p /\ p + o < W64.modulus.
+
+
+(* disjoint pointers *)
+pred valid_disj_ptr(p1 : address, l1 : int, p2 : address, l2 : int) =
+      valid_addr p1 l1 /\ 
+      valid_addr p2 l2 /\ 
+      ((p1 + l1) <= p2  || (p2 + l2) <= p1).
+
+lemma disj_ptr_E (p1 l1 p2 l2 : int) :
+    valid_disj_ptr p1 l1 p2 l2 => 
+    ((p1 + l1) <= p2  || (p2 + l2) <= p1).
+proof.
+rewrite /valid_disj_ptr => [#] ???; assumption.
+qed.
+
+lemma disj_ptr_comm (p1 p2 : address) (l1 l2 : int) :
+    valid_disj_ptr p1 l1 p2 l2 <=>
+    valid_disj_ptr p2 l2 p1 l1 by smt().
+    
 
 (** -------------------------------------------------------------------------------------------- **)
 

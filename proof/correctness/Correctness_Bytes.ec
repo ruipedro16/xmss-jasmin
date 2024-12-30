@@ -12,7 +12,7 @@ require import Termination.
 
 require import Parameters.
 
-require import Utils2.
+require import Utils2 Repr2.
 
 require import BitEncoding.
 (*---*) import BitChunking.
@@ -24,154 +24,69 @@ import W4u8.Pack.
 
 (**  relacao entre o toByte da spec e os outros da impl ------------------------------------------------------------ **)
 
-lemma to_bytes_eq (x : W32.t) (k : int) : 
-    0 <= k < 4 =>
-    toByte x k = rev (lenbytes_be32 x k).
-proof.
-move => [#] k_ge0 ?.
-rewrite /toByte /lenbytes_be32.
-apply (eq_from_nth W8.zero); first by rewrite size_take // size_rev size_to_list !size_rev size_mkseq /#.
-rewrite size_take // size_rev size_to_list ifT // => i?.
-rewrite nth_rev. 
-  + rewrite size_rev size_mkseq /#.
-rewrite nth_rev.
-  + rewrite size_rev size_mkseq /#.
-rewrite nth_mkseq.
-  + rewrite size_mkseq size_rev size_mkseq /#.
-rewrite nth_take 1,2:/# nth_rev.
-  + rewrite size_to_list /#.
-rewrite size_to_list /=.
-rewrite /BitsToBytes size_mkseq wordP => j?. 
-rewrite (nth_map witness).
-  + rewrite size_chunk //  size_rev size_mkseq /#.
-rewrite bits2wE initiE // /= /chunk /= nth_mkseq.
-  + rewrite size_rev size_mkseq /#.
-rewrite nth_take // 1:/#.
-rewrite nth_drop 2:/#.
-  + rewrite size_rev size_mkseq /#.
-rewrite size_rev size_mkseq.
-rewrite  w2bitsE nth_mkseq 1:/# /= unpack8E.
-auto => />.
-rewrite W4u8.Pack.initiE 1:/#.
-rewrite bits8E initiE //=.
-rewrite (: max 0 k = k) 1:/#.
-congr.
-ring.
-admit.
-qed.
-
 (** -------------------------------------------------------------------------------------------- **)
 
 lemma ull_to_bytes2_post (x : W64.t, y : W32.t) :
   phoare[
     M(Syscall).__ull_to_bytes_2 : 
-    arg.`2 = x /\ to_uint x = to_uint y 
+    arg.`2 = x /\ 
+    to_uint x = to_uint y /\
+    0 <= to_uint y < W32.max_uint 
     ==>
     to_list res = toByte y 2 ] = 1%r.
 proof.
 proc.
-conseq (
-  : _ 
-  ==> 
-    out.[0] = nth witness (to_list (unpack8 y)) 3 /\
-    out.[1] = nth witness (to_list (unpack8 y)) 2
-).
-    + auto => /> H  out.
-      split => [H1 | H1 H2].
-        - rewrite -!get_to_list H1 /toByte !nth_take // !nth_rev; 1,2: by rewrite size_to_list.
-          by rewrite size_to_list.
-        - apply (eq_from_nth witness); first by rewrite size_to_list /toByte size_take // size_rev size_to_list.
-          rewrite size_to_list => j?.
-          rewrite get_to_list.
-          case (j = 0) => [-> | ?].
-             * by rewrite H1 /toByte nth_take // nth_rev. 
-             * by rewrite (: j = 1) 1:/# H2 /toByte nth_take // nth_rev.
-
-simplify.
-
 unroll 4; unroll 5.
+rcondt 4; first by auto.
+rcondt 7; first by auto.
+rcondf 10; first by auto.
+auto => /> &hr H0 H1 H2.
+apply (eq_from_nth witness); first by rewrite size_to_list size_toByte_32.
+rewrite size_to_list => j?.
+rewrite get_to_list.
+rewrite /toByte nth_rev.
+  + by rewrite size_mkseq.
+rewrite nth_mkseq /=.
+  + by rewrite !size_mkseq /#.
+rewrite size_mkseq (: max 0 2 = 2) //.
+case (j = 1) => [-> | ?]; auto => />.
+  + rewrite /BitsToBytes.
+    rewrite wordP => i [??].
+    rewrite (nth_map witness); first by rewrite size_chunk // size_w2bits.
+    rewrite /chunk size_w2bits nth_mkseq 1:/# /=.
+    rewrite bits2wE initiE //= nth_take // nth_drop //.
+    rewrite w2bitsE nth_mkseq 1:/# /=.
+    rewrite /truncateu8 H0.
+    admit.
 
-sp 3.
-rcondt 1; first by auto.
-sp 3.
-rcondt 1; first by auto.
-sp.
-rcondf 1; first by auto.
-auto => /> H0  . 
-split; first by admit.
-    + rewrite /to_list nth_mkseq //= bits8E /=.
-      rewrite /truncateu8 H0 of_intE /=.
-      rewrite /int2bs /bits2w /=.
-      rewrite wordP => i?.
-      rewrite !initiE // nth_mkseq // /= to_uintE.
-      rewrite /w2bits /bs2int.
-      rewrite size_mkseq (: max 0 32 = 32) 1:/#.
-      rewrite BIA.big_int /b2i => />.
-     
-(* 
-search foldr.
-
-auto => />.
-print BIA.
-
-print BIA.bigi.
-
-search (W8.bits2w (int2bs _ _)).
-search int2bs.
-search bits2w.
-
-      rewrite wordP => i?.
-
-      case (i = 0) => [-> /= | ?]; last by admit.
-print W8.
-
-search (W8.of_int (W32.to_uint _)).
-
-
-    + rewrite /to_list nth_mkseq //= bits8E.
-      rewrite wordP => i?.
-      rewrite initiE //=.
-      rewrite /truncateu8 to_uint_shr 1:/# H0 of_uintK /=.
-      case (i = 0) => [-> /= | ?]; by admit.
-
-
-      rewrite /(`>>`) of_uintK /= /(`>>>`).
-
-
-
-
-rewrite wordP => j?.
-rewrite /unpack8. 
-rewrite /truncateu8 to_uint_shr.
-    + by rewrite of_uintK. 
-rewrite !of_uintK //.
-rewrite /to_list.
-rewrite nth_mkseq // => />.
-rewrite bits8E initiE //.
-rewrite H0.
-case (j = 0) => [-> | ?]; last by admit.
-
-admit.
-*)
-admit.
+  + have ->: j = 0 by smt(). 
+    rewrite !get_setE // ifT 1:/#.
+    rewrite wordP => i [??].
+    rewrite /BitsToBytes.
+    rewrite (nth_map witness); first by rewrite size_chunk // size_w2bits.
+    rewrite /chunk size_w2bits nth_mkseq 1:/# /=.
+    rewrite bits2wE initiE //= nth_take // nth_drop //.
+    rewrite w2bitsE nth_mkseq 1:/# /=.
+    rewrite /truncateu8 to_uint_shr of_uintK //= H0.
+    admit.
 qed.
 
 lemma _ull_to_bytes_32_correct (x : W64.t) : 
     hoare [M(Syscall).__ull_to_bytes_32 :
-      arg.`2 = x ==> to_list res = lenbytes_be64 x 32].
+      arg.`2 = x ==> to_list res = toByte_64 x 32].
 proof.
 proc => /=.
 auto.
-(*
-  lenbytes_be64 = rev (mkseq (fun (i : int) => (BitsToBytes (w2bits val)).[i]) len).
-  BitsToBytes = map W8.bits2w (chunk 8 bits).
-*)
 admit.
 qed.
 
 lemma ull_to_bytes_32_correct (x : W64.t) : 
-    phoare [M(Syscall).__ull_to_bytes_32 :
-      arg.`2 = x ==> to_list res = lenbytes_be64 x 32] = 1%r
+    phoare [
+      M(Syscall).__ull_to_bytes_32 :
+      arg.`2 = x 
+      ==> 
+      to_list res = toByte_64 x 32
+    ] = 1%r
         by conseq ull_to_bytes_32_ll (_ull_to_bytes_32_correct x).
 
 lemma ull_to_bytes_3_correct (x : W64.t) : 
@@ -179,7 +94,7 @@ lemma ull_to_bytes_3_correct (x : W64.t) :
       M(Syscall).__ull_to_bytes_3 :
       arg.`2 = x 
       ==> 
-      to_list res = lenbytes_be64 x 3
+      to_list res = toByte_64 x 3
     ] = 1%r.
 proof.
 proc => /=.
@@ -210,9 +125,9 @@ qed.
 lemma bytes_to_ull_ptr_correct (mem : global_mem_t) (ptr : W64.t) :
     phoare[
       M(Syscall).__bytes_to_ull_ptr :
-      valid_ptr_i ptr 4 /\ arg=ptr 
+      valid_ptr_i ptr XMSS_INDEX_BYTES /\ arg=ptr 
       ==> 
-      res = W64ofBytes (mkseq (fun i => loadW8 mem (to_uint ptr + i)) 4)
+      res = W64ofBytes (mkseq (fun i => loadW8 mem (to_uint ptr + i)) XMSS_INDEX_BYTES)
     ] = 1%r.
 proof.
 by conseq bytes_to_ull_ptr_ll (_bytes_to_ull_ptr_correct mem ptr). 
