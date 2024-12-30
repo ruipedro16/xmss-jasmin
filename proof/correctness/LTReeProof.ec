@@ -174,7 +174,7 @@ lemma ltree_correct (_pk : W8.t Array2144.t, _pub_seed : W8.t Array32.t, a0 a1 :
       arg{1}.`4 = a0 /\
 
       arg{2}.`1 = EncodeWotsPk _pk /\
-      arg{2}.`2 = a0 /\
+      arg{2}.`2 = a1 /\
       arg{2}.`3 = NBytes.insubd (to_list _pub_seed) /\
       
 
