@@ -65,6 +65,15 @@ move => ?.
 rewrite /sub_list size_mkseq /#.
 qed.
 
+lemma nth_sub_list ['a] (x : 'a list) (k len : int) (i : int) :
+    0 <= i < len =>
+    nth witness (sub_list x k len) i = nth witness x (k + i).
+proof.
+move => ?.
+rewrite /sub_list nth_mkseq //=.
+qed.
+
+
 op sub_mem_ptr (mem : global_mem_t) (ptr len : int) : W8.t list =
   mkseq (fun (i : int) => loadW8 mem (ptr + i)) len.
  
@@ -205,24 +214,6 @@ rewrite /nbytes_flatten (nth_flatten witness n).
       rewrite -(all_nthP P L witness) /P /L size_map => j?. 
       by rewrite (nth_map witness) // valP.
 by rewrite (nth_map witness).
-qed.
-
-lemma nth_nbytes_put (x : nbytes list) (i j : int) (v : nbytes) :
-    n = XMSS_N =>
-    0 <= i < size x =>
-    0 <= j %/ n && j %/ n < size x =>
-    nth witness (nbytes_flatten (put x i v)) j = 
-    nth witness (val (if i = j %/ n then v else nth witness x (j %/ n))) (j %% n).
-proof.
-rewrite /XMSS_N => n_val ??.
-rewrite /nbytes_flatten (nth_flatten witness n).
-  - pose P := (fun (s : W8.t list) => size s = n).
-    pose L := (map NBytes.val (put x i v)).
-    rewrite -(all_nthP P L witness) /P /L size_map size_put => ??. 
-    rewrite (nth_map witness); first by rewrite size_put.
-    by rewrite valP.
-rewrite (nth_map witness); first by rewrite size_put.
-by rewrite nth_put.
 qed.
 
 (** -------------------------------------------------------------------------------------------- **)
@@ -369,3 +360,46 @@ lemma sig_eq (s1 s2 : sig_t) :
     s1.`r       = s2.`r       /\
     s1.`r_sigs  = s2.`r_sigs => 
     s1 = s2 by smt(). 
+
+lemma w2bits_eq_w32_w64 (w0 : W32.t) (w1 : W64.t) :
+    to_uint w0 = to_uint w1 =>
+    forall (k : int), 0 <= k < 32 => 
+     nth witness (w2bits w0) k = nth witness (w2bits w1) k.
+proof.
+rewrite !to_uintE => ?.
+admit.
+qed.
+
+lemma toByte_eq (w0 : W32.t) (w1 : W64.t):
+    to_uint w0 = to_uint w1 =>
+    EncodeIdx w0 = toByte_64 w1 XMSS_INDEX_BYTES.
+proof.
+move => ?.
+apply (eq_from_nth witness).
+  - rewrite size_EncodeIdx size_toByte_64 // /#.
+rewrite size_EncodeIdx /XMSS_INDEX_BYTES => j?.
+rewrite /EncodeIdx /toByte_64.
+rewrite nth_take 1,2:/#.
+rewrite /W32toBytes.
+rewrite nth_rev.
+  - rewrite size_mkseq /#.
+rewrite nth_mkseq /=.
+  - rewrite size_mkseq /#.
+rewrite size_mkseq (: max 0 3 = 3) 1:/#.
+rewrite (nth_map witness).
+  - rewrite size_chunk /#.
+rewrite bits2wE.
+rewrite /BitsToBytes (nth_map witness).
+  - rewrite size_iota /#.
+rewrite (nth_map witness).
+  - rewrite size_chunk /#.
+rewrite bits2wE wordP => w?.
+rewrite !initiE //= nth_take // 1:/# nth_drop 2:/#.
+  - rewrite nth_iota /#.
+rewrite !w2bitsE nth_iota 1:/#.
+rewrite nth_mkseq 1:/# /=.
+rewrite /chunk nth_mkseq.
+  - rewrite size_mkseq 1:/#.
+rewrite nth_take 1,2:/# nth_drop 1,2:/# nth_mkseq 1:/#.
+admit. 
+qed.
