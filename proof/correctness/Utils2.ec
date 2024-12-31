@@ -16,6 +16,10 @@ lemma to_uint_xor_1_W32 (x : W32.t) :
     0 <= to_uint x < W32.max_uint - 1 => 
     0 <= to_uint (x `^` W32.one) < W32.max_uint by smt(@W32 pow2_32).
 
+lemma to_uint_xor_1_W32_2 (x : W32.t) : 
+    0 <= to_uint x < W32.max_uint - 1 => 
+    0 <= to_uint (x `^` W32.one) < `|W32.modulus| by smt(@W32 pow2_32).
+
 (* ar: address used for reading
    aw: address used for writing 
 *)
@@ -279,25 +283,6 @@ lemma valid_ptr_sub (p : W64.t) (l1 l2 : int) :
 
 pred valid_addr(p : int, o : int) = 
   0 <= o => 0 <= p /\ p + o < W64.modulus.
-
-
-(* disjoint pointers *)
-pred valid_disj_ptr(p1 : address, l1 : int, p2 : address, l2 : int) =
-      valid_addr p1 l1 /\ 
-      valid_addr p2 l2 /\ 
-      ((p1 + l1) <= p2  || (p2 + l2) <= p1).
-
-lemma disj_ptr_E (p1 l1 p2 l2 : int) :
-    valid_disj_ptr p1 l1 p2 l2 => 
-    ((p1 + l1) <= p2  || (p2 + l2) <= p1).
-proof.
-rewrite /valid_disj_ptr => [#] ???; assumption.
-qed.
-
-lemma disj_ptr_comm (p1 p2 : address) (l1 l2 : int) :
-    valid_disj_ptr p1 l1 p2 l2 <=>
-    valid_disj_ptr p2 l2 p1 l1 by smt().
-    
 
 (** -------------------------------------------------------------------------------------------- **)
 
