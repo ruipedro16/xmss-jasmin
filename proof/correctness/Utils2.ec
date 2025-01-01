@@ -310,15 +310,11 @@ proof.
 rewrite /W32toBytes size_map size_chunk // size_w2bits.
 qed.
 
-
 (** -------------------------------------------------------------------------------------------- **)
 
 lemma nseq_nth (x : W8.t list) (i : int) (v : W8.t) :
     x = nseq i v => forall (k : int), 0 <= k < i => nth witness x k = v
         by smt(@List).
-
-lemma size_singleton ['a] (x : 'a) : size [x] = 1 by [].
-
 
 lemma size_nbytes_flatten (x : nbytes list) :
     size (flatten (map NBytes.val x)) = n * size x.
