@@ -53,7 +53,6 @@ qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 
-
 op sub_list ['a] (x : 'a list) (k len : int) : 'a list = 
   mkseq (fun (i : int) => nth witness x (k + i)) len.
 
@@ -169,40 +168,8 @@ qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 
-(* W8 list w/32 elements loaded from memory *)
-op load_mem_w8_list32 (mem : global_mem_t) (ptr : W64.t) : W8.t list =
-    mkseq (fun (i : int) => loadW8 mem (to_uint ptr + i)) 32.
-
-lemma size_load_mem_w8_list32  (mem : global_mem_t) (ptr : W64.t) : 
-    size (load_mem_w8_list32 mem ptr) = 32.
-proof.
-by rewrite /load_mem_w8_list32 size_mkseq.
-qed.
-
-op load_mem_w8_array32 (mem : global_mem_t) (ptr : W64.t) : W8.t Array32.t =
-    Array32.init (fun (i : int) => loadW8 mem (to_uint ptr + i)).
-
-lemma load_mem_list_array_32 (mem : global_mem_t) (ptr : W64.t) :
-    load_mem_w8_list32 mem ptr = to_list (load_mem_w8_array32 mem ptr).
-proof.
-rewrite /load_mem_w8_list32 /load_mem_w8_array32.
-apply (eq_from_nth witness) ; [ rewrite /to_list !size_mkseq //= | smt(@List @Array32) ].
-qed.
-
-(** -------------------------------------------------------------------------------------------- **)
-
 op nbytes_flatten (x : nbytes list) : W8.t list =
   flatten (map (NBytes.val) x).
-
-lemma size_nbytes_flatten_2 (x : nbytes list) :
-    size (nbytes_flatten x) = n * size x.
-proof.
-rewrite /nbytes_flatten size_flatten sumzE BIA.big_map /(\o) //=. 
-rewrite -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => n)) /=.
-  + move => ?.  
-    rewrite mapP #smt:(NBytes.valP).
-rewrite big_constz count_predT size_map //=.
-qed.
 
 lemma nth_nbytes_flatten (x : nbytes list, i : int):
     0 <= i %/ n < size x =>
@@ -242,21 +209,12 @@ qed.
 
 op DecodeWotsSignature_List (s : wots_signature) : W8.t list = nbytes_flatten (val s).
 
-(** -------------------------------------------------------------------------------------------- **)
-
-lemma wots_sk_ssize (sk : wots_sk) :
-    forall (t : nbytes), t \in val sk => size (val t) = n
-      by smt(NBytes.valP).
-
-lemma wots_sig_size_flatten (s : wots_signature) :
-    n = 32 /\ len = 67 =>
-    size (flatten (map NBytes.val (val s))) = 2144.
+lemma size_DecodeWotsSignature_List (x : wots_signature) :
+    size (DecodeWotsSignature_List x) = n * len.
 proof.
-move => [#] n_val len_val.
-rewrite size_flatten sumzE BIA.big_map /(\o) //=. 
-rewrite -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 32)) 1:#smt:(wots_sk_ssize @List @NBytes).
-by rewrite big_constz count_predT size_map valP len_val.
+by rewrite /DecodeWotsSignature_List size_nbytes_flatten valP.
 qed.
+
 
 (** -------------------------------------------------------------------------------------------- **)
 
@@ -335,10 +293,14 @@ op EncodeAuthPath (x : W8.t list) : auth_path =
 
 op DecodeAuthPath_List (ap : auth_path) : W8.t list = nbytes_flatten (val ap).
 
+lemma size_DecodeAuthPath_List (x : auth_path) :
+    size (DecodeAuthPath_List x) = n * (h %/ d).
+proof.
+by rewrite /DecodeAuthPath_List size_nbytes_flatten valP.
+qed.
 
 op EncodeReducedSignature (x : W8.t list) :  wots_signature * auth_path =
   (EncodeWotsSignatureList (sub_list x 0 2144), EncodeAuthPath (sub_list x 2144 320)).
-
 
 
 (* sm = m || sig 
@@ -360,6 +322,14 @@ lemma sig_eq (s1 s2 : sig_t) :
     s1.`r       = s2.`r       /\
     s1.`r_sigs  = s2.`r_sigs => 
     s1 = s2 by smt(). 
+
+lemma encode_signature_i (x y : W8.t list) : 
+    x = y => 
+    EncodeSignature x = EncodeSignature y.
+proof.
+move => ->; reflexivity.
+qed.
+
 
 lemma w2bits_eq_w32_w64 (w0 : W32.t) (w1 : W64.t) :
     to_uint w0 = to_uint w1 =>
