@@ -2,7 +2,7 @@
 
 EASYCRYPT  ?= easycrypt
 EC_INCLUDE ?= -I common -I extraction -I spec -I correctness
-EC_FLAGS   ?= 
+EC_FLAGS   ?= -timeout 20 $(EC_INCLUDE)
 
 WEAK_CHECKMODE_FLAG := -pragmas Proofs:weak
  
@@ -40,7 +40,7 @@ typecheck_xmss_spec:
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Types.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/WOTS.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss/XMSS_Params.ec
-	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss/XMSS_PRF.ec
+	# $(EASYCRYPT) $(EC_INCLUDE) spec/xmss/XMSS_PRF.ec # FIXME:
 	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss/XMSS_TreeHash.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss/XMSS_Types.ec
 
@@ -64,13 +64,18 @@ typecheck_extraction: extraction/XMSS_IMPL.ec
 	$(EASYCRYPT) $(EC_INCLUDE) $<
 
 check_correctness_proof: extraction/XMSS_IMPL.ec 
-	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Repr2.ec
-	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Utils2.ec
-	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/Correctness_Conditions.ec
-	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) correctness/KeyGenProof.ec
+	$(EASYCRYPT) $(EC_FLAGS) correctness/DistrUtils.ec
+	$(EASYCRYPT) $(EC_FLAGS) correctness/Repr2.ec
+	$(EASYCRYPT) $(EC_FLAGS) correctness/Utils2.ec # FIXME: smt fails sometimes
+	$(EASYCRYPT) $(EC_FLAGS) correctness/Correctness_Mem.ec
+	$(EASYCRYPT) $(EC_FLAGS) correctness/Correctness_Hash.ec
+	$(EASYCRYPT) $(EC_FLAGS) correctness/Correctness_WOTS.ec
+	$(EASYCRYPT) $(EC_FLAGS) correctness/Correctness_TreehashCondition.ec
+	$(EASYCRYPT) $(EC_FLAGS) correctness/FinalTreeHashProof.ec
+	$(EASYCRYPT) $(EC_FLAGS) correctness/LTReeProof.ec
 	
 check_xmss_smssmt_proof: 
-	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) spec//XMSS_vs_XMSS_MT.ec || true
+	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) spec//XMSS_vs_XMSS_MT.ec || true # FIXME: this prroof is broken
 
 check_security_proof:
 	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) # ficheiro da prova

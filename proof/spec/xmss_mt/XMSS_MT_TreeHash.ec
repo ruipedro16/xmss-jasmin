@@ -17,7 +17,7 @@ pred leftmost_leaf (s t : int)  = s %% 2^t = 0.
 (* Precondition *)
 pred treehash_p (s t : int) = s %% (1 `<<` t) <> 0.
 
-print (`>>`).
+op nbytes_witness : nbytes = NBytes.insubd (nseq n witness).
 
 
 module TreeHash = {
@@ -64,8 +64,8 @@ module TreeHash = {
         address <- set_tree_height address (to_uint (nth witness heights (to_uint (offset - W64.one))));
         address <- set_tree_index address (W32.to_uint tree_index);
 
-        node0 <- nth witness stack (to_uint (offset - W64.of_int 2));
-        node1 <- nth witness stack (to_uint (offset - W64.one));
+        node0 <- nth nbytes_witness stack (to_uint (offset - W64.of_int 2));
+        node1 <- nth nbytes_witness stack (to_uint (offset - W64.one));
 
         new_node <@ Hash.rand_hash(node0, node1, pub_seed, address);
 
