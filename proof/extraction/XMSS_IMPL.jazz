@@ -1142,12 +1142,12 @@ inline fn __memset_u8_ptr(reg u64 _ptr inlen, reg u8 value) {
 //
 // post condition: sub out offset_out XMSS_N = sub in offset_in XMSS_N 
 
-inline fn __nbytes_copy_offset_131_32(
-    reg ptr u8[131] out,
+inline fn __nbytes_copy_offset_64_32(
+    reg ptr u8[64] out,
     reg u64 offset_out,
     reg ptr u8[32] in,
     reg u64 offset_in
-) -> reg ptr u8[131]
+) -> reg ptr u8[64]
 {
     // TODO: XMSS_N is either 24, 32 or 64 (all divisible by 4), meaning that we can 
     //       copy 4 bytes (i.e a u64) at a time
@@ -1163,12 +1163,12 @@ inline fn __nbytes_copy_offset_131_32(
     return out;
 }
 
-inline fn __nbytes_copy_offset_64_32(
-    reg ptr u8[64] out,
+inline fn __nbytes_copy_offset_131_32(
+    reg ptr u8[131] out,
     reg u64 offset_out,
     reg ptr u8[32] in,
     reg u64 offset_in
-) -> reg ptr u8[64]
+) -> reg ptr u8[131]
 {
     // TODO: XMSS_N is either 24, 32 or 64 (all divisible by 4), meaning that we can 
     //       copy 4 bytes (i.e a u64) at a time
@@ -1392,9 +1392,9 @@ inline fn _x_memcpy_u8u8p(
 
 // Same as _x_memcpy_u8u8 but with offset in and out
 
-inline fn __memcpy_u8u8_2_64_2144(
+inline fn __memcpy_u8u8_2_64_352(
     reg ptr u8[64] out,
-    reg ptr u8[2144] in,
+    reg ptr u8[352] in,
     reg u64 in_offset,
     reg u64 bytes
 ) -> reg ptr u8[64], reg u64
@@ -1412,29 +1412,9 @@ inline fn __memcpy_u8u8_2_64_2144(
     return out, in_offset;
 }
 
-inline fn __memcpy_u8u8_2_32_2144(
-    reg ptr u8[32] out,
-    reg ptr u8[2144] in,
-    reg u64 in_offset,
-    reg u64 bytes
-) -> reg ptr u8[32], reg u64
-{
-    reg u64 i;
-
-    i = 0;
-    while (i < bytes) {
-        // out[out_offset] = in[in_offset];
-        out[i] = in[in_offset];
-        i += 1;
-        in_offset += 1;
-    }
-
-    return out, in_offset;
-}
-
-inline fn __memcpy_u8u8_2_64_352(
+inline fn __memcpy_u8u8_2_64_2144(
     reg ptr u8[64] out,
-    reg ptr u8[352] in,
+    reg ptr u8[2144] in,
     reg u64 in_offset,
     reg u64 bytes
 ) -> reg ptr u8[64], reg u64
@@ -2052,7 +2032,7 @@ fn __expand_seed(
 
     // memcpy(buf, pub_seed, params->n);
     // old: buf[0 : XMSS_N] = _x_memcpy_u8u8_32_32(buf[0 : XMSS_N], pub_seed);
-    buf[0 : XMSS_N] = #copy_32(pub_seed);
+    buf[0 : XMSS_N] = #copy_8(pub_seed);
 
     for i = 0 to XMSS_WOTS_LEN {
         // NOTE: addr is live at the beggining of the loop => we must unspill it at the end
@@ -2657,10 +2637,6 @@ inline fn __l_tree(
 
             // First we need to copy wots_pk + i*params->n and wots_pk + (i*2)*params->n to the respective buffers
             () = #unspill(wots_pk);
-            offset_in = i * XMSS_N;
-            bytes = XMSS_N;
-            buf0, _ = __memcpy_u8u8_2_32_2144(buf0, wots_pk, offset_in, bytes);
-
             offset_in = (i * 2); offset_in *= XMSS_N;
             bytes = 2 * XMSS_N;
             buf1, _ = __memcpy_u8u8_2_64_2144(buf1, wots_pk, offset_in, bytes);
@@ -3734,7 +3710,8 @@ fn __xmssmt_core_sign(
         sk_prf = sk[XMSS_INDEX_BYTES + XMSS_N : XMSS_N];   
         buf = __prf_(buf, index_bytes, sk_prf);
 
-        // sm_ptr, _ = _x_memcpy_u8pu8_32(sm_ptr, XMSS_INDEX_BYTES, buf); // Write R to the signature 
+        // sm_ptr, _ = _x_memcpy_u8pu8_32(sm_ptr, XMSS_INDEX_BYTES, buf); 
+        // Write R to the signature 
         signature[XMSS_INDEX_BYTES : XMSS_N] = #copy_8(buf);
 
         // hash_message(params, mhash, sm + params->index_bytes, pub_root, idx, sm + params->sig_bytes - 

@@ -29,3 +29,4 @@ op XMSS_INDEX_BYTES : int = 3.
 op XMSS_SIG_BYTES : int = 4963.
 op XMSS_PK_BYTES : int = 64.
 op XMSS_SK_BYTES : int = 131.
+op XMSS_REDUCED_SIG_BYTES : int = 2464.
