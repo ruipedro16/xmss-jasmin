@@ -3,8 +3,3 @@
 tmp/
 *~
 .#*
-
-.lia.cache
-.interactive 
-
-treehash_example/

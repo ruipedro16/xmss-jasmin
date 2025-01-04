@@ -12,6 +12,24 @@ require import Array8 Array11.
 
 (*****) import StdBigop.Bigint.
 
+lemma foobar (a b c : int) : 
+    0 < b =>
+    b %| c =>
+    a * b < c => a < c %/ b.
+proof.
+move => ??.
+search (_ < _ %/ _). 
+smt(@IntDiv @Real).
+qed.
+
+lemma nth_chunk ['a] (x : 'a list) (chunk_size i : int) :
+    0 <= chunk_size =>
+    0 <= i && i < size x %/ chunk_size =>
+    nth witness (chunk chunk_size x) i = take chunk_size (drop (chunk_size * i) x).
+proof.
+move => ??; rewrite /chunk nth_mkseq //=. 
+qed.
+
 lemma to_uint_xor_1_W32 (x : W32.t) : 
     0 <= to_uint x < W32.max_uint - 1 => 
     0 <= to_uint (x `^` W32.one) < W32.max_uint by smt(@W32 pow2_32).
@@ -79,35 +97,6 @@ have ?: forall (k : int), 0 <= k < len2 => a1.[k] = a2.[k] by smt(sub_k).
 rewrite !nth_sub /#.
 qed.
 
-
-lemma addr_sub_5 (a0 a1 : W32.t Array8.t) :
-    a0.[0] = a1.[0] /\
-    a0.[1] = a1.[1] /\
-    a0.[2] = a1.[2] /\
-    a0.[3] = a1.[3] /\
-    a0.[4] = a1.[4] 
-          <=>
-    sub a0 0 5 = sub a1 0 5.
-proof.
-split.
-  + move => [#] *.
-    apply (eq_from_nth witness); first by rewrite !size_sub.
-    rewrite size_sub // => i?.
-    rewrite !nth_sub //=/#.
-  + move => H.
-    do split.
-       - have ->: a0.[0] = nth witness (sub a0 0 5) 0 by rewrite nth_sub.
-         by rewrite H nth_sub.
-       - have ->: a0.[1] = nth witness (sub a0 0 5) 1 by rewrite nth_sub.
-         by rewrite H nth_sub.
-       - have ->: a0.[2] = nth witness (sub a0 0 5) 2 by rewrite nth_sub.
-         by rewrite H nth_sub.
-       - have ->: a0.[3] = nth witness (sub a0 0 5) 3 by rewrite nth_sub.
-         by rewrite H nth_sub.
-       - have ->: a0.[4] = nth witness (sub a0 0 5) 4 by rewrite nth_sub.
-         by rewrite H nth_sub.
-qed.
-
 (** -------------------------------------------------------------------------------------------- **)
 
 lemma truncate_1_and_63 :
@@ -149,6 +138,18 @@ elim t => //.
 move => i??.
 smt(@Real).
 qed.
+
+lemma pow2_c (e l : int) : 
+    0 <= e < l =>
+    0 < 2^e < 2^l.
+proof.
+move => [??].
+split.
+apply pow2_pos; first by assumption.
+move => ?.
+smt(@StdOrder.IntOrder).
+qed.
+
 
 (** -------------------------------------------------------------------------------------------- **)
 
@@ -284,6 +285,27 @@ lemma valid_ptr_sub (p : W64.t) (l1 l2 : int) :
 pred valid_addr(p : int, o : int) = 
   0 <= o => 0 <= p /\ p + o < W64.modulus.
 
+(** 
+  This lemma asserts that two memory regions specified by their starting addresses and lengths are disjoint.
+  
+  Parameters:
+  - p1 : int - The starting address of the first memory region.
+  - l1 : int - The length of the first memory region.
+  - p2 : int - The starting address of the second memory region.
+  - l2 : int - The length of the second memory region.
+
+  The lemma states that for all indices `k1` and `k2` within the bounds of their respective memory regions,
+  the addresses `p1 + k1` and `p2 + k2` do not overlap, i.e., they are not equal.
+**)
+pred disjoint_ptr (p1 l1 p2 l2 : int) =
+  forall (k1 : int), 0 <= k1 < l1 =>
+    forall (k2 : int), 0 <= k2 < l2 =>
+      p1 + k1 <> p2 + k2.
+
+lemma disjoint_ptr_comm (p1 l1 p2 l2 : int) : 
+    disjoint_ptr p1 l1 p2 l2 <=>
+    disjoint_ptr p2 l2 p1 l1 by smt().
+
 (** -------------------------------------------------------------------------------------------- **)
 
 lemma nbytes_eq:
@@ -355,24 +377,33 @@ move => H k?.
 by rewrite (: b.[k] = nth witness (to_list b) k) 1:/# -H nth_sub.
 qed.
 
-
-lemma sub_sub_minus (a b : W8.t Array131.t) (m n : int) :
-    0 <= n < 131 /\ 0 <= m < n =>
-       sub a 0 n = sub b 0 n => sub a 0 m = sub b 0 m.
-proof.
-move => [#] ????H.
-apply (eq_from_nth witness); first by rewrite !size_sub.
-rewrite size_sub // => i?.
-rewrite !nth_sub //=.
-have ->: a.[i] = nth witness (sub a 0 n) i by rewrite nth_sub // /#.
-have ->: b.[i] = nth witness (sub b 0 n) i by rewrite nth_sub // /#.
-by congr.
-qed.
-
-
 lemma ceil_3_2 : ceil (3%r / 2%r) = 2.
 proof.
 have ?: 1 < ceil (3%r / 2%r) by smt(@Real).
 have ?: ceil (3%r / 2%r) <= 2 by smt(@Real).
 smt().
+qed.
+
+lemma load_store_W64 (mem : global_mem_t) (a : address) (v : W64.t) :
+    loadW64 (storeW64 mem a v) a = v.
+proof.
+rewrite /loadW64 /storeW64 wordP => j?.
+rewrite pack8E /stores initiE // => />. 
+rewrite initiE 1:/# => />. 
+rewrite get_setE.
+  + case (a + j %/ 8 = a + 7) => *; [rewrite /(\bits8) initiE /# |].
+rewrite get_setE.
+  + case (a + j %/ 8 = a + 6) => *; [rewrite /(\bits8) initiE /# |].
+rewrite get_setE.
+  + case (a + j %/ 8 = a + 5) => *; [rewrite /(\bits8) initiE /# |].
+rewrite get_setE.
+  + case (a + j %/ 8 = a + 4) => *; [rewrite /(\bits8) initiE /# |].
+rewrite get_setE.
+  + case (a + j %/ 8 = a + 3) => *; [rewrite /(\bits8) initiE /# |].
+rewrite get_setE.
+  + case (a + j %/ 8 = a + 2) => *; [rewrite /(\bits8) initiE /# |].
+rewrite get_setE.
+  + case (a + j %/ 8 = a + 1) => *; [rewrite /(\bits8) initiE /# |].
+rewrite get_setE.
+  + rewrite ifT 1:/# /(\bits8) initiE /#.
 qed.

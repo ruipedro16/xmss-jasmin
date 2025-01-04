@@ -36,7 +36,6 @@ extern void treesig_jazz(uint8_t *sig, uint32_t *addr, const uint8_t *M, const u
 void treehash_new(const xmss_params *params, unsigned char *root, const unsigned char *sk_seed,
                   const unsigned char *pub_seed, uint32_t start_index, /* leaf_idx in the old impl */
                   uint32_t target_height, const uint32_t subtree_addr[8]) {
-    assert(subtree_addr[4] == 0);
 
     unsigned char stack[(params->tree_height + 1) * params->n];
     unsigned int heights[params->tree_height + 1];
@@ -71,7 +70,6 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
 
         /* While the top-most nodes are of equal height.. */
         while (offset >= 2 && heights[offset - 1] == heights[offset - 2]) {
-            // assert(I2);
 
             /* Compute index of the new node, in the next layer. */
             tree_idx = ((start_index + i) >> (heights[offset - 1] + 1));
@@ -97,6 +95,7 @@ void build_auth_path(const xmss_params *params,
                      const unsigned char *sk_seed, const unsigned char *pub_seed,
                      uint32_t i,  // wots+ Key pair index (index of the node on the tree)
                      uint32_t *addr) {
+                        
     uint32_t k;
     for (unsigned int j = 0; j < params->tree_height; j++) {
         k = ((i >> j) ^ 1) << j;
@@ -109,6 +108,8 @@ void build_auth_path(const xmss_params *params,
 // treesig
 void treesig(const xmss_params *params, unsigned char *sig /* reduced signature =  wots signature || auth path */,
              const unsigned char *M, unsigned char *sk, uint32_t idx_sig, uint32_t *addr) {
+        
+
     unsigned char sig_ots[params->wots_sig_bytes];
     unsigned char auth_path[params->tree_height + 1 * params->n];
 
