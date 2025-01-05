@@ -269,6 +269,8 @@ fn __tree_sig(
 
     inline int i;
 
+    addr[4] = 0;
+
     () = #spill(sig, addr, idx_sig, M, pub_seed, sk_seed);
 
     // auth = buildAuth(SK, idx_sig, ADRS);
