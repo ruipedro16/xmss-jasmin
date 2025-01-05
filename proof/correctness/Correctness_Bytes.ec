@@ -21,9 +21,48 @@ require import StdBigop.
 (*---*) import Bigint.
 
 import W4u8.Pack.
+import W8u8.Pack.
 
-(**  relacao entre o toByte da spec e os outros da impl ------------------------------------------------------------ **)
+(* This is not big endian *)
+op W32toBytes    (x : W32.t) : W8.t list = to_list (W4u8.unpack8 x).
 
+(* This is big endian *)
+op W32toBytes_be (x : W32.t) : W8.t list = rev (to_list (W4u8.unpack8 x)).
+
+(* This is not big endian *)
+op W64toBytes    (x : W64.t) : W8.t list = to_list (W8u8.unpack8 x).
+
+(* This is big endian *)
+op W64toBytes_be (x : W64.t) : W8.t list = rev (to_list (W8u8.unpack8 x)).
+
+(* drop the least significant byte *)
+(* x is not big endian *)
+op drop_msbyte (x : W8.t list) : W8.t list = behead x.
+
+(* x is big endian *)
+op drop_msbyte_be (x : W8.t list) : W8.t list = take (size x - 1) x.
+
+lemma size_behead x :
+    size (behead x) = 
+       if (x = [<:'a>]) then 0 else size x - 1 by smt().
+(* sem este <:'a> tenho o erro "the formula contains free type variables" *)
+
+lemma size_drop_lsbyte (x : W8.t list) : 
+    0 < size x =>
+    size (drop_msbyte x) = size x - 1.
+proof.
+move => ?.
+by rewrite size_behead ifF 1:/#.
+qed.
+
+lemma size_drop_msbyte_be (x : W8.t list) : 
+    0 < size x =>
+    size (drop_msbyte_be x) = size x - 1.
+proof.
+move => ?; rewrite size_take /#.
+qed.
+
+ 
 (** -------------------------------------------------------------------------------------------- **)
 
 lemma ull_to_bytes2_post (x : W64.t, y : W32.t) :
@@ -36,48 +75,7 @@ lemma ull_to_bytes2_post (x : W64.t, y : W32.t) :
     to_list res = toByte y 2 ] = 1%r.
 proof.
 proc.
-unroll 4; unroll 5.
-rcondt 4; first by auto.
-rcondt 7; first by auto.
-rcondf 10; first by auto.
-auto => /> &hr H0 H1 H2.
-apply (eq_from_nth witness); first by rewrite size_to_list size_toByte_32.
-rewrite size_to_list => j?.
-rewrite get_to_list.
-rewrite /toByte nth_rev.
-  + by rewrite size_mkseq.
-rewrite nth_mkseq /=.
-  + by rewrite !size_mkseq /#.
-rewrite size_mkseq (: max 0 2 = 2) //.
-case (j = 1) => [-> | ?]; auto => />.
-  + rewrite /BitsToBytes.
-    rewrite wordP => i [??].
-    rewrite (nth_map witness); first by rewrite size_chunk // size_w2bits.
-    rewrite /chunk size_w2bits nth_mkseq 1:/# /=.
-    rewrite bits2wE initiE //= nth_take // nth_drop //.
-    rewrite w2bitsE nth_mkseq 1:/# /=.
-    rewrite /truncateu8 H0.
     admit.
-
-  + have ->: j = 0 by smt(). 
-    rewrite !get_setE // ifT 1:/#.
-    rewrite wordP => i [??].
-    rewrite /BitsToBytes.
-    rewrite (nth_map witness); first by rewrite size_chunk // size_w2bits.
-    rewrite /chunk size_w2bits nth_mkseq 1:/# /=.
-    rewrite bits2wE initiE //= nth_take // nth_drop //.
-    rewrite w2bitsE nth_mkseq 1:/# /=.
-    rewrite /truncateu8 to_uint_shr of_uintK //= H0.
-    admit.
-qed.
-
-lemma _ull_to_bytes_32_correct (x : W64.t) : 
-    hoare [M(Syscall).__ull_to_bytes_32 :
-      arg.`2 = x ==> to_list res = toByte_64 x 32].
-proof.
-proc => /=.
-auto.
-admit.
 qed.
 
 lemma ull_to_bytes_32_correct (x : W64.t) : 
@@ -85,16 +83,20 @@ lemma ull_to_bytes_32_correct (x : W64.t) :
       M(Syscall).__ull_to_bytes_32 :
       arg.`2 = x 
       ==> 
-      to_list res = toByte_64 x 32
-    ] = 1%r
-        by conseq ull_to_bytes_32_ll (_ull_to_bytes_32_correct x).
+      to_list res = toByte (truncateu32 x) XMSS_N
+    ] = 1%r.
+proof.
+proc => /=.
+admit.
+qed.
 
 lemma ull_to_bytes_3_correct (x : W64.t) : 
     phoare [
       M(Syscall).__ull_to_bytes_3 :
+      0 <= to_uint x <= 2^XMSS_FULL_HEIGHT =>
       arg.`2 = x 
       ==> 
-      to_list res = toByte_64 x 3
+      to_list res = EncodeIdx (truncateu32 x)
     ] = 1%r.
 proof.
 proc => /=.
@@ -130,22 +132,19 @@ lemma bytes_to_ull_ptr_correct (mem : global_mem_t) (ptr : W64.t) :
       res = W64ofBytes (mkseq (fun i => loadW8 mem (to_uint ptr + i)) XMSS_INDEX_BYTES)
     ] = 1%r.
 proof.
-by conseq bytes_to_ull_ptr_ll (_bytes_to_ull_ptr_correct mem ptr). 
+admit.
 qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 
-lemma ull_to_bytes_correct_ (bytes : W8.t Array3.t) : (* the array has the size XMSS_IDX_BYTES *)
-   hoare[ M(Syscall).__bytes_to_ull : arg = bytes ==> 
-      res = W64ofBytes (to_list bytes)].
-proof.
-proc => /=.
-admit.
-qed.
 
 lemma ull_to_bytes_correct (bytes : W8.t Array3.t) : (* the array has the size XMSS_IDX_BYTES *)
-   phoare[ M(Syscall).__bytes_to_ull : arg = bytes ==> 
-      res = W64ofBytes (to_list bytes)] = 1%r.
+   phoare[ 
+    M(Syscall).__bytes_to_ull : 
+    arg = bytes 
+    ==> 
+    to_uint res = to_uint (DecodeIdx (to_list bytes))
+  ] = 1%r.
 proof.
 admit.
 qed.
