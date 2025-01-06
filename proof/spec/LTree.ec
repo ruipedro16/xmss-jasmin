@@ -11,7 +11,7 @@ require import Params Address Hash WOTS.
 op H_msg_padding_val : W64.t.
 
 op H_msg (t : threen_bytes) (M : W8.t list) : nbytes =
-  let padding : W8.t list = toByte_64 H_msg_padding_val padding_len in
+  let padding : W8.t list = toByte_64 H_msg_padding_val n in
   Hash (padding ++ val t ++ M).
 
 clone export Subtype as WOTSKeys with 

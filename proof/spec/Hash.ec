@@ -18,8 +18,8 @@ op rand_hash_padding : W64.t = W64.one.
 op padding_len : int.
 axiom padding_len_ge0 : 0 <= padding_len.
 
-op toByte_64(x : W64.t) (len : int) : W8.t list = 
-   rev (mkseq (fun i => nth W8.zero (BitsToBytes (W64.w2bits x)) i) len).
+op toByte_64(x : W64.t) (l : int) : W8.t list = 
+  rev (mkseq (fun i => nth W8.zero (to_list (W8u8.unpack8 x)) i) l). 
 
 op bytexor(a b : W8.t list) : W8.t list = 
    map (fun (ab : W8.t * W8.t) => ab.`1 `^` ab.`2) (zip a b).
