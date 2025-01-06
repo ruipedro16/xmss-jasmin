@@ -53,9 +53,8 @@ inline fn __bytes_to_ull(reg ptr u8[XMSS_INDEX_BYTES] in) -> reg u64 {
 
     u = XMSS_INDEX_BYTES - 1;
     u -= i;
-    ?{}, u = #SHL(u, 3); // same as u *= 8
-
-    ?{}, t = #SHL(t, u);
+    u <<= 3;
+    t <<= u & 63;
 
     result |= t;
 
@@ -81,9 +80,8 @@ inline fn __bytes_to_ull_ptr(reg u64 in_ptr) -> reg u64 {
 
     u = XMSS_INDEX_BYTES - 1;
     u -= i;
-    ?{}, u = #SHL(u, 3); // same as u *= 8
-
-    ?{}, t = #SHL(t, u);
+    u <<= 3;
+    t <<= u & 63;
 
     result |= t;
 
