@@ -1,14 +1,20 @@
 pragma Goals : printall.
 
 require import AllCore List RealExp IntDiv.
+
+require import Address.
+import BitEncoding.BitChunking.
+
 from Jasmin require import JModel.
 
 require import XMSS_IMPL Parameters.
-require import Params Address Hash.
+require import Params Address BaseW Hash LTree.
 require import Correctness_Bytes Correctness_Mem Correctness_Address.
 require import Utils2 Repr2.
 
 require import Array8 Array32 Array64 Array96 Array128.
+
+(*---*) import StdBigop.Bigint.
 
 axiom hash_96 (x : W8.t Array96.t) :
   phoare[
@@ -26,16 +32,30 @@ axiom hash_128 (x : W8.t Array128.t) :
       to_list res = val (Hash (to_list x))
     ] = 1%r.
 
+axiom hash_ptr_ll (ptr len : W64.t) :
+  phoare[
+      M(Syscall).__core_hash_in_ptr_ :
+      valid_ptr_i ptr (to_uint len) 
+      ==>
+      true
+    ]= 1%r.
+
 axiom hash_ptr_correct (ptr len : W64.t) :
-  hoare[
+  phoare[
       M(Syscall).__core_hash_in_ptr_ :
       valid_ptr_i ptr (to_uint len) /\
       arg.`2 = ptr /\
       arg.`3 = len 
       ==>
       to_list res = val (Hash (load_buf Glob.mem ptr (to_uint len)))
-  ].
+  ] = 1%r.
 
+lemma size_toByte_64 w l : 
+    0 <= l =>
+    size (toByte_64 w l) = l.
+proof.
+by move => ?; rewrite /toByte_64 size_rev size_mkseq /#.
+qed.
 
 lemma prf_correctness (a b : W8.t Array32.t) :
     n = XMSS_N /\
@@ -55,11 +75,14 @@ proc => /=.
 seq 9 2 : (buf{2} = to_list buf{1}); last first.
   + inline M(Syscall).__core_hash__96 M(Syscall)._core_hash_96; wp; sp.
     ecall {1} (hash_96 buf{1}); auto => /> /#.
+
 seq 3 0 : #pre; 1:auto. 
+
 seq 1 1 : (#pre /\ padding{2} = to_list padding_buf{1}).
   + call {1} (ull_to_bytes_32_correct (of_int 3)%W64). 
     auto => /> ? ->. 
-    by rewrite plen pval.
+    by rewrite /toByte_64 /W64toBytes_ext pval plen.
+
 seq 1 0 : (
   val key{2} = to_list key{1} /\
   val in_0{2} = to_list in_0{1} /\
@@ -70,7 +93,9 @@ seq 1 0 : (
       move => k??.
       rewrite initiE 1:/# => />.  
       by rewrite ifT. 
+
 seq 1 0 : (#pre /\ aux{1} = key{1}); first by ecall {1} (_x_memcpy_u8u8_post key{1}); auto => />.
+
 seq 1 0 : (#pre /\ forall (k : int), 32 <= k < 64 => buf{1}.[k] = nth witness (val key{2}) (k - 32)).
     + auto => /> &1 &2 H0 H1 H2; split => k??.  
          - rewrite initiE 1:/# => />.     
@@ -78,6 +103,7 @@ seq 1 0 : (#pre /\ forall (k : int), 32 <= k < 64 => buf{1}.[k] = nth witness (v
            apply H2 => //. 
          - rewrite initiE 1:/# => />. 
            rewrite ifT //= H0 get_to_list //=.
+
 seq 1 0 : (
   val key{2} = to_list key{1} /\
   val in_0{2} = to_list in_0{1} /\
@@ -86,6 +112,7 @@ seq 1 0 : (
   (forall (k : int), 32 <= k < 64 => buf{1}.[k] = nth witness (val key{2}) (k - 32)) /\
   aux{1} = in_0{1}
 ); first by ecall {1} (_x_memcpy_u8u8_post in_0{1}); auto => /> /#.
+
 seq 1 0 : (
   val key{2} = to_list key{1} /\
   val in_0{2} = to_list in_0{1} /\ 
@@ -108,9 +135,12 @@ seq 1 0 : (
          - move => k??. 
            rewrite initiE 1:/# => />.
            rewrite ifT // -get_to_list -H1 //.        
+
 auto => /> &1 &2 H0 H1 H2 H3 H4 H5. 
+
 apply (eq_from_nth witness).
     + rewrite !size_cat !size_to_list !valP n_val //. 
+
 rewrite !size_cat H0 !size_to_list //= valP n_val  //= => i?. 
 case (0 <= i < 32).
     + move => ?.
@@ -140,11 +170,14 @@ proc => //=.
 seq 9 2 : (buf{2} = to_list buf{1}); last first.
   + inline M(Syscall).__core_hash__128 M(Syscall)._core_hash_128; wp; sp.
     ecall {1} (hash_128 buf{1}); auto => /> /#.
+
 seq 3 0 : #pre; 1:auto.
+
 seq 1 1 : (#pre /\ padding{2} = to_list padding_buf{1}).
   + call {1} (ull_to_bytes_32_correct (of_int 4)%W64). 
     auto => /> ? ->. 
-    by rewrite pval plen.
+    by rewrite pval plen. 
+
 seq 1 0 : (
   val key{2} = to_list key{1} /\
   in_0{2} = to_list in_0{1} /\
@@ -156,7 +189,9 @@ seq 1 0 : (
          * move => k??.
            rewrite initiE 1:/# => />. 
            by rewrite ifT.
+
 seq 1 0 : (#pre /\ aux{1} = key{1}); first by ecall {1} (_x_memcpy_u8u8_post key{1}); auto => />.
+
 seq 1 0 : (
     #pre /\ 
     forall (k : int), 32 <= k < 64 => buf{1}.[k] = nth witness (val key{2}) (k - 32)
@@ -167,6 +202,7 @@ seq 1 0 : (
            apply H1 => //.
          * rewrite initiE 1:/# => />.
            by rewrite ifT 1:/# H0 get_to_list.           
+
 seq 1 0 : (
   val key{2} = to_list key{1} /\
   in_0{2} = to_list in_0{1} /\
@@ -198,9 +234,12 @@ seq 1 0 : (
          * move => k??.
            rewrite initiE 1:/# => />.
            by rewrite ifT 1:/#. 
+
 auto => /> &1 &2 H0 H1 H2 H3 H4.
+
 apply (eq_from_nth witness). 
     + rewrite !size_cat H0 !size_to_list //=.
+
 rewrite !size_cat H0 !size_to_list //= => i?.
 case (0 <= i < 32).
     + move => ?.
@@ -262,7 +301,9 @@ seq 3 0 : #pre; first by auto.
 seq 1 1 : (#pre /\ padding{2} = to_list aux{1} /\ size padding{2} = 32).
     + call {1} (ull_to_bytes_32_correct W64.one). 
       auto => />  H result ->.
-      by split; [congr | rewrite size_toByte_64] => /#.  
+      split.
+        - by rewrite /rand_hash_padding plen.
+        - rewrite size_toByte_64 /#.
 
 swap {1} [2..3] -1.
 
@@ -292,11 +333,27 @@ seq 1 1 :(
            by rewrite nth_cat valP nval ifF 1:/#. 
          * by rewrite NBytes.insubdK //= /P size_to_list nval.
 
+
 seq 1 1 : (#pre /\ val addr_bytes{2} = to_list addr_as_bytes{1}).
     + inline {1} M(Syscall).__set_key_and_mask.
-      ecall {1} (addr_to_bytes_correctness addr{1}).
+      exists * addr{1}; elim * => P.
+      call {1} (addr_to_bytes_correctness P).
       auto => /> &1 &2 ????? ->.
-      by rewrite /set_key_and_mask.  
+      apply (eq_from_nth witness).
+          * rewrite valP size_flatten sumzE BIA.big_map /(\o) //=.
+            rewrite -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 4)) /=; last first.
+                +  rewrite big_constz count_predT size_map size_to_list /#.
+            rewrite in_nth size_map size_to_list /= => j?.
+            rewrite (nth_map witness); first by rewrite size_to_list /#.
+            rewrite /W32toBytes size_rev; first by rewrite size_to_list /#.
+      rewrite valP nval => j?.
+      rewrite /addr_to_bytes => />.
+      rewrite insubdK /= 2:/# /P size_flatten sumzE BIA.big_map /(\o) //=.
+      rewrite -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 4)) /=; last first.
+          * rewrite big_constz count_predT size_map size_to_list /#.
+      rewrite in_nth size_map size_to_list /= => ??.
+      rewrite (nth_map witness); first by rewrite size_to_list /#.
+      rewrite /W32toBytes size_rev; first by rewrite size_to_list /#.
 
 seq 1 0 : (
   #pre /\
@@ -333,7 +390,11 @@ seq 1 0 : (
     + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 ->. 
       split => k??; rewrite initiE 1:/# /=; [by rewrite ifF /# | by rewrite ifT 1:/#]. 
 
-seq 2 2 : (
+seq 1 1 : #pre.
+    + inline {1}; auto => /> *; apply (eq_from_nth witness); rewrite !size_sub // => j?; rewrite !nth_sub //= get_setE //; smt(sub_k).
+       
+
+seq 1 1 : (
   sub addr{1} 0 7 = sub a1 0 7 /\
   to_list in_0{1} = val _left{2} ++ val _right{2} /\
   val _seed{2} = to_list pub_seed{1} /\
@@ -345,16 +406,24 @@ seq 2 2 : (
   (forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = nth witness (val key{2}) k)
 ).
     + inline {1} M(Syscall).__set_key_and_mask.
-      ecall {1} (addr_to_bytes_correctness addr{1}).
-      auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 result ->.
-      split. 
-        - apply (eq_from_nth witness); first by rewrite !size_sub.
-          rewrite size_sub // => i?.
-          rewrite !nth_sub // get_setE // ifF 1:/# /=.
-          have ->: address{2}.[i] = nth witness (sub address{2} 0 7) i by rewrite nth_sub.
-          by rewrite H0 nth_sub.
-        - congr; congr.
-          by rewrite /set_key_and_mask.
+      exists * addr{1}; elim * => P.
+      call {1} (addr_to_bytes_correctness P).
+      auto => /> &1 &2 ?????????->.
+      apply (eq_from_nth witness).
+          - rewrite valP size_flatten sumzE BIA.big_map /(\o) //=.
+            rewrite -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 4)) /=; last first.
+                *  rewrite big_constz count_predT size_map size_to_list /#.
+            rewrite in_nth size_map size_to_list /= => j?.
+            rewrite (nth_map witness); first by rewrite size_to_list /#.
+            rewrite /W32toBytes size_rev; first by rewrite size_to_list /#.
+      rewrite valP nval => j?.
+      rewrite /addr_to_bytes => />.
+      rewrite insubdK /= 2:/# /P size_flatten sumzE BIA.big_map /(\o) //=.
+      rewrite -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 4)) /=; last first.
+          - rewrite big_constz count_predT size_map size_to_list /#.
+      rewrite in_nth size_map size_to_list /= => ??.
+      rewrite (nth_map witness); first by rewrite size_to_list /#.
+      rewrite /W32toBytes size_rev; first by rewrite size_to_list /#.
 
 seq 2 1 : (
   to_list in_0{1} = val _left{2} ++ val _right{2} /\
@@ -377,7 +446,10 @@ seq 2 1 : (
       move => ???? -> ???. 
       by rewrite initE ifT 1:/# /= ifT.
 
-seq 2 2 : (
+seq 1 1 : #pre.
+    + inline {1}; auto => /> *; apply (eq_from_nth witness); rewrite !size_sub // => j?; rewrite !nth_sub //= get_setE //; smt(sub_k).
+
+seq 1 1 : (
   to_list in_0{1} = val _left{2} ++ val _right{2} /\
   val _seed{2} = to_list pub_seed{1} /\
   address{2} = addr{1} /\
@@ -388,16 +460,24 @@ seq 2 2 : (
   (forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = nth witness (val key{2}) k) /\
   sub addr{1} 0 7 = sub a1 0 7
 ).
-    + inline {1} M(Syscall).__set_key_and_mask.
-      ecall {1} (addr_to_bytes_correctness addr{1}).
-      auto => /> &1 &2 ???????H? ->.
-      rewrite /set_key_and_mask.
-      split => //.
-      apply (eq_from_nth witness); first by rewrite !size_sub.
-      rewrite size_sub // => i?.
-      rewrite !nth_sub // get_setE // ifF 1:/# /=.
-      have ->: addr{1}.[i] = nth witness (sub addr{1} 0 7) i by rewrite nth_sub.
-      by rewrite H nth_sub.
+    + exists * addr{1}; elim * => P.
+      call {1} (addr_to_bytes_correctness P).
+      auto => /> &1 &2 ????????? ->.
+      apply (eq_from_nth witness).
+          * rewrite valP size_flatten sumzE BIA.big_map /(\o) //=.
+            rewrite -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 4)) /=; last first.
+                +  rewrite big_constz count_predT size_map size_to_list /#.
+            rewrite in_nth size_map size_to_list /= => j?.
+            rewrite (nth_map witness); first by rewrite size_to_list /#.
+            rewrite /W32toBytes size_rev; first by rewrite size_to_list /#.
+      rewrite valP nval => j?.
+      rewrite /addr_to_bytes => />.
+      rewrite insubdK /= 2:/# /P size_flatten sumzE BIA.big_map /(\o) //=.
+      rewrite -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 4)) /=; last first.
+          * rewrite big_constz count_predT size_map size_to_list /#.
+      rewrite in_nth size_map size_to_list /= => ??.
+      rewrite (nth_map witness); first by rewrite size_to_list /#.
+      rewrite /W32toBytes size_rev; first by rewrite size_to_list /#.
 
 seq 2 1 : (
   #pre /\ 
@@ -516,11 +596,13 @@ proof.
 rewrite /XMSS_PADDING_LEN /XMSS_HASH_PADDING_PRF /XMSS_PADDING_LEN /XMSS_N => [#] plen pval pprfval nval.
 proc => /=.
 seq 3 0 : #pre; 1:auto. 
+
 seq 1 1 : (#pre /\ padding{2} = to_list aux{1} /\ size padding{2} = 32).
     + call {1} (ull_to_bytes_32_correct W64.one). 
-      (* A seta refere se a hipotese to_list result = lenbytes_be64 W64.one 32 *)
       auto => /> &1 &2 H result ->.  
-      split; [ congr | rewrite size_toByte_64 ] => /#.
+      split.
+          - by rewrite /rand_hash_padding plen.
+          - rewrite size_toByte_64 /#.
 
 swap {1} [2..3] -1.
 
@@ -547,10 +629,24 @@ seq 1 1 :(
          * by rewrite NBytes.insubdK //= /P size_to_list nval.
 
 seq 1 1 : (#pre /\ val addr_bytes{2} = to_list addr_as_bytes{1}).
-    + inline {1} M(Syscall).__set_key_and_mask.
-      ecall {1} (addr_to_bytes_correctness addr{1}).
-      auto => /> &1 &2 ??? r ->.
-      by rewrite /set_key_and_mask.  
+      exists * addr{1}; elim * => P.
+      call {1} (addr_to_bytes_correctness P).
+      auto => /> &1 &2 ????->.
+      apply (eq_from_nth witness).
+          * rewrite valP size_flatten sumzE BIA.big_map /(\o) //=.
+            rewrite -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 4)) /=; last first.
+                +  rewrite big_constz count_predT size_map size_to_list /#.
+            rewrite in_nth size_map size_to_list /= => j?.
+            rewrite (nth_map witness); first by rewrite size_to_list /#.
+            rewrite /W32toBytes size_rev; first by rewrite size_to_list /#.
+      rewrite valP nval => j?.
+      rewrite /addr_to_bytes => />.
+      rewrite insubdK /= 2:/# /P size_flatten sumzE BIA.big_map /(\o) //=.
+      rewrite -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 4)) /=; last first.
+          * rewrite big_constz count_predT size_map size_to_list /#.
+      rewrite in_nth size_map size_to_list /= => ??.
+      rewrite (nth_map witness); first by rewrite size_to_list /#.
+      rewrite /W32toBytes size_rev; first by rewrite size_to_list /#.
 
 seq 1 0 : (
   #pre /\
@@ -589,7 +685,10 @@ seq 1 0 : (
          * rewrite ifF /#.                       
          * by rewrite ifT 1:/# H get_to_list.
 
-seq 2 2 : (
+seq 1 1 : #pre.
+    + inline {1}; auto => /> *; apply (eq_from_nth witness); rewrite !size_sub // => j?; rewrite !nth_sub //= get_setE //; smt(sub_k).
+
+seq 1 1 : (
   to_list in_0{1} = val _left{2} ++ val _right{2} /\
   val _seed{2} = to_list pub_seed{1} /\
   address{2} = addr{1} /\
@@ -599,8 +698,24 @@ seq 2 2 : (
   (forall (k : int), 0 <= k < 32 => buf{1}.[k] = nth witness padding{2} k) /\
   (forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = nth witness (val key{2}) k)
 ).
-    + inline {1} M(Syscall).__set_key_and_mask.
-      ecall {1} (addr_to_bytes_correctness addr{1}); auto => /> /#.
+    + exists * addr{1}; elim * => P.
+      call {1} (addr_to_bytes_correctness P).
+      auto => /> &1 &2 ???????? ->.
+      apply (eq_from_nth witness).
+          * rewrite valP size_flatten sumzE BIA.big_map /(\o) //=.
+            rewrite -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 4)) /=; last first.
+                +  rewrite big_constz count_predT size_map size_to_list /#.
+            rewrite in_nth size_map size_to_list /= => j?.
+            rewrite (nth_map witness); first by rewrite size_to_list /#.
+            rewrite /W32toBytes size_rev; first by rewrite size_to_list /#.
+      rewrite valP nval => j?.
+      rewrite /addr_to_bytes => />.
+      rewrite insubdK /= 2:/# /P size_flatten sumzE BIA.big_map /(\o) //=.
+      rewrite -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 4)) /=; last first.
+          * rewrite big_constz count_predT size_map size_to_list /#.
+      rewrite in_nth size_map size_to_list /= => ??.
+      rewrite (nth_map witness); first by rewrite size_to_list /#.
+      rewrite /W32toBytes size_rev; first by rewrite size_to_list /#.
 
 seq 2 1 : (
   to_list in_0{1} = val _left{2} ++ val _right{2} /\
@@ -620,7 +735,10 @@ seq 2 1 : (
       rewrite initE ifT 1:/# => />.
       by rewrite ifT //= H0 get_to_list.
 
-seq 2 2 : (
+seq 1 1 : #pre.
+    + inline {1}; auto => /> *; apply (eq_from_nth witness); rewrite !size_sub // => j?; rewrite !nth_sub //= get_setE //; smt(sub_k).
+
+seq 1 1 : (
   to_list in_0{1} = val _left{2} ++ val _right{2} /\
   val _seed{2} = to_list pub_seed{1} /\
   address{2} = addr{1} /\
@@ -630,8 +748,24 @@ seq 2 2 : (
   (forall (k : int), 0 <= k < 32 => buf{1}.[k] = nth witness padding{2} k) /\
   (forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = nth witness (val key{2}) k)
 ).
-    + inline {1} M(Syscall).__set_key_and_mask.
-      ecall {1} (addr_to_bytes_correctness addr{1}); auto => /> /#.
+    + exists * addr{1}; elim * => P.
+      call {1} (addr_to_bytes_correctness P).
+      auto => /> &1 &2 ???????? ->.
+      apply (eq_from_nth witness).
+          * rewrite valP size_flatten sumzE BIA.big_map /(\o) //=.
+            rewrite -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 4)) /=; last first.
+                +  rewrite big_constz count_predT size_map size_to_list /#.
+            rewrite in_nth size_map size_to_list /= => j?.
+            rewrite (nth_map witness); first by rewrite size_to_list /#.
+            rewrite /W32toBytes size_rev; first by rewrite size_to_list /#.
+      rewrite valP nval => j?.
+      rewrite /addr_to_bytes => />.
+      rewrite insubdK /= 2:/# /P size_flatten sumzE BIA.big_map /(\o) //=.
+      rewrite -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 4)) /=; last first.
+          * rewrite big_constz count_predT size_map size_to_list /#.
+      rewrite in_nth size_map size_to_list /= => ??.
+      rewrite (nth_map witness); first by rewrite size_to_list /#.
+      rewrite /W32toBytes size_rev; first by rewrite size_to_list /#.
 
 seq 2 1 : (
   #pre /\ 
@@ -727,255 +861,12 @@ while {1}
                smt(@W64 pow2_64).
 qed.
 
-require import LTree.
 
-lemma hash_message_correct (mem : global_mem_t) (R _root : W8.t Array32.t) (_idx msg_ptr _mlen : W64.t) :
-    n = XMSS_N /\
-    padding_len = XMSS_PADDING_LEN /\
-    H_msg_padding_val = XMSS_HASH_PADDING_HASH =>
-    hoare [
-      M(Syscall).__hash_message :
-
-      valid_ptr_i msg_ptr (4*XMSS_N + to_uint _mlen) /\
-      0 < to_uint _mlen /\
-      
-      0 <= to_uint _idx < 2^XMSS_FULL_HEIGHT /\
-
-      arg.`2 = R /\
-      arg.`3 = _root /\
-      arg.`4 = _idx /\
-      arg.`5 = msg_ptr /\
-      arg.`6 = _mlen 
-      ==>
-      let idx_bytes = toByte_64 (W64.of_int (to_uint _idx)) 32 in
-      to_list res = val (H_msg 
-                    (TheeNBytes.insubd (to_list R ++ to_list _root ++ idx_bytes))
-                    (load_buf Glob.mem (msg_ptr + (W64.of_int 128)) (to_uint _mlen)))
-    ].
-proof.
-rewrite /XMSS_N /XMSS_PADDING_LEN /XMSS_HASH_PADDING_HASH  => [#] n_val pad_len pad_val *.
-proc => /=. 
-seq 2 : #pre; first by auto.
-
-seq 1 : (#pre /\ to_list buf = toByte_64 (of_int 2)%W64 32).
-  + by call (_ull_to_bytes_32_correct ((of_int 2)%W64)); auto.
-
-seq 2 : (
-  #pre /\ 
-  offset = W64.of_int 32 /\
-  load_buf Glob.mem m_with_prefix_ptr 32 = toByte_64 (of_int 2)%W64 32
-).
-    + inline 2; inline 8.
-      sp; wp.
-      ecall (write_buf_ptr Glob.mem out0 offset1 in_00).
-      skip => /> &hr *; do split.
-       - smt(@W64 pow2_64).
-       - smt(@W64 pow2_64).
-       - move => ?? result mem0 -> ?? /#. 
-
-seq 2 : (
-  #{/~offset = W64.of_int 32}pre /\ 
-  offset = W64.of_int 64 /\
-  load_buf Glob.mem (m_with_prefix_ptr + W64.of_int 32) 32 = to_list r
-).
-    + inline 2; inline 8.
-      sp; wp.
-      ecall (write_buf_ptr Glob.mem out0 offset1 in_00).
-      skip => /> &hr H0 H1 H2 H3 H4 H5; do split.
-       - smt(@W64 pow2_64).
-       - smt(@W64 pow2_64).
-       - move => ?? result mem0 H6 H7 H8 H9.
-         move: H6; rewrite H8 => H6. 
-         have ->: load_buf mem0 m_with_prefix_ptr{hr} 32  = load_buf Glob.mem{hr} m_with_prefix_ptr{hr} 32; last by smt().
-         apply (eq_from_nth witness); first by rewrite !size_load_buf.
-         rewrite size_load_buf // => j?.
-         rewrite /load_buf !nth_mkseq //=.
-         rewrite H7 //= /#.
-
-seq 2 : (
-  #{/~offset = W64.of_int 64}pre /\ 
-  offset = W64.of_int 96 /\
-  load_buf Glob.mem (m_with_prefix_ptr + W64.of_int 64) 32 = to_list root
-).
-    + inline 2; inline 8.
-      sp; wp.
-      ecall (write_buf_ptr Glob.mem out0 offset1 in_00).
-      skip => /> &hr H0 H1 H2 H3 H4 H5 H6; do split.
-       - smt(@W64 pow2_64).
-       - smt(@W64 pow2_64).
-       - move => ?? result mem0 H7 H8 H9 H10.
-         move: H7; rewrite H9 => H7. 
-         split.
-           * have ->: load_buf mem0 m_with_prefix_ptr{hr} 32  = load_buf Glob.mem{hr} m_with_prefix_ptr{hr} 32; last by smt().
-             apply (eq_from_nth witness); first by rewrite !size_load_buf.
-             rewrite size_load_buf // => j?.
-             rewrite /load_buf !nth_mkseq //=.
-             rewrite H8 //= /#.
-           * have ->: load_buf mem0 (m_with_prefix_ptr{hr} + (of_int 32)%W64) 32 = load_buf Glob.mem{hr} (m_with_prefix_ptr{hr} + (of_int 32)%W64) 32; last by smt().
-             apply (eq_from_nth witness); first by rewrite !size_load_buf.
-             rewrite size_load_buf // => j?.
-             rewrite /load_buf !nth_mkseq //=.
-             rewrite H8 //=; smt(@W64 pow2_64). 
- 
-seq 0 : (
-    #pre /\
-    load_buf Glob.mem m_with_prefix_ptr 96 = 
-    toByte_64 ((of_int 2))%W64 32 ++ to_list r ++ to_list root
-).
-    + auto => /> &hr H0 H1 H2 H3 H4 H5 H6 H7.
-      apply (eq_from_nth witness).
-        - by rewrite size_load_buf // !size_cat !size_to_list size_toByte_64.
-      rewrite size_load_buf // => j?.
-      case (0 <= j < 32) => Ha.
-        - rewrite nth_cat.
-            * rewrite !size_cat !size_to_list size_toByte_64 // ifT 1:/#.
-          rewrite nth_cat.
-            * rewrite size_toByte_64 // ifT 1:/#. 
-          rewrite -H5 /load_buf !nth_mkseq //=.
-      case (32 <= j < 64) => Hb.
-        - rewrite nth_cat.
-            * rewrite !size_cat !size_to_list size_toByte_64 // ifT 1:/#.
-          rewrite nth_cat.
-            * rewrite size_toByte_64 // ifF 1:/#. 
-          rewrite -H6 /load_buf !nth_mkseq //= 1:/#.
-          congr.
-          smt(@W64 pow2_64).
-      rewrite nth_cat.
-        - rewrite !size_cat !size_to_list size_toByte_64 // ifF 1:/#.
-      rewrite -H7.
-      rewrite /load_buf !nth_mkseq 1,2:/# /=.
-      congr.
-      smt(@W64 pow2_64).
-
-seq 1 : (#pre /\ to_list buf_n = toByte_64 idx 32).
-  + by ecall (_ull_to_bytes_32_correct idx); auto.
-
-seq 2 : (
-  #{/~offset = W64.of_int 96}pre /\ 
-  load_buf Glob.mem (m_with_prefix_ptr + W64.of_int 96) 32 = toByte_64 idx 32
-).
-    + inline 2; inline 8.
-      sp; wp.
-      ecall (write_buf_ptr Glob.mem out0 offset1 in_00).
-      skip => /> &hr H0 H1 H2 H3 H4 H5 H6 H7 H8 H9; do split.
-       - smt(@W64 pow2_64).
-       - smt(@W64 pow2_64).
-       - move => ?? result mem0 H10 H11 H12 H13.
-         move: H10; rewrite H12 => H10. 
-         do split.
-           * have ->: load_buf mem0 m_with_prefix_ptr{hr} 32  = load_buf Glob.mem{hr} m_with_prefix_ptr{hr} 32; last by smt().
-             apply (eq_from_nth witness); first by rewrite !size_load_buf.
-             rewrite size_load_buf // => j?.
-             rewrite /load_buf !nth_mkseq //=.
-             rewrite H11 //= /#.
-           * have ->: load_buf mem0 (m_with_prefix_ptr{hr} + (of_int 32)%W64) 32 = load_buf Glob.mem{hr} (m_with_prefix_ptr{hr} + (of_int 32)%W64) 32; last by smt().
-             apply (eq_from_nth witness); first by rewrite !size_load_buf.
-             rewrite size_load_buf // => j?.
-             rewrite /load_buf !nth_mkseq //=.
-             rewrite H11 //=; smt(@W64 pow2_64). 
-           * have ->: load_buf mem0 (m_with_prefix_ptr{hr} + (of_int 64)%W64) 32 = load_buf Glob.mem{hr} (m_with_prefix_ptr{hr} + (of_int 64)%W64) 32; last by smt().
-             apply (eq_from_nth witness); first by rewrite !size_load_buf.
-             rewrite size_load_buf // => j?.
-             rewrite /load_buf !nth_mkseq //=.
-             rewrite H11 //=; smt(@W64 pow2_64). 
-           * have ->: load_buf mem0 m_with_prefix_ptr{hr} 96 = load_buf Glob.mem{hr} m_with_prefix_ptr{hr} 96; last by smt().
-             apply (eq_from_nth witness); first by rewrite !size_load_buf.
-             rewrite size_load_buf // => j?.
-             rewrite /load_buf !nth_mkseq //=.
-             rewrite H11 //=; smt(@W64 pow2_64). 
-           * by rewrite H10 H9.
-
-seq 2 : (#pre /\ len = mlen + W64.of_int 128); first by auto => />. 
-
-exists * m_with_prefix_ptr, len.
-elim * => P0 P1.
-ecall (hash_ptr_correct P0 P1).
-auto => /> &hr H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10.
-split => [| ?]; first by smt(@W64 pow2_64).
-move => result ->.
-congr.
-rewrite /H_msg => />.
-congr.
-apply (eq_from_nth witness).
-    + rewrite size_load_buf; first by smt(@W64 pow2_64).
-      rewrite !size_cat valP n_val size_toByte_64 /= 1:/#.
-      rewrite (: padding_len = 32) 1:/# size_load_buf 1:/# /=. 
-      smt(@W64 pow2_64).
-
-rewrite size_load_buf; first by smt(@W64 pow2_64).
-have ->: to_uint (_mlen + (of_int 128)%W64) = to_uint _mlen + 128 by smt(@W64 pow2_64).
-move => j?.
-case (0 <= j < 32) => ?.
-    + rewrite !nth_cat.
-      rewrite !size_cat !size_toByte_64 1:/# !valP n_val ifT 1:/#.
-      rewrite ifT 1:/#.
-      rewrite pad_len pad_val -H5.
-      by rewrite /load_buf !nth_mkseq.
-case (32 <= j < 64) => ?.
-    + rewrite !nth_cat.
-      rewrite !size_cat !size_toByte_64 1:/# !valP n_val ifT 1:/# ifF 1:/#.
-      have ->: nth witness (load_buf Glob.mem{hr} msg_ptr (to_uint _mlen + 128)) j = 
-               nth witness (load_buf Glob.mem{hr} (msg_ptr + (of_int 32)%W64) 32) (j - 32)
-               by rewrite /load_buf !nth_mkseq // 1:/# /=; smt(@W64 pow2_64).
-      rewrite H6 get_to_list insubdK.
-         - rewrite /P !size_cat !size_to_list size_toByte_64 /#.
-      rewrite nth_cat.
-         - rewrite !size_cat !size_to_list ifT 1:/#.
-      rewrite nth_cat.
-         - rewrite size_to_list ifT 1:/#.
-      by rewrite get_to_list pad_len.
-case (64 <= j < 96) => ?.
-    + rewrite !nth_cat.
-      rewrite !size_cat !size_toByte_64 1:/# !valP n_val ifT 1:/# ifF 1:/#.
-      have ->: nth witness (load_buf Glob.mem{hr} msg_ptr (to_uint _mlen + 128)) j = 
-               nth witness (load_buf Glob.mem{hr} (msg_ptr + (of_int 64)%W64) 32) (j - 64)
-               by rewrite /load_buf !nth_mkseq // 1:/# /=; smt(@W64 pow2_64).
-      rewrite insubdK.
-        - rewrite /P !size_cat !size_to_list size_toByte_64 /#.
-      rewrite !nth_cat. 
-         - rewrite !size_cat !size_to_list pad_len /= ifT 1:/#.
-      rewrite ifF 1:/#.
-      by rewrite H7 get_to_list.     
-case (96 <= j < 128) => ?.
-    + rewrite !nth_cat.
-      rewrite !size_cat !size_toByte_64 1:/# !valP n_val ifT 1:/# ifF 1:/#.
-      rewrite insubdK.
-        - rewrite /P !size_cat !size_to_list size_toByte_64 /#.
-      rewrite !nth_cat. 
-         - rewrite !size_cat !size_to_list pad_len /= ifF 1:/#.
-      rewrite -H10 /load_buf !nth_mkseq // 1:/#; smt(@W64 pow2_64).
-
-rewrite !nth_cat.
-rewrite !size_cat !size_toByte_64 1:/# !valP n_val ifF 1:/#.
-rewrite pad_len /=.
-rewrite /load_buf !nth_mkseq // 1:/# /=. 
-congr; smt(@W64 pow2_64).
-qed.
-
-lemma p_hash_message_correct (mem : global_mem_t) (R _root : W8.t Array32.t) (_idx msg_ptr _mlen : W64.t) :
-    n = XMSS_N /\
-    padding_len = XMSS_PADDING_LEN /\
-    H_msg_padding_val = XMSS_HASH_PADDING_HASH =>
-    phoare [
-      M(Syscall).__hash_message :
-
-      valid_ptr_i msg_ptr (4*XMSS_N + to_uint _mlen) /\
-      0 < to_uint _mlen /\
-      
-      0 <= to_uint _idx < 2^XMSS_FULL_HEIGHT /\
-
-      arg.`2 = R /\
-      arg.`3 = _root /\
-      arg.`4 = _idx /\
-      arg.`5 = msg_ptr /\
-      arg.`6 = _mlen 
-      ==>
-      let idx_bytes = toByte_64 (W64.of_int (to_uint _idx)) 32 in
-      to_list res = val (H_msg 
-                    (TheeNBytes.insubd (to_list R ++ to_list _root ++ idx_bytes))
-                    (load_buf Glob.mem (msg_ptr + (W64.of_int 128)) (to_uint _mlen))) /\
-      Glob.mem = mem
-    ] = 1%r.
-proof.
-admit.
-qed.
+(* OBS: proving correctness for mhash is now an equiv instead of a phoare *)
+module M_Hash = {
+  proc hash (t : threen_bytes, M : W8.t list) : nbytes = {
+    var padding : W8.t list <- toByte_64 H_msg_padding_val n;
+    var r : nbytes <- (Hash (padding ++ val t ++ M));    
+    return r;
+  }
+}.

@@ -12,7 +12,7 @@ require import BitEncoding.
 require import Array4 Array8 Array32.
 require import WArray4.
 
-require import Params Address Repr2 Utils2.
+require import Params Address Repr2 Utils2 Bytes.
 require import XMSS_IMPL.
 
 lemma in_nth ['a] (x : 'a list) (P : 'a -> bool) :
@@ -48,8 +48,6 @@ lemma zero_addr_ll : islossless M(Syscall)._zero_address by proc; while (true) (
 lemma zero_addr_res (address : adrs) :
     phoare[M(Syscall)._zero_address : true ==> res = zero_addr] = 1%r
       by conseq zero_addr_ll (zero_addr_op_impl address) => //=. 
-
-op W32toBytes (x : W32.t) : W8.t list = rev (to_list (W4u8.unpack8 x)).
 
 op addrToBytes (a : adrs) : W8.t list = flatten (map W32toBytes (to_list a)).
 
