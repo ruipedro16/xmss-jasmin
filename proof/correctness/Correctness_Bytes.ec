@@ -64,7 +64,7 @@ lemma ull_to_bytes_32_correct (x : W64.t) :
     phoare [
       M(Syscall).__ull_to_bytes_32 :
       arg.`2 = x /\ 
-      0 <= to_uint x < W8.max_uint
+      0 <= to_uint x < W64.max_uint
       ==> 
       to_list res = W64toBytes_ext x 32
     ] = 1%r.
@@ -121,218 +121,186 @@ case (j = 0) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite unpack8E initE ifF 1:/#.
-      by rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
+      rewrite unpack8E initE ifF /#. 
 
 case (j = 1) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite unpack8E initE ifF 1:/#.
-      by rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
+      rewrite unpack8E initE ifF /#.
 
 case (j = 2) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite unpack8E initE ifF 1:/#.
-      by rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
+      rewrite unpack8E initE ifF /#.
 
 case (j = 3) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite unpack8E initE ifF 1:/#.
-      by rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
+      rewrite unpack8E initE ifF /#.
 
 case (j = 4) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite unpack8E initE ifF 1:/#.
-      by rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
-
+      rewrite unpack8E initE ifF /#.
 
 case (j = 5) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite unpack8E initE ifF 1:/#.
-      by rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
+      rewrite unpack8E initE ifF /#.
 
 case (j = 6) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite unpack8E initE ifF 1:/#.
-      by rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
+      rewrite unpack8E initE ifF /#.
 
 case (j = 7) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite unpack8E initE ifF 1:/#.
-      by rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
+      rewrite unpack8E initE ifF /#.
 
 case (j = 8) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite unpack8E initE ifF 1:/#.
-      by rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
+      rewrite unpack8E initE ifF /#.
 
 case (j = 9) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite unpack8E initE ifF 1:/#.
-      by rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
+      rewrite unpack8E initE ifF /#.
 
 case (j = 10) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite unpack8E initE ifF 1:/#.
-      by rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
+      rewrite unpack8E initE ifF /#.
 
 case (j = 11) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite unpack8E initE ifF 1:/#.
-      by rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
+      rewrite unpack8E initE ifF /#.
 
 case (j = 12) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite unpack8E initE ifF 1:/#.
-      by rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
+      rewrite unpack8E initE ifF /#.
 
 case (j = 13) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite unpack8E initE ifF 1:/#.
-      by rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
+      rewrite unpack8E initE ifF /#.
 
 case (j = 14) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite unpack8E initE ifF 1:/#.
-      by rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
+      rewrite unpack8E initE ifF /#.
 
 case (j = 15) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite unpack8E initE ifF 1:/#.
-      by rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
+      rewrite unpack8E initE ifF /#.
 
 case (j = 16) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite unpack8E initE ifF 1:/#.
-      by rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
+      rewrite unpack8E initE ifF /#.
 
 case (j = 17) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite unpack8E initE ifF 1:/#.
-      by rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
+      rewrite unpack8E initE ifF /#.
 
 case (j = 18) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite unpack8E initE ifF 1:/#.
-      by rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
+      rewrite unpack8E initE ifF /#.
 
 case (j = 19) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite unpack8E initE ifF 1:/#.
-      by rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
+      rewrite unpack8E initE ifF /#.
 
 case (j = 20) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite unpack8E initE ifF 1:/#.
-      by rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
+      rewrite unpack8E initE ifF /#.
 
 case (j = 21) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite unpack8E initE ifF 1:/#.
-      by rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
+      rewrite unpack8E initE ifF /#.
 
 case (j = 22) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite unpack8E initE ifF 1:/#.
-      by rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
+      rewrite unpack8E initE ifF /#.
 
 case (j = 23) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite unpack8E initE ifF 1:/#.
-      by rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
+      rewrite unpack8E initE ifF /#.
 
 case (j = 24) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
       rewrite bits8_div // /#.
 
 case (j = 25) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
       rewrite bits8_div // /#.
 
 case (j = 26) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
       rewrite bits8_div // /#.
 
 case (j = 27) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
       rewrite bits8_div // /#.
 
 case (j = 28) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
       rewrite bits8_div // /#.
 
 case (j = 29) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
       rewrite bits8_div // /#.
 
 case (j = 30) => [-> | ?].
     + rewrite /truncateu8.
       do (rewrite to_uint_shr; first by rewrite of_uintK /=).
       rewrite !of_uintK /=.
-      rewrite (: to_uint x %/ 256 = 0) 1:/# /=.
       rewrite bits8_div // /#.
 
 case (j = 31) => [-> | /#].
@@ -373,24 +341,63 @@ qed.
 lemma bytes_to_ull_ptr_correct (mem : global_mem_t) (ptr : W64.t) :
     phoare[
       M(Syscall).__bytes_to_ull_ptr :
-      valid_ptr_i ptr XMSS_INDEX_BYTES /\ arg=ptr 
+      valid_ptr ptr (of_int XMSS_INDEX_BYTES)%W64 /\ 
+      arg=ptr 
       ==> 
-      res = W64ofBytes (mkseq (fun i => loadW8 mem (to_uint ptr + i)) XMSS_INDEX_BYTES)
+      res = W64ofBytes_ext (load_buf mem ptr XMSS_INDEX_BYTES)
     ] = 1%r.
 proof.
+proc.
+unroll 3; unroll 4; unroll 5.
+rcondf 6; first by auto.
+rcondt 5; first by auto.
+rcondt 4; first by auto.
+rcondt 3; first by auto.
+
+auto => /> &hr *.
+rewrite (: 63 = 2^6 - 1) 1:/# !and_mod //.
+rewrite wordP => j?.
+case (j = 0) => [-> | ?]; last by admit.
+  + rewrite !to_uint_shl !of_uintK //=.
+    rewrite /W64ofBytes_ext.
+
+
+  
 admit.
 qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 
+import W8u8.
 
-lemma ull_to_bytes_correct (bytes : W8.t Array3.t) : (* the array has the size XMSS_IDX_BYTES *)
+lemma bytes_to_ull_correct (bytes : W8.t Array3.t) : (* the array has the size XMSS_IDX_BYTES *)
    phoare[ 
     M(Syscall).__bytes_to_ull : 
     arg = bytes 
     ==> 
-    to_uint res = to_uint (DecodeIdx (to_list bytes))
+    res = W64ofBytes_ext (to_list bytes)
   ] = 1%r.
 proof.
+proc.
+unroll 3; unroll 4; unroll 5.
+rcondf 6; first by auto.
+rcondt 5; first by auto.
+rcondt 4; first by auto.
+rcondt 3; first by auto.
+auto => />.
+rewrite (: 63 = 2^6 - 1) 1:/# !and_mod //.
+rewrite !to_uint_shl !of_uintK //=.
+have ->: truncateu8 W64.zero = W8.zero by rewrite /truncateu8 /=.
+have ->: truncateu8 ((of_int 16))%W64 = W8.of_int 16 by rewrite /truncateu8 of_uintK /=.
+have ->: truncateu8 ((of_int 8))%W64 = W8.of_int 8 by rewrite /truncateu8 of_uintK /=.
+rewrite wordP => j?.
+case (j = 0) => [-> | ?].
+  + admit.
+case (j = 1) => [-> | ?].
+  + admit.
+case (j = 2) => [-> | ?].
+  + admit.
+case (j = 3) => [-> | ?]; last by admit.
+  + auto => />.
 admit.
 qed.
