@@ -12,14 +12,110 @@ require import Array8 Array11.
 
 (*****) import StdBigop.Bigint.
 
-lemma foobar (a b c : int) : 
-    0 < b =>
-    b %| c =>
-    a * b < c => a < c %/ b.
+require import Bool.
+import BS2Int.
+
+require import W32One.
+
+(* =================================================================================== *)
+
+
+(* =================================================================================== *)
+
+require import Array32.
+
+lemma array_neq (x y : W8.t Array32.t) :
+    to_list x <> to_list y <=> x <> y by smt(@Array32).    
+
+lemma W32_one_0 : W32.one.[0] = true.
 proof.
-move => ??.
-search (_ < _ %/ _). 
-smt(@IntDiv @Real).
+by rewrite /W32.one bits2wE initiE //= /int2bs nth_mkseq.
+qed.
+
+lemma lsb_even (w : W32.t) : 
+    to_uint w %% 2 = 0 => w.[0] = false.
+proof.
+move => ?.
+rewrite get_to_uint (: (0 <= 0 && 0 < 32) = true) //= /#.
+qed.
+
+lemma lsb_odd (w : W32.t) : 
+    to_uint w %% 2 <> 0 => w.[0] = true.
+proof.
+move => ?.
+rewrite get_to_uint (: (0 <= 0 && 0 < 32) = true) //= /#.
+qed.
+
+
+lemma L (w : W32.t) (i : int) :
+     1 <= i < 32
+  => to_uint w + 1 < W32.modulus
+  => w.[0] = false
+  => (w + W32.one).[i] = w.[i].
+proof.
+move=> rgi hlt w0E; rewrite get_to_uint.
+have rgi0: 0 <= i < 32 = true by smt().
+rewrite to_uintD_small // rgi0 /=.
+rewrite get_to_uint to_uint_bits rgi0 /=.
+do 4! congr; have ->: 2^i = 2 * 2^(i - 1).
+- by rewrite -exprS 1:/#.
+rewrite !divzMr 1?IntOrder.expr_ge0 ~-1://; 1,2: smt(@IntDiv).
+do 2! congr; rewrite divzDl //.
+rewrite /bits (mkseq_add _ 1 31) ~-1://.
+rewrite bs2int_cat size_mkseq lez_maxr //=.
+rewrite mkseq1 /= w0E dvdzD -1:dvdz_mulr //.
+suff ->: bs2int [false] = 0 by rewrite dvdz0.
+by rewrite /bs2int /= BIA.big_int1.
+qed.
+
+
+lemma xor1_even (x : W32.t) :
+    0 <= to_uint x <= 2^20 => 
+    to_uint x %% 2 = 0 => 
+    x `^` W32.one = x + W32.one.
+proof.
+move => /= ??.
+have w0E : x.[0] = false by smt(lsb_even).
+rewrite wordP => j?.
+rewrite xorwE.
+have E0: W32.one.[0] = true by rewrite /W32.one bits2wE initiE //= /int2bs nth_mkseq.
+have E1: forall (k : int), 0 < k < 32 => W32.one.[k] = false by smt(W32_oneE).
+case (j = 0) => [-> | ?].
+  + rewrite E0 /=.
+    rewrite eq_sym !get_to_uint.
+    rewrite (: (0 <= 0 && 0 < 32) = true) 1:/# /=.
+    rewrite to_uintD_small 1:/# /= /#.
+rewrite E1 1:/# /=.
+rewrite eq_sym get_to_uint.
+have E: (0 <= j && j < 32) = true by smt().
+rewrite to_uintD_small 1:/# E /=.
+rewrite get_to_uint E /=.
+do 4! congr.
+have ->: 2^j = 2 * 2^(j - 1) by rewrite -exprS 1:/#. (* smt(@Real would also work *)
+rewrite !divzMr 1?IntOrder.expr_ge0 ~-1://; 1,2: smt(@IntDiv).
+do 2! congr; rewrite divzDl //.
+qed.
+
+lemma xor1_odd (x : W32.t) :
+    0 <= to_uint x <= 2^10 => 
+    to_uint x %% 2 <> 0 => 
+    (x `^` W32.one) = x - W32.one.
+proof.
+move => /= ??.
+have E0: W32.one.[0] = true by rewrite /W32.one bits2wE initiE //= /int2bs nth_mkseq.
+have E1: forall (k : int), 0 < k < 32 => W32.one.[k] = false by smt(W32_oneE).
+have E2 : x.[0] = true by smt(lsb_odd).
+rewrite wordP => i?.
+rewrite xorwE.
+case (i = 0) => [-> | ?]; [rewrite E0 | rewrite E1 1:/#] => /=.
+  + rewrite !get_to_uint (: (0 <= 0 && 0 < 32) = true) 1:/# /=.
+    rewrite to_uintB 2:/# uleE /#.
+rewrite !get_to_uint (: (0 <= i && i < 32) = true) 1:/# /=.
+rewrite to_uintB /=; first by rewrite uleE /#.
+do 4! congr.
+have ->: 2^i = 2 * 2^(i - 1) by rewrite -exprS 1:/#. 
+rewrite !divzMr 1?IntOrder.expr_ge0 ~-1://; 1,2: smt(@IntDiv).
+do 2! congr => /#.
 qed.
 
 lemma nth_chunk ['a] (x : 'a list) (chunk_size i : int) :
@@ -29,14 +125,6 @@ lemma nth_chunk ['a] (x : 'a list) (chunk_size i : int) :
 proof.
 move => ??; rewrite /chunk nth_mkseq //=. 
 qed.
-
-lemma to_uint_xor_1_W32 (x : W32.t) : 
-    0 <= to_uint x < W32.max_uint - 1 => 
-    0 <= to_uint (x `^` W32.one) < W32.max_uint by smt(@W32 pow2_32).
-
-lemma to_uint_xor_1_W32_2 (x : W32.t) : 
-    0 <= to_uint x < W32.max_uint - 1 => 
-    0 <= to_uint (x `^` W32.one) < `|W32.modulus| by smt(@W32 pow2_32).
 
 (* ar: address used for reading
    aw: address used for writing 
@@ -64,17 +152,6 @@ lemma pow2_bound (a b: int) :
 by smt(@IntDiv).
 
 (** -------------------------------------------------------------------------------------------- **)
-
-lemma get_setE_to_list (a : W32.t Array11.t) (e : W32.t) (i j : int) :
-    0 <= i < size (to_list a) =>
-    a.[i <- e].[j] = nth witness (put (to_list a) i e) j.
-proof.
-rewrite size_to_list => ?.
-rewrite nth_put.
-  + by rewrite size_to_list. 
-rewrite get_setE // get_to_list /#.
-qed.
-
 
 lemma sub_k (k : int) (a0 a1 : W32.t Array8.t) :
     0 <= k => sub a0 0 k = sub a1 0 k =>
@@ -150,72 +227,28 @@ move => ?.
 smt(@StdOrder.IntOrder).
 qed.
 
+(** -------------------------------------------------------------------------------------------- **)
+
+
+
+lemma to_uintW (i : int) : 
+    0 <= i < W32.max_uint => 
+    W64.of_int i = zeroextu64 (W32.of_int i).
+proof.
+move => ?; smt(@W64 @W32).
+qed.
+
+lemma to_uintW2 (i : int) : 
+    0 <= i < W32.max_uint => 
+    W32.of_int i = truncateu32 (W64.of_int i).
+proof.
+move => ?.
+rewrite to_uintW //.
+rewrite /truncateu32 to_uint_zeroextu64 of_uintK; smt(@W32 pow2_32).
+qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 
-op concatMap  (f: 'a -> 'b list) (a: 'a list): 'b list = flatten (map f a).
-
-op W32ofBytes (bytes : W8.t list) : W32.t = W32.bits2w (concatMap W8.w2bits bytes).
-op W64ofBytes (bytes : W8.t list) : W64.t = W64.bits2w (concatMap W8.w2bits bytes). (* isto ja faz zero ext *)
-op W32toBytes (x : W32.t) : W8.t list = map W8.bits2w (chunk W8.size (W32.w2bits x)).
-
-
-lemma foo (t : W8.t list) :
-    0 < size t <= 4 => 
-         forall (k : int), 32 <= k < 64 => (zeroextu64 (W32ofBytes t)).[k] = false.
-proof.
-move => ?k?.
-rewrite /W32ofBytes zeroextu64E pack2E initiE 1:/# => />.
-rewrite initiE 1:/# => />.
-by rewrite ifF 1:/#.
-qed.
-
-lemma foo2 (t : W8.t list) :
-    0 < size t <= 4 => 
-         forall (k : int), 32 <= k < 64 => (W64ofBytes t).[k] = false.
-proof.
-move => ?k?.
-rewrite /W64ofBytes /bits2w initiE 1:/# => />.
-rewrite nth_out //. 
-have ?: size (concatMap W8.w2bits t) <= 32.
-  + rewrite /concatMap size_flatten. 
-    rewrite sumzE BIA.big_map /(\o) //= -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 8)); last first.
-        * rewrite big_constz count_predT size_map /#.
-    auto => />.
-    have ?: (forall (k : int), 0 <= k < size t => size (nth witness (map W8.w2bits t) k) = 8) by move => *; rewrite (nth_map witness).
-    smt(@List).
-smt(). 
-qed.
-
-lemma bar (t : W8.t list) :
-    0 < size t <= 4 => 
-         forall (k : int), 0 <= k < 32 => (zeroextu64 (W32ofBytes t)).[k] = (W64ofBytes t).[k].
-proof.
-move => ?k?.
-rewrite /W32ofBytes /W64ofBytes zeroextu64E pack2E initiE 1:/# => />.
-rewrite initiE 1:/# => />.
-rewrite ifT 1:/# (: k %% 32 = k) 1:/#.
-by rewrite !bits2wE initiE 1:/# initiE 1:/#.
-qed.
-
-lemma W64_W32_of_bytes (t : W8.t list) :
-    0 < size t <= 4 => 
-       zeroextu64 (W32ofBytes t) = W64ofBytes t.
-proof.
-move => H.
-rewrite wordP => i?.
-
-case (0 <= i < 32) => ?; first by apply bar.
-rewrite foo // 1:/# foo2 // /#.
-qed.
-
-lemma W64_W32_of_bytes2 (t : W8.t list) : 
-    0 < size t <= 4 => 
-       to_uint (W32ofBytes t) = to_uint (W64ofBytes t).
-proof.
-move => ?.
-by rewrite -W64_W32_of_bytes // to_uint_zeroextu64.
-qed.
 
 lemma to_uint_W64_W32 (x0 : W64.t) (x1 : W32.t) :
     0 <= to_uint x0 < W32.max_uint /\
@@ -223,8 +256,7 @@ lemma to_uint_W64_W32 (x0 : W64.t) (x1 : W32.t) :
     to_uint x0 = to_uint x1 =>
     x0 = zeroextu64 x1.
 proof.
-move => [#] *.
-smt(@W64).
+move => [#] *; smt(@W64).
 qed.
 
 (** -------------------------------------------------------------------------------------------- **)
@@ -306,6 +338,7 @@ lemma disjoint_ptr_comm (p1 l1 p2 l2 : int) :
     disjoint_ptr p1 l1 p2 l2 <=>
     disjoint_ptr p2 l2 p1 l1 by smt().
 
+
 (** -------------------------------------------------------------------------------------------- **)
 
 lemma nbytes_eq:
@@ -325,12 +358,6 @@ lemma len_n_bytes_eq :
 lemma size_bits_to_bytes (bits : bool list) :
     size (BitsToBytes bits) = (size bits) %/ 8
         by rewrite /BitsToBytes size_map size_chunk.
-
-lemma sizeW32toBytes (x : W32.t) :
-    size (W32toBytes x) = 4.
-proof.
-rewrite /W32toBytes size_map size_chunk // size_w2bits.
-qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 
