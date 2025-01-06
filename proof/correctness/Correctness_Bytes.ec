@@ -28,7 +28,7 @@ lemma size_behead x :
        if (x = [<:'a>]) then 0 else size x - 1 by smt().
 
  
-(** -------------------------------------------------------------------------------------------- **)
+(** -------------------------------------------------------------------------------------------- **) 
 
 lemma ull_to_bytes2_post (x : W64.t, y : W32.t) :
   phoare[
@@ -49,13 +49,11 @@ apply (eq_from_nth witness).
   + rewrite size_to_list /W64toBytes_ext size_rev size_mkseq /#.
 rewrite size_to_list => j?.
 case (j = 0) => [-> | ?].
-  + rewrite get_to_list get_setE //= /(`>>`) /= /(`>>>`) /=.
-    rewrite /W64toBytes_ext nth_rev; first by rewrite size_mkseq /#.
-    rewrite size_mkseq nth_mkseq 1:/# /= (: max 0 2 = 2) //=.
-    rewrite bits8_div //.
-    rewrite wordP => w?.
-    rewrite /truncateu8; congr; congr.
-    admit.
+  + rewrite get_to_list get_setE //=.
+    rewrite nth_W64toBytes_ext //=.
+    rewrite bits8_div //= (: to_uint x %/ 256 = 0) 1:/#.
+    rewrite /truncateu8 to_uint_shr of_uintK //= (: to_uint x %/ 256 = 0) 1:/#.
+    reflexivity.
 have ->: j = 1 by smt().
 rewrite get_to_list get_setE // ifF 1:/# get_setE //=.
 rewrite /W64toBytes_ext nth_rev; first by rewrite size_mkseq /#.
@@ -344,10 +342,10 @@ qed.
 lemma ull_to_bytes_3_correct (x : W64.t) : 
     phoare [
       M(Syscall).__ull_to_bytes_3 :
-      0 <= to_uint x <= 2^XMSS_FULL_HEIGHT =>
+      0 <= to_uint x <= 2^XMSS_FULL_HEIGHT /\
       arg.`2 = x 
       ==> 
-      to_list res = EncodeIdx (truncateu32 x)
+      to_list res = W64toBytes_ext x 3
     ] = 1%r.
 proof.
 proc => /=.
@@ -356,22 +354,19 @@ rcondt 4; first by auto.
 rcondt 7; first by auto.
 rcondt 10; first by auto.
 rcondf 13; first by auto.
-auto => /> &hr H0.
-apply (eq_from_nth witness).
-  + rewrite size_to_list; admit.
+auto => /> &hr H0 H1.
+apply (eq_from_nth witness); first by rewrite size_to_list size_W64toBytes_ext.
 rewrite size_to_list => j?.
-rewrite get_to_list.
-rewrite !get_setE //.
+rewrite get_to_list !get_setE // nth_W64toBytes_ext //.
 case (j = 0) => [-> | ?].
-  + admit.
+  + rewrite unpack8E /= bits8_div //=.
+    rewrite /truncateu8 !to_uint_shr of_uintK //=; congr; smt(@IntDiv).
 case (j = 1) => [-> | ?].
-  + admit.
-case (j = 2) => [-> | ?].
-  + admit.
-smt(). 
+  + rewrite unpack8E /= bits8_div //=.
+    rewrite /truncateu8 !to_uint_shr of_uintK //=; congr; smt(@IntDiv).
+case (j = 2) => [-> | /#].
+  + rewrite unpack8E /= bits8_div //=.
 qed.
-        
-
 
 (** -------------------------------------------------------------------------------------------- **)
 
