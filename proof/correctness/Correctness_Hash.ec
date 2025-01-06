@@ -870,3 +870,398 @@ module M_Hash = {
     return r;
   }
 }.
+
+require import Bytes.
+
+lemma p_write_buf_ptr mem (ptr o : W64.t) (buf : W8.t Array32.t) :
+    phoare [
+      M(Syscall).__memcpy_u8pu8_32 :
+      0 <= to_uint ptr + to_uint o + 32 < W64.max_uint /\
+      Glob.mem = mem /\ 
+      arg = (ptr, o, buf)  
+
+      ==>
+      
+      res.`1 = ptr /\ (* No fim, o apontaodor aponta para o mm sitio *)
+
+      load_buf Glob.mem (ptr + o) 32 = to_list buf /\
+
+      (* O resto da memoria fica igual *)
+      forall (k : int), 0 <= k < W64.max_uint => 
+         !(to_uint ptr + to_uint o <= k < to_uint ptr + to_uint o + 32) => 
+             Glob.mem.[k] = mem.[k]
+    ] = 1%r.
+proof.
+proc => /=.
+while (
+  0 <= to_uint ptr + to_uint o + 32 < W64.max_uint /\ 
+  out = ptr  /\
+  offset = o + i /\
+  in_0 = buf /\ 
+  
+  0 <= to_uint i <= 32 /\
+
+  load_buf Glob.mem (ptr + o) (to_uint i) = sub buf 0 (to_uint i) /\
+  
+  forall (k : int),
+    0 <= k < W64.max_uint  =>
+      ! (to_uint ptr + to_uint o <= k < to_uint ptr + to_uint o + to_uint i) =>
+         Glob.mem.[k] = mem.[k]
+)
+(32 - to_uint i); last first.
+  + auto => /> H0 H1; split.
+       - apply (eq_from_nth witness); first by rewrite size_load_buf // size_sub.
+         rewrite size_load_buf // /#.
+    move => mem0 i0; split => [* |]; first by rewrite ultE /#.
+    rewrite ultE of_uintK /= => H2 H3 H4.
+    have ->: to_uint i0 = 32 by smt().
+    move => H5 H6.
+    split => [| /#].
+    apply (eq_from_nth witness); first by rewrite size_load_buf // size_to_list.
+    rewrite size_load_buf // => j?. 
+    by rewrite H5 nth_sub.
+
+  + auto => /> &hr H0 H1 H2 H3 H4 H5 H6.
+    do split; 2,3,6: by smt(@W64 pow2_64).
+      - ring.
+      - apply (eq_from_nth witness). 
+          * rewrite size_load_buf; first by smt(@W64 pow2_64).
+            rewrite size_sub; first by smt(@W64 pow2_64).
+            reflexivity.
+        rewrite size_load_buf; first by smt(@W64 pow2_64).
+        move => j?.
+        rewrite nth_load_buf // storeW8E get_setE.
+        rewrite ultE of_uintK /= in H6.
+        case (j = to_uint i{hr}) => [Ha | Hb].
+          * rewrite ifT; first by smt(@W64 pow2_64).
+            by rewrite nth_sub //=; congr; rewrite Ha.
+          * rewrite ifF; first by smt(@W64 pow2_64).        
+            rewrite nth_sub //=.
+            have ->: buf.[j] = nth witness (sub buf 0 (to_uint i{hr})) j by rewrite nth_sub // ; smt(@W64 pow2_64).
+            rewrite -H4 nth_load_buf //; smt(@W64 pow2_64).
+      - move => k???.
+        rewrite storeW8E get_setE ifF; first by smt(@W64 pow2_64).
+        rewrite H5 1:/# // ; smt(@W64 pow2_64).
+qed.
+
+
+lemma hash_message_correct (mem : global_mem_t) 
+                           (R _root : W8.t Array32.t) (_idx msg_ptr _mlen : W64.t) :
+    n = XMSS_N /\
+    padding_len = XMSS_PADDING_LEN /\
+    H_msg_padding_val = XMSS_HASH_PADDING_HASH =>
+    equiv [
+      M(Syscall).__hash_message ~ M_Hash.hash :
+
+      valid_ptr_i msg_ptr (4*n + to_uint _mlen) /\
+      0 < to_uint _mlen /\
+      
+      0 <= to_uint _idx < 2^XMSS_FULL_HEIGHT /\
+
+      arg{1}.`2 = R /\
+      arg{1}.`3 = _root /\
+      arg{1}.`4 = _idx /\
+      arg{1}.`5 = msg_ptr /\
+      arg{1}.`6 = _mlen /\
+
+       Glob.mem{1} = mem /\
+
+      arg{2}.`1 = (TheeNBytes.insubd (to_list R ++ 
+                                      to_list _root ++ 
+                                      (toByte_64 (W64.of_int (to_uint _idx)) 32))
+                                     ) /\
+      arg{2}.`2 = load_buf mem (msg_ptr + (of_int 128)%W64) (to_uint _mlen)
+
+      ==>
+      to_list res{1} = val res{2} /\
+
+        load_buf Glob.mem{1} msg_ptr 128 = 
+            toByte_64 H_msg_padding_val n ++ 
+            to_list R ++ 
+            to_list _root ++             
+            (toByte_64  _idx 32) /\
+
+      forall (k : int), 0 <= k < W64.max_uint => 
+            !(to_uint msg_ptr <= k < to_uint msg_ptr + 128) => 
+               mem.[k] = Glob.mem{1}.[k]
+    ].
+proof.
+rewrite /XMSS_N /XMSS_PADDING_LEN /XMSS_HASH_PADDING_HASH  => [#] n_val pad_len pad_val *.
+proc => /=. 
+seq 2 0 : #pre; first by auto.
+seq 1 1 : (
+  #pre /\ 
+  to_list buf{1} = padding{2} /\
+  padding{2} = toByte_64 H_msg_padding_val n
+).
+  + call {1} (ull_to_bytes_32_correct ((of_int 2)%W64)); auto => /> ?????->.
+    apply (eq_from_nth witness); first by rewrite !size_toByte_64 //#. 
+    rewrite size_W64toBytes_ext // => j?. 
+    rewrite /toByte_64 /W64toBytes_ext; do congr => /#.
+
+(* toByte(X, 32) || R || root || index || M */ *) 
+seq 2 0 : (
+  #{/~Glob.mem{1} = mem}pre /\ 
+  load_buf Glob.mem{1} m_with_prefix_ptr{1} 32 = padding{2} /\
+
+      forall (k : int), 0 <= k < W64.max_uint => 
+            !(to_uint msg_ptr <= k < to_uint msg_ptr + 32) => 
+               mem.[k] = Glob.mem{1}.[k]
+
+).
+    + inline {1} 2; inline {1} 8.
+      sp; wp.
+      ecall {1} (p_write_buf_ptr Glob.mem{1} out0{1} offset1{1} in_00{1}).
+      skip => /> &hr H0 H1 H2 H3 H4*; do split.        
+        - smt().
+        - smt(@W64 pow2_64).
+        - smt().
+
+(* toByte(X, 32) || R || root || index || M */ *) 
+seq 2 0 : (
+  #{/~forall (k : int),
+    0 <= k && k < W64.max_uint =>
+    ! (to_uint msg_ptr <= k && k < to_uint msg_ptr + 32) =>
+    mem.[k] = Glob.mem{1}.[k]}pre /\ 
+
+    load_buf Glob.mem{1} (m_with_prefix_ptr{1} + W64.of_int 32) 32 = to_list R /\
+       forall (k : int),
+          0 <= k && k < W64.max_uint =>
+           ! (to_uint msg_ptr <= k && k < to_uint msg_ptr + 64) =>
+               mem.[k] = Glob.mem{1}.[k]
+
+).
+    + inline {1} 2; inline {1} 8.
+      sp; wp.
+      ecall {1} (p_write_buf_ptr Glob.mem{1} out0{1} offset1{1} in_00{1}).
+      skip => /> &hr H0 H1 H2 H3 H4 H5 H9*.
+      do split.
+       - smt().
+       - smt(@W64 pow2_64).
+       - move => ?? result mem0 H6 H7 H8*; split.
+            * rewrite -H5; apply (eq_from_nth witness); rewrite !size_load_buf // => j?.
+              by rewrite !nth_load_buf // H8 1,2:/# H6.
+            * move => k???. 
+              rewrite H9 1:/#; first by smt(@W64 pow2_64).
+              rewrite H8 // 1:/#.
+
+seq 2 0 : (
+  #{/~forall (k : int),
+    0 <= k && k < W64.max_uint =>
+    ! (to_uint msg_ptr <= k && k < to_uint msg_ptr + 64) =>
+    mem.[k] = Glob.mem{1}.[k]}pre /\ 
+
+  load_buf Glob.mem{1} (m_with_prefix_ptr{1} + W64.of_int 64) 32 = to_list root{1} /\
+
+  forall (k : int),
+    0 <= k && k < W64.max_uint =>
+    ! (to_uint msg_ptr <= k && k < to_uint msg_ptr + 96) =>
+    mem.[k] = Glob.mem{1}.[k]
+).
+    + inline {1} 2; inline {1} 8.
+      sp; wp.
+      ecall {1} (p_write_buf_ptr Glob.mem{1} out0{1} offset1{1} in_00{1}).
+      skip => /> &hr H0 H1 H2 H3 H4 H5 H6 H10*; do split.
+       - smt().
+       - smt(@W64 pow2_64).
+       - move => ?? result mem0 H7 H8 H9.
+         do split.
+             * apply (eq_from_nth witness); first by rewrite size_load_buf // size_to_list.
+               rewrite size_load_buf // => j?.
+               rewrite nth_load_buf // -H5 H7 H9 1,2:/# nth_load_buf //.
+             * apply (eq_from_nth witness); first by rewrite size_load_buf // size_to_list.
+               rewrite size_load_buf // => j?.
+               rewrite nth_load_buf // -H6 H7 H9; 1,2: by smt(@W64 pow2_64). 
+               rewrite nth_load_buf //.
+             * move => k???. 
+              rewrite H10 1:/#; first by smt(@W64 pow2_64).
+              rewrite H9 // 1:/#.
+
+seq 0 0 : (
+    #pre /\
+    load_buf Glob.mem{1} m_with_prefix_ptr{1} 96 = 
+    padding{2} ++ to_list R ++ to_list root{1} 
+).
+    + auto => /> &hr H0 H1 H2 H3 H4 H5 H6 H7 H8.
+      apply (eq_from_nth witness); first by rewrite size_load_buf // !size_cat !size_to_list.
+      rewrite size_load_buf // => j?.
+      case (0 <= j < 32) => Ha.
+        - rewrite nth_cat.
+            * rewrite !size_cat !size_to_list ifT 1:/#.
+          rewrite nth_cat.
+            * rewrite size_to_list // ifT 1:/#. 
+          rewrite -H5 !nth_load_buf //.
+      case (32 <= j < 64) => Hb.
+        - rewrite nth_cat.
+            * rewrite !size_cat !size_to_list // ifT 1:/#.
+          rewrite nth_cat.
+            * rewrite size_to_list // ifF 1:/#. 
+          rewrite -H6 /load_buf !nth_mkseq //= 1:/#.
+          congr.
+          smt(@W64 pow2_64).
+      rewrite nth_cat.
+        - rewrite !size_cat !size_to_list // ifF 1:/#.
+      rewrite -H7.
+      rewrite /load_buf !nth_mkseq 1,2:/# /=.
+      congr.
+      smt(@W64 pow2_64).
+
+seq 1 0 : (#pre /\ to_list buf_n{1} = toByte_64 idx{1} 32).
+    + ecall {1} (ull_to_bytes_32_correct idx{1}); auto => /> ????H*.
+      rewrite /XMSS_FULL_HEIGHT /= in H; smt().
+
+seq 2 0 : (
+  #{/~forall (k : int),
+    0 <= k && k < W64.max_uint =>
+    ! (to_uint msg_ptr <= k && k < to_uint msg_ptr + 96) =>
+    mem.[k] = Glob.mem{1}.[k]}pre /\ 
+
+  load_buf Glob.mem{1} (m_with_prefix_ptr{1} + W64.of_int 96) 32 = toByte_64 idx{1} 32 /\
+  
+    forall (k : int),
+    0 <= k && k < W64.max_uint =>
+    ! (to_uint msg_ptr <= k && k < to_uint msg_ptr + 128) =>
+    mem.[k] = Glob.mem{1}.[k]
+).
+    + inline {1} 2; inline {1} 8.
+      sp; wp.
+      ecall {1} (p_write_buf_ptr Glob.mem{1} out0{1} offset1{1} in_00{1}).
+      skip => /> &hr H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10.
+      do split.
+       - smt().
+       - smt(@W64 pow2_64).
+       - move => H11 H12 result memL -> H13 H14.
+         do split.
+            * apply (eq_from_nth witness); first by rewrite size_load_buf // size_to_list.
+              rewrite size_load_buf // => j?; rewrite -H5 !nth_load_buf // H14 1,2:/# //.
+            * apply (eq_from_nth witness); first by rewrite size_load_buf // size_to_list.
+              rewrite size_load_buf // => j?; rewrite -H6 !nth_load_buf // H14; smt(@W64 pow2_64).
+            * apply (eq_from_nth witness); first by rewrite size_load_buf // size_to_list.
+              rewrite size_load_buf // => j?; rewrite -H7 !nth_load_buf // H14; smt(@W64 pow2_64)
+.
+            * apply (eq_from_nth witness).
+                + by rewrite size_load_buf // !size_cat !size_to_list.
+              rewrite size_load_buf // => j?.
+              case (0 <= j < 32) => [Hfst | ?].
+                + rewrite nth_cat !size_cat !size_to_list ifT 1:/#.
+                  rewrite nth_cat !size_to_list ifT 1:/#.
+                  rewrite -H5 !nth_load_buf // H14 /#.
+              case (32 <= j < 64) => [Hsnd | Hthrd].
+                + rewrite nth_cat !size_cat !size_to_list ifT 1:/#.
+                  rewrite nth_cat !size_to_list ifF 1:/#.
+                  rewrite -H6 !nth_load_buf // 1:/# H14; smt(@W64 pow2_64).
+              rewrite nth_cat size_cat !size_to_list ifF 1:/#.
+              rewrite -H7 !nth_load_buf // 1:/# H14 1,2:/#; smt(@W64 pow2_64).
+            * apply (eq_from_nth witness); first by rewrite size_load_buf // size_toByte_64.
+              by rewrite size_load_buf // => j?; rewrite H13 H10.
+       - smt().
+
+seq 0 0 : (
+  #pre /\
+  load_buf Glob.mem{1} m_with_prefix_ptr{1} 128 = padding{2} ++ val t{2}
+).
+    + auto => /> &1 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 *.
+      apply (eq_from_nth witness); first by  rewrite !size_cat valP size_to_list size_load_buf /#.
+      rewrite size_load_buf // => j?.
+      rewrite nth_load_buf //.
+      case (0 <= j < 32) => [H_1 | ?].
+         * by rewrite nth_cat size_to_list ifT 1:/# -H5 nth_load_buf.
+      case (32 <= j < 64) => [H_2 | ?].
+         * rewrite nth_cat size_to_list ifF 1:/# insubdK.
+             - rewrite /P !size_cat !size_to_list size_toByte_64 /#.
+           rewrite nth_cat !size_cat !size_to_list ifT 1:/#.
+           rewrite nth_cat !size_to_list ifT 1:/#.
+           rewrite -H6 nth_load_buf 1:/#; congr; smt(@W64 pow2_64).
+      case (64 <= j < 96) => [H_3 | H_4].
+         * rewrite nth_cat size_to_list ifF 1:/# insubdK.
+             - rewrite /P !size_cat !size_to_list size_toByte_64 /#.
+           rewrite nth_cat !size_cat !size_to_list ifT 1:/#.
+           rewrite nth_cat !size_to_list ifF 1:/#.
+           rewrite -H7 nth_load_buf 1:/#; congr; smt(@W64 pow2_64).
+         * rewrite nth_cat size_to_list ifF 1:/# insubdK.
+             - rewrite /P !size_cat !size_to_list size_toByte_64 /#.
+           rewrite nth_cat !size_cat !size_to_list ifF 1:/# /=.
+           rewrite -H10 nth_load_buf 1:/#; congr; smt(@W64 pow2_64).
+
+seq 2 0 : (#pre /\ len{1} = mlen{1} + W64.of_int 128); first by auto => />. 
+
+exists * m_with_prefix_ptr{1}, len{1}; elim * => P0 P1.
+ecall {1} (hash_ptr_correct P0 P1). 
+auto => /> &1 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12*.
+do split.
+    + rewrite /valid_ptr_i; smt(@W64 pow2_64).
+move => H13 result ->; split; last first. 
+    + rewrite H12; apply (eq_from_nth witness); first by rewrite !size_cat valP !size_to_list !size_toByte_64 /#.
+      rewrite !size_cat size_to_list valP n_val /= => j?.
+      case (0 <= j < 32) => [H_1 | ?].
+         * rewrite nth_cat size_to_list ifT 1:/#.
+           rewrite nth_cat !size_cat size_toByte_64 // !size_to_list /= ifT 1:/#.
+           rewrite nth_cat !size_cat size_toByte_64 // !size_to_list /= ifT 1:/#.
+           rewrite nth_cat size_toByte_64 // /= ifT 1:/#.
+           by rewrite -get_to_list H4 n_val.
+      case (32 <= j < 64) => [H_2 | ?].
+         * rewrite nth_cat size_to_list ifF 1:/#.
+           rewrite nth_cat !size_cat size_toByte_64 // !size_to_list /= ifT 1:/#.
+           rewrite nth_cat !size_cat size_toByte_64 // !size_to_list /= ifT 1:/#.
+           rewrite nth_cat size_toByte_64 // /= ifF 1:/#.
+           rewrite insubdK.
+             - rewrite /P !size_cat !size_to_list size_toByte_64 /#.
+           rewrite nth_cat !size_cat !size_to_list /= ifT 1:/#.
+           rewrite nth_cat !size_to_list /= ifT 1:/#.
+           reflexivity.
+      case (64 <= j < 96) => [H_3 | H_4].
+         * rewrite nth_cat size_to_list ifF 1:/#.
+           rewrite nth_cat !size_cat size_toByte_64 // !size_to_list /= ifT 1:/#.
+           rewrite nth_cat !size_cat size_toByte_64 // !size_to_list /= ifF 1:/#.
+           rewrite insubdK.
+             - rewrite /P !size_cat !size_to_list size_toByte_64 /#.
+           rewrite nth_cat !size_cat !size_to_list /= ifT 1:/#.
+           rewrite nth_cat !size_to_list /= ifF 1:/#.
+           reflexivity.
+         * rewrite nth_cat size_to_list ifF 1:/#.
+           rewrite nth_cat !size_cat size_toByte_64 // !size_to_list /= ifF 1:/#.
+           rewrite insubdK.
+             - rewrite /P !size_cat !size_to_list size_toByte_64 /#.
+           rewrite nth_cat !size_cat !size_to_list /= ifF 1:/#.
+           reflexivity.
+ 
+congr; congr. 
+apply (eq_from_nth witness).
+    + rewrite size_load_buf; first by smt(@W64 pow2_64).
+      rewrite !size_cat valP !size_to_list n_val /= size_load_buf; smt(@W64 pow2_64).
+rewrite size_load_buf; first by smt(@W64 pow2_64).
+have ->: to_uint (_mlen + (of_int 128)%W64) = to_uint _mlen + 128 by smt(@W64 pow2_64).
+move => j?.
+rewrite nth_load_buf //.
+case (0 <= j < 32) => [H_1 | ?].
+    + rewrite nth_cat !size_cat size_to_list valP ifT 1:/#.
+      rewrite nth_cat size_to_list ifT 1:/#.
+      by rewrite -H5 nth_load_buf.
+case (32 <= j < 64) => [H_2 | ?].
+    + rewrite nth_cat !size_cat size_to_list valP ifT 1:/#.
+      rewrite nth_cat size_to_list ifF 1:/#.
+      rewrite insubdK.
+         * rewrite /P !size_cat !size_to_list size_toByte_64 /#.
+      rewrite nth_cat !size_cat !size_to_list ifT 1:/#.
+      rewrite nth_cat size_to_list ifT 1:/#.
+      rewrite -H6 nth_load_buf 1:/#; congr; smt(@W64 pow2_64).
+case (64 <= j < 96) => [H_3 | ?].
+    + rewrite nth_cat !size_cat size_to_list valP ifT 1:/#.
+      rewrite nth_cat size_to_list ifF 1:/#.
+      rewrite insubdK.
+         * rewrite /P !size_cat !size_to_list size_toByte_64 /#.
+      rewrite nth_cat !size_cat !size_to_list ifT 1:/#.
+      rewrite nth_cat size_to_list ifF 1:/#.
+      rewrite -H7 nth_load_buf 1:/#; congr; smt(@W64 pow2_64).
+case (96 <= j < 128) => [H_4 | H_5].
+    + rewrite nth_cat !size_cat size_to_list valP ifT 1:/#.
+      rewrite nth_cat size_to_list ifF 1:/#.
+      rewrite insubdK.
+         * rewrite /P !size_cat !size_to_list size_toByte_64 /#.
+      rewrite nth_cat !size_cat !size_to_list ifF 1:/#.
+      rewrite -H10 nth_load_buf 1:/#; congr; smt(@W64 pow2_64).
+    + rewrite nth_cat !size_cat size_to_list valP ifF 1:/#.
+      rewrite nth_load_buf 1:/#.
+rewrite n_val /=  H11; smt(@W64 pow2_64).
+qed.
+
