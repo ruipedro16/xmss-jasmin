@@ -12,7 +12,7 @@ require import Termination.
 
 require import Parameters.
 
-require import Utils2 Repr2.
+require import Utils2 Repr2 Bytes.
 
 require import BitEncoding.
 (*---*) import BitChunking.
@@ -23,44 +23,9 @@ require import StdBigop.
 import W4u8.Pack.
 import W8u8.Pack.
 
-(* This is not big endian *)
-op W32toBytes    (x : W32.t) : W8.t list = to_list (W4u8.unpack8 x).
-
-(* This is big endian *)
-op W32toBytes_be (x : W32.t) : W8.t list = rev (to_list (W4u8.unpack8 x)).
-
-(* This is not big endian *)
-op W64toBytes    (x : W64.t) : W8.t list = to_list (W8u8.unpack8 x).
-
-(* This is big endian *)
-op W64toBytes_be (x : W64.t) : W8.t list = rev (to_list (W8u8.unpack8 x)).
-
-(* drop the least significant byte *)
-(* x is not big endian *)
-op drop_msbyte (x : W8.t list) : W8.t list = behead x.
-
-(* x is big endian *)
-op drop_msbyte_be (x : W8.t list) : W8.t list = take (size x - 1) x.
-
 lemma size_behead x :
     size (behead x) = 
        if (x = [<:'a>]) then 0 else size x - 1 by smt().
-(* sem este <:'a> tenho o erro "the formula contains free type variables" *)
-
-lemma size_drop_lsbyte (x : W8.t list) : 
-    0 < size x =>
-    size (drop_msbyte x) = size x - 1.
-proof.
-move => ?.
-by rewrite size_behead ifF 1:/#.
-qed.
-
-lemma size_drop_msbyte_be (x : W8.t list) : 
-    0 < size x =>
-    size (drop_msbyte_be x) = size x - 1.
-proof.
-move => ?; rewrite size_take /#.
-qed.
 
  
 (** -------------------------------------------------------------------------------------------- **)
@@ -69,13 +34,32 @@ lemma ull_to_bytes2_post (x : W64.t, y : W32.t) :
   phoare[
     M(Syscall).__ull_to_bytes_2 : 
     arg.`2 = x /\ 
-    to_uint x = to_uint y /\
-    0 <= to_uint y < W32.max_uint 
+    0 <= to_uint x < W8.max_uint 
     ==>
-    to_list res = toByte y 2 ] = 1%r.
+    to_list res = W64toBytes_ext x 2
+  ] = 1%r.
 proof.
 proc.
+unroll 4; unroll 5.
+rcondt 4; first by auto.
+rcondt 7; first by auto.
+rcondf 10; first by auto.
+auto => /> &hr H0 H1. 
+apply (eq_from_nth witness).
+  + rewrite size_to_list /W64toBytes_ext size_rev size_mkseq /#.
+rewrite size_to_list => j?.
+case (j = 0) => [-> | ?].
+  + rewrite get_to_list get_setE //= /(`>>`) /= /(`>>>`) /=.
+    rewrite /W64toBytes_ext nth_rev; first by rewrite size_mkseq /#.
+    rewrite size_mkseq nth_mkseq 1:/# /= (: max 0 2 = 2) //=.
+    rewrite bits8_div //.
+    rewrite wordP => w?.
+    rewrite /truncateu8; congr; congr.
     admit.
+have ->: j = 1 by smt().
+rewrite get_to_list get_setE // ifF 1:/# get_setE //=.
+rewrite /W64toBytes_ext nth_rev; first by rewrite size_mkseq /#.
+by rewrite size_mkseq (: max 0 2 = 2) //= nth_mkseq //= bits8_div.
 qed.
 
 lemma ull_to_bytes_32_correct (x : W64.t) : 
@@ -100,7 +84,24 @@ lemma ull_to_bytes_3_correct (x : W64.t) :
     ] = 1%r.
 proof.
 proc => /=.
-admit.
+unroll 4; unroll 5; unroll 6.
+rcondt 4; first by auto.
+rcondt 7; first by auto.
+rcondt 10; first by auto.
+rcondf 13; first by auto.
+auto => /> &hr H0.
+apply (eq_from_nth witness).
+  + rewrite size_to_list; admit.
+rewrite size_to_list => j?.
+rewrite get_to_list.
+rewrite !get_setE //.
+case (j = 0) => [-> | ?].
+  + admit.
+case (j = 1) => [-> | ?].
+  + admit.
+case (j = 2) => [-> | ?].
+  + admit.
+smt(). 
 qed.
         
 
