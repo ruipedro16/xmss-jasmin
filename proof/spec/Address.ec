@@ -108,10 +108,6 @@ op set_key_and_mask (address : adrs, key_and_mask : int) : adrs =
     address.[7 <- W32.of_int key_and_mask].
 
 
-(* Isto nao devia estar aqui *)
-op BytesToBits (bytes : W8.t list) : bool list = flatten (map W8.w2bits bytes).
-op BitsToBytes (bits : bool list) : W8.t list = map W8.bits2w (chunk W8.size bits).
-
 op addr_to_bytes (a : W32.t Array8.t) : nbytes =
   let addr_bytes : W8.t list = 
       flatten (map (fun (w : W32.t) => rev (to_list (W4u8.unpack8 w))) (to_list a)) in

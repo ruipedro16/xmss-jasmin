@@ -148,8 +148,8 @@ module XMSS_MT_PRF = {
       j <- 1;
       while (j < d) {
       root <@ TreeHash.treehash(sk.`pub_seed_sk, sk.`sk_seed, 0, h %/ d, address);
-      idx_leaf <- idx_tree `&` W32.of_int (2^(h %/ d) - 1);
       idx_tree <- idx_tree `>>>` (h %/ d);
+      idx_leaf <- idx_tree `&` W32.of_int (2^(h %/ d) - 1);
 
       address <- set_layer_addr address j;
       address <- set_tree_addr address (W32.to_uint idx_tree);

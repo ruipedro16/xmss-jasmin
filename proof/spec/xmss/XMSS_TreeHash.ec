@@ -17,20 +17,22 @@ pred leftmost_leaf (s t : int)  = s %% 2^t = 0.
 (* Precondition *)
 pred treehash_p (s t : int) = s %% (1 `<<` t) <> 0.
 
+op nbytes_witness : nbytes = NBytes.insubd (nseq n witness).
+
 module TreeHash = {
   (* Computes the root *)
   proc treehash(pub_seed sk_seed : seed, s t : int, address : adrs) : nbytes = {
     var node : nbytes;
-    var stack : nbytes list <- nseq (h  + 1) (NBytes.insubd (nseq n W8.zero));
-    var heights : int list <- nseq h witness; (* Used to manage the height of nodes *)
+    var stack : nbytes list <- nseq (h  + 1) witness;
+    var heights : W32.t list <- nseq h witness; (* Used to manage the height of nodes *)
     var pk : wots_pk;
-    var offset : int;
+    var offset : W64.t;
     var i, j : int;
     var tree_index : W32.t;
     var node0, node1, new_node : nbytes;
     
 
-    offset <- 0;
+    offset <- W64.zero;
     i <- 0;
     while (i < 2^t) {
       address <- set_type address 0;
@@ -45,28 +47,30 @@ module TreeHash = {
       (* compress the WOTS public key into a single N-byte value *)
       node <@ LTree.ltree(pk, address, pub_seed); 
 
-      stack <- put stack offset node; (* Push the node onto the stack *)
-      offset <- offset + 1;
-      heights <- put heights (offset - 1) 0;
+      stack <- put stack (to_uint offset) node; (* Push the node onto the stack *)
+      offset <- offset + W64.one;
+      heights <- put heights (to_uint (offset - W64.one)) W32.zero;
       
       while (
-          2 <= offset /\ (* The stack needs to have at least two nodes *)
-          nth witness heights (offset - 1) = nth witness heights (offset - 2)
+          (of_int 2)%W64 \ule offset /\ (* The stack needs to have at least two nodes *)
+          nth witness heights (to_uint (offset - W64.one)) = 
+             nth witness heights (to_uint (offset - (of_int 2)%W64))
       ) {
-
-        tree_index <- W32.of_int(s + i) `>>>` ((nth witness heights (offset - 1)) + 1);
+          tree_index <- W32.of_int(s + i) `>>` truncateu8 (((nth witness heights (to_uint (offset - W64.one))) + W32.one) `&` (of_int 31)%W32); 
         
-        address <- set_tree_height address (nth witness heights (offset - 1));
-        address <- set_tree_index address (W32.to_uint tree_index);
+          address <- set_tree_height address (to_uint (nth witness heights (to_uint (offset - W64.one))));
+          address <- set_tree_index address (W32.to_uint tree_index);
 
-        node0 <- nth witness stack (offset - 2);
-        node1 <- nth witness stack (offset - 1);
+          node0 <- nth nbytes_witness stack (to_uint (offset - W64.of_int 2));
+          node1 <- nth nbytes_witness stack (to_uint (offset - W64.one));
+          
+          new_node <@ Hash.rand_hash(node0, node1, pub_seed, address);
 
-        new_node <@ Hash.rand_hash(node0, node1, pub_seed, address);
-
-        stack <- put stack (offset - 2) new_node; (* push new node onto the stack *)
-        offset <- offset - 1; (* One less node on the stack (removed node0 and node1 and added new_node) *)
-        heights <- put heights (offset - 1) (nth witness heights (offset - 1)); (* The new node is one level higher than the nodes used to compute it *)
+          stack <- put stack (to_uint (offset - W64.of_int 2)) new_node; (* push new node onto the stack *)
+          offset <- offset - W64.one; (* One less node on the stack (removed node0 and node1 and added new_node) *)
+          heights <- put heights 
+                   (to_uint (offset - W64.one)) 
+                   (nth witness heights (to_uint (offset - W64.one)) + W32.one); (* The new node is one level higher than the nodes used to compute it *)
       }      
 
       i <- i + 1;
@@ -76,6 +80,7 @@ module TreeHash = {
     return node;
   }
 }.
+
 
 
 module TreeSig = {
@@ -169,7 +174,7 @@ module RootFromSig = {
       }
 
       nodes0 <- nodes1;
-      k <- k+1;
+      k <- k + 1;
     }
 
     return nodes0;

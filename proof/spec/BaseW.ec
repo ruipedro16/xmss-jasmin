@@ -8,7 +8,7 @@ require import Params Address.
 
 (* prefix of big endian byte representation of a 32-bit word *)
 op toByte(x : W32.t, k : int) : W8.t list =  
-    rev (mkseq (fun i => nth W8.zero (BitsToBytes (W32.w2bits x)) i) k).
+    rev (mkseq (fun i => nth W8.zero (to_list (W4u8.unpack8 x)) i) k).
 
 
 (* From the RFC
