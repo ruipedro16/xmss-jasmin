@@ -17,8 +17,8 @@ PREPROCESSOR := ../submodules/jasmin-preprocessor/preprocessor
 
 # --------------------------------------------------------------------------------------------------
 
-default: extract typecheck_spec check_proofs typecheck_extraction
-all: clean distclean extract typecheck_spec check_proofs typecheck_extraction
+default: extract check_spec check_proofs check_extraction
+all: clean distclean extract check_spec check_proofs check_extraction
 extract: extraction/XMSS_IMPL.ec
 
 # --------------------------------------------------------------------------------------------------
@@ -30,8 +30,8 @@ extraction/XMSS_IMPL.ec: | extraction/ common/
 
 # --------------------------------------------------------------------------------------------------
 
-.PHONY: typecheck_spec check_proofs typecheck_extraction typecheck_xmss_spec typecheck_xmss_mt_spec
-typecheck_xmss_spec:
+.PHONY: check_spec check_proofs check_extraction check_xmss_spec check_xmss_mt_spec
+check_xmss_spec:
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Address.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/BaseW.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Hash.ec
@@ -40,11 +40,11 @@ typecheck_xmss_spec:
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Types.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/WOTS.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss/XMSS_Params.ec
-	# $(EASYCRYPT) $(EC_INCLUDE) spec/xmss/XMSS_PRF.ec # FIXME:
+	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss/XMSS_PRF.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss/XMSS_TreeHash.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss/XMSS_Types.ec
 
-typecheck_xmss_mt_spec:
+check_xmss_mt_spec:
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Address.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/BaseW.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Hash.ec
@@ -58,9 +58,9 @@ typecheck_xmss_mt_spec:
 	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss_mt/XMSS_MT_Types.ec
 
 
-typecheck_spec: typecheck_xmss_spec typecheck_xmss_mt_spec
+check_spec: check_xmss_spec check_xmss_mt_spec
 
-typecheck_extraction: extraction/XMSS_IMPL.ec 
+check_extraction: extraction/XMSS_IMPL.ec 
 	$(EASYCRYPT) $(EC_INCLUDE) $<
 
 check_correctness_proof: extraction/XMSS_IMPL.ec 
@@ -75,7 +75,7 @@ check_correctness_proof: extraction/XMSS_IMPL.ec
 	$(EASYCRYPT) $(EC_FLAGS) correctness/LTReeProof.ec
 	
 check_xmss_smssmt_proof: 
-	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) spec//XMSS_vs_XMSS_MT.ec || true # FIXME: this prroof is broken
+	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) spec//XMSS_vs_XMSS_MT.ec
 
 check_security_proof:
 	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) # ficheiro da prova

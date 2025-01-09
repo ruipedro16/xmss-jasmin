@@ -23,3 +23,10 @@ name = "Z3"
 path = "/home/rui/.opam/default/bin/z3"
 version = "4.13.0"
 ```
+
+## Proofs
+
+```bash
+make -C proof/ check_spec
+make -C proof/ check_xmss_smssmt_proof
+```
