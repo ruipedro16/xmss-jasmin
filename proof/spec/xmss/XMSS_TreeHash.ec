@@ -24,7 +24,7 @@ module TreeHash = {
   proc treehash(pub_seed sk_seed : seed, s t : int, address : adrs) : nbytes = {
     var node : nbytes;
     var stack : nbytes list <- nseq (h  + 1) witness;
-    var heights : W32.t list <- nseq h witness; (* Used to manage the height of nodes *)
+    var heights : W32.t list <- nseq (h + 1) witness; (* Used to manage the height of nodes *)
     var pk : wots_pk;
     var offset : W64.t;
     var i, j : int;
@@ -51,6 +51,8 @@ module TreeHash = {
       offset <- offset + W64.one;
       heights <- put heights (to_uint (offset - W64.one)) W32.zero;
       
+      address <- set_type address 2;
+
       while (
           (of_int 2)%W64 \ule offset /\ (* The stack needs to have at least two nodes *)
           nth witness heights (to_uint (offset - W64.one)) = 

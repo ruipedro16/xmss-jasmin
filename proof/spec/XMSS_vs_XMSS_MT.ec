@@ -1,17 +1,52 @@
+pragma Goals : printall.
+
 from Jasmin require import JModel.
+
 require import List DList IntDiv Int Ring.
-require import Address Types Hash XMSS_Params  XMSS_Types  XMSS_TreeHash XMSS_PRF  XMSS_MT_Params XMSS_MT_TreeHash XMSS_MT_Types XMSS_MT_PRF.
+
+require import Address Types Hash XMSS_Params LTree  XMSS_Types XMSS_PRF  XMSS_MT_Params XMSS_MT_Types XMSS_MT_PRF.
 import IntID.
 
 require import Array8.
 
-equiv keygen : XMSS_PRF.kg ~ XMSS_MT_PRF.kg : XMSS_Params.impl_oid = XMSS_MT_Params.impl_oid /\ d = 1 ==> ={res}. 
+equiv treehash_equiv : 
+    XMSS_TreeHash.TreeHash.treehash ~  XMSS_MT_TreeHash.TreeHash.treehash :
+    XMSS_Params.impl_oid = XMSS_MT_Params.impl_oid /\
+    d = 1 /\ ={pub_seed, sk_seed, s, t, address}
+    ==> 
+    ={res}.
+proof.
+proc => /=. 
+seq 5 5 : (={stack}); 2:auto.
+seq 4 4 : (#pre /\ ={stack, heights, offset, i}).
+- by auto => /> ? -> /=.
+while (#pre).
+- seq 2 2 : #pre; 1:auto.
+  seq 1 1 : (#pre /\ ={pk}).
+    + call (: ={arg} ==> ={res}); [sim | auto].
+  seq 2 2 : #pre; 1:auto. 
+  seq 1 1 : (#pre /\ ={node}).
+    + call (: ={arg} ==> ={res}); [sim | auto].
+  seq 4 4 : #pre; 1:auto.
+  conseq />; seq 1 1 : (#post); 2:auto.
+  while (#pre); 2:auto.
+  seq 5 5 : (#pre /\ ={tree_index, node0, node1}); 1:auto.
+  seq 1 1 : (#pre /\ ={new_node}); 2:auto.
+  call (: ={arg} ==> ={res}); [sim | auto].
+- auto.
+qed.
+
+equiv keygen : 
+  XMSS_PRF.kg ~ XMSS_MT_PRF.kg : 
+  XMSS_Params.impl_oid = XMSS_MT_Params.impl_oid /\ d = 1 
+  ==> 
+  ={res}. 
 proof. 
-proc. wp 7 7 => /=.
-call(:d=1);1: by conseq />; sim; auto => /> /#.
-wp 5 5 => /=. 
-call(:d=1);1: by conseq />; sim. 
-by auto => /> /#.
+proc. 
+wp 7 7 => /=.
+seq 6 6 : (#pre /\ ={pub_seed, sk_seed, address, sk_seed, sk_prf, pub_seed}).
+- by inline; auto => /> /#.
+call (treehash_equiv); auto => /> /#.
 qed.
 
 abbrev eqsig(sig : XMSS_Types.sig_t, sigmt : XMSS_MT_Types.sig_t) : bool =

@@ -5,7 +5,7 @@ require (*--*) Subtype.
 
 from Jasmin require import JModel.
  
-require import Types XMSS_Types Address Hash WOTS LTree XMSS_TreeHash.
+require import Types XMSS_Types Address BaseW Hash WOTS LTree XMSS_TreeHash.
 import Params OTSKeys TheeNBytes AuthPath.
 import Array8.
 
@@ -73,7 +73,7 @@ proc sign(sk : xmss_sk, m : msg_t) : sig_t * xmss_sk = {
     sk <- {| sk with idx=idx_new |};
     address <- zero_address;
     
-    idx_bytes <- NBytes.insubd (lenbytes_be32 idx n);
+    idx_bytes <- NBytes.insubd (toByte idx n);
 
     _R <@ Hash.prf(idx_bytes, sk_prf);
 
@@ -100,7 +100,7 @@ proc sign(sk : xmss_sk, m : msg_t) : sig_t * xmss_sk = {
     var t : threen_bytes;
 
     idx_sig <- s.`sig_idx;
-    idx_bytes <- NBytes.insubd (lenbytes_be32 idx_sig n);
+    idx_bytes <- NBytes.insubd (toByte idx_sig n);
     _seed <- pk.`pk_pub_seed;
     address <- zero_address;
     (sig_ots,auth) <- s.`r_sig; 
