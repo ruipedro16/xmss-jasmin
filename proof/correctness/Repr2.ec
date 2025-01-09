@@ -13,8 +13,10 @@ require import Array32 Array64 Array68 Array131 Array2144.
 require import BitEncoding.
 (*---*) import BitChunking.
 
-require import Utils2.
+require import Utils2 Bytes.
 
+
+require import Bytes.
 
 (* Encode : impl -> spec *)
 (* Decode : spec -> impl *)
@@ -104,65 +106,57 @@ rewrite /toByte_64.
 rewrite size_rev size_mkseq /#.
 qed.
 
-lemma size_W32toBytes (x : W32.t) :
-    size (W32toBytes x) = 4
-        by rewrite /W32toBytes size_map size_chunk // size_w2bits. 
-
 lemma W32toBytes_zero_nth (i : int) :
     0 <= i < 4 => nth witness (W32toBytes W32.zero) i = W8.zero.
 proof.
 move => H.
-rewrite /W32toBytes.
-rewrite (nth_map witness).
-  + by rewrite size_chunk.
-have ->: w2bits W32.zero = nseq 32 false.
-  + apply (eq_from_nth false); [ by rewrite size_w2bits size_nseq |].
-    rewrite size_w2bits => j?.
-    rewrite get_w2bits nth_nseq //=.
-have ->: chunk 8 (nseq 32 false) = nseq 4 (nseq 8 false).
-  + apply (eq_from_nth witness); [by rewrite size_chunk //= !size_nseq /# |].
-    rewrite size_chunk //= size_nseq (: 32 %/ 8 = 4) 1:/# => j?.
-    rewrite nth_nseq 1:/#.
-    rewrite /chunk nth_mkseq; [by rewrite size_nseq (: 32 %/ 8 = 4) 1:/# |].
-    auto => />. 
-    apply (eq_from_nth witness).
-      * rewrite size_take //= size_drop 1:/# !size_nseq. 
-        rewrite (: (max 0 32) = 32) 1:/# (: max 0 (32 - 8 * j) = (32 - 8 *j)) 1:/# /#. 
-    rewrite size_take //= size_drop 1:/# !size_nseq.      
-    rewrite (: (max 0 32) = 32) 1:/# (: max 0 (32 - 8 * j) = (32 - 8 *j)) 1:/#.
-    move => i0?.
-    rewrite nth_nseq 1:/# nth_take //= 1:/# nth_drop 1,2:/# nth_nseq 1:/# //.
-rewrite nth_nseq //.
-rewrite /W8.zero.
-congr. 
-apply (eq_from_nth false).
-  + rewrite size_nseq /int2bs size_mkseq //=.
-rewrite size_nseq (: max 0 8 = 8) 1:/# => j?.  
-rewrite nth_nseq //= /int2bs nth_mkseq //=.
+rewrite /W32toBytes nth_rev; first by rewrite size_to_list /#.
+rewrite size_to_list /to_list nth_mkseq 1:/# /=.
+rewrite unpack8E initiE 1:/# /= bits8E /=.
+rewrite /W8.zero wordP => j?.
+rewrite initE ifT 1:/# /= bits2wE initE /=. 
+have ->: ((0 <= j && j < 8)) = true by smt().
+simplify.
+by rewrite /int2bs nth_mkseq //=.
 qed.
 
 (* TMP: MOVE THIS TO THE RIGHT PLACE LATER *)
 op BitsToBytes (bits : bool list) : W8.t list = map W8.bits2w (chunk W8.size bits).
 
+import W4u8.
+
+import W4u8.Pack.
+import W8u8.Pack.
+
 lemma W32toBytes_Eq (x : W32.t) :
     W32toBytes x = 
-    (mkseq (fun i => nth W8.zero (BitsToBytes (W32.w2bits x)) i) 4).
+    rev ((mkseq (fun i => nth W8.zero (BitsToBytes (W32.w2bits x)) i) 4)).
 proof.
 rewrite /W32toBytes.
-apply (eq_from_nth witness); first by rewrite size_map size_chunk // size_w2bits size_mkseq /#.
-rewrite size_map size_chunk // size_w2bits /= => j?.
-rewrite nth_mkseq 1:/#.
+apply (eq_from_nth witness). 
+- by rewrite !size_rev size_to_list size_mkseq.
+rewrite size_rev size_to_list => i?.
+rewrite !nth_rev.
+- by rewrite size_to_list.
+- by rewrite size_mkseq.
 rewrite /BitsToBytes.
-rewrite (nth_map witness).
-  + by rewrite size_chunk // size_w2bits.
-rewrite wordP => jw?.
-rewrite bits2wE initiE // /= /chunk nth_mkseq /= 1:/#.
-rewrite nth_take // 1:/# nth_drop 1,2:/#.
-rewrite (nth_map witness).
-  +rewrite size_mkseq /#.
-rewrite bits2wE initiE // /= /chunk nth_mkseq /= 1:/#.
-rewrite nth_take // 1:/# nth_drop 1,2:/#.
-by rewrite /w2bits nth_mkseq 1:/# /=.
+rewrite nth_mkseq /=.
+- rewrite size_mkseq /#.
+rewrite (nth_map witness) /=.
+- rewrite size_mkseq size_chunk /#.
+rewrite bits2wE /= nth_chunk //.
+- rewrite size_mkseq size_w2bits /#.
+rewrite wordP => j?.
+rewrite initiE // nth_take // 1:/#.
+rewrite nth_drop // 2:/#.
+- rewrite size_mkseq /#.
+rewrite size_mkseq.
+rewrite (: max 0 4 = 4) 1:/#.
+rewrite w2bitsE nth_mkseq 1:/# /=.
+rewrite unpack8E /to_list nth_mkseq 1:/# /=. 
+rewrite initiE 1:/#.
+rewrite bits8E initiE //=.
+by congr; ring.
 qed.
    
 
@@ -218,27 +212,79 @@ qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 
-op DecodePk (x : xmss_pk) : W8.t Array68.t = 
-  Array68.of_list witness (W32toBytes impl_oid ++ val x.`pk_root ++ val x.`pk_pub_seed).
-
 op DecodePkNoOID (x : xmss_pk) : W8.t Array64.t = 
   Array64.of_list witness (val x.`pk_root ++ val x.`pk_pub_seed).
-
-op EncodePk (x : W8.t Array68.t) : xmss_pk = {| pk_oid      = W32ofBytes (sub x 0 4);
-                                                pk_root     = NBytes.insubd (sub x 4 32); 
-                                                pk_pub_seed = NBytes.insubd (sub x 36 32); 
-                                              |}.
 
 op EncodePkNoOID (x : W8.t Array64.t) : xmss_pk = {| pk_oid      = witness;
                                                      pk_root     = NBytes.insubd (sub x 0 32); 
                                                      pk_pub_seed = NBytes.insubd (sub x 32 32);
                                                    |}. 
 
-op EncodeIdx (idx : W32.t) : W8.t list = 
-  take XMSS_INDEX_BYTES (W32toBytes idx).
+import W4u8.
+import W8u8.
 
-lemma size_EncodeIdx (x : W32.t) : 
-    size (EncodeIdx x) = XMSS_INDEX_BYTES by rewrite /EncodeIdx size_take 1:/# size_W32toBytes /#.
+op EncodeIdx (idx : W32.t) : W8.t list = W32toBytes_ext idx XMSS_INDEX_BYTES.
+
+op DecodeIdx (idx_bytes : W8.t list) : W32.t = 
+  W32.bits2w (flatten (map W8.w2bits (rev idx_bytes))).
+
+(* 
+  The bits of the most significant byte of w are guaranteed to be zero because w 
+  represents a value less than  2^20 
+*)
+import StdOrder.IntOrder.
+
+lemma high_bits_false (w : W32.t) (i : int) :
+    0 <= to_uint w < 2^XMSS_FULL_HEIGHT =>
+    0 <= i < 32 => 
+    ! (0 <= i %/ 8 && i %/ 8 < 3) =>
+    w.[i] = false.
+proof.
+rewrite /XMSS_FULL_HEIGHT /=.
+move => ???.
+  rewrite get_to_uint.
+rewrite (: (0 <= i && i < 32) = true) 1:/# /=.
+have ->: 2^i = 2 * 2^(i - 1) by rewrite -exprS 1:/#.
+rewrite expr_pred 1:/# ~-1:/# divzMr 1:/#; first by smt(@IntDiv).
+rewrite divzMr . smt(@IntDiv). smt(@IntDiv).
+admit.
+qed.
+
+lemma EncodeIdxKancel (idx : W32.t) :
+    0 <= to_uint idx < 2^XMSS_FULL_HEIGHT =>
+    DecodeIdx (EncodeIdx idx) = idx.
+proof.
+rewrite /XMSS_FULL_HEIGHT /= => ?. (* We only need for bytes, the 4th is all zeros *)
+rewrite /DecodeIdx /EncodeIdx.
+rewrite bits2wE wordP => i?. 
+rewrite initiE //= /XMSS_INDEX_BYTES.
+rewrite (nth_flatten false 8).
+       + pose X := (fun (s : bool list) => size s = 8).
+         pose Y := (map W8.w2bits (rev (W32toBytes_ext idx 3))).
+         rewrite -(all_nthP X Y witness) /X /Y size_map size_rev size_W32toBytes_ext // => k?. 
+         rewrite (nth_map witness); first by rewrite size_rev size_W32toBytes_ext.
+         by rewrite size_w2bits.
+
+case (0 <= i %/ 8 && i %/ 8 < 3) => [Ha | Hb].
+  + rewrite (nth_map witness); first by rewrite size_rev size_W32toBytes_ext //.
+    rewrite nth_rev; first by rewrite size_W32toBytes_ext /#.
+    rewrite size_W32toBytes_ext //=.
+    rewrite nth_W32toBytes_ext // 1:/#.
+    rewrite unpack8E initiE 1:/# /= bits8E /= initiE 1:/# /=.
+    congr => /#.
+
+have ->: nth [] (map W8.w2bits (rev (W32toBytes_ext idx 3))) (i %/ 8) = [].
+  + rewrite nth_out 2:/# size_map size_rev size_W32toBytes_ext // /#.
+
+rewrite nth_out 1:/#.
+by rewrite high_bits_false.
+qed.
+
+lemma size_EncodeIdx (x : W32.t) : size (EncodeIdx x) = XMSS_INDEX_BYTES.
+proof.
+by rewrite /XMSS_INDEX_BYTES /EncodeIdx size_W32toBytes_ext /#.
+qed.
+
 
 op DecodeSkNoOID (x : xmss_sk) : W8.t Array131.t = 
   Array131.of_list witness (
@@ -287,7 +333,6 @@ qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 
-
 op EncodeAuthPath (x : W8.t list) : auth_path = 
   AuthPath.insubd (map NBytes.insubd (chunk n x)).
 
@@ -299,9 +344,35 @@ proof.
 by rewrite /DecodeAuthPath_List size_nbytes_flatten valP.
 qed.
 
-op EncodeReducedSignature (x : W8.t list) :  wots_signature * auth_path =
-  (EncodeWotsSignatureList (sub_list x 0 2144), EncodeAuthPath (sub_list x 2144 320)).
+op wots_sig_bytes : int = len * n.
+op auth_path_bytes : int = (h %/ d) * n.
+op reduced_sig_bytes : int = wots_sig_bytes + auth_path_bytes.
 
+op EncodeReducedSignature (x : W8.t list) :  wots_signature * auth_path =
+  (
+      EncodeWotsSignatureList (sub_list x 0 wots_sig_bytes), 
+      EncodeAuthPath (sub_list x wots_sig_bytes auth_path_bytes)
+  ).
+
+op EncodeSignature (sig_bytes : W8.t list) : sig_t =
+  {| sig_idx  = W32ofBytes (sub_list sig_bytes 0 XMSS_INDEX_BYTES);
+     r        = NBytes.insubd (sub_list sig_bytes XMSS_INDEX_BYTES XMSS_N);
+     r_sigs   = map EncodeReducedSignature 
+                    (
+                        chunk reduced_sig_bytes 
+                          (
+                              sub_list sig_bytes 
+                              (XMSS_INDEX_BYTES + XMSS_N)
+                              (size sig_bytes - (XMSS_INDEX_BYTES + XMSS_N))
+                          )
+                    );
+  |}.
+
+lemma sig_eq (s1 s2 : sig_t) :
+    s1.`sig_idx = s2.`sig_idx /\
+    s1.`r       = s2.`r       /\
+    s1.`r_sigs  = s2.`r_sigs => 
+    s1 = s2 by smt(). 
 
 (* sm = m || sig 
    we use mlen to skip the m part
@@ -311,65 +382,56 @@ op EncodeReducedSignature (x : W8.t list) :  wots_signature * auth_path =
 op load_signature_mem (mem : global_mem_t) (sm_ptr mlen : W64.t) : W8.t list = 
   mkseq (fun (i : int) => loadW8 mem (to_uint (sm_ptr + mlen) + i)) XMSS_SIG_BYTES.
 
-op EncodeSignature (sig_bytes : W8.t list) : sig_t =
-  {| sig_idx  = W32ofBytes (sub_list sig_bytes 0 XMSS_INDEX_BYTES);
-     r        = NBytes.insubd (sub_list sig_bytes XMSS_INDEX_BYTES XMSS_N);
-     r_sigs   = map EncodeReducedSignature (chunk 2176 (sub_list sig_bytes 36 (36 - 2500)));
-  |}.
+import W4u8.
 
-lemma sig_eq (s1 s2 : sig_t) :
-    s1.`sig_idx = s2.`sig_idx /\
-    s1.`r       = s2.`r       /\
-    s1.`r_sigs  = s2.`r_sigs => 
-    s1 = s2 by smt(). 
-
-lemma encode_signature_i (x y : W8.t list) : 
-    x = y => 
-    EncodeSignature x = EncodeSignature y.
+lemma nth_toByte dflt (x : W32.t) (n i : int) :
+    0 < n => 
+    0 <= i < n => 
+    nth dflt (toByte x n) i = (unpack8 x).[n - (i + 1)].
 proof.
-move => ->; reflexivity.
+move => ??.
+rewrite /toByte nth_rev; first by rewrite size_mkseq /#.
+by rewrite size_mkseq (: max 0 n = n) 1:/# nth_mkseq 1:/# /=.
 qed.
 
 
-lemma w2bits_eq_w32_w64 (w0 : W32.t) (w1 : W64.t) :
-    to_uint w0 = to_uint w1 =>
-    forall (k : int), 0 <= k < 32 => 
-     nth witness (w2bits w0) k = nth witness (w2bits w1) k.
-proof.
-rewrite !to_uintE => ?.
-admit.
-qed.
-
-lemma toByte_eq (w0 : W32.t) (w1 : W64.t):
-    to_uint w0 = to_uint w1 =>
-    EncodeIdx w0 = toByte_64 w1 XMSS_INDEX_BYTES.
+lemma toByte_32_64 (x : W32.t) (n : int) :
+    0 < n =>
+    toByte x n = W64toBytes_ext (zeroextu64 x) n.
 proof.
 move => ?.
-apply (eq_from_nth witness).
-  - rewrite size_EncodeIdx size_toByte_64 // /#.
-rewrite size_EncodeIdx /XMSS_INDEX_BYTES => j?.
-rewrite /EncodeIdx /toByte_64.
-rewrite nth_take 1,2:/#.
-rewrite /W32toBytes.
-rewrite nth_rev.
-  - rewrite size_mkseq /#.
-rewrite nth_mkseq /=.
-  - rewrite size_mkseq /#.
-rewrite size_mkseq (: max 0 3 = 3) 1:/#.
-rewrite (nth_map witness).
-  - rewrite size_chunk /#.
-rewrite bits2wE.
-rewrite /BitsToBytes (nth_map witness).
-  - rewrite size_iota /#.
-rewrite (nth_map witness).
-  - rewrite size_chunk /#.
-rewrite bits2wE wordP => w?.
-rewrite !initiE //= nth_take // 1:/# nth_drop 2:/#.
-  - rewrite nth_iota /#.
-rewrite !w2bitsE nth_iota 1:/#.
-rewrite nth_mkseq 1:/# /=.
-rewrite /chunk nth_mkseq.
-  - rewrite size_mkseq 1:/#.
-rewrite nth_take 1,2:/# nth_drop 1,2:/# nth_mkseq 1:/#.
-admit. 
+apply (eq_from_nth witness); rewrite size_toByte_32 1:/# ?size_W64toBytes_ext // => i?.
+rewrite nth_W64toBytes_ext //.
+rewrite nth_toByte //.
+rewrite !unpack8E. 
+case (0 <= n - (i + 1) < 4) => ?.
+  + rewrite !initiE 1,2:/# /= !bits8E wordP => j?.  
+    rewrite !initiE //=.
+    rewrite zeroextu64E pack2E initiE 1:/# /= initiE 1:/# /= ifT 1:/#.
+    congr; smt().
+rewrite initE ifF 1:/#.
+case (0 <= n - (i + 1) < 8) => ?.
+  + rewrite initiE 1:/# /= zeroextu64E pack2E bits8E wordP => j?.
+    by rewrite initiE //= initiE 1:/# /= initiE 1:/# /= ifF 1:/# /=.
+by rewrite initE ifF 1:/#.
+qed.
+
+lemma zeroextu64_to_uint (x : W32.t) : 
+    0 <= to_uint x < W32.max_uint =>
+    zeroextu64 x = W64.of_int (to_uint x) by smt().
+
+
+lemma unpack8_w (w0 : W32.t) (w1 : W64.t) (i : int): 
+    to_uint w0 = to_uint w1 =>
+    0 <= to_uint w0 < W32.max_uint =>
+    0 <= i < 4 =>
+    (unpack8 w0).[i] = (unpack8 w1).[i].
+proof.
+move => H??.
+rewrite !get_unpack8 // 1:/# !bits8E wordP => j?. 
+rewrite !initiE //=.
+rewrite get_to_uint -H.
+have ->: (0 <= i * 8 + j && i * 8 + j < 64) = true by smt(). 
+simplify.
+admit.
 qed.
