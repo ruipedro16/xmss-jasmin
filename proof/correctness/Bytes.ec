@@ -48,10 +48,25 @@ qed.
 op W64toBytes (x : W64.t) : W8.t list = rev (to_list (W8u8.unpack8 x)).
 op W64ofBytes (x : W8.t list) : W64.t = W8u8.pack8 (rev x).
 
+(* x nao tem necessariamente 8 bytes *)
+op W64ofBytes_ext (x : W8.t list) : W64.t. (* Isto e o decode Idx *)
+
+
 lemma W64toBytesK (x : W64.t) :
     W64ofBytes (W64toBytes x) = x.
 proof.
 rewrite /W64ofBytes /W64toBytes revK /#.
+qed.
+
+lemma nth_W32toBytes_ext dflt (w : W32.t) (l i : int)  :
+    0 < l => 
+    0 <= i < l =>
+    nth dflt (W32toBytes_ext w l) i = (unpack8 w).[l - (i + 1)]. 
+proof.
+move => ??.
+rewrite /W32toBytes_ext nth_rev; first by rewrite size_mkseq /#.
+rewrite size_mkseq (: max 0 l = l) 1:/# //=.
+by rewrite nth_mkseq 1:/# get_to_list.
 qed.
 
 
@@ -83,3 +98,115 @@ rewrite size_mkseq (: max 0 l = l) 1:/# //=.
 by rewrite nth_mkseq 1:/# get_to_list.
 qed.
 
+lemma nth_W64ofBytes (bytes : W8.t list) (i : int) :
+    0 <= i < 64 => 
+    0 <= i %/ 8 && i %/ 8 < size bytes =>
+    (W64ofBytes bytes).[i] = bytes.[size bytes - (i %/ 8 + 1)].[i %% 8]. 
+proof.
+move => ??.
+rewrite /W64ofBytes.
+rewrite pack8E initiE //=.
+rewrite of_listE initiE 1:/# /=.
+by rewrite nth_rev 1:/#.
+qed.
+
+
+(* if a number fits in a W32.t, we can using a W64.t results in the same result *)
+
+import BitEncoding.BS2Int.
+
+lemma truncateu32E (x : W64.t) (i : int) :
+    0 <= to_uint x < W32.max_uint =>
+    0 <= i < 32 =>
+    (truncateu32 x).[i] = x.[i].
+proof.
+move => /= ??. 
+rewrite /truncateu32.
+rewrite !get_to_uint.
+rewrite (: (0 <= i && i < 32) = true) 1:/# (: (0 <= i && i < 64) = true) 1:/# /=.
+rewrite of_uintK /=.
+case (i = 0) => [-> /= /# | ?].
+case (i = 1) => [-> /= /# | ?].
+case (i = 2) => [-> /= /# | ?].
+case (i = 3) => [-> /= /# | ?].
+case (i = 4) => [-> /= /# | ?].
+case (i = 5) => [-> /= /# | ?].
+case (i = 6) => [-> /= /# | ?].
+case (i = 7) => [-> /= /# | ?].
+case (i = 8) => [-> /= /# | ?].
+case (i = 9) => [-> /= /# | ?].
+case (i = 10) => [-> /= /# | ?].
+case (i = 11) => [-> /= /# | ?].
+case (i = 12) => [-> /= /# | ?].
+case (i = 13) => [-> /= /# | ?].
+case (i = 14) => [-> /= /# | ?].
+case (i = 15) => [-> /= /# | ?].
+case (i = 16) => [-> /= /# | ?].
+case (i = 17) => [-> /= /# | ?].
+case (i = 18) => [-> /= /# | ?].
+case (i = 19) => [-> /= /# | ?].
+case (i = 20) => [-> /= /# | ?].
+case (i = 21) => [-> /= /# | ?].
+case (i = 22) => [-> /= /# | ?].
+case (i = 23) => [-> /= /# | ?].
+case (i = 24) => [-> /= /# | ?].
+case (i = 25) => [-> /= /# | ?].
+case (i = 26) => [-> /= /# | ?].
+case (i = 27) => [-> /= /# | ?].
+case (i = 28) => [-> /= /# | ?].
+case (i = 29) => [-> /= /# | ?].
+case (i = 30) => [-> /= /# | ?].
+case (i = 31) => [-> /= /# | ?].
+case (i = 32) => [-> /= /# | /#].
+qed.
+
+lemma W64toBytes_truncateu32 (x : W64.t) (l : int) : 
+    0 <= to_uint x < W32.max_uint => 
+    0 < l <= 4 =>
+    W64toBytes_ext x l = W32toBytes_ext (truncateu32 x) l.
+proof.
+move => ??.
+apply (eq_from_nth witness).
+  + by rewrite size_W64toBytes_ext 1:/# size_W32toBytes_ext // /#.
+rewrite size_W64toBytes_ext // 1:/# => j?.
+rewrite /W64toBytes_ext /W32toBytes_ext.
+do 2! (rewrite nth_rev; first by rewrite size_mkseq /#).
+rewrite !size_mkseq (: max 0 l = l) 1:/# /=.
+rewrite !nth_mkseq 1,2:/#.
+rewrite !to_listE.
+rewrite !nth_mkseq 1,2:/# /=.
+rewrite get_unpack8 1:/# bits8E.
+rewrite get_unpack8 1:/# bits8E.
+rewrite wordP => i?.
+rewrite !initiE //=.
+rewrite truncateu32E // /#. 
+qed.
+
+require import Hash.
+
+lemma W64toBytes_ext_toByte_64 (w : W64.t) (l : int) :
+    W64toBytes_ext w l = toByte_64 w l.
+proof.
+by [].
+qed.
+
+
+
+lemma W32toBytes_zeroextu64 (x : W32.t) (l : int) : 
+    0 <= to_uint x < W32.max_uint =>
+    0 < l < 4 =>
+    W32toBytes_ext x l = W64toBytes_ext (zeroextu64 x) l.
+proof.
+move => ??.
+apply (eq_from_nth witness).
+- rewrite size_W64toBytes_ext 1:/# size_W32toBytes_ext // /#.
+rewrite size_W32toBytes_ext // 1:/# => j?.
+rewrite W64toBytes_truncateu32 2:/#.
+- by rewrite to_uint_zeroextu64.
+do congr.
+rewrite wordP => k?.
+rewrite !get_to_uint.
+rewrite to_uint_truncateu32 to_uint_zeroextu64.
+have ->: to_uint x %% W32.modulus = to_uint x by smt(@W32 pow2_32).
+reflexivity.
+qed.

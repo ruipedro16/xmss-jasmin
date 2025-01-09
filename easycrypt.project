@@ -9,4 +9,6 @@ rdirs = proof/correctness
 rdirs = proof/common
 rdirs = proof/extraction
 rdirs = proof/spec
+rdirs = proof/spec/xmss
+rdirs = proof/spec/xmss_mt
 rdirs = submodules/FV-XMSS-EC/proofs/acai

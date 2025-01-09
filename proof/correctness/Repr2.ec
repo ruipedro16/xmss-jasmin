@@ -234,22 +234,6 @@ op DecodeIdx (idx_bytes : W8.t list) : W32.t =
 *)
 import StdOrder.IntOrder.
 
-lemma high_bits_false (w : W32.t) (i : int) :
-    0 <= to_uint w < 2^XMSS_FULL_HEIGHT =>
-    0 <= i < 32 => 
-    ! (0 <= i %/ 8 && i %/ 8 < 3) =>
-    w.[i] = false.
-proof.
-rewrite /XMSS_FULL_HEIGHT /=.
-move => ???.
-  rewrite get_to_uint.
-rewrite (: (0 <= i && i < 32) = true) 1:/# /=.
-have ->: 2^i = 2 * 2^(i - 1) by rewrite -exprS 1:/#.
-rewrite expr_pred 1:/# ~-1:/# divzMr 1:/#; first by smt(@IntDiv).
-rewrite divzMr . smt(@IntDiv). smt(@IntDiv).
-admit.
-qed.
-
 lemma EncodeIdxKancel (idx : W32.t) :
     0 <= to_uint idx < 2^XMSS_FULL_HEIGHT =>
     DecodeIdx (EncodeIdx idx) = idx.
@@ -277,7 +261,16 @@ have ->: nth [] (map W8.w2bits (rev (W32toBytes_ext idx 3))) (i %/ 8) = [].
   + rewrite nth_out 2:/# size_map size_rev size_W32toBytes_ext // /#.
 
 rewrite nth_out 1:/#.
-by rewrite high_bits_false.
+have E: 24 <= i < 32 by smt().
+rewrite get_to_uint (: (0 <= i && i < 32) = true) 1:/# /=.
+case (i = 24) => [-> // /#  | ?].
+case (i = 25) => [-> // /#  | ?].
+case (i = 26) => [-> // /#  | ?].
+case (i = 27) => [-> // /#  | ?].
+case (i = 28) => [-> // /#  | ?].
+case (i = 29) => [-> // /#  | ?].
+case (i = 30) => [-> // /#  | ?].
+case (i = 31) => [-> // /#  | /#].
 qed.
 
 lemma size_EncodeIdx (x : W32.t) : size (EncodeIdx x) = XMSS_INDEX_BYTES.
@@ -419,19 +412,3 @@ qed.
 lemma zeroextu64_to_uint (x : W32.t) : 
     0 <= to_uint x < W32.max_uint =>
     zeroextu64 x = W64.of_int (to_uint x) by smt().
-
-
-lemma unpack8_w (w0 : W32.t) (w1 : W64.t) (i : int): 
-    to_uint w0 = to_uint w1 =>
-    0 <= to_uint w0 < W32.max_uint =>
-    0 <= i < 4 =>
-    (unpack8 w0).[i] = (unpack8 w1).[i].
-proof.
-move => H??.
-rewrite !get_unpack8 // 1:/# !bits8E wordP => j?. 
-rewrite !initiE //=.
-rewrite get_to_uint -H.
-have ->: (0 <= i * 8 + j && i * 8 + j < 64) = true by smt(). 
-simplify.
-admit.
-qed.
