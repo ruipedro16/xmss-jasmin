@@ -445,16 +445,9 @@ have ->: truncateu8 ((of_int 16))%W64 = W8.of_int 16 by rewrite /truncateu8 of_u
 have ->: truncateu8 ((of_int 8))%W64 = W8.of_int 8 by rewrite /truncateu8 of_uintK /=.
 rewrite wordP => i?.
 rewrite !get_to_uint (: (0 <= i < 64) = true) 1:/# /=.
-rewrite to_uint_zeroextu64.
+rewrite to_uint_zeroextu64. 
 have ->:  (zeroextu64 bytes.[2] `<<` W8.zero) = zeroextu64 bytes.[2] by rewrite /(`<<`) /(`<<<`) wordP => ??; rewrite initiE.
-simplify.
-
-rewrite !to_uint_orw_disjoint.
-
-- admit.
-
-- admit.
-
+rewrite /= !to_uint_orw_disjoint; last first.
 rewrite !to_uint_zeroextu64.
 rewrite !to_uint_shl of_uintK //=.
 rewrite to_uint_zeroextu64 /=.
@@ -469,4 +462,31 @@ rewrite nth_EncodeIdx 2:/#.
 rewrite nth_EncodeIdx 2:/#.
   - rewrite /XMSS_FULL_HEIGHT /= /#.
 rewrite /XMSS_INDEX_BYTES /= /#.
+
+rewrite wordP => j?.
+rewrite andE orE !map2iE //.
+rewrite /(`<<`).
+rewrite !zeroextu64_bit. 
+rewrite !shlwE.
+rewrite (: 0 <= j < 64) 1:/# /=.
+rewrite zeroextu64E.
+rewrite pack8E initE.
+case (0 <= j - 16 < 64) => [Ha | /= Hb]; last by rewrite zeroextu64E pack8E initE 1:/#. 
+rewrite initiE 1:/# /=.
+rewrite zeroextu64E pack8E initiE 1:/# /= initiE 1:/# /= /#.
+
+
+rewrite wordP => j?.
+rewrite andE ?orE !map2iE //.
+rewrite /(`<<`). 
+rewrite !shlwE.
+rewrite (: 0 <= j < 64) 1:/# /=.
+rewrite zeroextu64E.
+rewrite pack8E initE.
+case (0 <= j - 16 < 64) => [Ha | //=].
+rewrite initiE 1:/# /=.
+rewrite zeroextu64E pack8E initiE 1:/# /= initiE 1:/# /=.
+
+case ((j - 16) %/ 8 = 0) => [? | /#]. 
+case ( (j - 8) %/ 8 = 0) => /#.
 qed.
