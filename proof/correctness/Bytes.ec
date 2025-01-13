@@ -48,10 +48,6 @@ qed.
 op W64toBytes (x : W64.t) : W8.t list = rev (to_list (W8u8.unpack8 x)).
 op W64ofBytes (x : W8.t list) : W64.t = W8u8.pack8 (rev x).
 
-(* x nao tem necessariamente 8 bytes *)
-op W64ofBytes_ext (x : W8.t list) : W64.t. (* Isto e o decode Idx *)
-
-
 lemma W64toBytesK (x : W64.t) :
     W64ofBytes (W64toBytes x) = x.
 proof.

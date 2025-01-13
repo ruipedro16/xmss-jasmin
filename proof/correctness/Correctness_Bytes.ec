@@ -12,7 +12,7 @@ require import Termination.
 
 require import Parameters.
 
-require import Utils2 Repr2 Bytes.
+require import Utils Repr Bytes.
 
 require import BitEncoding.
 (*---*) import BitChunking.
@@ -22,10 +22,6 @@ require import StdBigop.
 
 import W4u8.Pack.
 import W8u8.Pack.
-
-lemma size_behead x :
-    size (behead x) = 
-       if (x = [<:'a>]) then 0 else size x - 1 by smt().
 
 (** -------------------------------------------------------------------------------------------- **) 
 
@@ -339,48 +335,8 @@ qed.
 
 require import Bytes.
 
-print bits2w.
-
 op load_Word_ptr (mem : global_mem_t) (ptr : W64.t)  = 
   rev (load_buf mem ptr XMSS_INDEX_BYTES).
-
-
-lemma bytes_to_ull_ptr_correct (mem : global_mem_t) (ptr : W64.t) :
-    phoare[
-      M(Syscall).__bytes_to_ull_ptr :
-      valid_ptr ptr (of_int XMSS_INDEX_BYTES)%W64 /\ 
-      arg=ptr 
-      ==> 
-      res = W64ofBytes_ext (load_buf mem ptr XMSS_INDEX_BYTES)
-    ] = 1%r.
-proof.
-proc.
-unroll 3; unroll 4; unroll 5.
-rcondf 6; first by auto.
-rcondt 5; first by auto.
-rcondt 4; first by auto.
-rcondt 3; first by auto. 
-print bits8E.
-auto => /> &hr *.
-rewrite /XMSS_INDEX_BYTES.
-search W64ofBytes_ext.
-
-rewrite (: 63 = 2^6 - 1) 1:/# !and_mod //.
-rewrite wordP => j?.
-rewrite !to_uint_shl !of_uintK //=.
-rewrite !get_to_uint (: (0 <= j < 64) = true) 1:/# /=.
-rewrite !to_uint_shl; 1..3: by rewrite /truncateu8 of_uintK /=.
-rewrite !to_uint_zeroextu64.
-rewrite to_uint_truncateu8 of_uintK /=.
-rewrite /XMSS_INDEX_BYTES.
-rewrite /loadW8.
-locate W64of_bytes_ext.
-admit.
-qed.
-
-(** -------------------------------------------------------------------------------------------- **)
-
-import W8u8.
 
 lemma zeroextu64E (x : W32.t) :
     forall (i : int), 0 <= i < 32 => (zeroextu64 x).[i] = x.[i].
@@ -409,6 +365,81 @@ rewrite nth_W32toBytes_ext 1,2:/#.
 rewrite get_unpack8 1:/#.
 by rewrite bits8_div 1:/#.
 qed.
+
+
+lemma bytes_to_ull_ptr_correct (mem : global_mem_t) (ptr : W64.t) (idx : W32.t) :
+    phoare[
+      M(Syscall).__bytes_to_ull_ptr :
+      valid_ptr_i ptr XMSS_INDEX_BYTES /\ 
+      0 <= to_uint idx < 2 ^ XMSS_FULL_HEIGHT /\
+      arg = ptr /\ 
+      Glob.mem = mem /\
+      load_buf mem ptr XMSS_INDEX_BYTES = EncodeIdx idx
+      ==> 
+      to_uint res = to_uint (DecodeIdx (load_buf mem ptr XMSS_INDEX_BYTES)) /\
+      Glob.mem = mem
+    ] = 1%r.
+proof.
+proc => /=.
+conseq (: _ ==> result = zeroextu64 (DecodeIdx (load_buf mem ptr XMSS_INDEX_BYTES))).
+  - auto => /> ????? result; split => [H |]; last by rewrite to_uint_zeroextu64.
+    rewrite wordP => j?.
+    rewrite get_to_uint (: 0 <= j < 64 = true) 1:/# //=.
+    rewrite H get_to_uint (: 0 <= j < 64 = true) 1:/# //=.
+    by rewrite to_uint_zeroextu64.
+
+unroll 3; unroll 4; unroll 5.
+rcondf 6; first by auto.
+rcondt 5; first by auto.
+rcondt 4; first by auto.
+rcondt 3; first by auto. 
+
+auto => /> &hr; rewrite /XMSS_INDEX_BYTES => H0 H1 H2 H3.
+rewrite H3 EncodeIdxK 1:/#.
+rewrite wordP => i?.
+rewrite !get_to_uint (: 0 <= i < 64) 1:/# /=.
+rewrite (: 63 = 2^6 - 1) 1:/# !and_mod //.
+rewrite !to_uint_shl !of_uintK //=.
+have ->: truncateu8 W64.zero = W8.zero by rewrite /truncateu8 /=.
+have ->: truncateu8 ((of_int 16))%W64 = W8.of_int 16 by rewrite /truncateu8 of_uintK /=.
+have ->: truncateu8 ((of_int 8))%W64 = W8.of_int 8 by rewrite /truncateu8 of_uintK /=.
+have ->: loadW8 mem (to_uint ptr) = 
+         nth witness (EncodeIdx idx) 0 by rewrite -H3 nth_load_buf 1:/# /loadW8. 
+have ->: loadW8 mem (to_uint (ptr + W64.one)) = 
+         nth witness (EncodeIdx idx) 1
+         by rewrite -H3 nth_load_buf 1:/# /loadW8; congr; rewrite to_uintD_small // /#. 
+have ->: loadW8 mem (to_uint (ptr + (of_int 2)%W64)) = 
+         nth witness (EncodeIdx idx) 2
+         by rewrite -H3 nth_load_buf 1:/# /loadW8; congr; rewrite to_uintD_small // /#. 
+rewrite nth_EncodeIdx 1,2:/#.
+rewrite nth_EncodeIdx 1,2:/#.
+rewrite nth_EncodeIdx 1,2:/#.
+rewrite /XMSS_INDEX_BYTES /=.
+rewrite /XMSS_FULL_HEIGHT /= in H2. (* without this, smt cant solve some goals *)
+rewrite /= !to_uint_orw_disjoint; last first.
+- rewrite !to_uint_shl of_uintK //= !to_uint_zeroextu64 /=.
+  do congr; rewrite /XMSS_INDEX_BYTES /= /#.
+- rewrite wordP => j?.
+  have ->: (zeroextu64 ((of_int (to_uint idx)))%W8 `<<` W8.zero) = 
+           zeroextu64 ((of_int (to_uint idx)))%W8 
+           by rewrite /(`<<`) /= /(`<<<`)  wordP => k?; rewrite initiE //=.
+  rewrite andE orE !map2iE // /(`<<`) !zeroextu64_bit !shlwE (: 0 <= j < 64) 1:/# /=.
+  rewrite zeroextu64E pack8E initE.
+  case (0 <= j - 16 < 64) => [Ha | /= Hb]; last by rewrite zeroextu64E pack8E initE 1:/#. 
+  rewrite initiE 1:/# /= zeroextu64E pack8E initiE 1:/# /= initiE 1:/# /= /#.
+
+- rewrite wordP => j?.
+  rewrite andE ?orE !map2iE // /(`<<`) !shlwE (: 0 <= j < 64) 1:/# /=.
+  rewrite zeroextu64E pack8E initE.
+  case (0 <= j - 16 < 64) => [Ha | //= ].
+  rewrite initiE 1:/# /=.
+  rewrite zeroextu64E pack8E initiE 1:/# /= initiE 1:/# /=.
+  case ((j - 16) %/ 8 = 0) => [? | /#]. 
+  case ((j - 8) %/ 8 = 0) => /#.
+qed.
+
+(** -------------------------------------------------------------------------------------------- **)
+
 
 lemma bytes_to_ull_correct (bytes : W8.t Array3.t) (idx : W32.t) : (* the array has the XMSS_IDX_BYTES *)
    phoare[ 
@@ -448,45 +479,29 @@ rewrite !get_to_uint (: (0 <= i < 64) = true) 1:/# /=.
 rewrite to_uint_zeroextu64. 
 have ->:  (zeroextu64 bytes.[2] `<<` W8.zero) = zeroextu64 bytes.[2] by rewrite /(`<<`) /(`<<<`) wordP => ??; rewrite initiE.
 rewrite /= !to_uint_orw_disjoint; last first.
-rewrite !to_uint_zeroextu64.
-rewrite !to_uint_shl of_uintK //=.
-rewrite to_uint_zeroextu64 /=.
-do congr.
-have ->: bytes.[0] = nth witness (EncodeIdx idx) 0 by rewrite -H2 -get_to_list.
-have ->: bytes.[1] = nth witness (EncodeIdx idx) 1 by rewrite -H2 -get_to_list.
-have ->: bytes.[2] = nth witness (EncodeIdx idx) 2 by rewrite -H2 -get_to_list.
-rewrite nth_EncodeIdx 2:/#.
-  - rewrite /XMSS_FULL_HEIGHT /= /#.
-rewrite nth_EncodeIdx 2:/#.
-  - rewrite /XMSS_FULL_HEIGHT /= /#.
-rewrite nth_EncodeIdx 2:/#.
-  - rewrite /XMSS_FULL_HEIGHT /= /#.
-rewrite /XMSS_INDEX_BYTES /= /#.
-
-rewrite wordP => j?.
-rewrite andE orE !map2iE //.
-rewrite /(`<<`).
-rewrite !zeroextu64_bit. 
-rewrite !shlwE.
-rewrite (: 0 <= j < 64) 1:/# /=.
-rewrite zeroextu64E.
-rewrite pack8E initE.
-case (0 <= j - 16 < 64) => [Ha | /= Hb]; last by rewrite zeroextu64E pack8E initE 1:/#. 
-rewrite initiE 1:/# /=.
-rewrite zeroextu64E pack8E initiE 1:/# /= initiE 1:/# /= /#.
-
-
-rewrite wordP => j?.
-rewrite andE ?orE !map2iE //.
-rewrite /(`<<`). 
-rewrite !shlwE.
-rewrite (: 0 <= j < 64) 1:/# /=.
-rewrite zeroextu64E.
-rewrite pack8E initE.
-case (0 <= j - 16 < 64) => [Ha | //=].
-rewrite initiE 1:/# /=.
-rewrite zeroextu64E pack8E initiE 1:/# /= initiE 1:/# /=.
-
-case ((j - 16) %/ 8 = 0) => [? | /#]. 
-case ( (j - 8) %/ 8 = 0) => /#.
+- rewrite !to_uint_zeroextu64 !to_uint_shl of_uintK //= to_uint_zeroextu64 /=.
+  do congr.
+  have ->: bytes.[0] = nth witness (EncodeIdx idx) 0 by rewrite -H2 -get_to_list.
+  have ->: bytes.[1] = nth witness (EncodeIdx idx) 1 by rewrite -H2 -get_to_list.
+  have ->: bytes.[2] = nth witness (EncodeIdx idx) 2 by rewrite -H2 -get_to_list.
+  rewrite nth_EncodeIdx 2:/#.
+   + rewrite /XMSS_FULL_HEIGHT /= /#.
+  rewrite nth_EncodeIdx 2:/#.
+   + rewrite /XMSS_FULL_HEIGHT /= /#.
+  rewrite nth_EncodeIdx 2:/#.
+   + rewrite /XMSS_FULL_HEIGHT /= /#.
+  rewrite /XMSS_INDEX_BYTES /= /#.
+- rewrite wordP => j?.
+  rewrite andE orE !map2iE // /(`<<`) !zeroextu64_bit !shlwE (: 0 <= j < 64) 1:/# /=.
+  rewrite zeroextu64E pack8E initE.
+  case (0 <= j - 16 < 64) => [Ha | /= Hb]; last by rewrite zeroextu64E pack8E initE 1:/#. 
+  rewrite initiE 1:/# /= zeroextu64E pack8E initiE 1:/# /= initiE 1:/# /= /#.
+- rewrite wordP => j?.
+  rewrite andE ?orE !map2iE // /(`<<`) !shlwE (: 0 <= j < 64) 1:/# /=.
+  rewrite zeroextu64E pack8E initE.
+  case (0 <= j - 16 < 64) => [Ha | //= ].
+  rewrite initiE 1:/# /=.
+  rewrite zeroextu64E pack8E initiE 1:/# /= initiE 1:/# /=.
+  case ((j - 16) %/ 8 = 0) => [? | /#]. 
+  case ((j - 8) %/ 8 = 0) => /#.
 qed.

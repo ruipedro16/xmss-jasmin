@@ -13,8 +13,8 @@ require import Array2 Array3 Array8 Array32 Array64 Array67 Array96 Array2144.
 require import WArray32.
 
 require import Correctness_Bytes Correctness_Mem Correctness_Address Correctness_Hash. 
-require import Repr2.
-require import Utils2.
+require import Repr.
+require import Utils.
 
 lemma zip_fst (a b : W8.t list) (i : int):
   0 <= i < min (size a) (size b) =>

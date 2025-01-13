@@ -12,7 +12,7 @@ require import BitEncoding.
 require import Array4 Array8 Array32.
 require import WArray4.
 
-require import Params Address Repr2 Utils2 Bytes.
+require import Params Address Repr Utils Bytes.
 require import XMSS_IMPL.
 
 lemma in_nth ['a] (x : 'a list) (P : 'a -> bool) :

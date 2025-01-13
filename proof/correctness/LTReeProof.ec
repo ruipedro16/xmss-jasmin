@@ -6,8 +6,8 @@ from Jasmin require import JModel JArray.
 require import Types Params Parameters Address Hash WOTS LTree.
 require import XMSS_IMPL.
 
-require import Repr2. 
-require import Utils2.
+require import Repr. 
+require import Utils.
 
 require import Array4 Array8 Array32 Array64 Array68 Array96 Array352 Array2144.
 require import WArray32 WArray96.

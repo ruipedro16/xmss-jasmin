@@ -13,7 +13,7 @@ require import Array32 Array64 Array68 Array131 Array2144.
 require import BitEncoding.
 (*---*) import BitChunking.
 
-require import Utils2 Bytes.
+require import Utils Bytes.
 
 
 require import Bytes.
@@ -234,7 +234,7 @@ op DecodeIdx (idx_bytes : W8.t list) : W32.t =
 *)
 import StdOrder.IntOrder.
 
-lemma EncodeIdxKancel (idx : W32.t) :
+lemma EncodeIdxK (idx : W32.t) :
     0 <= to_uint idx < 2^XMSS_FULL_HEIGHT =>
     DecodeIdx (EncodeIdx idx) = idx.
 proof.

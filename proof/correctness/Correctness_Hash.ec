@@ -10,7 +10,7 @@ from Jasmin require import JModel.
 require import XMSS_IMPL Parameters.
 require import Params Address BaseW Hash LTree.
 require import Correctness_Bytes Correctness_Mem Correctness_Address.
-require import Utils2 Repr2.
+require import Utils Repr.
 
 require import Array8 Array32 Array64 Array96 Array128.
 

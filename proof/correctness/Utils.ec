@@ -15,10 +15,18 @@ require import Array8 Array11.
 require import Bool.
 import BS2Int.
 
-require import W32One.
+import BitEncoding.BS2Int.
 
 (* =================================================================================== *)
 
+lemma onewE i : W32.one.[i] = (i = 0).
+proof.
+rewrite /W32.one bits2wE initE /=.
+by rewrite int2bs1 //= nth_nseq_if /#.
+qed.
+
+lemma W32_oneE : 
+    forall (k : int), 0 < k < 32 => W32.one.[k] = false by smt(onewE). 
 
 (* =================================================================================== *)
 
@@ -46,31 +54,8 @@ move => ?.
 rewrite get_to_uint (: (0 <= 0 && 0 < 32) = true) //= /#.
 qed.
 
-
-lemma L (w : W32.t) (i : int) :
-     1 <= i < 32
-  => to_uint w + 1 < W32.modulus
-  => w.[0] = false
-  => (w + W32.one).[i] = w.[i].
-proof.
-move=> rgi hlt w0E; rewrite get_to_uint.
-have rgi0: 0 <= i < 32 = true by smt().
-rewrite to_uintD_small // rgi0 /=.
-rewrite get_to_uint to_uint_bits rgi0 /=.
-do 4! congr; have ->: 2^i = 2 * 2^(i - 1).
-- by rewrite -exprS 1:/#.
-rewrite !divzMr 1?IntOrder.expr_ge0 ~-1://; 1,2: smt(@IntDiv).
-do 2! congr; rewrite divzDl //.
-rewrite /bits (mkseq_add _ 1 31) ~-1://.
-rewrite bs2int_cat size_mkseq lez_maxr //=.
-rewrite mkseq1 /= w0E dvdzD -1:dvdz_mulr //.
-suff ->: bs2int [false] = 0 by rewrite dvdz0.
-by rewrite /bs2int /= BIA.big_int1.
-qed.
-
-
 lemma xor1_even (x : W32.t) :
-    0 <= to_uint x <= 2^20 => 
+    0 <= to_uint x <= W32.max_uint => 
     to_uint x %% 2 = 0 => 
     x `^` W32.one = x + W32.one.
 proof.
@@ -97,7 +82,7 @@ do 2! congr; rewrite divzDl //.
 qed.
 
 lemma xor1_odd (x : W32.t) :
-    0 <= to_uint x <= 2^10 => 
+    0 <= to_uint x <= W32.max_uint => 
     to_uint x %% 2 <> 0 => 
     (x `^` W32.one) = x - W32.one.
 proof.
@@ -120,14 +105,15 @@ qed.
 
 lemma nth_chunk ['a] (x : 'a list) (chunk_size i : int) :
     0 <= chunk_size =>
-    0 <= i && i < size x %/ chunk_size =>
+    0 <= i < size x %/ chunk_size =>
     nth witness (chunk chunk_size x) i = take chunk_size (drop (chunk_size * i) x).
 proof.
 move => ??; rewrite /chunk nth_mkseq //=. 
 qed.
 
-(* ar: address used for reading
-   aw: address used for writing 
+(* 
+    ar: address used for reading
+    aw: address used for writing 
 *)
 lemma load_store_mem (mem : global_mem_t) (ar aw : address) (val : W8.t) :
     loadW8 (storeW8 mem aw val) ar = (if ar = aw then val else mem.[ar]).
@@ -228,8 +214,6 @@ smt(@StdOrder.IntOrder).
 qed.
 
 (** -------------------------------------------------------------------------------------------- **)
-
-
 
 lemma to_uintW (i : int) : 
     0 <= i < W32.max_uint => 
@@ -341,6 +325,8 @@ lemma disjoint_ptr_comm (p1 l1 p2 l2 : int) :
 
 (** -------------------------------------------------------------------------------------------- **)
 
+require import Params.
+
 lemma nbytes_eq:
   forall (s1 s2 : nbytes), val s1 = val s2 <=> s1 = s2
     by smt(@NBytes).
@@ -353,11 +339,9 @@ lemma len_n_bytes_eq :
   forall (s1 s2 : len_nbytes), val s1 = val s2 <=> s1 = s2
     by smt(@LenNBytes).
 
-(** -------------------------------------------------------------------------------------------- **)
-
-lemma size_bits_to_bytes (bits : bool list) :
-    size (BitsToBytes bits) = (size bits) %/ 8
-        by rewrite /BitsToBytes size_map size_chunk.
+lemma three_nbytes_eq :
+  forall (s1 s2 : threen_bytes), val s1 = val s2 <=> s1 = s2 
+    by smt(@TheeNBytes).
 
 (** -------------------------------------------------------------------------------------------- **)
 
@@ -373,22 +357,6 @@ rewrite size_flatten sumzE BIA.big_map /(\o) //= -(StdBigop.Bigint.BIA.eq_big_se
     have ?: forall (k : int), 0 <= k < size x => size (nth witness (map NBytes.val x) k) = n by move => *; rewrite (nth_map witness) 1:/# valP.
     smt(@List).
 by rewrite big_constz count_predT size_map.
-qed.
-
-(** -------------------------------------------------------------------------------------------- **)
-
-lemma shl_zero (w0 : W32.t) : w0 `<<` W8.zero = w0.
-proof.
-rewrite /(`<<`) /(`<<<`).
-rewrite wordP => ??.
-by rewrite initiE.
-qed.
-
-lemma shr_zero (w0 : W32.t) : w0 `>>` W8.zero = w0.
-proof.
-rewrite /(`>>`) /(`>>>`).
-rewrite wordP => ??.
-by rewrite initiE.
 qed.
 
 (** -------------------------------------------------------------------------------------------- **)
@@ -433,4 +401,37 @@ rewrite get_setE.
   + case (a + j %/ 8 = a + 1) => *; [rewrite /(\bits8) initiE /# |].
 rewrite get_setE.
   + rewrite ifT 1:/# /(\bits8) initiE /#.
+qed.
+
+require import Bytes.
+require import BaseW.
+
+lemma nth_toByte_W64toBytes (w0 : W32.t) (w1 : W64.t) : 
+    0 <= to_uint w1 < W32.max_uint =>
+    to_uint w0 = to_uint w1 =>
+    W64toBytes_ext w1 32 = toByte w0 32.
+proof.
+move => ?H.
+apply (eq_from_nth witness); rewrite size_W64toBytes_ext // => [| j?]. 
+  + by rewrite /toByte size_rev size_mkseq.
+rewrite /toByte nth_rev; first by rewrite size_mkseq /#.
+rewrite size_mkseq (: max 0 32 = 32) 1:/# nth_mkseq 1:/#.
+rewrite nth_rev; first by rewrite size_mkseq /#.
+rewrite size_mkseq (: max 0 32 = 32) 1:/# nth_mkseq 1:/# /=.
+case (0 <= 32 - (j + 1) && 32 - (j + 1) < 4) => [Ha | Hb].
+  + rewrite !get_unpack8 1,2:/# !bits8E.
+    rewrite wordP => w?; rewrite !initiE //=.
+    rewrite get_to_uint.
+    rewrite (: (0 <= (32 - (j + 1)) * 8 + w && (32 - (j + 1)) * 8 + w < 64) = true) 1:/# /=. 
+    rewrite -H.
+    rewrite get_to_uint.
+    by rewrite (: (0 <= (32 - (j + 1)) * 8 + w && (32 - (j + 1)) * 8 + w < 32) = true) 1:/# /=.
+case (0 <= 32 - (j + 1) && 32 - (j + 1) < 8) => [Hc | Hd]; last first.
+  + by rewrite !unpack8E !initE !ifF 1,2:/#.
+rewrite get_unpack8 1:/# bits8E.
+rewrite unpack8E initE ifF 1:/#.
+rewrite wordP => w?; rewrite !initiE //=.
+rewrite get_to_uint. 
+rewrite (: (0 <= (32 - (j + 1)) * 8 + w && (32 - (j + 1)) * 8 + w < 64) = true) 1:/# /=. 
+admit.
 qed.

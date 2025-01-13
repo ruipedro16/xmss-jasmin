@@ -14,8 +14,8 @@ require import WArray32.
 
 require import Correctness_Bytes Correctness_Mem Correctness_Address Correctness_Hash. 
 require import GenChainProof.
-require import Repr2.
-require import Utils2.
+require import Repr.
+require import Utils.
 
 require import BitEncoding.
 (*---*) import BitChunking.

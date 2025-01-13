@@ -5,7 +5,7 @@ from Jasmin require import JModel JArray.
 
 require import Params XMSS_MT_Params Types XMSS_MT_Types Address Hash BaseW WOTS LTree XMSS_MT_TreeHash XMSS_MT_PRF.
 require import XMSS_IMPL Parameters.
-require import Repr2 Utils2.
+require import Repr Utils.
 
 require import Array4 Array8 Array11 Array32 Array64 Array131 Array320 Array352 Array2144 Array2464.
 

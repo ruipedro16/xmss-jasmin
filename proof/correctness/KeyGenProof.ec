@@ -6,13 +6,13 @@ from Jasmin require import JModel JArray.
 (* require import Types Params Parameters Address Notation Hash Primitives Wots XMSS_MT_PRF. *)
 require import Params XMSS_MT_Params Types Address BaseW Hash XMSS_MT_TreeHash XMSS_MT_PRF.
 require import XMSS_IMPL Parameters.
-require import Repr2 Utils2 DistrUtils.
+require import Repr Utils DistrUtils.
 
 require import Array3 Array8 Array32 Array64 Array68 Array96 Array131 Array352 Array2144.
 require import WArray32 WArray96.
 
 require import Correctness_Address Correctness_Mem Correctness_Hash.
-require import FinalTreeHashProof.
+require import TreeHashProof.ec.
 
 require import BitEncoding.
 (*---*) import BitChunking.
