@@ -14,7 +14,7 @@ clone export Subtype as AuthPath with
   op P = fun l => size l = h %/ d (* Section 4.1.8. of the RFC *)
                              (* The size is h / d for the multi tree variant *)
   rename "sT" as "auth_path"
-  proof inhabited by  admit (* (exists (nseq h witness);smt(size_nseq ge0_h ge0_d)) *)
+  proof inhabited by (exists (nseq (h %/ d) (NBytes.insubd (nseq n W8.zero))); smt( size_nseq ge0_h ge0_d))
   proof *.
 
 type sig_t = { sig_idx : W32.t;
