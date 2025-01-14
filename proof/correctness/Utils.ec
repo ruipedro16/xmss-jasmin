@@ -19,6 +19,9 @@ import BitEncoding.BS2Int.
 
 (* =================================================================================== *)
 
+lemma nth_singleton ['a] (dflt x : 'a) :
+    nth dflt [x] 0 = x by smt().
+
 lemma onewE i : W32.one.[i] = (i = 0).
 proof.
 rewrite /W32.one bits2wE initE /=.
@@ -414,24 +417,314 @@ proof.
 move => ?H.
 apply (eq_from_nth witness); rewrite size_W64toBytes_ext // => [| j?]. 
   + by rewrite /toByte size_rev size_mkseq.
+rewrite nth_W64toBytes_ext //.
 rewrite /toByte nth_rev; first by rewrite size_mkseq /#.
-rewrite size_mkseq (: max 0 32 = 32) 1:/# nth_mkseq 1:/#.
-rewrite nth_rev; first by rewrite size_mkseq /#.
 rewrite size_mkseq (: max 0 32 = 32) 1:/# nth_mkseq 1:/# /=.
-case (0 <= 32 - (j + 1) && 32 - (j + 1) < 4) => [Ha | Hb].
-  + rewrite !get_unpack8 1,2:/# !bits8E.
-    rewrite wordP => w?; rewrite !initiE //=.
-    rewrite get_to_uint.
-    rewrite (: (0 <= (32 - (j + 1)) * 8 + w && (32 - (j + 1)) * 8 + w < 64) = true) 1:/# /=. 
-    rewrite -H.
-    rewrite get_to_uint.
-    by rewrite (: (0 <= (32 - (j + 1)) * 8 + w && (32 - (j + 1)) * 8 + w < 32) = true) 1:/# /=.
-case (0 <= 32 - (j + 1) && 32 - (j + 1) < 8) => [Hc | Hd]; last first.
-  + by rewrite !unpack8E !initE !ifF 1,2:/#.
-rewrite get_unpack8 1:/# bits8E.
+rewrite wordP => i?.
+rewrite !get_to_uint (: 0 <= i < 8) //=.
+case (0 <= 32 - (j + 1) && 32 - (j + 1) < 8) => [Ha | Hb].
+  + rewrite get_unpack8 1:/# bits8_div 1:/# of_uintK.
+case (0 <= 32 - (j + 1) && 32 - (j + 1) < 4) => [Haa | Hab].
+  + by rewrite get_unpack8 1:/# bits8_div 1:/# of_uintK H.
 rewrite unpack8E initE ifF 1:/#.
-rewrite wordP => w?; rewrite !initiE //=.
-rewrite get_to_uint. 
-rewrite (: (0 <= (32 - (j + 1)) * 8 + w && (32 - (j + 1)) * 8 + w < 64) = true) 1:/# /=. 
-admit.
+(* ------------------------------------------------------------------------------- *)
+(*                              HA                                                    *)
+(* ------------------------------------------------------------------------------- *)
+(* TODO: melhorar isto. isto ta tudo martelado *)
+case (j = 0) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 1) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 2) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 3) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 4) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 5) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 6) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 7) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 8) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 9) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 10) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 11) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 12) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 13) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 14) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 15) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 16) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 17) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 18) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 19) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 20) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 21) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 22) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 23) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 24) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 25) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 26) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 27) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 28) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 29) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 30) => [-> | ?].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+case (j = 31) => [-> | /#].
+    case (i = 0) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 1) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 2) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 3) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 4) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 5) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 6) => [-> | ?]; first by simplify; smt(@W32 pow2_32).
+    case (i = 7) => [-> | /#]; simplify; smt(@W32 pow2_32).
+
+(* ------------------------------------------------------------------------------- *)
+(*                                         HB                                      *)
+(* ------------------------------------------------------------------------------- *)
+
+rewrite unpack8E initE ifF 1:/#.
+rewrite unpack8E initE ifF 1:/#.
+reflexivity.
 qed.
