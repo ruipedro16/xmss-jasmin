@@ -273,6 +273,45 @@ case (i = 30) => [-> // /#  | ?].
 case (i = 31) => [-> // /#  | /#].
 qed.
 
+lemma EncodeIdxK2 (idx : W32.t) :
+    0 <= to_uint idx < 2^XMSS_FULL_HEIGHT - 1 =>
+    DecodeIdx (EncodeIdx idx) = idx.
+proof.
+rewrite /XMSS_FULL_HEIGHT /= => ?. (* We only need for bytes, the 4th is all zeros *)
+rewrite /DecodeIdx /EncodeIdx.
+rewrite bits2wE wordP => i?. 
+rewrite initiE //= /XMSS_INDEX_BYTES.
+rewrite (nth_flatten false 8).
+       + pose X := (fun (s : bool list) => size s = 8).
+         pose Y := (map W8.w2bits (rev (W32toBytes_ext idx 3))).
+         rewrite -(all_nthP X Y witness) /X /Y size_map size_rev size_W32toBytes_ext // => k?. 
+         rewrite (nth_map witness); first by rewrite size_rev size_W32toBytes_ext.
+         by rewrite size_w2bits.
+
+case (0 <= i %/ 8 && i %/ 8 < 3) => [Ha | Hb].
+  + rewrite (nth_map witness); first by rewrite size_rev size_W32toBytes_ext //.
+    rewrite nth_rev; first by rewrite size_W32toBytes_ext /#.
+    rewrite size_W32toBytes_ext //=.
+    rewrite nth_W32toBytes_ext // 1:/#.
+    rewrite unpack8E initiE 1:/# /= bits8E /= initiE 1:/# /=.
+    congr => /#.
+
+have ->: nth [] (map W8.w2bits (rev (W32toBytes_ext idx 3))) (i %/ 8) = [].
+  + rewrite nth_out 2:/# size_map size_rev size_W32toBytes_ext // /#.
+
+rewrite nth_out 1:/#.
+have E: 24 <= i < 32 by smt().
+rewrite get_to_uint (: (0 <= i && i < 32) = true) 1:/# /=.
+case (i = 24) => [-> // /#  | ?].
+case (i = 25) => [-> // /#  | ?].
+case (i = 26) => [-> // /#  | ?].
+case (i = 27) => [-> // /#  | ?].
+case (i = 28) => [-> // /#  | ?].
+case (i = 29) => [-> // /#  | ?].
+case (i = 30) => [-> // /#  | ?].
+case (i = 31) => [-> // /#  | /#].
+qed.
+
 lemma size_EncodeIdx (x : W32.t) : size (EncodeIdx x) = XMSS_INDEX_BYTES.
 proof.
 by rewrite /XMSS_INDEX_BYTES /EncodeIdx size_W32toBytes_ext /#.
@@ -347,8 +386,11 @@ op EncodeReducedSignature (x : W8.t list) :  wots_signature * auth_path =
       EncodeAuthPath (sub_list x wots_sig_bytes auth_path_bytes)
   ).
 
+print EncodeIdx.
+print DecodeIdx.
+
 op EncodeSignature (sig_bytes : W8.t list) : sig_t =
-  {| sig_idx  = W32ofBytes (sub_list sig_bytes 0 XMSS_INDEX_BYTES);
+  {| sig_idx  = DecodeIdx (sub_list sig_bytes 0 XMSS_INDEX_BYTES);
      r        = NBytes.insubd (sub_list sig_bytes XMSS_INDEX_BYTES XMSS_N);
      r_sigs   = map EncodeReducedSignature 
                     (
@@ -412,3 +454,8 @@ qed.
 lemma zeroextu64_to_uint (x : W32.t) : 
     0 <= to_uint x < W32.max_uint =>
     zeroextu64 x = W64.of_int (to_uint x) by smt().
+
+lemma EncodeReducedSigE (wots_sig : len_nbytes) (auth_path : auth_path) (bytes : W8.t list) :
+    (wots_sig, auth_path) = EncodeReducedSignature bytes =>
+    wots_sig = EncodeWotsSignatureList (sub_list bytes 0 wots_sig_bytes) /\
+    auth_path = EncodeAuthPath (sub_list bytes wots_sig_bytes auth_path_bytes) by smt().
