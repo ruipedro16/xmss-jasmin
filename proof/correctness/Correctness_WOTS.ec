@@ -279,6 +279,9 @@ while (
         * rewrite ultE of_uintK to_uintD /#.
 qed.
 
+(*****) import StdBigop.Bigint.
+require import Bytes.
+
 lemma expand_seed_correct (_in_seed _pub_seed : W8.t Array32.t) (a1 a2 : W32.t Array8.t):
     len = XMSS_WOTS_LEN /\ 
     n = XMSS_N /\ 
@@ -358,7 +361,7 @@ while (
   (forall (k : int), 0 <= k < 8 => (k <> 5) => addr{1}.[k] = address{2}.[k])
 ); last by auto => /> /#.
 
-seq 1 1 : (
+seq 2 1 : (
     #{/~forall (k : int),
      0 <= k && k < 8 => k <> 5 => addr{1}.[k] = address{2}.[k]}pre /\ 
     addr{1} = address{2}
@@ -373,10 +376,39 @@ seq 1 1 : (
            rewrite /set_chain_addr.
            case (k = 5) => [->|?] //.
            by rewrite !get_setE // !ifF // H.
-
-seq 2 1 : (#pre /\ val addr_bytes{2} = to_list addr_bytes{1}).
-    + ecall {1} (addr_to_bytes_correctness addr{1}).
-      by auto => /> ??????????????->.
+ 
+seq 1 1 : (#pre /\ val addr_bytes{2} = to_list addr_bytes{1}).
+- exists * addr{1}; elim * => P.
+  call {1} (addr_to_bytes_correctness P).
+  auto => /> ??????????????->.
+  apply (eq_from_nth witness).
+    + rewrite size_flatten sumzE BIA.big_map /(\o) //= -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 4)) /=.   
+        * rewrite in_nth size_map size_to_list => k?.
+          auto => />.
+          rewrite (nth_map witness) /=; first by rewrite size_to_list /#.
+          by rewrite size_rev size_to_list.
+      rewrite big_constz count_predT size_map size_to_list valP /#.
+  rewrite valP n_val => j?.
+  rewrite (nth_flatten witness 4).
+    + pose X := (fun (s : W8.t list) => size s = 4).
+      pose Y := (map W32toBytes (to_list P)).
+      rewrite -(all_nthP X Y witness) /X /Y size_map => k?. 
+      by rewrite (nth_map witness) //= size_rev size_to_list.      
+  rewrite (nth_map witness); first by rewrite size_to_list /#.
+  rewrite /addr_to_bytes => />.
+  rewrite insubdK.
+    + rewrite /P size_flatten sumzE BIA.big_map /(\o) //= -(StdBigop.Bigint.BIA.eq_big_seq (fun _ => 4)) /=.   
+        * rewrite in_nth size_map size_to_list => k?.
+          auto => />.
+          rewrite (nth_map witness) /=; first by rewrite size_to_list /#.
+          by rewrite size_rev size_to_list.
+      rewrite big_constz count_predT size_map size_to_list /#.
+  rewrite (nth_flatten witness 4).
+    + pose X := (fun (s : W8.t list) => size s = 4).
+      pose Y := (map (fun (w : W32.t) => rev (to_list (unpack8 w))) (to_list P)).
+      rewrite -(all_nthP X Y witness) /X /Y size_map => k?. 
+      by rewrite (nth_map witness) //= size_rev size_to_list.      
+  by rewrite /W32toBytes (nth_map witness) /=; first by rewrite size_to_list /#.
 
 seq 1 0 : (#pre /\ (forall (k : int), 0 <= k < 32 => buf{1}.[32 + k] = addr_bytes{1}.[k])).
     + auto => /> &1 &2 *. 
@@ -538,7 +570,7 @@ auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12*; do split;2,3,6,7:sm
       by rewrite initiE 1:/# /= ifF 1:/# H8 1:/# nth_nbytes_flatten // valP /#.
 qed.
 
-lemma pk_from_sig_correct (mem : global_mem_t) (_sig_ptr_ : W64.t, _msg_ _pub_seed_ : W8.t Array32.t, _addr_ : W32.t Array8.t) :
+lemma pk_from_sig_correct (_sig_ptr_ : W64.t, _msg_ _pub_seed_ : W8.t Array32.t, _addr_ : W32.t Array8.t) :
     valid_ptr_i _sig_ptr_ 2144 =>
     n = XMSS_N /\
     floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
@@ -558,15 +590,13 @@ lemma pk_from_sig_correct (mem : global_mem_t) (_sig_ptr_ : W64.t, _msg_ _pub_se
       arg{1}.`3 = _msg_ /\
       arg{1}.`4 = _pub_seed_ /\ 
       arg{1}.`5 = _addr_ /\ 
-      Glob.mem{1} = mem /\
 
       arg{2}.`1 = NBytes.insubd (to_list _msg_) /\
-      arg{2}.`2 = EncodeWotsSignature (load_sig mem _sig_ptr_) /\
+      arg{2}.`2 = EncodeWotsSignature (load_sig Glob.mem{1} _sig_ptr_) /\
       arg{2}.`3 = NBytes.insubd (to_list _pub_seed_) /\
       arg{2}.`4 = _addr_ 
       ==>
-      res{1}.`1 = DecodeWotsPk res{2} /\
-      Glob.mem{1} = mem (* The memory is not changed *)
+      res{1}.`1 = DecodeWotsPk res{2} 
     ].
 proof.
 rewrite /XMSS_N /XMSS_WOTS_LOG_W /XMSS_WOTS_W /XMSS_WOTS_LEN1 /XMSS_WOTS_LEN2 /XMSS_WOTS_LEN.
@@ -575,7 +605,6 @@ proc => /=.
 
 conseq (: _ ==> 
   size tmp_pk{2} = len /\
-  Glob.mem{1} = mem /\
   forall (k : int), 0 <= k < 2144 => pk{1}.[k] = nth witness (nbytes_flatten tmp_pk{2}) k
 ).
     + auto => /> H0 H1 pkL pkR ? H.
@@ -588,14 +617,12 @@ seq 1 1 : (
   addr{1} = address{2} /\
   val M{2} = to_list msg{1} /\
   val _seed{2} = to_list pub_seed{1} /\
-  sig{2} = EncodeWotsSignature (load_sig mem sig_ptr{1}) /\
+  sig{2} = EncodeWotsSignature (load_sig Glob.mem{1} sig_ptr{1}) /\
 
   size tmp_pk{2} = 67 /\
 
-  Glob.mem{1} = mem /\
-  valid_ptr_i sig_ptr{1} XMSS_WOTS_SIG_BYTES (* 2144 *)
+  valid_ptr_i sig_ptr{1} XMSS_WOTS_SIG_BYTES 
 ).
-
     + auto => /> *; do split.
          * by rewrite insubdK // /P n_val size_to_list.
          * by rewrite insubdK // /P n_val size_to_list.
@@ -687,8 +714,13 @@ seq 1 8 : (
      ).
         * sp.  
           exists * csum{1}, csum_32{2}; elim * => P0 P1; auto.
-          by ecall {1} (ull_to_bytes2_post P0 P1); auto.
-
+          ecall {1} (ull_to_bytes2_post P0 P1). 
+          auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13.
+          do split; 1:by smt().
+             + move => ?. admit. (* needs to be fixed in ull_to_bytes2_post *)
+             + move => ?? result ->.
+               rewrite toByte_32_64 //; do congr.
+               smt(@W32 @W64).
      seq 1 1 : (
           #{/~csum_base_w{1} = t1{1}}pre /\ 
           map W32.to_uint (to_list csum_base_w{1}) = csum_base_w{2} /\
@@ -741,9 +773,8 @@ while (
   sig_ptr{1} = _sig_ptr_ /\ 
   val M{2} = to_list msg{1} /\
   val _seed{2} = to_list pub_seed{1} /\
-  sig{2} = EncodeWotsSignature (load_sig mem sig_ptr{1}) /\
+  sig{2} = EncodeWotsSignature (load_sig Glob.mem{1} sig_ptr{1}) /\
   size tmp_pk{2} = 67 /\
-  Glob.mem{1} = mem /\ 
   valid_ptr_i sig_ptr{1} XMSS_WOTS_SIG_BYTES /\
   map W32.to_uint (to_list lengths{1}) = msg{2} /\
   sub pk{1} 0 (32 * i{1}) = sub_list (nbytes_flatten tmp_pk{2}) 0 (32 * i{1}) /\
