@@ -28,8 +28,7 @@ import W8u8.Pack.
 lemma ull_to_bytes2_post (x : W64.t, y : W32.t) :
   phoare[
     M(Syscall).__ull_to_bytes_2 : 
-    arg.`2 = x /\ 
-    0 <= to_uint x < W8.max_uint 
+    arg.`2 = x 
     ==>
     to_list res = W64toBytes_ext x 2
   ] = 1%r.
@@ -39,16 +38,12 @@ unroll 4; unroll 5.
 rcondt 4; first by auto.
 rcondt 7; first by auto.
 rcondf 10; first by auto.
-auto => /> &hr H0 H1. 
+auto => /> &hr.
 apply (eq_from_nth witness).
   + rewrite size_to_list /W64toBytes_ext size_rev size_mkseq /#.
 rewrite size_to_list => j?.
 case (j = 0) => [-> | ?].
-  + rewrite get_to_list get_setE //=.
-    rewrite nth_W64toBytes_ext //=.
-    rewrite bits8_div //= (: to_uint x %/ 256 = 0) 1:/#.
-    rewrite /truncateu8 to_uint_shr of_uintK //= (: to_uint x %/ 256 = 0) 1:/#.
-    reflexivity.
+  + by rewrite get_to_list get_setE //= nth_W64toBytes_ext //= bits8_div //= /truncateu8 to_uint_shr of_uintK //=.
 have ->: j = 1 by smt().
 rewrite get_to_list get_setE // ifF 1:/# get_setE //=.
 rewrite /W64toBytes_ext nth_rev; first by rewrite size_mkseq /#.
