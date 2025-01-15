@@ -459,3 +459,32 @@ lemma EncodeReducedSigE (wots_sig : len_nbytes) (auth_path : auth_path) (bytes :
     (wots_sig, auth_path) = EncodeReducedSignature bytes =>
     wots_sig = EncodeWotsSignatureList (sub_list bytes 0 wots_sig_bytes) /\
     auth_path = EncodeAuthPath (sub_list bytes wots_sig_bytes auth_path_bytes) by smt().
+
+require import BitEncoding.
+
+import BS2Int.
+
+print DecodeIdx.
+lemma DecodeIdxK (bytes : W8.t list) : 
+    size bytes = XMSS_INDEX_BYTES =>
+    0 <= to_uint (DecodeIdx bytes) < 2^XMSS_FULL_HEIGHT =>
+    EncodeIdx (DecodeIdx bytes) = bytes.
+proof.
+rewrite /XMSS_INDEX_BYTES => H0 H1.
+rewrite /EncodeIdx.
+rewrite /W32toBytes_ext /DecodeIdx.
+apply (eq_from_nth witness); rewrite size_rev ?size_mkseq (: max 0 XMSS_INDEX_BYTES = 3) 1:/# //= => [/# | i?].
+rewrite nth_rev; first by rewrite size_mkseq /#.
+rewrite size_mkseq /XMSS_INDEX_BYTES /= (: max 0 3 = 3) 1:/# /=.
+rewrite nth_mkseq 1:/# /= get_unpack8 1:/#.
+rewrite bits8E wordP => w?. 
+rewrite initiE //= bits2wE //= initiE 1:/# (nth_flatten false 8).
+- pose X := (fun (s : bool list) => size s = 8).
+  pose Y := (map W8.w2bits (rev bytes)).
+  rewrite -(all_nthP X Y witness) /X /Y size_map => k?. 
+  by rewrite (nth_map witness).
+rewrite (nth_map witness); first by rewrite size_rev H0 /#.
+rewrite w2bitsE nth_mkseq 1:/# /= nth_rev 1:/#.
+rewrite H0 /#.
+qed.
+
