@@ -29,4 +29,5 @@ version = "4.13.0"
 ```bash
 make -C proof/ check_spec
 make -C proof/ check_xmss_smssmt_proof
+make -C proof/ check_correctness_proof
 ```

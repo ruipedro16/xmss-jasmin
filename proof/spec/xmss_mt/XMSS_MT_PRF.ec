@@ -143,7 +143,7 @@ module XMSS_MT_PRF = {
 
       (sig_tmp, auth) <@ TreeSig.treesig(_M', sk, idx_leaf, address);
      
-      sig <- {| sig_idx = idx_leaf; r = _R; r_sigs = [ (sig_tmp, auth) ] |};
+      sig <- {| sig_idx = idx; r = _R; r_sigs = [ (sig_tmp, auth) ] |};
 
       j <- 1;
       while (j < d) {

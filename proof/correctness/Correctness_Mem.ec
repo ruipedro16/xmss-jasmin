@@ -1101,7 +1101,8 @@ while (
          * rewrite to_uintD_small 1:/# (: to_uint W64.one = 1) 1:/# => H.
            rewrite or_zero; split; [rewrite H0 | rewrite H ] => /#.
          * smt(@W64 pow2_64).
-    + auto => /> *; split => [/# | ?i0]. 
+    + auto => /> *.
+      split => [| ?i0]; first by smt(@Array32).
       rewrite ultE -lezNgt of_uintK //=; split => [|????? ->]; first by smt(@W64 pow2_64).
       have ->: to_uint i0 = 32 by smt(). 
       smt(@Array32). 

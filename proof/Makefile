@@ -65,14 +65,20 @@ check_extraction: extraction/XMSS_IMPL.ec
 
 check_correctness_proof: extraction/XMSS_IMPL.ec 
 	$(EASYCRYPT) $(EC_FLAGS) correctness/DistrUtils.ec
-	$(EASYCRYPT) $(EC_FLAGS) correctness/Repr2.ec
-	$(EASYCRYPT) $(EC_FLAGS) correctness/Utils2.ec # FIXME: smt fails sometimes
-	$(EASYCRYPT) $(EC_FLAGS) correctness/Correctness_Mem.ec
+	$(EASYCRYPT) $(EC_FLAGS) correctness/Bytes.ec
+	$(EASYCRYPT) $(EC_FLAGS) correctness/Repr.ec
+	$(EASYCRYPT) $(EC_FLAGS) correctness/Utils.ec
+	$(EASYCRYPT) $(EC_FLAGS) correctness/Correctness_Address.ec
+	$(EASYCRYPT) $(EC_FLAGS) correctness/Correctness_Bytes.ec
 	$(EASYCRYPT) $(EC_FLAGS) correctness/Correctness_Hash.ec
+	$(EASYCRYPT) $(EC_FLAGS) correctness/Correctness_Mem.ec
 	$(EASYCRYPT) $(EC_FLAGS) correctness/Correctness_WOTS.ec
 	$(EASYCRYPT) $(EC_FLAGS) correctness/Correctness_TreehashCondition.ec
-	$(EASYCRYPT) $(EC_FLAGS) correctness/FinalTreeHashProof.ec
+	$(EASYCRYPT) $(EC_FLAGS) correctness/GenChainProof.ec
+	$(EASYCRYPT) $(EC_FLAGS) correctness/TreeHashProof.ec
 	$(EASYCRYPT) $(EC_FLAGS) correctness/LTReeProof.ec
+	$(EASYCRYPT) $(EC_FLAGS) correctness/KeyGenProof.ec
+	$(EASYCRYPT) $(EC_FLAGS) correctness/SignProof.ec
 	
 check_xmss_smssmt_proof: 
 	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) spec//XMSS_vs_XMSS_MT.ec

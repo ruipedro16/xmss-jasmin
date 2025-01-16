@@ -5,7 +5,6 @@ from Jasmin require import JModel.
 
 require import Params BaseW Address Hash.
 
-
 (******************************************************************************)
 
 type key = nbytes.
@@ -20,7 +19,6 @@ type wots_pk = len_nbytes.
 type wots_sk = len_nbytes.
 type wots_keypair = wots_pk * wots_sk.
 
-
 (******************************************************************************)
 
 clone import Subtype as OTSKeys with 
@@ -28,7 +26,7 @@ clone import Subtype as OTSKeys with
    op P = fun l => size l = 2^h
    rename "sT" as "wots_ots_keys".
 
-op nbytexor(a b : nbytes) : nbytes =   NBytes.insubd (bytexor (val a) (val b)).
+op nbytexor(a b : nbytes) : nbytes = NBytes.insubd (bytexor (val a) (val b)).
 
 module Chain = {
    proc chain(X : nbytes, i s : int, _seed : seed, address : adrs) : nbytes = {
