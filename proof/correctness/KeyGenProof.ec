@@ -12,7 +12,7 @@ require import Array3 Array8 Array32 Array64 Array68 Array96 Array131 Array352 A
 require import WArray32 WArray96.
 
 require import Correctness_Address Correctness_Mem Correctness_Hash.
-require import TreeHashProof.ec.
+require import TreeHashProof.
 
 require import BitEncoding.
 (*---*) import BitChunking.

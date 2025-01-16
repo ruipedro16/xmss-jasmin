@@ -168,15 +168,7 @@ seq 3 0 : (
            rewrite size_load_buf 1:/# => j?.
            rewrite !nth_load_buf //.
            rewrite /storeW64 storesE => />.
-           rewrite get_setE ifF 1:/#.
-           rewrite get_setE ifF 1:/#.
-           rewrite get_setE ifF 1:/#.
-           rewrite get_setE ifF 1:/#.
-           rewrite get_setE ifF 1:/#.
-           rewrite get_setE ifF 1:/#.
-           rewrite get_setE ifF 1:/#.
-           rewrite get_setE ifF 1:/#.
-           reflexivity.
+           rewrite !get_setE !ifF /#.
 
          - apply (eq_from_nth witness); first by rewrite !size_load_buf // /#.
            rewrite size_load_buf 1:/# => j?.
@@ -184,14 +176,7 @@ seq 3 0 : (
            rewrite /storeW64 storesE => />. 
            have ->: to_uint (_sm_ptr + (of_int 4963)%W64) + j = 
                     to_uint _sm_ptr + 4963 + j by smt(@W64 pow2_64). 
-           rewrite get_setE ifF 1:/#.
-           rewrite get_setE ifF 1:/#.
-           rewrite get_setE ifF 1:/#.
-           rewrite get_setE ifF 1:/#.
-           rewrite get_setE ifF 1:/#.
-           rewrite get_setE ifF 1:/#.
-           rewrite get_setE ifF 1:/#.
-           rewrite get_setE ifF 1:/#.
+           rewrite !get_setE !ifF 1..8:/#.
            have ->: Glob.mem{1}.[to_uint _sm_ptr + 4963 + j] = 
                     nth witness 
                     (load_buf Glob.mem{1} (_sm_ptr + (of_int 4963)%W64) (to_uint mlen{1}))
@@ -210,11 +195,8 @@ seq 1 0 : (#pre /\ to_list idx_bytes{1} = EncodeIdx sk{2}.`idx).
    apply (eq_from_nth witness); first by rewrite size_EncodeIdx /XMSS_INDEX_BYTES size_to_list.
    rewrite size_to_list => j?.
    rewrite get_to_list initiE // /DecodeSkNoOID get_of_list 1:/#.
-   rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val ifT 1:/#.
-   rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val ifT 1:/#.
-   rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val ifT 1:/#.
-   rewrite nth_cat size_EncodeIdx /XMSS_INDEX_BYTES ifT 1:/#.
-   reflexivity.
+   do 3! (rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val ifT 1:/#).
+   by rewrite nth_cat size_EncodeIdx /XMSS_INDEX_BYTES ifT 1:/#.
 
 seq 1 0 : (#pre /\ to_uint idx{1} = to_uint sk{2}.`Types.idx).
   + ecall {1} (bytes_to_ull_correct idx_bytes{1} sk{2}.`Types.idx).
@@ -331,37 +313,27 @@ seq 1 1 : (
            case (0 <= j < 3) => ?.
               * rewrite (: aux_0{1}.[j] = nth witness (to_list aux_0{1}) j) 1:/# H27.
                 rewrite /DecodeSkNoOID get_of_list // => />.
-                rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifT 1:/#.
-                rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifT 1:/#.
-                rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifT 1:/#.
-                rewrite nth_cat size_EncodeIdx /XMSS_INDEX_BYTES ifT 1:/#.
-                reflexivity.
+                do 3! (rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifT 1:/#).
+                by rewrite nth_cat size_EncodeIdx /XMSS_INDEX_BYTES ifT 1:/#.
               * rewrite /DecodeSkNoOID get_of_list // => />.
                 rewrite get_of_list //. 
                 case (3 <= j < 3 + n) => ?.
-                  - rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifT 1:/#.
-                    rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifT 1:/#.
-                    rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifT 1:/#.
+                  - do 3! (rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifT 1:/#).
                     rewrite nth_cat size_EncodeIdx /XMSS_INDEX_BYTES ifF 1:/#.
-                    rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifT 1:/#.
-                    rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifT 1:/#.
-                    rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifT 1:/#.
-                    rewrite nth_cat size_EncodeIdx /XMSS_INDEX_BYTES ifF 1:/#.
-                    reflexivity.
+                    do 3! (rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifT 1:/#).
+                    by rewrite nth_cat size_EncodeIdx /XMSS_INDEX_BYTES ifF 1:/#.
                 case (3 <= j < 3 + n + n ) => ?.
                   - rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifT 1:/#.
                     rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifT 1:/#.
                     rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifF 1:/#.
                     rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifT 1:/#.
                     rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifT 1:/#.
-                    rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifF 1:/#.                   
-                    reflexivity.
+                    by rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifF 1:/#.                   
                 case (3 <= j < 3 + n + n + n) => ?.
                   - rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifT 1:/#.
                     rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifF 1:/#.
                     rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifT 1:/#.
-                    rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifF 1:/#.
-                    reflexivity.
+                    by rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifF 1:/#.
                 rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifF 1:/#.
                 rewrite nth_cat !size_cat size_EncodeIdx /XMSS_INDEX_BYTES !valP n_val /= ifF 1:/#.
                 reflexivity.
@@ -1052,6 +1024,6 @@ do split; 5,6,9,10: by smt().
           (35 + size sig{2}.`r_sigs * 2464))
                    by rewrite get_to_list.
           rewrite H44 nth_cat size_DecodeWotsSignature_List ifF 1:/#.
-          rewrite /DecodeWotsSignature_List nth_nbytes_flatten; first by rewrite valP /#.
-          smt().
+          rewrite /DecodeWotsSignature_List nth_nbytes_flatten 2:/# valP /#.
+qed.
 
