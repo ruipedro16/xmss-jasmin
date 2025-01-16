@@ -722,12 +722,10 @@ seq 1 8 : (
         * sp.  
           exists * csum{1}, csum_32{2}; elim * => P0 P1; auto.
           ecall {1} (ull_to_bytes2_post P0 P1). 
-          auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 *.
-          do split; 1:by smt().
-             + move => ?. admit. (* needs to be fixed in ull_to_bytes2_post *)
-             + move => ?? result ->.
-               rewrite toByte_32_64 //; do congr.
-               smt(@W32 @W64).
+          auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 ? result ->.
+          rewrite toByte_32_64 //; do congr.
+          smt(@W32 @W64).
+
      seq 1 1 : (
           #{/~csum_base_w{1} = t1{1}}pre /\ 
           map W32.to_uint (to_list csum_base_w{1}) = csum_base_w{2} /\
@@ -1024,8 +1022,9 @@ seq 1 8 : (
           + exists * csum{1}, csum_32{2}.
             elim * => P0 P1.
             call {1} (ull_to_bytes2_post P0 P1).
-            by admit.
-  
+            auto => /> ?????????????????->.
+            rewrite toByte_32_64 //; do congr; smt(@W32 @W64).
+
        seq 1 1 : (#{/~csum_base_w{1} = t1{1}}pre /\ csum_base_w{2} = map W32.to_uint (to_list csum_base_w{1}) /\ 
                   forall (k : int), 0 <= k < size csum_base_w{2} => 0 <= nth witness csum_base_w{2} k < w).
           + wp.

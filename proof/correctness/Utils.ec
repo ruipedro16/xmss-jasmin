@@ -2,20 +2,18 @@ pragma Goals : printall.
 
 require import AllCore List RealExp IntDiv.
 require import BitEncoding.
+require import Bool.
 (*---*) import BitChunking.
+(*---*) import StdBigop.Bigint.
+(*---*) import BitEncoding.BS2Int.
 
 from Jasmin require import JModel.
 
 require import Params Address Hash LTree XMSS_MT_Types.
 
 require import Array8 Array11.
-
-(*****) import StdBigop.Bigint.
-
-require import Bool.
 import BS2Int.
 
-import BitEncoding.BS2Int.
 
 (* =================================================================================== *)
 
@@ -324,6 +322,24 @@ pred disjoint_ptr (p1 l1 p2 l2 : int) =
 lemma disjoint_ptr_comm (p1 l1 p2 l2 : int) : 
     disjoint_ptr p1 l1 p2 l2 <=>
     disjoint_ptr p2 l2 p1 l1 by smt().
+
+(* if p1 and p2 are disjoint, a sub region of p1 is also disjoint from p2 *)
+lemma disjoint_ptr_sub (p1 l1 p2 l2 : int) l3 :
+    disjoint_ptr p1 l1 p2 l2 => 
+    l3 < l1 => 
+    disjoint_ptr p1 l3 p2 l2 by smt().
+
+(* if p1 and p2 are two disjoint memory regions, p1 and p2[0]/the ptr itself are disjoint *)
+lemma disjoint_ptr_ptr (p1 l1 p2 l2 : int) : 
+    disjoint_ptr p1 l1 p2 l2 =>
+    0 < l2 =>
+    forall (k : int), 0 <= k < l1 => p1 + k <> p2 by smt().
+
+(* we can add an offset to the ptr if we remove it from the lengths *)
+lemma disjoint_ptr_offset (p1 l1 p2 l2 o : int) :
+    0 < o => 
+    disjoint_ptr p1 l1 p2 l2 => 
+    disjoint_ptr (p1 + o) (l1 - o) p2 l2 by smt().
 
 
 (** -------------------------------------------------------------------------------------------- **)
