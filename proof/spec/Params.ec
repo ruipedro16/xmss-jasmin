@@ -37,7 +37,7 @@ clone export Subtype as OneByte with
    op P = fun l => size l = 1
    rename "sT" as "onebyte".
 
-clone export Subtype as TheeNBytes with 
+clone export Subtype as ThreeNBytesBytes with 
    type T = W8.t list,
    op P = fun l => size l = 3 * n
    rename "sT" as "threen_bytes"

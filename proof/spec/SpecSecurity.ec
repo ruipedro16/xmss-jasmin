@@ -34,7 +34,7 @@ module FakeRO : POracle = {
    proc o(x : (nbytes * int) * W8.t list) : msgFLXMSSTW = {
       var t,idx_bytes;
       idx_bytes <- lenbytes_be32 (W32.of_int x.`1.`2) 4;   
-      t <- (TheeNBytes.insubd (val x.`1.`1 ++ val root ++ idx_bytes));
+      t <- (ThreeNBytesBytes.insubd (val x.`1.`1 ++ val root ++ idx_bytes));
       return DigestBlock.insubd (BytesToBits (val (H_msg t x.`2)));
    }
 }.

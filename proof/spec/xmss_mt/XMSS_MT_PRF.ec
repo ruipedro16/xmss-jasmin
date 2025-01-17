@@ -7,7 +7,7 @@ from Jasmin require import JModel.
  
 require import Types XMSS_MT_Types Address BaseW Hash WOTS LTree XMSS_MT_TreeHash.
 
-import XMSS_MT_Params Params OTSKeys TheeNBytes AuthPath.
+import XMSS_MT_Params Params OTSKeys ThreeNBytesBytes AuthPath.
 import Array8.
 
 module XMSS_MT_PRF = {
@@ -132,7 +132,7 @@ module XMSS_MT_PRF = {
       idx_bytes <- NBytes.insubd (toByte idx n);
       _R <@ Hash.prf(idx_bytes, sk_prf);
 
-      t <- TheeNBytes.insubd (val _R ++ val root ++ val idx_bytes); (* t = r || getRoot(SK_MT) || (toByte(idx_sig, n)) *)
+      t <- ThreeNBytesBytes.insubd (val _R ++ val root ++ val idx_bytes); (* t = r || getRoot(SK_MT) || (toByte(idx_sig, n)) *)
       _M' <- H_msg t m;
 
       idx_tree <- idx `>>>` (h %/ d);
@@ -193,7 +193,7 @@ module XMSS_MT_PRF = {
        (* M' = H_msg(getR(Sig_MT) || getRoot(PK_MT) || (toByte(idx_sig, n)), M); *)
        root <- pk.`pk_root;
        _R <- s.`r;
-       t <- TheeNBytes.insubd (val _R ++ val root ++ val idx_bytes);
+       t <- ThreeNBytesBytes.insubd (val _R ++ val root ++ val idx_bytes);
        _M' <- H_msg t m; 
 
        address <- set_layer_addr address 0;
