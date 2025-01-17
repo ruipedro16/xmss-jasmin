@@ -36,24 +36,6 @@ require import Array32.
 lemma array_neq (x y : W8.t Array32.t) :
     to_list x <> to_list y <=> x <> y by smt(@Array32).    
 
-lemma W32_one_0 : W32.one.[0] = true.
-proof.
-by rewrite /W32.one bits2wE initiE //= /int2bs nth_mkseq.
-qed.
-
-lemma lsb_even (w : W32.t) : 
-    to_uint w %% 2 = 0 => w.[0] = false.
-proof.
-move => ?.
-rewrite get_to_uint (: (0 <= 0 && 0 < 32) = true) //= /#.
-qed.
-
-lemma lsb_odd (w : W32.t) : 
-    to_uint w %% 2 <> 0 => w.[0] = true.
-proof.
-move => ?.
-rewrite get_to_uint (: (0 <= 0 && 0 < 32) = true) //= /#.
-qed.
 
 lemma xor1_even (x : W32.t) :
     0 <= to_uint x <= W32.max_uint => 
@@ -133,11 +115,6 @@ qed.
 
 lemma and_comm (a b : W32.t) : a `&` b = b `&` a by smt(@W32 pow2_32).
 
-lemma pow2_bound (a b: int) :
-    0 <= a => 0 <= b =>  a <= b => 
-    a <= 2^b
-by smt(@IntDiv).
-
 (** -------------------------------------------------------------------------------------------- **)
 
 lemma sub_k (k : int) (a0 a1 : W32.t Array8.t) :
@@ -203,16 +180,6 @@ move => i??.
 smt(@Real).
 qed.
 
-lemma pow2_c (e l : int) : 
-    0 <= e < l =>
-    0 < 2^e < 2^l.
-proof.
-move => [??].
-split.
-apply pow2_pos; first by assumption.
-move => ?.
-smt(@StdOrder.IntOrder).
-qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 
@@ -234,18 +201,6 @@ qed.
 
 (** -------------------------------------------------------------------------------------------- **)
 
-
-lemma to_uint_W64_W32 (x0 : W64.t) (x1 : W32.t) :
-    0 <= to_uint x0 < W32.max_uint /\
-    0 <= to_uint x1 < W32.max_uint /\
-    to_uint x0 = to_uint x1 =>
-    x0 = zeroextu64 x1.
-proof.
-move => [#] *; smt(@W64).
-qed.
-
-(** -------------------------------------------------------------------------------------------- **)
-
 op zero_addr : adrs = Array8.init (fun _ => W32.zero). 
 
 lemma zero_addr_i :
@@ -263,19 +218,6 @@ rewrite tP => j?.
 rewrite get_setE //.
 case (j = k) => // ?.
 by rewrite zero_addr_i.
-qed.
-
-lemma set_tree_addr_comp (x : W32.t Array8.t) (v1 v2 : int) :
-    set_tree_addr (set_tree_addr x v1) v2 = set_tree_addr x v2.
-proof.
-rewrite /set_tree_addr tP => j?.
-rewrite get_setE //.
-case (j = 2) => *.
-  + by rewrite get_setE // ifT //.
-rewrite get_setE //.
-case (j = 1) => *.
-  + rewrite get_setE // ifF 1:/# get_setE // ifT //.
-by do ! rewrite get_setE // ifF //.
 qed.
 
 (** -------------------------------------------------------------------------------------------- **)
