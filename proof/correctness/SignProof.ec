@@ -434,7 +434,7 @@ seq 1 0 : (
  
 outline {2} [1-2] { 
     _M' <@ M_Hash.hash (
-          (insubd (val _R ++ val root ++ val idx_bytes))%TheeNBytes, 
+          (insubd (val _R ++ val root ++ val idx_bytes))%ThreeNBytesBytes, 
           m); 
 }.
  

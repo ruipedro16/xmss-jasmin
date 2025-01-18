@@ -302,7 +302,7 @@ lemma len_n_bytes_eq :
 
 lemma three_nbytes_eq :
   forall (s1 s2 : threen_bytes), val s1 = val s2 <=> s1 = s2 
-    by smt(@TheeNBytes).
+    by smt(@ThreeNBytesBytes).
 
 (** -------------------------------------------------------------------------------------------- **)
 

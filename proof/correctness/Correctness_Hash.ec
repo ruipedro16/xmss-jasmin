@@ -966,7 +966,7 @@ lemma hash_message_correct (mem : global_mem_t)
 
        Glob.mem{1} = mem /\
 
-      arg{2}.`1 = (TheeNBytes.insubd (to_list R ++ 
+      arg{2}.`1 = (ThreeNBytesBytes.insubd (to_list R ++ 
                                       to_list _root ++ 
                                       (toByte_64 (W64.of_int (to_uint _idx)) 32))
                                      ) /\
