@@ -570,8 +570,7 @@ auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12*; do split;2,3,6,7:sm
       by rewrite initiE 1:/# /= ifF 1:/# H8 1:/# nth_nbytes_flatten // valP /#.
 qed.
 
-lemma pk_from_sig_correct (_sig_ptr_ : W64.t, _msg_ _pub_seed_ : W8.t Array32.t, a1 a2 : W32.t Array8.t) :
-    valid_ptr_i _sig_ptr_ 2144 =>
+lemma pk_from_sig_correct (_msg_ _pub_seed_ : W8.t Array32.t, a1 a2 : W32.t Array8.t) :
     n = XMSS_N /\
     floor (log2 w%r) = XMSS_WOTS_LOG_W /\ 
     w = XMSS_WOTS_W /\
@@ -584,15 +583,14 @@ lemma pk_from_sig_correct (_sig_ptr_ : W64.t, _msg_ _pub_seed_ : W8.t Array32.t,
     equiv [
       M(Syscall).__wots_pk_from_sig ~ WOTS.pkFromSig :
       
-      valid_ptr_i _sig_ptr_ XMSS_WOTS_SIG_BYTES /\
+      valid_ptr_i arg{1}.`2 XMSS_WOTS_SIG_BYTES /\
 
-      arg{1}.`2 = _sig_ptr_ /\
       arg{1}.`3 = _msg_ /\
       arg{1}.`4 = _pub_seed_ /\ 
       arg{1}.`5 = a1 /\ 
 
       arg{2}.`1 = NBytes.insubd (to_list _msg_) /\
-      arg{2}.`2 = EncodeWotsSignature (load_sig Glob.mem{1} _sig_ptr_) /\
+      arg{2}.`2 = EncodeWotsSignature (load_sig Glob.mem{1} arg{1}.`2) /\
       arg{2}.`3 = NBytes.insubd (to_list _pub_seed_) /\
       arg{2}.`4 = a2 /\
       
@@ -604,7 +602,7 @@ lemma pk_from_sig_correct (_sig_ptr_ : W64.t, _msg_ _pub_seed_ : W8.t Array32.t,
     ].
 proof.
 rewrite /XMSS_N /XMSS_WOTS_LOG_W /XMSS_WOTS_W /XMSS_WOTS_LEN1 /XMSS_WOTS_LEN2 /XMSS_WOTS_LEN.
-move => ? [#] n_val logw_val w_val len1_val len2_val len_val *.
+move => [#] n_val logw_val w_val len1_val len2_val len_val *.
 proc => /=. 
 
 conseq (: _ ==> 
@@ -612,13 +610,12 @@ conseq (: _ ==>
   size tmp_pk{2} = len /\
   forall (k : int), 0 <= k < 2144 => pk{1}.[k] = nth witness (nbytes_flatten tmp_pk{2}) k
 ).
-    + auto => /> ??? addrL pkL pkR ?? H.
+    + auto => /> ????addrL pkL pkR ?? H.
       rewrite /DecodeWotsPk.
       rewrite tP => j?.
       by rewrite get_of_list // insubdK /P // H.
  
 seq 1 1 : (
-  sig_ptr{1} = _sig_ptr_ /\
   val M{2} = to_list msg{1} /\
   val _seed{2} = to_list pub_seed{1} /\
   sig{2} = EncodeWotsSignature (load_sig Glob.mem{1} sig_ptr{1}) /\
@@ -777,7 +774,6 @@ while (
   0 <= i{1} <= len /\
   ={i} /\
   map W32.to_uint (to_list lengths{1}) = msg{2} /\
-  sig_ptr{1} = _sig_ptr_ /\ 
   val M{2} = to_list msg{1} /\
   val _seed{2} = to_list pub_seed{1} /\
   sig{2} = EncodeWotsSignature (load_sig Glob.mem{1} sig_ptr{1}) /\
@@ -820,7 +816,7 @@ seq 2 0 : (#pre /\ to_uint steps{1} = w - 1 - msg_i{2}).
   have ->: to_uint lengths{1}.[i{2}] = nth witness (map W32.to_uint (to_list lengths{1})) i{2}; last by smt().
   rewrite (nth_map witness); by rewrite ?size_to_list ?get_to_list. (* O primeiro subgoal usa o size to list e o segundo usa o get to list *)
 
-seq 2 0 : (#pre /\ to_uint t{1} = to_uint _sig_ptr_ + 32 * i{1}); first by auto => /> *; smt(@W64 pow2_64).     
+seq 2 0 : (#pre /\ to_uint t{1} = to_uint sig_ptr{1} + 32 * i{1}); first by auto => /> *; smt(@W64 pow2_64).     
 
 seq 1 1 : (#pre /\ to_list aux_0{1} = val sig_i{2}).
 - ecall {1} (p_memcpy_ptr_correct t{1}).
