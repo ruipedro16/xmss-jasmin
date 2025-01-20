@@ -152,7 +152,7 @@ lemma treehash_correct ( _sk_seed _pub_seed : W8.t Array32.t, _s _t: W32.t, a1 a
       arg{2}.`5 = a2 /\
 
       0 <= to_uint _t <= XMSS_TREE_HEIGHT /\
-      0 <= to_uint _s <= to_uint _t /\
+      0 <= to_uint _s + 2^ to_uint _t < W32.max_uint /\
 
       sub a1 0 3 = sub a2 0 3 /\
       a1.[4] = node_addr_padding_val
@@ -257,7 +257,8 @@ seq 2 2 : (sub _stack{1} 0 n = val (nth witness stack{2} 0)); last first.
 unroll {1} 2; unroll {2} 2.
 sp 1 1.
 
-rcondt {1} 1; first by auto => /> &hr ????????????????H; rewrite ultE H /=; apply pow2_pos.
+rcondt {1} 1; first by auto => /> &hr *; rewrite ultE /=; smt(pow2_pos).
+
 rcondt {2} 1; first by auto => &hr *; smt(pow2_pos).
   
 seq 2 0 : (#pre /\ to_uint t32{1} = s{2} + i{2}); first by auto.
@@ -368,7 +369,7 @@ seq 0 1 : #{/~sub ots_addr{1} 0 5 = sub address{2} 0 5}pre.
 
 while (
       t{2} = to_uint target_height{1} /\ 0 <= t{2} <= h /\
-      s{2} = to_uint start_index{1} /\ 0 <= s{2} <= h /\ 
+      s{2} = to_uint start_index{1} /\ 0 <= s{2} + 2^t{2} < W32.max_uint /\ 
 
       0 < to_uint offset{2} <= to_uint i{1} /\ 
       ={offset} /\  
@@ -396,7 +397,7 @@ while (
       sub _stack{1} 0 (n * (min (to_uint offset{2}) (size stack{2}))) = sub_list (nbytes_flatten stack{2}) 0 (n * (min (to_uint offset{2}) (size stack{2})))
 ); last first.
 + auto => /> &1 &2 H0 H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 *.
-  do split; 1,2: by smt().
+  do split; 1: by smt().
         * by apply pow2_leq_1; apply H0. 
         * apply (eq_from_nth witness); rewrite !size_sub // => j?; rewrite !nth_sub //; smt(sub_k). 
         * apply (eq_from_nth witness); rewrite !size_sub // => j?; rewrite !nth_sub //; smt(sub_k). 
@@ -407,11 +408,11 @@ while (
         * rewrite ultE /#.
         * rewrite ultE /#.
         * move => stackL heightsL iL ltree_addrL node_addrL ots_addrL addressR heightsR offsetR stackR.      
-          rewrite ultE => H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25 H26 H27 H28 H29 H30 H31 H32 H33 *.
+          rewrite ultE => H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25 H26 H27 H28 H29 H30 H31 H32 *.
           apply (eq_from_nth witness); first by rewrite size_sub 1:/# valP n_val.
           rewrite size_sub 1:/# n_val => j?.
           have ?: 0 < to_uint iL by smt(pow2_neq_0).
-          have := H33.
+          have := H32.
           rewrite /sub /sub_list/XMSS_TREE_HEIGHT /= n_val => T.
           rewrite nth_mkseq 1:/# /=.
           have ->: stackL.[j] = nth witness (mkseq (fun (i0 : int) => stackL.[i0]) (32 * min (to_uint offsetR) (size stackR))) j by rewrite nth_mkseq //; smt(@W64 pow2_64).
@@ -608,7 +609,8 @@ while (
   0 <= t{2} <= h /\
 
   s{2} = to_uint start_index{1} /\
-  0 <= s{2} <= h /\
+  0 <= s{2} + 2^t{2} < W32.max_uint /\ 
+
 
   ={offset} /\
   (0 < to_uint offset{2}) /\ to_uint (offset{2} - W64.one) <= to_uint i{1} /\
@@ -826,12 +828,12 @@ seq 1 1 : #pre.
       do split. 
         - smt(@W64 pow2_64). 
         - move : H5.
-          have ->: to_uint (offset{2} - W64.one) = to_uint offset{2} - 1 by smt(@W64 pow2_64). (* Without this simplification, smt fails *)
+          have ->: to_uint (offset{2} - W64.one) = to_uint offset{2} - 1 by rewrite to_uintB //= uleE /#.
           move => H5.
-          have ->: to_uint (offset{2} - (of_int 2)%W64) = to_uint offset{2} - 2 by smt(@W64 pow2_64). 
+          have ->: to_uint (offset{2} - (of_int 2)%W64) = to_uint offset{2} - 2  by rewrite to_uintB //= uleE /#. 
           smt(@StdOrder.IntOrder).
         - smt(). 
-        - have ->: to_uint (offset{2} - (of_int 2)%W64) = to_uint offset{2} - 2 by smt(@W64 pow2_64).
+        - have ->: to_uint (offset{2} - (of_int 2)%W64) = to_uint offset{2} - 2 by rewrite to_uintB //= uleE /#.
           apply (eq_from_nth witness).
              * rewrite size_sub 1:/# size_sub_list /#.
           rewrite size_sub 1:/# /XMSS_N /= => i?. 

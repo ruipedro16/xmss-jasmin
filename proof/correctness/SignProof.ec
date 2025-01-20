@@ -30,8 +30,6 @@ pred valid_idx (idx : W32.t) = 0 <= to_uint idx < 2^XMSS_FULL_HEIGHT.
 
 import W8u8.
 
-print append_sig.
-
 lemma size_append_sig (sig : sig_t) (r_sig : wots_signature * auth_path) : 
     size (append_sig sig r_sig).`r_sigs = size sig.`r_sigs + 1.
 proof.

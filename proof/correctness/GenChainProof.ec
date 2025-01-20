@@ -130,7 +130,6 @@ seq 1 1 : (
     rewrite size_sub // => j?.
     by rewrite !nth_sub //= get_setE //= ifF 1:/#.
 
-print addr_to_bytes_correctness.
 seq 1 1 : (#pre /\ to_list addr_as_bytes{1} = val addr_bytes{2}).
   + exists * addr{1}; elim * => P1; call {1} (addr_to_bytes_correctness P1).
 auto => /> ?????????->.

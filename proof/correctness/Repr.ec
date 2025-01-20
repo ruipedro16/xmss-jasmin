@@ -386,9 +386,6 @@ op EncodeReducedSignature (x : W8.t list) :  wots_signature * auth_path =
       EncodeAuthPath (sub_list x wots_sig_bytes auth_path_bytes)
   ).
 
-print EncodeIdx.
-print DecodeIdx.
-
 op EncodeSignature (sig_bytes : W8.t list) : sig_t =
   {| sig_idx  = DecodeIdx (sub_list sig_bytes 0 XMSS_INDEX_BYTES);
      r        = NBytes.insubd (sub_list sig_bytes XMSS_INDEX_BYTES XMSS_N);
@@ -464,7 +461,6 @@ require import BitEncoding.
 
 import BS2Int.
 
-print DecodeIdx.
 lemma DecodeIdxK (bytes : W8.t list) : 
     size bytes = XMSS_INDEX_BYTES =>
     0 <= to_uint (DecodeIdx bytes) < 2^XMSS_FULL_HEIGHT =>

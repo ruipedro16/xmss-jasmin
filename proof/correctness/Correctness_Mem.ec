@@ -15,9 +15,6 @@ require import Params Parameters.
 
 require import XMSS_MT_TreeHash.
 
-print disjoint_ptr.
-print valid_ptr.
-
 lemma memcpy_mem_mem (mem : global_mem_t) (dst_ptr oo src_ptr oi len : W64.t) :
     phoare [
       M(Syscall)._x__memcpy_u8pu8p :
