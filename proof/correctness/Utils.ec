@@ -36,6 +36,19 @@ require import Array32.
 lemma array_neq (x y : W8.t Array32.t) :
     to_list x <> to_list y <=> x <> y by smt(@Array32).    
 
+lemma lsb_odd (w : W32.t) : 
+    to_uint w %% 2 <> 0 => w.[0] = true.
+proof.
+move => ?.
+rewrite get_to_uint (: (0 <= 0 && 0 < 32) = true) //= /#.
+qed.
+
+lemma lsb_even (w : W32.t) : 
+    to_uint w %% 2 = 0 => w.[0] = false.
+proof.
+move => ?.
+rewrite get_to_uint (: (0 <= 0 && 0 < 32) = true) //= /#.
+qed.
 
 lemma xor1_even (x : W32.t) :
     0 <= to_uint x <= W32.max_uint => 
@@ -149,18 +162,31 @@ lemma shr_1 (x : W64.t) :
     to_uint (x `>>` W8.one) = to_uint x %/ 2
         by rewrite shr_div (: (to_uint W8.one %% 64) = 1) 1:#smt:(@W64) //=. 
 
-lemma mod2_vals (x : int) :
-    x %% 2 = 0 \/ x %% 2 = 1 by smt(). 
-
-lemma fooT (x : W64.t):
-    to_uint x %% 2 = 1 => W64.of_int (to_uint x %% 2) = W64.one by smt(@W64). 
-
 lemma and_1_mod_2 (x : W64.t):
     x `&` W64.one <> W64.zero <=> to_uint x %% 2 = 1.
 proof.
-split; rewrite (: 1 = 2 ^ 1 - 1) 1:/# and_mod //=; [smt(fooT) |].
+have E: forall (x : W64.t), to_uint x %% 2 = 1 => W64.of_int (to_uint x %% 2) = W64.one by smt(@W64). 
+split; rewrite (: 1 = 2 ^ 1 - 1) 1:/# and_mod //=; first by smt().
 move => H.
-rewrite fooT //= #smt:(@W64). 
+rewrite E //= #smt:(@W64). 
+qed.
+
+(* Same but now for W32.t *)
+lemma and_1_mod_2_W32 (x : W32.t):
+    x `&` W32.one <> W32.zero <=> to_uint x %% 2 = 1.
+proof.
+have E: forall (x : W32.t), to_uint x %% 2 = 1 => W32.of_int (to_uint x %% 2) = W32.one by smt(@W32). 
+split; rewrite (: 1 = 2 ^ 1 - 1) 1:/# and_mod //=; first by smt().
+move => H.
+rewrite E //= #smt:(@W32). 
+qed.
+
+lemma and_1_mod_2_W32_2 (x : W32.t):
+    0 <= to_uint x < W32.max_uint =>
+    x `&` W32.one = W32.zero <=> to_uint x %% 2 = 0.
+proof.
+move => ?.
+split; rewrite (: 1 = 2 ^ 1 - 1) 1:/# and_mod //=; smt(@W32 pow2_32).
 qed.
 
 (** -------------------------------------------------------------------------------------------- **)

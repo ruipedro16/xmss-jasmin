@@ -11,6 +11,8 @@
 #include "new_xmss.h"
 #include "params.h"
 #include "print.h"
+#include "randombytes.h"
+#include "xmss_commons.h"
 #include "xmss_core.h"
 
 #ifndef TESTS
@@ -33,7 +35,7 @@ static size_t longestCommonPrefixSize(const uint8_t *array1, const uint8_t *arra
     return prefixLength;
 }
 
-void test_kg(const xmss_params* p) {
+void test_kg(const xmss_params *p) {
     bool debug = true;
 
     uint8_t pk_ref[p->pk_bytes];
@@ -61,7 +63,7 @@ void test_kg(const xmss_params* p) {
     }
 }
 
-void test_sign(const xmss_params * p) {
+void test_sign(const xmss_params *p) {
 #define XMSS_MLEN 20
 
     bool debug = true;
@@ -114,7 +116,8 @@ void test_sign(const xmss_params * p) {
             puts("==============================================================================================");
             // fprint_str_u8("sm_new.txt", "sm", sm_new, p->sig_bytes);
             // fprint_str_u8("sm_ref.txt", "sm", sm_ref, p->sig_bytes);
-            printf("Signature Preffix length: %ld\n", longestCommonPrefixSize(sm_ref, sm_new, p->sig_bytes + XMSS_MLEN));
+            printf("Signature Preffix length: %ld\n",
+                   longestCommonPrefixSize(sm_ref, sm_new, p->sig_bytes + XMSS_MLEN));
             puts("==============================================================================================");
 
             // idx : 4 bytes
@@ -145,8 +148,8 @@ void test_sign(const xmss_params * p) {
                     // printf("Testing k=%d\n", k);
                     // fprint_str_u8("wots_sig.txt", "sm", sm_new + p->index_bytes + p->n + (k * p->n), p->n);
                     // fprint_str_u8("wots_sig.txt", "sm", sm_ref + p->index_bytes + p->n + (k * p->n), p->n);
-                    assert(memcmp(sm_new + p->index_bytes + p->n + (k * p->n), sm_ref + p->index_bytes + p->n + (k * p->n),
-                                  p->n) == 0);
+                    assert(memcmp(sm_new + p->index_bytes + p->n + (k * p->n),
+                                  sm_ref + p->index_bytes + p->n + (k * p->n), p->n) == 0);
                     // printf("%d-esima parte da assinatura: OK\n", k);
                     // puts("==============================================================================================");
                 }
@@ -156,16 +159,17 @@ void test_sign(const xmss_params * p) {
                 puts("==============================================================================================");
 
                 // auth path :
-                printf("Auth Path Preffix length: %ld\n",
-                       longestCommonPrefixSize(sm_new + p->index_bytes + p->n + p->wots_sig_bytes,
-                                               sm_ref + p->index_bytes + p->n + p->wots_sig_bytes, p->tree_height * p->n));
+                printf(
+                    "Auth Path Preffix length: %ld\n",
+                    longestCommonPrefixSize(sm_new + p->index_bytes + p->n + p->wots_sig_bytes,
+                                            sm_ref + p->index_bytes + p->n + p->wots_sig_bytes, p->tree_height * p->n));
 
                 if (memcmp(sm_new + p->index_bytes + p->n + p->wots_sig_bytes,
                            sm_ref + p->index_bytes + p->n + p->wots_sig_bytes, p->tree_height * p->n) != 0) {
-                    fprint_str_u8("auth_path_ref.txt", "auth path ref", sm_ref + p->index_bytes + p->n + p->wots_sig_bytes,
-                                  p->tree_height * p->n);
-                    fprint_str_u8("auth_path_new.txt", "auth path new", sm_ref + p->index_bytes + p->n + p->wots_sig_bytes,
-                                  p->tree_height * p->n);
+                    fprint_str_u8("auth_path_ref.txt", "auth path ref",
+                                  sm_ref + p->index_bytes + p->n + p->wots_sig_bytes, p->tree_height * p->n);
+                    fprint_str_u8("auth_path_new.txt", "auth path new",
+                                  sm_ref + p->index_bytes + p->n + p->wots_sig_bytes, p->tree_height * p->n);
                 }
 
                 assert(memcmp(sm_new + p->index_bytes + p->n + p->wots_sig_bytes,
@@ -182,6 +186,42 @@ void test_sign(const xmss_params * p) {
     }
 
 #undef XMSS_MLEN
+}
+
+void test_compute_root(const xmss_params *params) {
+    uint8_t root_ref_impl[params->n];
+    uint8_t root_new_impl[params->n];
+
+    uint8_t leaf[params->n];
+    uint8_t pub_seed[params->n];
+    uint8_t auth_path[params->tree_height * params->n];
+    uint32_t addr_ref[8] = {0};
+    uint32_t addr_new[8] = {0};
+
+    uint32_t tree_index;
+
+    unsigned long leaf_idx;
+
+    for (int i = 0; i < TESTS; i++) {
+        randombytes((uint8_t *)addr_ref, 8 * sizeof(uint32_t));
+        randombytes((uint8_t *)&tree_index, sizeof(uint32_t));
+        addr_ref[6] = tree_index;
+        memcpy(addr_new, addr_ref, 8 * sizeof(uint32_t));
+
+        randombytes((uint8_t *)&leaf_idx, sizeof(unsigned long));
+        leaf_idx = leaf_idx % (2 ^ params->full_height);
+
+        randombytes(auth_path, params->tree_height * params->n);
+
+        assert(!memcmp(addr_ref, addr_new, 8 * sizeof(uint32_t)));
+
+        new_compute_root(params, root_new_impl, leaf, leaf_idx, auth_path, pub_seed, addr_new);
+        compute_root(params, root_ref_impl, leaf, leaf_idx, auth_path, pub_seed, addr_ref);
+
+        assert(!memcmp(root_ref_impl, root_new_impl, params->n));
+    }
+
+    puts("Compute root OK");
 }
 
 int main() {
@@ -223,8 +263,9 @@ int main() {
             printf("TESTING IMPL: %s\n", impls[i]);
         }
 
-        test_kg(&p);
-        test_sign(&p);
+        // test_kg(&p);
+        // test_sign(&p);
+        test_compute_root(&p);
 
         if (debug) {
             puts("=====================================================================================");

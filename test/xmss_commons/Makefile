@@ -65,7 +65,7 @@ $(JPP_FILES):
 .PRECIOUS: bin/%.jpp
 bin/%.jpp: | bin/
 	echo "from XMSS require \"params/params-$(GET_IMPL).jinc\"\n" > $@
-	echo "from XMSS require \"core_hash/core_hash_$(GET_IMPL).jtmpl\"\n\n" >> $@
+	echo "from XMSS require \"core_hash//core_hash_sha256.jtmpl\"\n\n" >> $@
 	cat test_xmss_commons.jazz  >> $@
 	$(JPP) $(JINCLUDE) -in $@ -out $@
 	$(PREPROCESSOR) --input_file $@ --output_file $@

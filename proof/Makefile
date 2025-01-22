@@ -64,6 +64,9 @@ check_extraction: extraction/XMSS_IMPL.ec
 	$(EASYCRYPT) $(EC_INCLUDE) $<
 
 check_correctness_proof: extraction/XMSS_IMPL.ec 
+	$(EASYCRYPT) $(EC_FLAGS) correctness/TreeHashProof.ec
+	$(EASYCRYPT) $(EC_FLAGS) correctness/TreeSigAuthPathProof.ec
+	$(EASYCRYPT) $(EC_FLAGS) correctness/SignProof.ec
 	$(EASYCRYPT) $(EC_FLAGS) correctness/DistrUtils.ec
 	$(EASYCRYPT) $(EC_FLAGS) correctness/Bytes.ec
 	$(EASYCRYPT) $(EC_FLAGS) correctness/Repr.ec
@@ -75,16 +78,15 @@ check_correctness_proof: extraction/XMSS_IMPL.ec
 	$(EASYCRYPT) $(EC_FLAGS) correctness/Correctness_WOTS.ec
 	$(EASYCRYPT) $(EC_FLAGS) correctness/Correctness_TreehashCondition.ec
 	$(EASYCRYPT) $(EC_FLAGS) correctness/GenChainProof.ec
-	$(EASYCRYPT) $(EC_FLAGS) correctness/TreeHashProof.ec
 	$(EASYCRYPT) $(EC_FLAGS) correctness/LTReeProof.ec
+	$(EASYCRYPT) $(EC_FLAGS) correctness/VerifyProof.ec
 	$(EASYCRYPT) $(EC_FLAGS) correctness/KeyGenProof.ec
-	$(EASYCRYPT) $(EC_FLAGS) correctness/SignProof.ec
 	
 check_xmss_smssmt_proof: 
-	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) spec//XMSS_vs_XMSS_MT.ec
+	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) spec/XMSS_vs_XMSS_MT.ec
 
 check_security_proof:
-	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) # ficheiro da prova
+	echo "Not implemented"
 
 check_proofs: check_xmss_smssmt_proof check_correctness_proof check_security_proof
 

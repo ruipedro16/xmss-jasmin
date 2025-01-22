@@ -5,7 +5,8 @@ from Stdlib require "memcpy/memcpy.jtmpl"
 from Stdlib require "memcmp/memcmp.jinc"
 from Stdlib require "memset/memset.jtmpl"
 
-inline fn __l_tree(
+inline
+fn __l_tree(
     reg ptr u8[XMSS_N] leaf,
     reg ptr u8[XMSS_WOTS_SIG_BYTES] wots_pk,
     reg ptr u8[XMSS_N] pub_seed,
@@ -122,7 +123,8 @@ fn _l_tree(
     return leaf, wots_pk, addr;
 }
 
-inline fn __l_tree_(
+inline
+fn __l_tree_(
     reg ptr u8[XMSS_N] leaf,
     reg ptr u8[XMSS_WOTS_SIG_BYTES] wots_pk,
     reg ptr u8[XMSS_N] pub_seed,
@@ -145,7 +147,8 @@ inline fn __l_tree_(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline fn __compute_root(
+inline
+fn __compute_root(
     reg ptr u8[XMSS_N] root,
     reg ptr u8[XMSS_N] leaf,
     reg u32 leaf_idx,
@@ -271,7 +274,8 @@ fn _compute_root(
     return root, addr;
 }
 
-inline fn __compute_root_(
+inline
+fn __compute_root_(
     reg ptr u8[XMSS_N] root,
     reg ptr u8[XMSS_N] leaf,
     reg u32 leaf_idx,
@@ -297,7 +301,113 @@ inline fn __compute_root_(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline fn __gen_leaf_wots(
+inline
+fn __new_compute_root(
+    reg ptr u8[XMSS_N] root,
+    reg ptr u8[XMSS_N] leaf,
+    reg u32 leaf_idx,
+    reg u64 _auth_path_ptr,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8]
+{
+    stack u8[2 * XMSS_N] thash_in;
+    stack u8[XMSS_N] node;
+    stack u64 _ptr;
+    inline int k;
+
+    reg u32 t;
+
+    () = #spill(_auth_path_ptr, root, pub_seed);
+
+    for k=0 to XMSS_TREE_HEIGHT {
+        addr = __set_tree_height(addr, k);
+
+        t = leaf_idx; t >>= (k + 1);
+        addr = __set_tree_index(addr, t);
+
+        /* OBS: TODO: Aqui posso fazer so um shift left em vez de fazer isto */
+        t = leaf_idx; t >>= k;
+        t &= 1;
+
+        // set the input buffer of thash 
+        if (t == 0) {
+            // node || auth[k]
+            #inline if (k == 0) { thash_in[0 : XMSS_N] = #copy(leaf); } else { thash_in[0 : XMSS_N] = #copy(node); }
+
+            () = #unspill(_auth_path_ptr);
+            _ptr = _auth_path_ptr; _ptr += k * XMSS_N;
+            thash_in[XMSS_N : XMSS_N] = _x_memcpy_u8u8p(thash_in[XMSS_N : XMSS_N], _ptr);
+        
+        } else {
+            #inline if (k == 0) { thash_in[XMSS_N : XMSS_N] = #copy(leaf); } else { thash_in[XMSS_N : XMSS_N] = #copy(node); }
+
+            () = #unspill(_auth_path_ptr);
+            _ptr = _auth_path_ptr; _ptr += k * XMSS_N;
+            thash_in[0 : XMSS_N] = _x_memcpy_u8u8p(thash_in[0 : XMSS_N], _ptr);
+        }
+
+        // call thash 
+
+        () = #unspill(pub_seed);
+        #inline if (k == XMSS_TREE_HEIGHT - 1) {
+            () = #unspill(root);
+            root, addr = __thash_h(root, thash_in, pub_seed, addr);
+
+            // The compiler rejects this program without spilling root after thash 
+            // This shouldnt be needed. This is the last iteration of the loop, so we're 
+            // spilling root and unspilling it immeadiatly after.
+            () = #spill(root); 
+        } else {
+            node, addr = __thash_h(node, thash_in, pub_seed, addr);
+        }
+    }
+
+    () = #unspill(root);
+    return root, addr;
+}
+
+fn _new_compute_root(
+    reg ptr u8[XMSS_N] root,
+    reg ptr u8[XMSS_N] leaf,
+    reg u32 leaf_idx,
+    reg u64 auth_path_ptr,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8]
+{
+    root, addr = __new_compute_root(root, leaf, leaf_idx, auth_path_ptr, pub_seed, addr);
+    return root, addr;
+}
+
+inline fn __new_compute_root_(
+    reg ptr u8[XMSS_N] root,
+    reg ptr u8[XMSS_N] leaf,
+    reg u32 leaf_idx,
+    reg u64 auth_path_ptr,
+    reg ptr u8[XMSS_N] pub_seed,
+    reg ptr u32[8] addr
+) -> reg ptr u8[XMSS_N], reg ptr u32[8]
+{
+    root = root;
+    leaf = leaf;
+    leaf_idx = leaf_idx;
+    auth_path_ptr = auth_path_ptr;
+    pub_seed = pub_seed;
+    addr = addr;
+
+    root, addr = _new_compute_root(root, leaf, leaf_idx, auth_path_ptr, pub_seed, addr);
+    
+    root = root;
+    addr = addr;
+
+    return root, addr;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline
+fn __gen_leaf_wots(
     reg ptr u8[XMSS_N] leaf,
     reg ptr u8[XMSS_N] sk_seed,
     reg ptr u8[XMSS_N] pub_seed,
@@ -335,7 +445,8 @@ fn _gen_leaf_wots(
 }
 
 
-inline fn __gen_leaf_wots_(
+inline
+fn __gen_leaf_wots_(
     reg ptr u8[XMSS_N] leaf,
     reg ptr u8[XMSS_N] sk_seed,
     reg ptr u8[XMSS_N] pub_seed,
@@ -361,7 +472,8 @@ inline fn __gen_leaf_wots_(
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Simplifies proof
-inline fn __set_result (
+inline
+fn __set_result (
     reg u8 are_equal,
     reg u64 m_ptr mlen_ptr sm_ptr,
     stack u64 sm_offset
@@ -389,7 +501,8 @@ inline fn __set_result (
     return res;
 }
 
-inline fn __xmssmt_core_sign_open(
+inline
+fn __xmssmt_core_sign_open(
     reg u64 m_ptr mlen_ptr,
     reg u64 sm_ptr smlen,
     reg ptr u8[XMSS_PK_BYTES] pk
@@ -525,7 +638,7 @@ inline fn __xmssmt_core_sign_open(
         t64 = sm_ptr; t64 += sm_offset;
         #declassify idx_leaf = idx_leaf;
         #declassify root = root;
-        root, node_addr = __compute_root_(root, leaf, idx_leaf, t64, pub_seed, node_addr);   
+        root, node_addr = __new_compute_root_(root, leaf, idx_leaf, t64, pub_seed, node_addr);   
 
         // sm += params->tree_height * params->n;
         t64 = sm_offset;
@@ -559,7 +672,8 @@ fn _xmssmt_core_sign_open(
     return res;
 }
 
-inline fn __xmssmt_core_sign_open_(
+inline
+fn __xmssmt_core_sign_open_(
     reg u64 m_ptr mlen_ptr,
     reg u64 sm_ptr smlen,
     reg ptr u8[XMSS_PK_BYTES] pk
@@ -582,7 +696,8 @@ inline fn __xmssmt_core_sign_open_(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline fn __xmss_core_sign_open_(
+inline
+fn __xmss_core_sign_open_(
     reg u64 m_ptr mlen_ptr,
     reg u64 sm_ptr smlen,
     reg ptr u8[XMSS_PK_BYTES] pk

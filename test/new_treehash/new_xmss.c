@@ -36,7 +36,6 @@ extern void treesig_jazz(uint8_t *sig, uint32_t *addr, const uint8_t *M, const u
 void treehash_new(const xmss_params *params, unsigned char *root, const unsigned char *sk_seed,
                   const unsigned char *pub_seed, uint32_t start_index, /* leaf_idx in the old impl */
                   uint32_t target_height, const uint32_t subtree_addr[8]) {
-
     unsigned char stack[(params->tree_height + 1) * params->n];
     unsigned int heights[params->tree_height + 1];
     unsigned int offset = 0;
@@ -70,7 +69,6 @@ void treehash_new(const xmss_params *params, unsigned char *root, const unsigned
 
         /* While the top-most nodes are of equal height.. */
         while (offset >= 2 && heights[offset - 1] == heights[offset - 2]) {
-
             /* Compute index of the new node, in the next layer. */
             tree_idx = ((start_index + i) >> (heights[offset - 1] + 1));
 
@@ -95,7 +93,6 @@ void build_auth_path(const xmss_params *params,
                      const unsigned char *sk_seed, const unsigned char *pub_seed,
                      uint32_t i,  // wots+ Key pair index (index of the node on the tree)
                      uint32_t *addr) {
-                        
     uint32_t k;
     for (unsigned int j = 0; j < params->tree_height; j++) {
         k = ((i >> j) ^ 1) << j;
@@ -108,8 +105,6 @@ void build_auth_path(const xmss_params *params,
 // treesig
 void treesig(const xmss_params *params, unsigned char *sig /* reduced signature =  wots signature || auth path */,
              const unsigned char *M, unsigned char *sk, uint32_t idx_sig, uint32_t *addr) {
-        
-
     unsigned char sig_ots[params->wots_sig_bytes];
     unsigned char auth_path[params->tree_height + 1 * params->n];
 
@@ -266,4 +261,53 @@ int xmssmt_core_sign_new(const xmss_params *params, unsigned char *sk, unsigned 
     }
 
     return 0;
+}
+
+/*
+ * Esta implementacao (assumindo que k e implementado como um inline int e, portanto, os if sao resolvidos em compile time)
+ * e' ligeiramente mais rapida e mais facil de provar.
+ * 
+ * Tambem usa menos stack
+ * 
+ * Alem disso, na primeira iteracao, nao precisamos de copiar leaf para nodes0 e depois copiar para o buffer que e usado
+ * como input no thash. Em vez disos, copiamos leaf diretamente para o buffer
+ * 
+ */
+void new_compute_root(const xmss_params *params, unsigned char *root, const unsigned char *leaf, unsigned long leafidx,
+                      const unsigned char *auth_path, const unsigned char *pub_seed, uint32_t addr[8]) {
+    uint32_t k;
+
+    uint8_t nodes0[params->n];
+    uint8_t thash_in[2 * params->n];
+
+    for (k = 0; k < params->tree_height; k++) {
+        set_tree_height(addr, k);
+        set_tree_index(addr, leafidx >> (k + 1));
+
+        if (((leafidx >> k) & 1) == 0) {
+            // node || auth[k]
+            if (k == 0) {
+                memcpy(thash_in, leaf, params->n);
+            } else {
+                memcpy(thash_in, nodes0, params->n);
+            }
+
+            memcpy(thash_in + params->n, auth_path + (k * params->n), params->n);
+        } else {
+            // auth[k] || node
+            memcpy(thash_in, auth_path + (k * params->n), params->n);
+
+            if (k == 0) {
+                memcpy(thash_in + params->n, leaf, params->n);
+            } else {
+                memcpy(thash_in + params->n, nodes0, params->n);
+            }
+        }
+
+        if (k == (params->tree_height - 1)) {
+            thash_h(params, root, thash_in, pub_seed, addr);
+        } else {
+            thash_h(params, nodes0, thash_in, pub_seed, addr);
+        }
+    }
 }

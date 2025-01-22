@@ -18,3 +18,6 @@ int xmssmt_core_seed_keypair_new(const xmss_params *params, unsigned char *pk, u
 
 int xmssmt_core_sign_new(const xmss_params *params, unsigned char *sk, unsigned char *sm, unsigned long long *smlen,
                          const unsigned char *m, unsigned long long mlen);
+
+void new_compute_root(const xmss_params *params, unsigned char *root, const unsigned char *leaf, unsigned long leafidx,
+                      const unsigned char *auth_path, const unsigned char *pub_seed, uint32_t addr[8]);

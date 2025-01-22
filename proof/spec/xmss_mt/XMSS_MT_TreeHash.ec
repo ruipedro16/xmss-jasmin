@@ -84,7 +84,6 @@ module TreeHash = {
   }
 }.
 
-
 module TreeSig = {
   (* Compute the authentication path for the i-th WOTS+ key pair *)
   proc buildAuthPath(pub_seed sk_seed : seed, idx : W32.t, address : adrs) : auth_path = {
@@ -97,7 +96,7 @@ module TreeSig = {
 
     while (j < h %/ d) {
       (* k <- floor((W32.to_uint idx)%r / (2^j)%r); XOR ONE *)
-      k <- to_uint ((idx `>>` (of_int j)%W8) `^` W32.one); (* Does this make sense ???? I think so *)
+      k <- to_uint ((idx `>>` (of_int j)%W8) `^` W32.one);
       t <@ TreeHash.treehash(pub_seed,sk_seed, k * (2^j), j, address);
       authentication_path <- put authentication_path j t;
       j <- j + 1;
@@ -158,7 +157,7 @@ module RootFromSig = {
     address <- set_tree_index address (W32.to_uint idx_sig);
 
     k <- 0;
-    while (k < h) {
+    while (k < h %/ d) {
       address <- set_tree_height address k;
 
       if (floor ((W32.to_uint idx_sig)%r / (2^k)%r) %% 2 = 0) {
