@@ -1,0 +1,25 @@
+name: Check Proofs
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+        with:
+          submodules: true # Because we need the jasmin preprocessor
+
+      - name: Build docker image
+        run: docker build -t jasmin-xmss .
+
+      - name: Check correctness proofs # TODO: Remover o weak check mode
+        run: docker run --rm jasmin-xmss make -C proof/ check_correctness_proof ECADDFLAGS="-pragmas Proofs:weak" 

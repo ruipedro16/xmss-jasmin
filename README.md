@@ -14,11 +14,6 @@ path = "/usr/local/bin/cvc4"
 version = "1.8"
 
 [partial_prover]
-name = "Coq"
-path = "/home/rui/.opam/default/bin/coqtop"
-version = "8.18.0"
-
-[partial_prover]
 name = "Z3"
 path = "/home/rui/.opam/default/bin/z3"
 version = "4.13.0"
@@ -28,6 +23,11 @@ version = "4.13.0"
 
 ```bash
 make -C proof/ check_spec
-make -C proof/ check_xmss_smssmt_proof
-make -C proof/ check_correctness_proof
+
+make -C proof/ check_xmss_xmssmt_proof
+
+make -C proof/ check_correctness_proof 
+
+# weak check mode: smt calls are assumed to succeed
+make -C proof/ check_correctness_proof ECADDFLAGS="-pragmas Proofs:weak" 
 ```

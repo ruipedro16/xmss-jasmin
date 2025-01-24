@@ -1,0 +1,6 @@
+scripts/
+bench/
+.github/
+.vscode/
+submodules/xmss-reference/
+submodules/FV-XMSS-EC

@@ -2,7 +2,7 @@
 
 EASYCRYPT  ?= easycrypt
 EC_INCLUDE ?= -I common -I extraction -I spec -I correctness
-EC_FLAGS   ?= -timeout 20 $(EC_INCLUDE)
+EC_FLAGS   ?= -timeout 20 $(EC_INCLUDE) ${ECADDFLAGS}
 
 WEAK_CHECKMODE_FLAG := -pragmas Proofs:weak
  
@@ -67,6 +67,8 @@ check_correctness_proof: extraction/XMSS_IMPL.ec
 	$(EASYCRYPT) $(EC_FLAGS) correctness/TreeHashProof.ec
 	$(EASYCRYPT) $(EC_FLAGS) correctness/TreeSigAuthPathProof.ec
 	$(EASYCRYPT) $(EC_FLAGS) correctness/SignProof.ec
+	$(EASYCRYPT) $(EC_FLAGS) correctness/VerifyProof.ec
+	$(EASYCRYPT) $(EC_FLAGS) correctness/RootFromSigProof.ec
 	$(EASYCRYPT) $(EC_FLAGS) correctness/DistrUtils.ec
 	$(EASYCRYPT) $(EC_FLAGS) correctness/Bytes.ec
 	$(EASYCRYPT) $(EC_FLAGS) correctness/Repr.ec
@@ -82,13 +84,13 @@ check_correctness_proof: extraction/XMSS_IMPL.ec
 	$(EASYCRYPT) $(EC_FLAGS) correctness/VerifyProof.ec
 	$(EASYCRYPT) $(EC_FLAGS) correctness/KeyGenProof.ec
 	
-check_xmss_smssmt_proof: 
+check_xmss_xmssmt_proof: 
 	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) spec/XMSS_vs_XMSS_MT.ec
 
 check_security_proof:
 	echo "Not implemented"
 
-check_proofs: check_xmss_smssmt_proof check_correctness_proof check_security_proof
+check_proofs: check_xmss_xmssmt_proof check_correctness_proof check_security_proof
 
 # --------------------------------------------------------------------------------------------------
 
