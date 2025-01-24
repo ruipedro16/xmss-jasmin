@@ -41,18 +41,6 @@ move => ?.
 by rewrite nth_mkseq //=.
 qed.
 
-lemma load_buf_E (mem : global_mem_t) (ptr1 ptr2 : W64.t) (len : int):
-    0 <= len =>
-    load_buf mem ptr1 len = load_buf mem ptr2 len =>
-    forall (k : int), 0 <= k < len => loadW8 mem (to_uint ptr1 + k) = loadW8 mem (to_uint ptr2 + k).
-proof.
-rewrite /load_buf => H0 H1.
-move => k?.
-have ->: loadW8 mem (to_uint ptr1 + k) = nth witness (mkseq (fun (i : int) => loadW8 mem (to_uint ptr1 + i)) len) k by rewrite /loadW8 nth_mkseq.
-rewrite H1.
-by rewrite /loadW8 nth_mkseq.
-qed.
-
 (** -------------------------------------------------------------------------------------------- **)
 
 op sub_list ['a] (x : 'a list) (k len : int) : 'a list = 
@@ -75,18 +63,6 @@ rewrite /sub_list nth_mkseq //=.
 qed.
 
 
-op sub_mem_ptr (mem : global_mem_t) (ptr len : int) : W8.t list =
-  mkseq (fun (i : int) => loadW8 mem (ptr + i)) len.
- 
-lemma size_sub_mem_ptr (mem : global_mem_t) (ptr len : int) :
-    0 <= len =>
-    size (sub_mem_ptr mem ptr len) = len.
-proof.
-move => ?.
-rewrite /sub_mem_ptr.
-rewrite size_mkseq /#.
-qed.
-
 (** -------------------------------------------------------------------------------------------- **)
 
 lemma size_toByte_32 (x : W32.t) (i : int) : 
@@ -104,20 +80,6 @@ proof.
 move => ?.
 rewrite /toByte_64.
 rewrite size_rev size_mkseq /#.
-qed.
-
-lemma W32toBytes_zero_nth (i : int) :
-    0 <= i < 4 => nth witness (W32toBytes W32.zero) i = W8.zero.
-proof.
-move => H.
-rewrite /W32toBytes nth_rev; first by rewrite size_to_list /#.
-rewrite size_to_list /to_list nth_mkseq 1:/# /=.
-rewrite unpack8E initiE 1:/# /= bits8E /=.
-rewrite /W8.zero wordP => j?.
-rewrite initE ifT 1:/# /= bits2wE initE /=. 
-have ->: ((0 <= j && j < 8)) = true by smt().
-simplify.
-by rewrite /int2bs nth_mkseq //=.
 qed.
 
 (* TMP: MOVE THIS TO THE RIGHT PLACE LATER *)
@@ -329,7 +291,7 @@ op DecodeSkNoOID (x : xmss_sk) : W8.t Array131.t =
 
 (** -------------------------------------------------------------------------------------------- **)
 
-lemma enc_dec_wots_pk (pk : wots_pk) :
+lemma decodeWotsPkK (pk : wots_pk) :
     n = XMSS_N /\ len = XMSS_WOTS_LEN =>
     pk = EncodeWotsPk (DecodeWotsPk pk).
 proof.
@@ -447,10 +409,6 @@ case (0 <= n - (i + 1) < 8) => ?.
     by rewrite initiE //= initiE 1:/# /= initiE 1:/# /= ifF 1:/# /=.
 by rewrite initE ifF 1:/#.
 qed.
-
-lemma zeroextu64_to_uint (x : W32.t) : 
-    0 <= to_uint x < W32.max_uint =>
-    zeroextu64 x = W64.of_int (to_uint x) by smt().
 
 lemma EncodeReducedSigE (wots_sig : len_nbytes) (auth_path : auth_path) (bytes : W8.t list) :
     (wots_sig, auth_path) = EncodeReducedSignature bytes =>

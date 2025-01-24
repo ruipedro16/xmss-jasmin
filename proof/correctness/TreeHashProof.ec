@@ -106,7 +106,7 @@ seq 1 1 : (
       call {1} (pkgen_correct P3 P4 P5 P6 ) => [/# |].
       skip => /> &1 &2 H0 H1 resL resR H2 H3. 
       split; first by apply (eq_from_nth witness); rewrite !size_sub // => j?; rewrite !nth_sub // ; smt(sub_k).
-      by rewrite H2 -enc_dec_wots_pk.
+      by rewrite H2 -decodeWotsPkK.
 
 seq 0 2 : (
   #pre /\
