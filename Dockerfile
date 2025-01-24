@@ -9,7 +9,7 @@ ARG USER="xmss-user"
 # but we need it extract Jasmin source code to EasyCrypt.
 # Este commit corresponde ao release. 
 # Este commit vem do gitlab https://gitlab.com/jasmin-lang/jasmin-compiler
-ARG JASMIN_COMMIT=c194e7b268c36b90fe39e6a30131b618a9e4fd1a 
+ARG JASMIN_COMMIT=46ef1f3af0ab5b988a2149f2d384ed1f2f4d18d9 
 ARG EASYCRYPT_COMMIT=d03e63d21618db2a0cb09d0a0770f5e774dd6c74 
 
 SHELL ["/bin/bash", "-c"]
@@ -65,14 +65,14 @@ RUN eval $(opam env) && \
     easycrypt why3config
 
 # Install Jasmin
-RUN git clone https://gitlab.com/jasmin-lang/jasmin-compiler.git && \
-    cd jasmin-compiler/compiler && \
+RUN git clone https://github.com/jasmin-lang/jasmin.git && \
+    cd jasmin && \    
     git checkout $JASMIN_COMMIT && \
     USER=$USER source /home/$USER/.nix-profile/etc/profile.d/nix.sh && \
     nix-channel --update && \
-    nix-shell --command "make" && \
-    sudo install -D jasmin* /usr/local/bin/ && \
-    cd - && echo -e "[general]\nidirs = Jasmin:$(pwd)/jasmin-compiler/eclib" > ~/.config/easycrypt/easycrypt.conf
+    nix-shell --command "(cd compiler && make clean && make CIL && make)" && \
+    sudo install -D compiler/jasmin* /usr/local/bin/ && \
+    cd - && echo -e "[general]\nidirs = Jasmin:$(pwd)/jasmin/eclib" > ~/.config/easycrypt/easycrypt.conf
 
 COPY --chown=$USER:$USER . /home/$USER/xmss-jasmin
 WORKDIR /home/$USER/xmss-jasmin

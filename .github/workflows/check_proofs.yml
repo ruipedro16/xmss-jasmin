@@ -22,4 +22,4 @@ jobs:
         run: docker build -t jasmin-xmss .
 
       - name: Check correctness proofs # TODO: Remover o weak check mode
-        run: docker run --rm jasmin-xmss make -C proof/ check_correctness_proof ECADDFLAGS="-pragmas Proofs:weak" 
+        run: docker run --rm -it jasmin-xmss echo "?" ; make -C proof/ check_correctness_proof
