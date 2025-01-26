@@ -20,7 +20,7 @@ docker run --rm -it jasmin-xmss
 
 and then
 
-```
+```bash
 make -C proof/ check_spec
 make -C proof/ check_xmss_smssmt_proof
 make -j$(nproc) -C proof/ check_correctness_proof

@@ -9,7 +9,7 @@ on:
       - main
 
 jobs:
-  check_correctness_proof:
+  check_proof:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,9 +20,6 @@ jobs:
 
       - name: Build docker image
         run: docker build -t jasmin-xmss .
-      
-      - name: Print stuff
-        run: echo $(nproc)
 
       - name: Check correctness proofs
         run: docker run --rm jasmin-xmss make -j$(nproc) -C proof/ check_correctness_proof

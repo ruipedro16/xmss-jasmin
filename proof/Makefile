@@ -8,7 +8,7 @@ JASMIN    ?= jasminc
 JASMIN2EC ?= jasmin2ec
 JINCLUDE  ?= -I XMSS:../ref-jasmin/ -I Stdlib:../ref-jasmin/stdlib
 
-TEST_DIR   := ../test
+TEST_DIR := ../test
 
 JPP          := ../submodules/jasmin-preprocessor/jpp
 PREPROCESSOR := ../submodules/jasmin-preprocessor/preprocessor
@@ -29,11 +29,6 @@ extraction/XMSS_IMPL.ec: | extraction/ common/
 # --------------------------------------------------------------------------------------------------
 
 .PHONY: check_spec check_proofs check_extraction check_xmss_spec check_xmss_mt_spec
-
-XMSS_SPEC_FILES := $(wildcard spec/xmss/*.ec) $(wildcard spec/*.ec)
-
-debug:
-	@echo $(XMSS_SPEC_FILES)
 check_xmss_spec:
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Address.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/BaseW.ec
@@ -72,8 +67,29 @@ check_extraction: extraction/XMSS_IMPL.ec
 check_correctness_%: 
 	$(EASYCRYPT) $(EC_FLAGS) correctness/$*.ec
 
-CORRECTNESS_PROOF_FILES := $(addprefix check_correctness_, $(notdir $(basename $(wildcard correctness/*.ec))))
+CORRECTNESS_PROOF_FILES := check_correctness_Bytes \
+		check_correctness_Correctness_Address \
+		check_correctness_Correctness_Bytes \
+		check_correctness_Correctness_Hash \
+		check_correctness_Correctness_Mem \
+		check_correctness_Correctness_TreehashCondition \
+		check_correctness_Correctness_WOTS \
+		check_correctness_DistrUtils \
+		check_correctness_GenChainProof \
+		check_correctness_KeyGenProof \
+		check_correctness_LTReeProof \
+		check_correctness_Repr \
+		check_correctness_RootFromSigProof \
+		check_correctness_SignProof \
+		check_correctness_Termination \
+		check_correctness_TreeHashProof \
+		check_correctness_TreeSigAuthPathProof \
+		check_correctness_Utils \
+		check_correctness_VerifyProof #$(addprefix check_correctness_, $(notdir $(basename $(wildcard correctness/*.ec))))
 check_correctness_proof: extraction/XMSS_IMPL.ec $(CORRECTNESS_PROOF_FILES)
+
+debug:
+	@echo $(CORRECTNESS_PROOF_FILES)
 
 ####################################################################################################
 
