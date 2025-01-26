@@ -1,0 +1,29 @@
+name: Check Proofs
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check_correctness_proof:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+        with:
+          submodules: true # We need the submodules to run the preprocessor
+
+      - name: Build docker image
+        run: docker build -t jasmin-xmss .
+      
+      - name: Print stuff
+        run: echo $(nproc)
+
+      - name: Check correctness proofs
+        run: docker run --rm jasmin-xmss make -j$(nproc) -C proof/ check_correctness_proof
+        

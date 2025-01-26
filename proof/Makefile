@@ -2,10 +2,8 @@
 
 EASYCRYPT  ?= easycrypt
 EC_INCLUDE ?= -I common -I extraction -I spec -I correctness
-EC_FLAGS   ?= -timeout 20 $(EC_INCLUDE)
+EC_FLAGS   ?= -timeout 20 $(EC_INCLUDE) ${ECADDFLAGS}
 
-WEAK_CHECKMODE_FLAG := -pragmas Proofs:weak
- 
 JASMIN    ?= jasminc
 JASMIN2EC ?= jasmin2ec
 JINCLUDE  ?= -I XMSS:../ref-jasmin/ -I Stdlib:../ref-jasmin/stdlib
@@ -31,6 +29,11 @@ extraction/XMSS_IMPL.ec: | extraction/ common/
 # --------------------------------------------------------------------------------------------------
 
 .PHONY: check_spec check_proofs check_extraction check_xmss_spec check_xmss_mt_spec
+
+XMSS_SPEC_FILES := $(wildcard spec/xmss/*.ec) $(wildcard spec/*.ec)
+
+debug:
+	@echo $(XMSS_SPEC_FILES)
 check_xmss_spec:
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Address.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/BaseW.ec
@@ -63,32 +66,21 @@ check_spec: check_xmss_spec check_xmss_mt_spec
 check_extraction: extraction/XMSS_IMPL.ec 
 	$(EASYCRYPT) $(EC_INCLUDE) $<
 
-check_correctness_proof: extraction/XMSS_IMPL.ec 
-	$(EASYCRYPT) $(EC_FLAGS) correctness/TreeHashProof.ec
-	$(EASYCRYPT) $(EC_FLAGS) correctness/TreeSigAuthPathProof.ec
-	$(EASYCRYPT) $(EC_FLAGS) correctness/SignProof.ec
-	$(EASYCRYPT) $(EC_FLAGS) correctness/DistrUtils.ec
-	$(EASYCRYPT) $(EC_FLAGS) correctness/Bytes.ec
-	$(EASYCRYPT) $(EC_FLAGS) correctness/Repr.ec
-	$(EASYCRYPT) $(EC_FLAGS) correctness/Utils.ec
-	$(EASYCRYPT) $(EC_FLAGS) correctness/Correctness_Address.ec
-	$(EASYCRYPT) $(EC_FLAGS) correctness/Correctness_Bytes.ec
-	$(EASYCRYPT) $(EC_FLAGS) correctness/Correctness_Hash.ec
-	$(EASYCRYPT) $(EC_FLAGS) correctness/Correctness_Mem.ec
-	$(EASYCRYPT) $(EC_FLAGS) correctness/Correctness_WOTS.ec
-	$(EASYCRYPT) $(EC_FLAGS) correctness/Correctness_TreehashCondition.ec
-	$(EASYCRYPT) $(EC_FLAGS) correctness/GenChainProof.ec
-	$(EASYCRYPT) $(EC_FLAGS) correctness/LTReeProof.ec
-	$(EASYCRYPT) $(EC_FLAGS) correctness/VerifyProof.ec
-	$(EASYCRYPT) $(EC_FLAGS) correctness/KeyGenProof.ec
-	
-check_xmss_smssmt_proof: 
-	$(EASYCRYPT) $(EC_INCLUDE) $(EC_FLAGS) spec/XMSS_vs_XMSS_MT.ec
+################################### correctness proof ##############################################
 
-check_security_proof:
-	echo "Not implemented"
+# The target check_correctness_* are used to check the correctness proof files 
+check_correctness_%: 
+	$(EASYCRYPT) $(EC_FLAGS) correctness/$*.ec
 
-check_proofs: check_xmss_smssmt_proof check_correctness_proof check_security_proof
+CORRECTNESS_PROOF_FILES := $(addprefix check_correctness_, $(notdir $(basename $(wildcard correctness/*.ec))))
+check_correctness_proof: extraction/XMSS_IMPL.ec $(CORRECTNESS_PROOF_FILES)
+
+####################################################################################################
+
+check_xmss_xmssmt_proof: 
+	$(EASYCRYPT) $(EC_FLAGS) spec/XMSS_vs_XMSS_MT.ec
+
+check_proofs: check_xmss_xmssmt_proof check_correctness_proof
 
 # --------------------------------------------------------------------------------------------------
 

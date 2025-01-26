@@ -42,7 +42,8 @@ pred eq_auth_path (a : XMSS_Types.AuthPath.auth_path) (a_mt : auth_path)  =
 equiv root_from_sig_equiv : 
     XMSS_TreeHash.RootFromSig.rootFromSig ~ XMSS_MT_TreeHash.RootFromSig.rootFromSig :
     ={idx_sig, sig_ots, M, _seed, address} /\
-    eq_auth_path auth{1} auth{2}
+    eq_auth_path auth{1} auth{2} /\
+    d = 1
     ==> 
     ={res}.
 proof.
@@ -52,9 +53,9 @@ seq 1 1 : (#pre /\ ={pk_ots}); first by call (: ={arg} ==> ={res}); [sim | auto]
 seq 2 2 : #pre; 1:auto.
 seq 1 1 : (#pre /\ ={nodes0}); first by call (: ={arg} ==> ={res}); [sim | auto].
 seq 3 3 : (#pre /\ ={k}); 1:auto.
-while (#pre); auto.
+(while (#pre); auto) => [| /#].
 seq 1 1 : #pre; 1:auto.
-if; [auto | |]; (call (: ={arg} ==> ={res}); [sim |]; by auto => /> &1 &2; rewrite /eq_auth_path => -> ??).
+(if; first by auto); (call (: ={arg} ==> ={res}); 1: by sim); auto => /> /#. 
 qed.
 
 

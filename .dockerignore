@@ -1,0 +1,5 @@
+bench/
+scripts/
+.github/
+.vscode/
+.clang-format
