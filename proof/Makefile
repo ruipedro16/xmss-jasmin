@@ -63,33 +63,16 @@ check_extraction: extraction/XMSS_IMPL.ec
 
 ################################### correctness proof ##############################################
 
-# The target check_correctness_* are used to check the correctness proof files 
-check_correctness_%: 
+# The targets check_c_* are used to check the correctness proof files 
+check_c_%: 
 	$(EASYCRYPT) $(EC_FLAGS) correctness/$*.ec
 
-CORRECTNESS_PROOF_FILES := check_correctness_Bytes \
-		check_correctness_Correctness_Address \
-		check_correctness_Correctness_Bytes \
-		check_correctness_Correctness_Hash \
-		check_correctness_Correctness_Mem \
-		check_correctness_Correctness_TreehashCondition \
-		check_correctness_Correctness_WOTS \
-		check_correctness_DistrUtils \
-		check_correctness_GenChainProof \
-		check_correctness_KeyGenProof \
-		check_correctness_LTReeProof \
-		check_correctness_Repr \
-		check_correctness_RootFromSigProof \
-		check_correctness_SignProof \
-		check_correctness_Termination \
-		check_correctness_TreeHashProof \
-		check_correctness_TreeSigAuthPathProof \
-		check_correctness_Utils \
-		check_correctness_VerifyProof #$(addprefix check_correctness_, $(notdir $(basename $(wildcard correctness/*.ec))))
-check_correctness_proof: extraction/XMSS_IMPL.ec $(CORRECTNESS_PROOF_FILES)
+CORRECTNESS_PROOF_FILES := $(addprefix check_c_, $(notdir $(basename $(wildcard correctness/*.ec))))
 
 debug:
 	@echo $(CORRECTNESS_PROOF_FILES)
+
+check_correctness_proof: extraction/XMSS_IMPL.ec $(CORRECTNESS_PROOF_FILES)
 
 ####################################################################################################
 

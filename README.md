@@ -6,7 +6,7 @@ Run
 
 ```bash
 make -C proof/ check_spec
-make -C proof/ check_xmss_smssmt_proof
+make -C proof/ check_xmss_xmssmt_proof
 make -j$(nproc) -C proof/ check_correctness_proof
 make -j$(nproc) -C proof/ check_correctness_proof ECADDFLAGS="-pragmas Proofs:weak"
 ```
@@ -22,7 +22,7 @@ and then
 
 ```bash
 make -C proof/ check_spec
-make -C proof/ check_xmss_smssmt_proof
+make -C proof/ check_xmss_xmssmt_proof
 make -j$(nproc) -C proof/ check_correctness_proof
 make -j$(nproc) -C proof/ check_correctness_proof ECADDFLAGS="-pragmas Proofs:weak"
 ```
