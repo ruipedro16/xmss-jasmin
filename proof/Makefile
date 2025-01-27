@@ -21,8 +21,11 @@ extract: extraction/XMSS_IMPL.ec
 
 # --------------------------------------------------------------------------------------------------
 
-extraction/XMSS_IMPL.ec: | extraction/ common/
+$(TEST_DIR)/xmss/bin/test_xmss_xmssmt-sha2_20_2_256.jazz:
 	$(MAKE) -C $(TEST_DIR)/xmss/ clean bin/test_xmss_xmssmt-sha2_20_2_256.jazz
+
+
+extraction/XMSS_IMPL.ec: $(TEST_DIR)/xmss/bin/test_xmss_xmssmt-sha2_20_2_256.jazz | extraction/ common/
 	cp $(TEST_DIR)/xmss/bin/test_xmss_xmssmt-sha2_20_2_256.jazz $(@:.ec=.jazz)
 	$(JASMIN2EC) $(@:.ec=.jazz) --output-array common/ > $@
 
@@ -64,13 +67,10 @@ check_extraction: extraction/XMSS_IMPL.ec
 ################################### correctness proof ##############################################
 
 # The targets check_c_* are used to check the correctness proof files 
-check_c_%: 
+check_c_%: extraction/XMSS_IMPL.ec
 	$(EASYCRYPT) $(EC_FLAGS) correctness/$*.ec
 
 CORRECTNESS_PROOF_FILES := $(addprefix check_c_, $(notdir $(basename $(wildcard correctness/*.ec))))
-
-debug:
-	@echo $(CORRECTNESS_PROOF_FILES)
 
 check_correctness_proof: extraction/XMSS_IMPL.ec $(CORRECTNESS_PROOF_FILES)
 

@@ -1,5 +1,5 @@
 .vscode
 venv
 
-debug/
-
+proof/extraction/XMSS_*
+proof/common/
