@@ -33,8 +33,10 @@ extraction/XMSS_IMPL.ec: $(TEST_DIR)/xmss/bin/test_xmss_xmssmt-sha2_20_2_256.jaz
 
 .PHONY: check_spec check_proofs check_extraction check_xmss_spec check_xmss_mt_spec
 
-# FIXME: We need Array8, not the whole extraction
-check_xmss_spec: extraction/XMSS_IMPL.ec 
+common/Array8.ec: | common/
+	echo "from Jasmin require import JArray.\n\nclone export PolyArray as Array8  with op size <- 8.\n" > $@
+
+check_xmss_spec: common/Array8.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Address.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/BaseW.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Hash.ec
@@ -47,8 +49,7 @@ check_xmss_spec: extraction/XMSS_IMPL.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss/XMSS_TreeHash.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss/XMSS_Types.ec
 
-# FIXME: We need Array8, not the whole extraction
-check_xmss_mt_spec: extraction/XMSS_IMPL.ec
+check_xmss_mt_spec: common/Array8.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Address.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/BaseW.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Hash.ec
@@ -78,7 +79,7 @@ check_correctness_proof: extraction/XMSS_IMPL.ec $(CORRECTNESS_PROOF_FILES)
 
 ####################################################################################################
 
-check_xmss_xmssmt_proof: 
+check_xmss_xmssmt_proof: common/Array8.ec
 	$(EASYCRYPT) $(EC_FLAGS) spec/XMSS_vs_XMSS_MT.ec
 
 check_proofs: check_xmss_xmssmt_proof check_correctness_proof

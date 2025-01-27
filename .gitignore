@@ -2,3 +2,4 @@
 venv
 
 proof/extraction/XMSS_*
+proof/common/
