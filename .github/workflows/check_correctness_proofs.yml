@@ -9,7 +9,7 @@ on:
       - main
 
 jobs:
-  check_proof:
+  check_correctness_proof:
     runs-on: ubuntu-latest
 
     steps:

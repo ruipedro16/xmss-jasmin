@@ -32,7 +32,9 @@ extraction/XMSS_IMPL.ec: $(TEST_DIR)/xmss/bin/test_xmss_xmssmt-sha2_20_2_256.jaz
 # --------------------------------------------------------------------------------------------------
 
 .PHONY: check_spec check_proofs check_extraction check_xmss_spec check_xmss_mt_spec
-check_xmss_spec:
+
+# FIXME: We need Array8, not the whole extraction
+check_xmss_spec: extraction/XMSS_IMPL.ec 
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Address.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/BaseW.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Hash.ec
@@ -45,7 +47,8 @@ check_xmss_spec:
 	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss/XMSS_TreeHash.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss/XMSS_Types.ec
 
-check_xmss_mt_spec:
+# FIXME: We need Array8, not the whole extraction
+check_xmss_mt_spec: extraction/XMSS_IMPL.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Address.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/BaseW.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/Hash.ec
@@ -57,7 +60,6 @@ check_xmss_mt_spec:
 	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss_mt/XMSS_MT_PRF.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss_mt/XMSS_MT_TreeHash.ec
 	$(EASYCRYPT) $(EC_INCLUDE) spec/xmss_mt/XMSS_MT_Types.ec
-
 
 check_spec: check_xmss_spec check_xmss_mt_spec
 
