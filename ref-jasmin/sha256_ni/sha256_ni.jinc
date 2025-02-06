@@ -1,0 +1,82 @@
+param int DATALEN = 700;
+param int LAST_BLOCK_LEN = 60;
+
+inline
+fn __sha256_init(reg ptr u32[8] state) -> reg ptr u32[8], inline int, reg u8 {
+    inline int data_len = 0;
+    reg u8 bitlen = 0;
+
+    state[0]  = 0x6a09e667;
+    state[1]  = 0xbb67ae85;
+    state[2]  = 0x3c6ef372;
+    state[3]  = 0xa54ff53a;
+    state[4]  = 0x510e527f;
+    state[5]  = 0x9b05688c;
+    state[6]  = 0x1f83d9ab;
+    state[7]  = 0x5be0cd19;
+
+    return state, data_len, bitlen;
+}
+
+/*
+ * Esta funcao implementa o corpo do ciclo while (length >= 64) { ... }
+ * da funcao 
+ */
+inline
+fn sha256_process_full_block(
+    reg ptr u32[8] state,
+    reg ptr u8[64] block
+) -> reg ptr u32[8] 
+{
+    reg u128 STATE0 STATE1;
+    reg u128 MSG MSG0 MSG1 MSG2 MSG3;
+    reg u128 ABEF_SAVE CDGH_SAVE;
+    reg u128 MASK;
+
+    reg u128 t;
+    reg u128[1] ta;
+    
+    /* Save current state */
+    ABEF_SAVE = STATE0;
+    CDGH_SAVE = STATE1;
+
+    /* Rounds 0-3 */
+    // MSG = _mm_loadu_si128((const __m128i *)(data + 0));
+    MSG = #VMOVDQA_128(block[u128 0]);
+
+    // MSG0 = _mm_shuffle_epi8(MSG, MASK);
+    MSG = #VPSHUFB(MSG, MASK);
+
+    // MSG = _mm_add_epi32(MSG0, _mm_set_epi64x(0xE9B5DBA5B5C0FBCFULL, 0x71374491428A2F98ULL));
+    ta[u64 0] = 0xE9B5DBA5B5C0FBCF;
+    ta[u64 1] = 0x71374491428A2F98;
+    // ta = t[0];
+    MSG = #VPADD_2u64(MSG0, t);
+
+    // STATE1 = _mm_sha256rnds2_epu32(STATE1, STATE0, MSG);
+    
+    // MSG = _mm_shuffle_epi32(MSG, 0x0E);
+
+    // STATE0 = _mm_sha256rnds2_epu32(STATE0, STATE1, MSG);
+
+    return state;
+}
+
+
+inline
+fn sha25_process_last_block(
+    reg ptr u32[8] state,
+    reg ptr u8[LAST_BLOCK_LEN] block
+) -> reg ptr u32[8] 
+{
+
+    return state;
+}
+
+// fn sha25_process<INLEN>(
+//     reg ptr u32[8] state,
+//     reg ptr u8[INLEN] data
+// ) -> reg ptr u32[8] 
+// {
+//     return state;
+// }//<>

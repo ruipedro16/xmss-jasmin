@@ -1,0 +1,48 @@
+require "sha256_ni.jinc"
+
+export
+fn sha256_init_jazz(
+    reg ptr u32[8] state,
+    reg u64 datalen_ptr bitlen_ptr
+) -> reg ptr u32[8]
+{
+    inline int data_len;
+    reg u8 bitlen;
+
+    state, data_len, bitlen = __sha256_init(state);
+
+    (u32)[datalen_ptr] = data_len;
+    (u8)[bitlen_ptr] = bitlen;
+
+    return state;
+}
+
+/* export
+fn sha256_process_full_block_jazz(
+    reg ptr u32[8] state,
+    reg ptr u8[64] block
+) -> reg ptr u32[8] 
+{
+    state = state;
+    block = block;
+
+    state = sha256_process_full_block(state, block);
+
+    state = state;
+    return state;   
+}
+ */
+export fn __initH_ref(reg ptr u32[8] H) -> reg ptr u32[8]
+{
+  H[0]  = 0x6a09e667;
+  H[1]  = 0xbb67ae85;
+  H[2]  = 0x3c6ef372;
+  H[3]  = 0xa54ff53a;
+  H[4]  = 0x510e527f;
+  H[5]  = 0x9b05688c;
+  H[6]  = 0x1f83d9ab;
+  H[7]  = 0x5be0cd19;
+
+  return H;
+}
+
