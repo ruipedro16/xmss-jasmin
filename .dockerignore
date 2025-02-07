@@ -1,7 +1,0 @@
-bench/
-scripts/
-.github/
-.vscode/
-.clang-format
-proof/extraction/XMSS_*
-proof/common/
