@@ -1,5 +1,8 @@
 # xmss-jasmin
 
+> [!NOTE]
+> Development moved to [formosa-crypto/formosa-xmss](https://github.com/formosa-crypto/formosa-xmss)
+
 ## Proofs (for XMSSMT-SHA2_20/2_256)
 
 Run
